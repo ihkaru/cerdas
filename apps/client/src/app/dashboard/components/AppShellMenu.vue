@@ -1,0 +1,124 @@
+<template>
+    <f7-page>
+        <f7-navbar title="App Menu"></f7-navbar>
+        <f7-list>
+            <!-- Navigation Items (Custom Menu) -->
+            <f7-list-item v-for="(item, index) in navigation" :key="'nav-' + index" link="#" :title="item.label"
+                @click="handleNavClick(item)">
+                <template #media>
+                    <div class="menu-icon">
+                        <f7-icon :f7="item.icon || 'circle'" />
+                    </div>
+                </template>
+            </f7-list-item>
+
+            <!-- Separator if both exist -->
+            <f7-block-title v-if="navigation.length > 0 && forms.length > 0">All Forms</f7-block-title>
+
+            <!-- Forms List (Sibling Forms) -->
+            <f7-list-item v-for="form in forms" :key="'form-' + form.id" link="#" :title="form.name"
+                :after="form.id === currentFormId ? 'Current' : ''" @click="handleFormClick(form)">
+                <template #media>
+                    <div class="menu-icon">
+                        <f7-icon :f7="form.icon || 'doc_text'" />
+                    </div>
+                </template>
+                <template #subtitle>
+                    {{ form.description }}
+                </template>
+            </f7-list-item>
+
+            <f7-list-item v-if="forms.length === 0 && navigation.length === 0"
+                title="No other forms found"></f7-list-item>
+        </f7-list>
+    </f7-page>
+</template>
+
+<script setup lang="ts">
+import { f7 } from 'framework7-vue'; // Import f7 instance
+import type { PropType } from 'vue';
+
+const props = defineProps({
+    forms: {
+        type: Array as PropType<any[]>,
+        default: () => []
+    },
+    navigation: {
+        type: Array as PropType<any[]>,
+        default: () => []
+    },
+    views: {
+        type: Array as PropType<any[]>,
+        default: () => []
+    },
+    currentFormId: {
+        type: [String, Number],
+        required: true
+    }
+});
+
+const emit = defineEmits(['close']);
+
+function handleNavClick(item: any) {
+    f7.panel.close('left');
+
+    if (item.type === 'link' && item.url) {
+        window.open(item.url, '_blank');
+        return;
+    }
+
+    if (item.type === 'view' && item.view_id) {
+        // Find view definition 
+        const viewDef = props.views.find(v => v.id === item.view_id);
+        if (viewDef) {
+            // Found view logic
+            // Navigate to form with view param
+            const url = `/app/${viewDef.form_id}?view=${item.view_id}`;
+            f7.view.main.router.navigate(url, {
+                reloadCurrent: true
+            });
+            return;
+        } else {
+            f7.toast.show({
+                text: `View definition not found for ID: ${item.view_id}`,
+                closeTimeout: 2000
+            });
+        }
+        return;
+    }
+
+    f7.toast.show({
+        text: `Unknown navigation type: ${item.type}`,
+        closeTimeout: 2000
+    });
+}
+
+function handleFormClick(form: any) {
+    if (form.id == props.currentFormId) {
+        f7.panel.close('left');
+        return;
+    }
+
+    f7.panel.close('left');
+
+    // Navigate using F7 router
+    const url = `/app/${form.id}`;
+
+    f7.view.main.router.navigate(url, {
+        reloadCurrent: true // Replace current form
+    });
+}
+</script>
+
+<style scoped>
+.menu-icon {
+    width: 32px;
+    height: 32px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+}
+</style>

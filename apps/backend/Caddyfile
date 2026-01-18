@@ -1,0 +1,23 @@
+:8080 {
+    root * C:/projects/cerdas/apps/backend/public
+    
+    # Enable compression
+    encode gzip
+    
+    # PHP-CGI configuration - PORT 8888
+    php_fastcgi 127.0.0.1:8888 {
+        env SERVER_SOFTWARE "Caddy"
+    }
+    
+    # Laravel routing
+    try_files {path} {path}/ /index.php?{query}
+    
+    # File server
+    file_server
+    
+    # Logging
+    log {
+        output file C:/projects/cerdas/apps/backend/storage/logs/caddy.log
+        level INFO
+    }
+}

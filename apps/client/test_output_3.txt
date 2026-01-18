@@ -1,0 +1,83 @@
+
+> client@0.0.0 test C:\projects\cerdas\apps\client
+> vitest "run"
+
+
+[1m[46m RUN [49m[22m [36mv4.0.17 [39m[90mC:/projects/cerdas/apps/client[39m
+
+[90mstdout[2m | tests/api.test.ts[2m > [22m[2mBackend API Integration Tests[2m > [22m[2mshould login successfully
+[22m[39mLogin Status: [33m200[39m
+
+[90mstdout[2m | tests/api.test.ts[2m > [22m[2mBackend API Integration Tests[2m > [22m[2mshould login successfully
+[22m[39mLogin Response: {
+  "success": true,
+  "data": {
+    "user": {
+      "id": 1,
+      "name": "Test User",
+      "email": "user@example.com",
+      "email_verified_at": "2026-01-13T18:17:36.000000Z",
+      "is_super_admin": false,
+      "created_at": "2026-01-13T18:17:36.000000Z",
+      "updated_at": "2026-01-13T18:17:36.000000Z"
+    },
+    "token": "2|R2xjrRDgPQTqEz2TCoSWK9wr4V2IM926ZoNqHxXT9258713e"
+  },
+  "message": "Login successful"
+}
+
+[90mstdout[2m | tests/api.test.ts[2m > [22m[2mBackend API Integration Tests[2m > [22m[2mshould fetch assignments
+[22m[39mAssignments Status: [33m200[39m
+
+ [31mΓ¥»[39m tests/api.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[33m 426[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m should login successfully [33m 343[2mms[22m[39m
+[31m     [31m├ù[31m should fetch assignments[39m[32m 49[2mms[22m[39m
+[31m     [31m├ù[31m should push responses[39m[32m 31[2mms[22m[39m
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Tests 2 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  tests/api.test.ts > Backend API Integration Tests > should fetch assignments
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ Γ¥» tests/api.test.ts:69:42
+     67|         // Our controller uses ApiResource usually, checking structure
+     68|         expect(data).toHaveProperty('data');
+     69|         expect(Array.isArray(data.data)).toBe(true);
+       |                                          ^
+     70|     });
+     71| 
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/2]ΓÄ»
+
+ FAIL  tests/api.test.ts > Backend API Integration Tests > should push responses
+AssertionError: expected 422 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 422
+
+ Γ¥» tests/api.test.ts:102:28
+    100| 
+    101|         const data = await res.json();
+    102|         expect(res.status).toBe(200);
+       |                            ^
+    103|         expect(data.data).toHaveLength(1);
+    104|         expect(data.data[0].status).toBe('error'); // Expected "AssignΓÇª
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[2/2]ΓÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (3)[39m
+[2m   Start at [22m 01:21:54
+[2m   Duration [22m 776ms[2m (transform 47ms, setup 0ms, import 108ms, tests 426ms, environment 0ms)[22m
+
+ΓÇëELIFECYCLEΓÇë Test failed. See above for more details.

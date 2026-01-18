@@ -1,0 +1,51 @@
+
+  Dropping all tables ........ 145.93ms DONE
+
+   INFO  Preparing database.  
+
+  Creating migration table .... 12.24ms DONE
+
+   INFO  Running migrations.  
+
+  0001_01_01_000000_create_users_table  82.81ms DONE
+  0001_01_01_000001_create_cache_table  25.66ms DONE
+  0001_01_01_000002_create_jobs_table  78.73ms DONE
+  2026_01_13_165214_create_personal_access_tokens_table  69.69ms DONE
+  2026_01_13_173611_create_projects_table  122.90ms DONE
+  2026_01_13_173612_create_organizations_table  124.97ms DONE
+  2026_01_13_173614_create_project_memberships_table  396.84ms DONE
+  2026_01_13_173616_create_app_schemas_table  123.81ms DONE
+  2026_01_13_173618_create_app_schema_versions_table  119.01ms DONE
+  2026_01_13_173620_create_assignments_table  355.21ms DONE
+  2026_01_13_173622_create_responses_table  197.98ms DONE
+  2026_01_13_174647_create_fields_table  213.84ms DONE
+  2026_01_13_174649_create_field_options_table  119.09ms DONE
+  2026_01_13_192624_add_layout_to_app_schema_versions_table  10.87ms DONE
+  2026_01_17_090000_rename_projects_to_apps  142.98ms DONE
+  2026_01_17_090001_rename_app_schemas_to_forms  314.62ms DONE
+
+
+   INFO  Seeding database.  
+
+  Database\Seeders\UserSeeder ...... RUNNING  
+  Database\Seeders\UserSeeder .. 848 ms DONE  
+
+  Database\Seeders\AppSeeder ....... RUNNING  
+  Database\Seeders\AppSeeder ... 110 ms DONE  
+
+  Database\Seeders\FormSeeder ...... RUNNING  
+  Database\Seeders\FormSeeder ... 53 ms DONE  
+
+  Database\Seeders\PerformanceTestSeeder  RUNNING  
+Starting Performance Test Seeder (CSV Mode)...
+Ensuring App Memberships...
+Loading assignments from CSV: C:\projects\cerdas\apps\backend\database\seeders/data/performance_assignments_uuid.csv
+....................
+Imported 10000 assignments from CSV.
+  Database\Seeders\PerformanceTestSeeder  1,816 ms DONE  
+
+  Database\Seeders\ComponentShowcaseSeeder  RUNNING  
+Creating assignments for Showcase App...
+Showcase App created successfully with GROUPING data!
+  Database\Seeders\ComponentShowcaseSeeder  153 ms DONE  
+

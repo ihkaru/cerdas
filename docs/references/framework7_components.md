@@ -1,0 +1,85 @@
+# Framework7 Vue Component Reference
+
+> Use this list to search for component documentation and examples.
+
+## Core & Setup
+- Kitchen Sink
+- Installation
+- Package Structure
+- App Layout
+- Initialize App
+- Vue Component Extensions
+- Navigation / Router
+- Color Properties
+- Store
+- Migration from v8 to v9
+
+## Components
+- Vue Components
+- App
+- Accordion
+- Action Sheet / Actions
+- Area Chart
+- Autocomplete
+- Badge
+- Block / Content Block
+- Breadcrumbs
+- Button
+- Calendar / Datepicker
+- Cards
+- Checkbox
+- Chips / Tags
+- Color Picker
+- Contacts List
+- Data Table
+- Dialog
+- Floating Action Button / FAB
+- Form Storage
+- Gauge
+- Grid / Layout Grid
+- Icon
+- Infinite Scroll
+- Inputs / Form Inputs
+- Link
+- List View
+- List Button
+- List Index
+- List Item
+- Login Screen
+- Menu List
+- Messagebar
+- Messages
+- Navbar
+- Notification
+- Page
+- Panel / Side Panels
+- Photo Browser
+- Picker
+- Pie Chart
+- Popover
+- Popup
+- Preloader
+- Progressbar
+- Pull To Refresh
+- Radio
+- Range Slider
+- Searchbar
+- Segmented
+- Sheet Modal
+- Skeleton
+- Smart Select
+- Sortable
+- Stepper
+- Subnavbar
+- Swipeout
+- Swiper
+- Tabs
+- Text Editor
+- Timeline
+- Toast
+- Toggle
+- Toolbar / Tabbar
+- Tooltip
+- Treeview
+- View
+- Virtual List

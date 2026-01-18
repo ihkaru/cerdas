@@ -1,0 +1,122 @@
+/* Cerdas Client App Styles */
+
+/* Reset for Framework7 - REMOVED aggressive reset
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+} 
+*/
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+  width: 100%;
+}
+
+/* ============================================
+   Custom Page Transition: f7-push-back
+   Simulates Native iOS Backward Navigation
+   - Current page (Top) slides OUT to the right
+   - Previous page (Bottom) slides IN from left (Parallax)
+   ============================================ */
+
+.router-transition-f7-push-back-forward {
+  perspective: 1200px;
+  overflow: hidden;
+  background: #000; /* Background for parallax depth */
+}
+
+/* Page ENTERING (New Page) - Goes BEHIND */
+.router-transition-f7-push-back-forward .page-next {
+  animation: pushBackEnter 400ms cubic-bezier(.36, .66, .04, 1) forwards !important;
+  z-index: 1 !important; /* Force Behind */
+  opacity: 1;
+  pointer-events: none; /* Prevent clicks during transition */
+}
+
+/* Page LEAVING (Current Page) - Stays ON TOP */
+.router-transition-f7-push-back-forward .page-current {
+  animation: pushBackLeave 400ms cubic-bezier(.36, .66, .04, 1) forwards !important;
+  z-index: 100 !important; /* Force Top */
+  box-shadow: -10px 0 25px -5px rgba(0,0,0,0.2) !important; /* Left-side shadow */
+}
+
+/* Cleanup after animation */
+.page-next, .page-current {
+  pointer-events: auto;
+}
+
+/* Keyframes: New page parallax enter from Left */
+@keyframes pushBackEnter {
+  from {
+    transform: translateX(-30%);
+    opacity: 0.9;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Keyframes: Current page slide out to Right */
+@keyframes pushBackLeave {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ============================================
+   Global Toolbar/Tabbar Fixes
+   ============================================ */
+
+/* Toolbar with labels needs more height */
+:root {
+  --f7-tabbar-labels-height: 56px;
+  --f7-tabbar-labels-tablet-height: 56px;
+}
+
+/* Ensure tabbar with labels has proper height and safe area */
+.toolbar.tabbar-labels {
+  height: calc(var(--f7-tabbar-labels-height) + var(--f7-safe-area-bottom, 0px));
+  padding-bottom: var(--f7-safe-area-bottom, 0px);
+}
+
+/* Fix tabbar icons and labels alignment */
+.toolbar.tabbar .link,
+.toolbar.tabbar-labels .link {
+  flex: 1; /* Pastikan semua link punya lebar sama */
+  width: 100%;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar.tabbar .link .icon,
+.toolbar.tabbar-labels .link .icon {
+  font-size: 22px;
+}
+
+.toolbar.tabbar-labels .tabbar-label {
+  font-size: 10px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 100%;
+}
+

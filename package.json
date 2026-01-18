@@ -1,0 +1,27 @@
+{
+  "name": "cerdas",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Self-hosted, offline-first, no-code app builder for data collection",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "sql.js": "1.11.0"
+    }
+  }
+}
