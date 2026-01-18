@@ -2,8 +2,18 @@
 
 **Cerdas** (Indonesian for *Smart/Intelligent*) is a professional, offline-first, no-code data collection platform. It enables organizations to build, deploy, and manage mobile-friendly applications for field data collection with a seamless syncing engine—designed as a lightweight, self-hosted alternative to platforms like Google AppSheet or KoboToolbox.
 
+## 💡 Why Cerdas?
+
+Most no-code platforms come with heavy restrictions. **Cerdas was born out of the frustration with AppSheet's limit of only 10 users for the free/prototype tier.** 
+
+With Cerdas, you are in control:
+- **No User Limits**: Support dozens, hundreds, or thousands of field staff without per-user monthly fees.
+- **Truly Self-Hosted**: Your data stays on your servers.
+- **Offline Intelligence**: Built specifically for environments with poor or no internet connectivity.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Stack: Vue 3 & Laravel](https://img.shields.io/badge/Stack-Vue%203%20%2B%20Laravel-4FC08D?logo=vue.js)](https://vuejs.org)
+[![Stack: Vue 3 & Laravel 12](https://img.shields.io/badge/Stack-Vue%203%20%2B%20Laravel%2012-4FC08D?logo=laravel)](https://laravel.com)
+[![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-blue.svg)](https://github.com/yourusername/cerdas)
 
 ## 🚀 Key Features
 
@@ -12,26 +22,29 @@
 -   **🔄 Robust Sync Engine**: Handling large datasets and media attachments (photos, signatures) with conflict resolution.
 -   **📁 Multi-Level Grouping**: Organize your tasks similar to AppSheet with deep nested folder structures.
 -   **🗺️ Geospatial Support**: Capture GPS locations and visualize data on integrated Map views.
--   **🔏 Self-Hosted & Privacy Focused**: Total control over your data. Deploy on your own infrastructure using Docker or standard PHP environments.
+-   **📊 Data Export**: Integrated Excel support for data analysis and reporting.
+-   **🔐 Role-Based Access Control**: Advanced permission management via Spatie Laravel Permission.
+-   **🔏 Self-Hosted & Privacy Focused**: Total control over your data.
 
 ## 🏗️ Architecture & Tech Stack
 
 Cerdas is built as a modern monorepo using **Turbo** and **pnpm**:
 
--   **Backend**: [Laravel 11](https://laravel.com) API with Sanctum for secure authentication.
--   **App Renderer**: [Vue 3](https://vuejs.org) + [Framework7](https://framework7.io) for high-performance mobile UI.
--   **Form Builder**: Custom-built `@cerdas/form-engine` for dynamic schema rendering.
--   **Storage**: Shared SQLite on the client (via Capacitor SQLite) and MySQL/PostgreSQL on the backend.
--   **Desktop/Web**: Fully responsive web interface for administrative management.
+-   **Backend**: [Laravel 12](https://laravel.com) API with [Sanctum](https://laravel.com/docs/sanctum) for secure authentication.
+-   **Frontend**: [Vue 3](https://vuejs.org) + [Framework7](https://framework7.io) for high-performance mobile UI.
+-   **Libraries**:
+    -   `maatwebsite/excel` for powerful data exporting.
+    -   `spatie/laravel-permission` for flexible RBAC.
+-   **Database**: SQLite on the client (via Capacitor SQLite) and MySQL/PostgreSQL/SQLite on the backend.
 
 ## 🛠️ Getting Started
 
 ### Prerequisites
 
--   Node.js 20+
--   PHP 8.2+
--   Composer
--   pnpm (`npm install -g pnpm`)
+-   **PHP 8.2+**
+-   **Node.js 20+**
+-   **pnpm** (`npm install -g pnpm`)
+-   **Composer**
 
 ### Installation
 
@@ -41,7 +54,7 @@ Cerdas is built as a modern monorepo using **Turbo** and **pnpm**:
     cd cerdas
     ```
 
-2.  **Install dependencies:**
+2.  **Install project-wide dependencies:**
     ```bash
     pnpm install
     ```
@@ -49,22 +62,21 @@ Cerdas is built as a modern monorepo using **Turbo** and **pnpm**:
 3.  **Setup Backend:**
     ```bash
     cd apps/backend
-    cp .env.example .env
     composer install
-    php artisan key:generate
-    php artisan migrate --seed
+    # Or use the built-in setup script:
+    composer run setup
     ```
 
 4.  **Run Development Environment:**
-    From the root directory:
+    Return to the root directory and run the helper script:
     ```bash
     ./start-all.bat
     ```
-    *This will start the Backend, Editor, and Client Apps simultaneously.*
+    *This will simultaneously launch the Backend, Editor, and Client Apps.*
 
 ## 📂 Project Structure
 
--   `apps/backend`: Laravel API server.
+-   `apps/backend`: Laravel 12 API server.
 -   `apps/client`: Mobile PWA for data collectors.
 -   `apps/editor`: Web interface for building app schemas & layouts.
 -   `packages/form-engine`: Core library for rendering JSON-defined forms.
@@ -72,7 +84,7 @@ Cerdas is built as a modern monorepo using **Turbo** and **pnpm**:
 
 ## 📜 License
 
-This project is licensed under the **MIT License**. You are free to use, modify, and distribute it for personal or commercial projects.
+This project is licensed under the **MIT License**—the same as Laravel. You are free to use, modify, and distribute it.
 
 ---
 

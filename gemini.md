@@ -58,6 +58,8 @@ packages/types  - @cerdas/types (shared strict TS types)
 - `restart-android.bat`: Restarts Android App & captures logs.
 - `save-android-log.bat`: Captures current Android logs to `logs/`.
 
+- **Version**: 0.1.0 (Current Stable Draft)
+
 **⚠️ CRITICAL**: Always use `.\stop-all.bat` to stop servers. NEVER use `taskkill` directly - it may close IDE!
 
 ## User Memory Notes
@@ -66,6 +68,7 @@ packages/types  - @cerdas/types (shared strict TS types)
 - User gives standing permission for necessary actions
 - User wants strict TypeScript to catch errors early
 - Update gemini.md with important changes/progress
+- **CRITICAL VERSION RULE**: Always update the project version (currently 0.1.0) in `README.md`, `package.json`, and `composer.json` whenever significant progress is made (equivalent to a "push").
 
 ## Framework7 v9 + TypeScript Setup Notes
 F7 Vue has incomplete TypeScript declarations. Required shims:
