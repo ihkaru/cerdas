@@ -11,7 +11,11 @@
                 <slot name="main"></slot>
             </main>
 
-            <aside class="preview-panel">
+            <!-- Resizable Divider for Preview Panel -->
+            <ResizableDivider class="preview-divider" @resize-start="previewBaseWidth = previewWidth"
+                @resize="(delta) => previewWidth = Math.max(320, Math.min(600, previewBaseWidth - delta))" />
+
+            <aside class="preview-panel" :style="{ width: previewWidth + 'px' }">
                 <slot name="preview"></slot>
             </aside>
         </div>
@@ -22,14 +26,18 @@
 </template>
 
 <script setup lang="ts">
-// EditorShell: Layout container component
+import { ref } from 'vue';
+import ResizableDivider from '../shared/ResizableDivider.vue';
+
+// Preview panel width state
+const previewWidth = ref(420);
+const previewBaseWidth = ref(420);
 </script>
 
 <style scoped>
 .form-editor-page {
     --header-height: 56px;
     --sidebar-width: 180px;
-    --preview-width: 420px;
     background: #f8fafc;
 }
 
@@ -53,6 +61,7 @@
     padding: 16px 8px;
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
 }
 
 .editor-main {
@@ -63,11 +72,41 @@
     background: #f8fafc;
 }
 
+.preview-divider {
+    background: #f1f5f9;
+    /* Light gray background to separate Main from Preview */
+    border-left: 1px solid #e2e8f0;
+    border-right: 1px solid #334155;
+    /* Dark border on right to match preview */
+}
+
+.preview-divider:hover,
+.preview-divider.dragging {
+    background: #e2e8f0;
+}
+
+.preview-divider :deep(.divider-handle) {
+    background: #cbd5e1;
+    /* Visible gray handle */
+}
+
+.preview-divider:hover :deep(.divider-handle),
+.preview-divider.dragging :deep(.divider-handle) {
+    background: #3b82f6;
+    /* Blue on hover */
+}
+
+.preview-divider :deep(.handle-dots span) {
+    background: #64748b;
+}
+
 .preview-panel {
-    width: var(--preview-width);
+    min-width: 320px;
+    max-width: 800px;
+    /* Increased max width */
     background: #1e293b;
     display: flex;
     flex-direction: column;
-    border-left: 1px solid #334155;
+    flex-shrink: 0;
 }
 </style>

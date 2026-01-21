@@ -1,0 +1,323 @@
+/* ============================================================================
+   Cerdas Editor Theme - Global F7 Overrides
+   ============================================================================
+   
+   This file provides consistent styling across all editor components.
+   Import this in main.ts AFTER framework7 CSS.
+   
+   Design System:
+   - Primary: #3b82f6 (blue-500)
+   - Text Primary: #1e293b (slate-800)
+   - Text Secondary: #64748b (slate-500)
+   - Text Muted: #94a3b8 (slate-400)
+   - Border: #e2e8f0 (slate-200)
+   - Background: #f8fafc (slate-50)
+   - Surface: #ffffff
+   ============================================================================ */
+
+/* ============================================================================
+   Color Variables
+   ============================================================================ */
+:root {
+    --editor-primary: #3b82f6;
+    --editor-primary-light: #eff6ff;
+    --editor-primary-border: #bfdbfe;
+    
+    --editor-text-primary: #1e293b;
+    --editor-text-secondary: #64748b;
+    --editor-text-muted: #94a3b8;
+    
+    --editor-border: #e2e8f0;
+    --editor-bg: #f8fafc;
+    --editor-surface: #ffffff;
+    
+    --editor-success: #10b981;
+    --editor-warning: #f59e0b;
+    --editor-danger: #ef4444;
+    
+    --editor-purple: #7c3aed;
+    --editor-purple-light: #faf5ff;
+    --editor-purple-border: #e9d5ff;
+}
+
+/* ============================================================================
+   Framework7 List & Input Overrides
+   ============================================================================ */
+
+/* Reset F7 List backgrounds */
+.list {
+    --f7-list-bg-color: var(--editor-surface);
+    --f7-list-border-color: var(--editor-border);
+}
+
+/* Reset ALL F7 input wrapper backgrounds */
+.list .item-input,
+.list .input,
+.list .list-input,
+.list .item-input-wrap {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Remove F7 hairlines/pseudo-elements */
+.list .item-input::before,
+.list .item-input::after,
+.list .input::before,
+.list .input::after,
+.list .item-input-wrap::before,
+.list .item-input-wrap::after {
+    display: none !important;
+}
+
+/* Style input elements with our design system */
+.list input[type="text"],
+.list input[type="number"],
+.list input[type="email"],
+.list input[type="password"],
+.list input[type="url"],
+.list input[type="tel"],
+.list input[type="search"],
+.list input[type="date"],
+.list input[type="datetime-local"],
+.list input[type="time"],
+.list textarea,
+.list select {
+    font-size: 14px !important;
+    color: var(--editor-text-primary) !important;
+    background: var(--editor-surface) !important;
+    background-color: var(--editor-surface) !important;
+    border: 1px solid var(--editor-border) !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    transition: all 0.15s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Focus state */
+.list input:focus,
+.list textarea:focus,
+.list select:focus {
+    background: var(--editor-surface) !important;
+    border-color: var(--editor-primary) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    outline: none !important;
+}
+
+/* Placeholder */
+.list input::placeholder,
+.list textarea::placeholder {
+    color: var(--editor-text-muted) !important;
+}
+
+/* ============================================================================
+   Labels & Info Text
+   ============================================================================ */
+
+.list .item-label {
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: var(--editor-text-secondary) !important;
+    margin-bottom: 4px;
+    background: transparent !important;
+}
+
+.list .item-input-info {
+    font-size: 11px !important;
+    color: var(--editor-text-muted) !important;
+    margin-top: 4px;
+}
+
+/* ============================================================================
+   List Group Titles (Section Headers)
+   ============================================================================ */
+
+.list .item-divider,
+.list .list-group-title,
+.list-group-title {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    color: var(--editor-text-secondary) !important;
+    background: transparent !important;
+    padding: 12px 14px 6px 14px !important;
+    min-height: auto !important;
+}
+
+/* ============================================================================
+   Toggle Switches
+   ============================================================================ */
+
+.toggle {
+    --f7-toggle-width: 44px;
+    --f7-toggle-height: 24px;
+}
+
+/* ============================================================================
+   Buttons
+   ============================================================================ */
+
+.button.button-fill {
+    --f7-button-fill-bg-color: var(--editor-primary);
+    --f7-button-fill-hover-bg-color: #2563eb;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.button.button-small {
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+/* ============================================================================
+   Accordion Enhancement
+   ============================================================================ */
+
+.accordion-item .item-link {
+    background: linear-gradient(135deg, var(--editor-bg) 0%, #f1f5f9 100%);
+}
+
+.accordion-item .item-link .item-title {
+    font-weight: 600 !important;
+    color: #475569 !important;
+}
+
+.accordion-item-opened .item-link {
+    background: linear-gradient(135deg, var(--editor-primary-light) 0%, #dbeafe 100%) !important;
+}
+
+.accordion-item-opened .item-link .item-title {
+    color: #2563eb !important;
+}
+
+.accordion-content {
+    background: var(--editor-surface);
+}
+
+/* ============================================================================
+   Badges & Tags
+   ============================================================================ */
+
+.badge-primary {
+    background: linear-gradient(135deg, var(--editor-primary-light) 0%, #dbeafe 100%);
+    color: #2563eb;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--editor-primary-border);
+}
+
+.badge-purple {
+    background: var(--editor-purple-light);
+    color: var(--editor-purple);
+    border: 1px solid var(--editor-purple-border);
+}
+
+/* ============================================================================
+   Code/Monospace Inputs
+   ============================================================================ */
+
+.code-input,
+input.code-input {
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace !important;
+    font-size: 12px !important;
+    color: var(--editor-purple) !important;
+    background: var(--editor-purple-light) !important;
+    border-color: var(--editor-purple-border) !important;
+}
+
+.code-input:focus {
+    border-color: #a78bfa !important;
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1) !important;
+}
+
+/* ============================================================================
+   Empty States
+   ============================================================================ */
+
+.empty-state {
+    text-align: center;
+    padding: 48px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.empty-state-icon {
+    font-size: 56px !important;
+    color: #cbd5e1;
+    margin-bottom: 16px;
+}
+
+.empty-state h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.empty-state p {
+    margin: 0 0 20px 0;
+    font-size: 14px;
+    color: var(--editor-text-secondary);
+    line-height: 1.5;
+}
+
+.empty-state p strong {
+    color: var(--editor-primary);
+}
+
+/* ============================================================================
+   Panel Headers
+   ============================================================================ */
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--editor-border);
+    background: var(--editor-surface);
+}
+
+.panel-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--editor-text-primary);
+}
+
+/* ============================================================================
+   Cards
+   ============================================================================ */
+
+.card-elevated {
+    background: var(--editor-surface);
+    border: 1px solid var(--editor-border);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================================================
+   Logic Labels (for code editors)
+   ============================================================================ */
+
+.logic-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--editor-text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.logic-label::before {
+    content: '';
+    width: 3px;
+    height: 12px;
+    background: var(--editor-primary);
+    border-radius: 2px;
+}

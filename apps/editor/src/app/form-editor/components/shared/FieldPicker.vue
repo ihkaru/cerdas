@@ -13,8 +13,8 @@
             <Transition name="dropdown">
                 <div v-if="isOpen" class="picker-dropdown">
                     <!-- None Option -->
-                    <button v-if="allowNone" type="button" class="picker-option none" 
-                        :class="{ active: !modelValue }" @click="selectField(null)">
+                    <button v-if="allowNone" type="button" class="picker-option none" :class="{ active: !modelValue }"
+                        @click="selectField(null)">
                         <f7-icon f7="xmark" class="field-icon" />
                         <span>None</span>
                     </button>
@@ -150,41 +150,44 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
     gap: 8px;
     width: 100%;
     padding: 10px 12px;
-    background: var(--f7-list-item-bg-color);
-    border: 1px solid var(--f7-list-border-color);
+    background: #ffffff;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
     cursor: pointer;
     transition: border-color 0.15s, box-shadow 0.15s;
     text-align: left;
+    font-family: inherit;
+    font-size: 14px;
 }
 
 .picker-trigger:hover {
-    border-color: var(--f7-theme-color);
+    border-color: #3b82f6;
 }
 
 .picker-wrapper.open .picker-trigger {
-    border-color: var(--f7-theme-color);
-    box-shadow: 0 0 0 3px rgba(var(--f7-theme-color-rgb), 0.1);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .field-icon {
     font-size: 16px;
-    color: var(--f7-theme-color);
+    color: #3b82f6;
 }
 
 .selected-value {
     flex: 1;
     font-size: 14px;
-    color: var(--f7-list-item-title-text-color);
+    color: #1e293b;
 }
 
 .picker-trigger:not(:has(.field-icon)) .selected-value {
-    color: var(--f7-list-item-subtitle-text-color);
+    color: #94a3b8;
 }
 
 .chevron {
     font-size: 12px;
-    color: var(--f7-list-item-subtitle-text-color);
+    color: #94a3b8;
     transition: transform 0.2s;
 }
 
@@ -198,11 +201,12 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
     top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: var(--f7-list-item-bg-color);
-    border: 1px solid var(--f7-list-border-color);
+    background: #ffffff;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    z-index: 100;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
     max-height: 240px;
     overflow-y: auto;
 }
@@ -221,16 +225,16 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
 }
 
 .picker-option:hover {
-    background: var(--f7-list-button-pressed-bg-color);
+    background: #f1f5f9;
 }
 
 .picker-option.active {
-    background: rgba(var(--f7-theme-color-rgb), 0.1);
+    background: rgba(59, 130, 246, 0.1);
 }
 
 .picker-option.none {
-    color: var(--f7-list-item-subtitle-text-color);
-    border-bottom: 1px solid var(--f7-list-border-color);
+    color: #64748b;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .option-info {
@@ -241,18 +245,18 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
 
 .option-label {
     font-size: 14px;
-    color: var(--f7-list-item-title-text-color);
+    color: #1e293b;
 }
 
 .option-name {
     font-size: 11px;
-    color: var(--f7-list-item-subtitle-text-color);
+    color: #64748b;
     font-family: monospace;
 }
 
 .check-icon {
     font-size: 14px;
-    color: var(--f7-theme-color);
+    color: #3b82f6;
 }
 
 .empty-state {

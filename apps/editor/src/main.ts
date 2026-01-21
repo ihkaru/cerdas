@@ -42,6 +42,9 @@ import './style.css';
 // Import Shared Theme (for consistent styling with Client)
 import '@cerdas/ui/theme.css';
 
+// Import Editor-specific theme overrides (MUST be after F7 CSS)
+import './editor-theme.css';
+
 // Import Pinia
 import { createPinia } from 'pinia';
 

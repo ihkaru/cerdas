@@ -258,41 +258,52 @@ function removeOption(index: number) {
 </script>
 
 <style scoped>
+/* ============================================================================
+   Field Config Panel - Component-Specific Styles Only
+   (Global F7 overrides are in editor-theme.css)
+   ============================================================================ */
+
 .field-config-panel {
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: var(--f7-page-bg-color);
+    background: var(--editor-bg, #f8fafc);
 }
 
-/* Header - More compact */
+/* Header */
 .config-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--f7-list-border-color);
-    background: var(--f7-bars-bg-color);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--editor-border, #e2e8f0);
+    background: var(--editor-surface, #ffffff);
     flex-shrink: 0;
 }
 
 .config-title {
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
+    color: var(--editor-text-primary, #1e293b);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
 .title-icon {
-    color: var(--f7-theme-color);
-    font-size: 16px;
+    color: var(--editor-primary, #3b82f6);
+    font-size: 18px;
 }
 
 .close-btn {
-    color: var(--f7-list-item-subtitle-text-color);
-    font-size: 18px;
+    color: var(--editor-text-muted, #94a3b8);
+    font-size: 20px;
+    transition: color 0.15s;
+}
+
+.close-btn:hover {
+    color: var(--editor-text-secondary, #64748b);
 }
 
 /* No Selection */
@@ -302,143 +313,119 @@ function removeOption(index: number) {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding: 32px;
     text-align: center;
-    color: var(--f7-list-item-subtitle-text-color);
+    color: var(--editor-text-muted, #94a3b8);
 }
 
 .empty-icon {
-    font-size: 32px;
-    opacity: 0.3;
-    margin-bottom: 8px;
+    font-size: 40px;
+    opacity: 0.4;
+    margin-bottom: 12px;
 }
 
 /* Content - Scrollable */
 .config-content {
     flex: 1;
     overflow-y: auto;
-    padding: 4px 0;
+    padding: 8px 0;
     min-height: 0;
-    /* Important for flexbox scroll */
 }
 
-/* Override F7 list styling for compact look */
+/* Section spacing */
 .config-section {
-    margin: 4px 8px;
+    margin: 8px 12px;
     --f7-list-margin-vertical: 0;
-    --f7-list-inset-border-radius: 8px;
-}
-
-.config-section :deep(.list) {
-    font-size: 13px;
-}
-
-.config-section :deep(.item-content) {
-    padding-left: 12px;
-    min-height: 36px;
-}
-
-.config-section :deep(.item-inner) {
-    padding-right: 12px;
-    padding-top: 6px;
-    padding-bottom: 6px;
-}
-
-.config-section :deep(.item-title) {
-    font-size: 13px;
-}
-
-.config-section :deep(.item-input-wrap input),
-.config-section :deep(.item-input-wrap textarea) {
-    font-size: 13px;
-}
-
-.config-section :deep([slot="group-title"]),
-.config-section :deep(.list-group-title) {
-    font-size: 11px;
-    padding: 4px 12px;
-    min-height: 24px;
+    --f7-list-inset-border-radius: 10px;
 }
 
 /* Field Type Badge */
 .field-type-badge {
-    background: rgba(var(--f7-theme-color-rgb), 0.1);
-    color: var(--f7-theme-color);
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 500;
+    background: linear-gradient(135deg, var(--editor-primary-light, #eff6ff) 0%, #dbeafe 100%);
+    color: #2563eb;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--editor-primary-border, #bfdbfe);
 }
 
-/* Option Item */
+/* Options Section */
 .option-item :deep(.item-inner) {
-    padding: 4px 8px;
+    padding: 8px 14px;
 }
 
 .option-inputs {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     flex: 1;
 }
 
 .option-input {
     flex: 1;
-    padding: 4px 8px;
-    border: 1px solid var(--f7-list-border-color);
-    border-radius: 4px;
-    font-size: 12px;
-    background: var(--f7-list-item-bg-color);
-}
-
-.option-input.value {
-    flex: 0.4;
-    font-family: monospace;
-    font-size: 11px;
-}
-
-.option-input.label {
-    flex: 0.6;
+    padding: 8px 10px;
+    border: 1px solid var(--editor-border, #e2e8f0);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--editor-surface, #ffffff);
+    color: var(--editor-text-primary, #1e293b);
+    transition: all 0.15s ease;
 }
 
 .option-input:focus {
     outline: none;
-    border-color: var(--f7-theme-color);
+    border-color: var(--editor-primary, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+.option-input.value {
+    flex: 0.35;
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--editor-purple, #7c3aed);
+    background: var(--editor-purple-light, #faf5ff);
+    border-color: var(--editor-purple-border, #e9d5ff);
+}
 
+.option-input.value:focus {
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
+}
 
+.option-input.label {
+    flex: 0.65;
+}
+
+/* Logic Editor Groups */
 .logic-editor-group {
-    padding: 8px 16px 12px 16px;
-    border-bottom: 1px solid var(--f7-list-border-color);
+    padding: 12px 14px 16px 14px;
+    border-bottom: 1px solid #f1f5f9;
 }
 
 .logic-editor-group:last-child {
     border-bottom: none;
 }
 
-.logic-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--f7-list-item-title-text-color);
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
+/* Code Editor Field */
 .code-editor-field {
-    padding: 12px 16px;
+    padding: 12px 14px 16px 14px;
 }
 
 .field-label {
-    font-size: 13px;
-    font-weight: 400;
-    color: var(--f7-list-item-title-text-color);
-    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--editor-text-secondary, #64748b);
+    margin-bottom: 8px;
 }
 
 .field-hint {
     font-size: 11px;
-    color: #8e8e93;
-    margin-top: 4px;
+    color: var(--editor-text-muted, #94a3b8);
+    margin-top: 6px;
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    background: #f1f5f9;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
 }
 </style>

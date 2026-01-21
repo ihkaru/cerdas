@@ -547,3 +547,86 @@ Dashboard (/) → Apps (/apps) → App Detail (/apps/:id) → Form Editor (/form
     - Improved type safety (`type Ref` imports).
     - Cleaner dependency injection between composables.
     - Easier to unit test isolated logic chunks.
+
+### 2026-01-21: Editor UX Improvements
+
+- **UI/UX Review**: Analyzed editor hierarchy against `FORM_EDITOR_WORKFLOW.md` documentation.
+- **Implemented 3 Improvements**:
+  1. **Auto-Select Single Form**: If app has only 1 form, automatically select it and navigate to Fields tab (reduces friction for simple apps).
+  2. **Disabled Tabs with Visual Feedback**: Tabs that require form selection (Fields, Actions, Assign) are now visually disabled with lock icon and tooltip ("Pilih Data Source terlebih dahulu").
+  3. **Empty State Messages**: Each tab that requires form shows helpful empty state with icon, message, and "Go to Data Sources" button.
+- **FieldConfigPanel Professional Styling**:
+  - Redesigned input fields with elevated styling (clear borders, backgrounds, focus states).
+  - Section headers with uppercase labels and consistent typography.
+  - Enhanced option inputs with monospace styling for values (purple accent).
+  - Improved accordion sections with gradient backgrounds.
+  - Focus states with blue glow effect for better UX feedback.
+  - Logic labels with accent bar indicator.
+- **Global Editor Theme (Scalable Solution)**:
+  - Created `editor-theme.css` - single source of truth for all F7 overrides.
+  - Imported in `main.ts` after F7 CSS for proper cascade.
+  - Defines CSS variables (--editor-primary, --editor-border, etc.) for consistency.
+  - Eliminates need to duplicate F7 overrides in every component.
+  - Components now use CSS variables instead of hardcoded colors.
+- **Files Modified**:
+  - `EditorSidebar.vue`: Added `hasFormSelected` prop, disabled state logic, lock icon, and styles.
+  - `AppEditorPage.vue`: Pass `hasFormSelected` computed, auto-select logic in `onMounted`, empty state UI.
+  - `FieldConfigPanel.vue`: Simplified CSS using global theme variables.
+- **Files Created**:
+  - `apps/editor/src/editor-theme.css`: Global F7 overrides and design system.
+
+### 2026-01-22: ViewsPanel Scalability Refactoring
+
+- **Problem**: `ViewsPanel.vue` had ~640 lines with multiple responsibilities (views, navigation, UI state, API calls).
+- **Solution**: Decomposed into smaller, single-responsibility components:
+  - **Components Created**:
+    - `ViewsSidebar.vue`: Sidebar with view/navigation lists.
+    - `ViewConfigPanel.vue`: Main view configuration wrapper.
+    - `NavigationConfigPanel.vue`: Navigation item configuration.
+    - `DeckViewConfig.vue`: Deck-specific settings.
+    - `MapViewConfig.vue`: Map-specific settings.
+    - `ViewActionsSelector.vue`: Action checkboxes.
+  - **Composables Created**:
+    - `useViewManagement.ts`: CRUD operations for views.
+    - `useNavigationManagement.ts`: Navigation state and API persistence.
+    - `useViewConfigSync.ts`: Syncing local layout state with global editor state.
+  - **Utilities Created**:
+    - `viewHelpers.ts`: Helper functions for icons and default configurations.
+    - `validations.ts`: Config validation utilities.
+- **Result**: `ViewsPanel.vue` is now a thin orchestrator (~120 lines).
+- **Directory Structure**:
+
+  ```text
+  views/
+  ├── ViewsPanel.vue (orchestrator)
+  ├── sidebar/
+  │   └── ViewsSidebar.vue
+  ├── config/
+  │   ├── ViewConfigPanel.vue
+  │   ├── NavigationConfigPanel.vue
+  │   ├── ViewActionsSelector.vue
+  │   └── view-types/
+  │       ├── DeckViewConfig.vue
+  │       └── MapViewConfig.vue
+  └── utils/
+      ├── viewHelpers.ts
+      └── validations.ts
+  ```
+
+- **CSS Fixes**: Added scoped CSS with utility classes since Tailwind is not compiled in this project.
+
+### 2026-01-22: Resizable Panel Feature
+
+- **Problem**: Users cannot resize config panels to maximize screen real estate on wider monitors.
+- **Solution**: Created `ResizableDivider` component for drag-to-resize functionality.
+- **Components Modified**:
+  - `ResizableDivider.vue`: New reusable drag divider component.
+  - `EditorShell.vue`: Added resizable preview panel (320px-600px).
+  - `AppEditorPage.vue`: Added resizable field list panel in Fields tab (250px-600px).
+  - `ViewsPanel.vue`: Added resizable sidebar (200px-450px).
+- **Features**:
+  - Drag handle with visual feedback (hover/active states).
+  - Min/max width constraints for usability.
+  - Smooth cursor changes during drag.
+- **Files Created**:
+  - `apps/editor/src/app/form-editor/components/shared/ResizableDivider.vue`
