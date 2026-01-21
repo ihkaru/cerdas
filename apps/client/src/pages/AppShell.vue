@@ -16,8 +16,22 @@
                 <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(schemaId)" />
                 <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                     :counts="statusCounts" />
-                <ViewRenderer :config="currentViewConfig.config" :data="getViewData(currentViewConfig.config.source)"
-                    :schemaId="schemaId" />
+
+                <!-- Animated Transition between Grouping and Leaf Views -->
+                <transition name="view-fade" mode="out-in">
+                    <!-- Grouping UI (Folders) -->
+                    <div v-if="isGroupingActive" key="grouping">
+                        <AppShellGroupList :key="currentGroupLevel" :groups="filteredGroups" :config="groupByConfig"
+                            :current-level="currentGroupLevel" @enter-group="enterGroup" />
+                    </div>
+
+                    <!-- Leaf Views (Assignments/Map/etc) -->
+                    <div v-else key="leaf">
+                        <ViewRenderer :config="currentViewConfig.config"
+                            :data="getViewData(currentViewConfig.config.source)" :schemaId="schemaId"
+                            @action="handleRowAction" />
+                    </div>
+                </transition>
             </div>
         </template>
 
@@ -198,7 +212,12 @@ const currentViewConfig = computed(() => {
     return null;
 });
 
-// --- 2. Database & Preview Logic ---
+// Watch routeViewId to sync with activeView provided by useAppShellLogic
+watch(routeViewId, (newId) => {
+    if (newId) {
+        activeView.value = newId;
+    }
+}, { immediate: true });
 const db = useDatabase();
 const {
     previewSheetOpen,
@@ -368,6 +387,34 @@ const handleAppNavClick = (item: any) => {
         f7.toast.show({ text: 'Unknown navigation item', closeTimeout: 1000 });
     }
 };
+
+// [DEBUG-APPSHELL] Strategic Logging
+import { watchEffect } from 'vue';
+watchEffect(() => {
+    console.groupCollapsed('[DEBUG-APPSHELL] State Snapshot');
+    console.log('Route View ID:', routeViewId.value);
+    console.log('Active View:', activeView.value);
+    console.log('Current View Config:', currentViewConfig?.value);
+
+    console.log('Layout Present:', !!layout.value);
+    console.log('Layout Navigation:', layout.value?.navigation);
+
+    console.log('App Navigation Length:', appNavigation.value?.length);
+    console.log('App Navigation Items:', appNavigation.value);
+
+    console.log('Is Grouping Active:', isGroupingActive.value);
+    console.log('Group By Config:', groupByConfig.value);
+    console.log('Current Group Level:', currentGroupLevel.value);
+    console.log('Filtered Groups:', filteredGroups.value?.length);
+
+    // Logic Branch Prediction
+    if (currentViewConfig.value) console.log('Rendering: CASE 0 (Dynamic View)');
+    else if (layout.value && layout.value.navigation) console.log('Rendering: CASE 1 (Layout Tabs)');
+    else if (appNavigation.value && appNavigation.value.length > 0) console.log('Rendering: CASE 2 (App Tabs)');
+    else console.log('Rendering: CASE 3 (Default List)');
+
+    console.groupEnd();
+});
 </script>
 
 <style scoped>

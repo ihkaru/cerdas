@@ -315,7 +315,7 @@ Use these to login during development:
 - **FieldDefinition Type**: Added `warning_fn` and `warning_js` properties.
 
 ### 2026-01-16: UX Polish & Scalability Refactor
-- **Form Navigation Improvements**:
+- **Form Navigation Improves**:
   - **Review Nested Form Navigation**: Clicking validation summary item for nested field (e.g. `family_members[0].age`) auto-opens popup, scrolls to index, and highlights field.
   - **Smart Popup Management**: Navigating from nested popup to parent field automatically closes nested popups first.
 - **Form Renderer Scalability Refactor**:
@@ -522,10 +522,28 @@ Dashboard (/) → Apps (/apps) → App Detail (/apps/:id) → Form Editor (/form
 - **Frontend Data Join Fix**:
   - `DeckView` and `AssignmentDetail` were receiving Assignments without their Response Data after a refresh.
   - Updated `DashboardRepository.getAssignments` and `getAssignmentById` to perform a `LEFT JOIN` on the `responses` table.
-  - This populates `response_data` in the Assignment object, resolving the "Data disappears on refresh" issue.
+   - This populates `response_data` in the Assignment object, resolving the "Data disappears on refresh" issue.
 - **Grouping Logic Fix (Offline First)**:
   - `AssignmentQueryService.getGroupedAssignments` was previously only grouping by `prelist_data`, ignoring user-submitted `response_data`.
   - Updated the SQL query to `LEFT JOIN responses` and use `COALESCE(response, prelist)` for determining the group key.
   - This ensures that if a user fills in a grouping field (e.g. City), the item correctly moves to that group even if the prelist data was empty.
   - Added debug logs to `useAppShellLogic.refreshData` to track grouping activation and item loading counts.
   - **Sync Robustness**: Updated `SyncService.pullResponses` to explicitly cast `assignment_id` to string before SQLite insertion to prevent type mismatches during `LEFT JOIN`.
+
+### 2026-01-21: App Shell Scalability Refactor
+- **Refactoring `useAppShellLogic.ts`**:
+  - Addressed scalability concerns by decomposing the monolithic `useAppShellLogic.ts` file (~480 lines).
+  - Created `apps/client/src/app/dashboard/composables/app-shell/` directory.
+  -  Extracted logic into dedicated composables:
+    - `useAppShellState.ts`: Manages all reactive state.
+    - `useAppMetadata.ts`: Handles app navigation, views, forms, and metadata syncing.
+    - `useAppContext.ts`: Fetches user role and organization context.
+    - `useGroupingLogic.ts`: Encapsulates drill-down navigation and group path logic.
+    - `useAssignmentQueries.ts`: Centralizes data fetching and assignment/group queries.
+    - `useSearchAndFilter.ts`: Manages client-side filtering and search computation.
+    - `useSchemaLoader.ts`: Handles loading form schema and layout from the local database.
+  - **Conductor Pattern**: `useAppShellLogic.ts` now acts as an orchestrator, importing and coordinating these composables.
+  - **Improvements**:
+    - Improved type safety (`type Ref` imports).
+    - Cleaner dependency injection between composables.
+    - Easier to unit test isolated logic chunks.

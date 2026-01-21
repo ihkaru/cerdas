@@ -4,10 +4,13 @@ import { SQLiteDBConnection } from '@capacitor-community/sqlite';
 
 export const AppMetadataService = {
     async resolveAppId(db: SQLiteDBConnection, formId: string, schemaAppId?: string): Promise<string | null> {
+         console.log('[AppMetadata] Resolving AppID for form:', formId, 'SchemaAppID:', schemaAppId);
          if (schemaAppId) return schemaAppId;
          try {
-             const fRes = await db.query('SELECT app_id FROM forms WHERE id = ?', [formId]);
+             const fRes = await db.query('SELECT * FROM forms WHERE id = ?', [formId]);
+             console.log('[AppMetadata] Form Query Result:', fRes.values);
              if (fRes.values && fRes.values.length > 0) {
+                 console.log('[AppMetadata] Found app_id in DB:', fRes.values[0].app_id);
                  return fRes.values[0].app_id;
              }
          } catch (e) {

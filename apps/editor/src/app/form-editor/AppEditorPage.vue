@@ -28,7 +28,7 @@
                             <div v-for="form in appForms" :key="form.id" class="form-item"
                                 :class="{ 'active': currentFormId === form.id }" @click="selectForm(form.id)">
                                 <div class="form-icon-wrapper">
-                                    <f7-icon f7="table_fill" size="18" />
+                                    <f7-icon f7="doc_text_fill" size="18" />
                                 </div>
                                 <div class="form-details">
                                     <div class="form-title">{{ form.name }}</div>
@@ -130,7 +130,6 @@ const formStore = useFormStore();
 
 const {
     schemaName,
-    fields,
     selectedFieldPath,
     isDirty,
     selectedField,
@@ -141,10 +140,8 @@ const {
     initNewSchema,
     loadSchema,
     updateSchemaName,
-    addField,
     updateField,
     removeField,
-    reorderFields,
     duplicateField,
     selectField,
     clearSelection,
