@@ -23,3 +23,19 @@ export interface AppMember {
     role: string;
     color: string;
 }
+
+export interface AppView {
+    id: string | number;
+    name: string;
+    type: 'deck' | 'table' | 'map' | 'form' | 'details' | 'calendar';
+    config?: any;
+}
+
+export interface AppNavigationItem {
+    id: string;
+    type: 'view' | 'group' | 'link';
+    view_id?: string | number;
+    label: string;
+    icon: string;
+    children?: AppNavigationItem[];
+}

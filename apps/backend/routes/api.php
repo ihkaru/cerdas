@@ -103,6 +103,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [AppController::class, 'store']);
         Route::get('/{app}', [AppController::class, 'show']);
         Route::put('/{app}', [AppController::class, 'update']);
+        Route::get('/{app}/context', [AppController::class, 'context']); // User's role/org for this app
         // Route::delete('/{app}', [AppController::class, 'destroy']);
     });
 

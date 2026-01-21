@@ -12,6 +12,7 @@ class Assignment extends Model {
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'form_id',
         'form_version_id',
         'organization_id',
         'supervisor_id',
@@ -25,20 +26,20 @@ class Assignment extends Model {
         'prelist_data' => 'array',
     ];
 
-    // Append virtual attribute to JSON
-    protected $appends = ['form_id'];
-
-    // ========== Accessors ==========
-
-    /**
-     * Get form_id via the formVersion relationship
-     */
-    public function getFormIdAttribute(): ?int {
-        return $this->formVersion?->form_id;
-    }
-
     // ========== Relationships ==========
 
+    /**
+     * The Form this assignment belongs to.
+     * Assignment follows the active FormVersion automatically.
+     */
+    public function form(): BelongsTo {
+        return $this->belongsTo(Form::class);
+    }
+
+    /**
+     * Legacy: Direct link to a specific FormVersion.
+     * Kept for backward compatibility during migration.
+     */
     public function formVersion(): BelongsTo {
         return $this->belongsTo(FormVersion::class, 'form_version_id');
     }
@@ -89,5 +90,12 @@ class Assignment extends Model {
 
     public function markSynced(): void {
         $this->update(['status' => 'synced']);
+    }
+
+    /**
+     * Get the active FormVersion for this assignment's Form.
+     */
+    public function getActiveFormVersion(): ?FormVersion {
+        return $this->form?->activeVersion;
     }
 }

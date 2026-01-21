@@ -65,7 +65,8 @@ const initMap = () => {
     map = L.map(mapId).setView([-6.2088, 106.8456], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
+        attribution: '&copy; OpenStreetMap contributors',
+        crossOrigin: true
     }).addTo(map);
 
     markers = L.layerGroup().addTo(map);

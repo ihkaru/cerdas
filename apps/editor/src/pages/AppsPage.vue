@@ -14,7 +14,7 @@
 
         <!-- Apps Grid -->
         <div class="apps-grid">
-            <a v-for="app in apps" :key="app.id" :href="`/apps/${app.slug}`" class="app-card">
+            <a v-for="app in apps" :key="app.id" :href="`/editor/${app.slug}`" class="app-card">
                 <div class="card-header">
                     <div class="app-avatar" :style="{ background: app.color }">
                         {{ app.name.substring(0, 2).toUpperCase() }}

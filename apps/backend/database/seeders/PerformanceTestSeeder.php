@@ -36,9 +36,10 @@ class PerformanceTestSeeder extends Seeder {
         );
 
         $org = Organization::firstOrCreate(
-            ['project_id' => $app->id, 'code' => 'PERF01'], // project_id here is ambiguous, assuming assumed valid due to lack of Org migration
+            ['code' => 'PERF01'],
             ['name' => 'Performance Org Sector A']
         );
+        $app->organizations()->syncWithoutDetaching([$org->id]);
 
         // 3. ESSENTIAL: App Membership (This was missing!)
         $this->command->info('Ensuring App Memberships...');
@@ -107,6 +108,7 @@ class PerformanceTestSeeder extends Seeder {
         while (($row = fgetcsv($handle)) !== false) {
             // CSV columns: external_id, status, name, address, notes
             $batch[] = [
+                'form_id' => $form->id, // Added required fields
                 'form_version_id' => $version->id,
                 'organization_id' => $org->id,
                 'supervisor_id' => $supervisor->id,

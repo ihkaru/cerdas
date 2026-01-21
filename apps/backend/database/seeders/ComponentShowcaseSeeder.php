@@ -22,10 +22,15 @@ class ComponentShowcaseSeeder extends Seeder {
             // Create dummy if not found (fallback for standalone run)
             $supervisor = User::firstOrCreate(['email' => 'supervisor@cerdas.com'], ['name' => 'Supervisor', 'password' => bcrypt('password')]);
             $enumerator = User::firstOrCreate(['email' => 'user@example.com'], ['name' => 'User', 'password' => bcrypt('password')]);
-            if (!$org) $org = Organization::create(['name' => 'Default Org', 'slug' => 'default-org']);
         }
 
-        // 0. Create or Get App
+        // Create or get global Organization
+        $org = Organization::firstOrCreate(
+            ['code' => 'default-org'],
+            ['name' => 'Default Organization']
+        );
+
+        // 0. Create or Get App (Simple Mode)
         // We use a specific slug to identify this showcase app
         $app = App::updateOrCreate(
             ['slug' => 'housing-survey-2026'],
@@ -33,9 +38,13 @@ class ComponentShowcaseSeeder extends Seeder {
                 'name' => 'Housing Survey 2026',
                 'description' => 'Demo App for Cerdas Platform',
                 'is_active' => true,
-                'created_by' => $supervisor->id // Assign ownership
+                'mode' => 'simple', // Simple mode - direct membership
+                'created_by' => $supervisor->id
             ]
         );
+
+        // Attach Organization to App (via pivot)
+        $app->organizations()->syncWithoutDetaching([$org->id]);
 
         // 1. Define the Schema with ALL Components
         $schemaDefinition = [
@@ -383,8 +392,30 @@ class ComponentShowcaseSeeder extends Seeder {
                 'schema' => $schemaDefinition,
                 'layout' => [
                     'type' => 'standard',
-                    // This internal layout might still be used for individual ID edit views
-                    // But the LIST configuration is now moved to Views
+                    'views' => [
+                        'default' => [
+                            'type' => 'deck',
+                            'title' => 'Assignments',
+                            'groupBy' => ['province', 'city'],
+                            'deck' => [
+                                'primaryHeaderField' => 'fullname',
+                                'secondaryHeaderField' => 'description',
+                                'imageField' => 'house_photo',
+                                'imageShape' => 'square',
+                            ],
+                            'actions' => ['open', 'delete', 'complete'],
+                        ],
+                        'map_main' => [
+                            'type' => 'map',
+                            'title' => 'Map Monitoring',
+                            'map' => [
+                                'mapbox_style' => 'satellite',
+                                'lat' => 'location.lat',
+                                'long' => 'location.long',
+                                'label' => 'fullname',
+                            ],
+                        ],
+                    ],
                 ],
                 'published_at' => now(),
             ]
@@ -457,11 +488,12 @@ class ComponentShowcaseSeeder extends Seeder {
         // 6. Create Assignments Data
         $this->command->info("Creating assignments for Showcase App...");
 
-        // Cleanup old assignments for this version
-        Assignment::where('form_version_id', $version->id)->forceDelete();
+        // Cleanup old assignments for this form
+        Assignment::where('form_id', $form->id)->forceDelete();
 
         // Assignment 1: Empty
         Assignment::create([
+            'form_id' => $form->id,
             'form_version_id' => $version->id,
             'organization_id' => $org->id,
             'supervisor_id' => $supervisor->id,
@@ -478,6 +510,7 @@ class ComponentShowcaseSeeder extends Seeder {
 
         // Assignment 2: Partially Filled
         Assignment::create([
+            'form_id' => $form->id,
             'form_version_id' => $version->id,
             'organization_id' => $org->id,
             'supervisor_id' => $supervisor->id,
@@ -520,6 +553,7 @@ class ComponentShowcaseSeeder extends Seeder {
             $targetEnum = ($i % 2 === 0) ? $enumerator : $enumerator2;
 
             Assignment::create([
+                'form_id' => $form->id,
                 'form_version_id' => $version->id,
                 'organization_id' => $org->id,
                 'supervisor_id' => $supervisor->id,

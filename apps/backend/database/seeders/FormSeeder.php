@@ -13,11 +13,13 @@ use Illuminate\Database\Seeder;
 class FormSeeder extends Seeder {
     public function run(): void {
         $app = App::where('slug', 'housing-survey-2026')->first();
-        // Assuming Organization is linked to App via project_id (legacy column name in Org table) or app_id
-        // For query safety, I will assume Organization uses the same ID or I will fetch it differently.
-        // Actually, Organization in AppSeeder was created using $app->id. 
-        // Let's assume Organization table still has 'project_id' column for now as I didn't migrate it.
-        $org = Organization::where('project_id', $app->id)->first();
+        // Fetch Organization via pivot (multi-org)
+        $org = $app->organizations()->first();
+
+        if (!$org) {
+            // Fallback if not attached yet
+            $org = Organization::where('code', 'DPR-MPW')->first();
+        }
 
         $enumerator1 = User::where('email', 'user@example.com')->first();
         $enumerator2 = User::where('email', 'enum2@cerdas.com')->first();
@@ -128,6 +130,7 @@ class FormSeeder extends Seeder {
                 'external_id' => 'PRE-00' . ($index + 1),
                 'form_version_id' => $version->id, // Renamed from app_schema_version_id
             ], [
+                'form_id' => $form->id, // Required now
                 'organization_id' => $org->id,
                 'supervisor_id' => $supervisor->id,
                 'enumerator_id' => $data[2]->id,

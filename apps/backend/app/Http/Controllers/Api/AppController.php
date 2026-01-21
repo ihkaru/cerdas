@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\App;
 use App\Models\AppMembership;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class AppController extends Controller {
@@ -68,11 +70,73 @@ class AppController extends Controller {
             // If strictly required, we will fail here. But let's assume it's nullable or we fix later.
         ]);
 
+        // Create demo users for this app
+        $demoCredentials = $this->createDemoUsers($app);
+
         return response()->json([
             'success' => true,
             'data' => $app,
+            'demo_credentials' => $demoCredentials,
             'message' => 'App created successfully',
         ], 201);
+    }
+
+    /**
+     * Create demo users (Enumerator & Supervisor) for a specific app
+     */
+    private function createDemoUsers(App $app): array {
+        $password = 'password';
+        $credentials = [];
+
+        // 1. Create App Enumerator
+        $enumEmail = "enum.{$app->slug}@demo.cerdas.com";
+        $enumerator = User::firstOrCreate(
+            ['email' => $enumEmail],
+            [
+                'name' => "Enumerator {$app->name}",
+                'password' => Hash::make($password),
+                'email_verified_at' => now(),
+            ]
+        );
+
+        AppMembership::create([
+            'app_id' => $app->id,
+            'user_id' => $enumerator->id,
+            'role' => 'enumerator',
+            'is_active' => true,
+        ]);
+
+        $credentials[] = [
+            'role' => 'Enumerator',
+            'email' => $enumEmail,
+            'password' => $password
+        ];
+
+        // 2. Create App Supervisor
+        $spvEmail = "spv.{$app->slug}@demo.cerdas.com";
+        $supervisor = User::firstOrCreate(
+            ['email' => $spvEmail],
+            [
+                'name' => "Supervisor {$app->name}",
+                'password' => Hash::make($password),
+                'email_verified_at' => now(),
+            ]
+        );
+
+        AppMembership::create([
+            'app_id' => $app->id,
+            'user_id' => $supervisor->id,
+            'role' => 'supervisor',
+            'is_active' => true,
+        ]);
+
+        $credentials[] = [
+            'role' => 'Supervisor',
+            'email' => $spvEmail,
+            'password' => $password
+        ];
+
+        return $credentials;
     }
 
     /**
@@ -120,6 +184,68 @@ class AppController extends Controller {
             'success' => true,
             'data' => $app,
             'message' => 'App updated successfully',
+        ]);
+    }
+
+    /**
+     * Get user's context for this app (role, organization)
+     * Used by client to build ClosureContext for form validation/logic
+     */
+    public function context(Request $request, App $app): JsonResponse {
+        $user = $request->user();
+
+        // Super admin always has access with app_admin role
+        if ($user->isSuperAdmin()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'user' => [
+                        'id' => $user->id,
+                        'email' => $user->email,
+                        'name' => $user->name,
+                        'role' => 'app_admin',
+                        'organizationId' => null,
+                        'organizationName' => null,
+                    ],
+                    'app' => [
+                        'id' => $app->id,
+                        'uuid' => $app->uuid,
+                        'mode' => $app->mode ?? 'simple',
+                    ],
+                ],
+            ]);
+        }
+
+        // Get user's membership for this app
+        $membership = $user->getMembershipForApp($app->id);
+
+        if (!$membership || !$membership->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. You are not a member of this app.',
+            ], 403);
+        }
+
+        // Get organization if applicable
+        $organization = $membership->organization;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'name' => $user->name,
+                    'role' => $membership->role,
+                    'organizationId' => $membership->organization_id,
+                    'organizationName' => $organization?->name,
+                ],
+                'app' => [
+                    'id' => $app->id,
+                    'uuid' => $app->uuid,
+                    'mode' => $app->mode ?? 'simple',
+                ],
+            ],
         ]);
     }
 }

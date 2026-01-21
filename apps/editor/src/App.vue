@@ -34,7 +34,9 @@ const currentPath = ref(window.location.pathname);
 
 // Determine if current page should be fullscreen (no sidebar/header)
 const isFullscreenPage = computed(() => {
-  return currentPath.value === '/login' || currentPath.value.startsWith('/forms/');
+  return currentPath.value === '/login' ||
+    currentPath.value.startsWith('/forms/') ||
+    currentPath.value.startsWith('/editor/');
 });
 
 console.log('[13-APP] Initial state: isCheckingAuth=true, initialUrl=/');

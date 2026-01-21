@@ -33,10 +33,15 @@ class AppSeeder extends Seeder {
         // I DID NOT rename 'organizations' table columns explicitly in that migration file.
         // I need to check if 'organizations' table uses project_id.
 
+        // 2. Organization (Global)
         $org = Organization::firstOrCreate([
-            'project_id' => $app->id, // Use project_id for now, assuming column name wasn't changed
+            'code' => 'DPR-MPW'
+        ], [
             'name' => 'Dinas Perumahan Rakyat'
         ]);
+
+        // Attach Organization to App
+        $app->organizations()->syncWithoutDetaching([$org->id]);
 
         // 3. Memberships
 

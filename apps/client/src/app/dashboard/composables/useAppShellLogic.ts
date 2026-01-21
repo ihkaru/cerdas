@@ -5,12 +5,15 @@ import { AssignmentQueryService } from '../services/AssignmentQueryService';
 import { useAppShellActions } from './useAppShellActions';
 import { useAppShellSync } from './useAppShellSync';
 
+import { apiClient } from '@/common/api/ApiClient';
 import { useDatabase } from '@/common/composables/useDatabase';
+import { useAuthStore } from '@/common/stores/authStore';
 
 import { useLogger } from '@/common/utils/logger';
 
 export function useAppShellLogic(formId: string) {
     const db = useDatabase();
+    const authStore = useAuthStore();
     const log = useLogger('UseAppShellLogic');
 
     // --- State ---
@@ -23,6 +26,7 @@ export function useAppShellLogic(formId: string) {
     const pendingUploadCount = ref(0);
     const searchQuery = ref('');
     const statusFilter = ref('all');
+    const currentUserRole = ref<string>('Guest');
 
     // Grouping State
     const groupPath = ref<string[]>([]);
@@ -281,6 +285,16 @@ export function useAppShellLogic(formId: string) {
             log.debug('Resolved validAppId:', validAppId);
 
             if (validAppId) {
+                // Read Cached Role (Simple RLS for UI)
+                const cachedRole = localStorage.getItem(`app_role_${validAppId}`);
+                if (cachedRole) {
+                    currentUserRole.value = cachedRole;
+                    // Restore to authStore for closures (offline support)
+                    if (authStore.user && !authStore.user.role) {
+                        authStore.updateUser({ role: cachedRole as any });
+                    }
+                }
+
                 // A. Try Local Database First (Offline Support)
                 try {
                     const { navigation, views } = await AppMetadataService.getLocalAppMetadata(conn, validAppId);
@@ -315,6 +329,10 @@ export function useAppShellLogic(formId: string) {
                     try {
                         log.info('Fetching App Metadata from API...');
                         const result = await AppMetadataService.syncAppMetadata(conn, validAppId);
+                        
+                        // Fetch user's role and organization for this app
+                        await fetchAppContext(validAppId);
+                        
                         if (result) {
                             log.info(`Remote Metadata synced. Views: ${result.appData?.views?.length}`);
 
@@ -347,6 +365,41 @@ export function useAppShellLogic(formId: string) {
             console.error('Failed to load app', e);
         } finally {
             if (!isRefresh) loading.value = false;
+        }
+    };
+
+    /**
+     * Fetch user's app-specific context (role, organization) and update authStore
+     * This enables form closures to access ctx.user.role, ctx.user.organizationId
+     */
+    const fetchAppContext = async (appId: number | string) => {
+        if (!navigator.onLine) {
+            log.debug('Offline - skipping app context fetch');
+            return;
+        }
+
+        try {
+            const ctx = await apiClient.getAppContext(appId);
+            if (ctx?.user) {
+                log.info('App context loaded:', { role: ctx.user.role, orgId: ctx.user.organizationId });
+                
+                // Update authStore with app-specific role & org
+                if (authStore.user) {
+                    authStore.updateUser({
+                        role: ctx.user.role,
+                        organizationId: ctx.user.organizationId,
+                        organizationName: ctx.user.organizationName,
+                    });
+                }
+                
+                // Also update currentUserRole for UI display
+                currentUserRole.value = ctx.user.role;
+                
+                // Cache role locally for offline use
+                localStorage.setItem(`app_role_${appId}`, ctx.user.role);
+            }
+        } catch (e) {
+            log.warn('Failed to fetch app context', e);
         }
     };
 
@@ -408,7 +461,7 @@ export function useAppShellLogic(formId: string) {
         // State
         loading, schemaData, layout, assignments, groups, totalAssignments, pendingUploadCount, activeView, appForms,
         searchQuery, statusFilter, groupPath, isGroupingActive, currentGroupLevel, groupByConfig, forceShowItems,
-        isSyncing, syncProgress, syncMessage,
+        isSyncing, syncProgress, syncMessage, currentUserRole,
         // Computed
         filteredAssignments, filteredGroups, statusCounts, headerActions, rowActions, swipeConfig, appName, previewFields, appNavigation, appViews,
         // Methods

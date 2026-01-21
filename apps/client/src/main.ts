@@ -235,14 +235,29 @@ async function startApp() {
 
                 if (type === 'SET_TOKEN') {
                     logger.info('Received token from Editor');
-                    localStorage.setItem('auth_token', payload);
+                    
+                    const token = typeof payload === 'string' ? payload : payload.token;
+                    const roleLabel = (typeof payload === 'object' && payload.roleLabel) ? payload.roleLabel : 'User';
+
+                    localStorage.setItem('auth_token', token);
                     
                     // Try to update store if it exists
                     try {
                         const authStore = useAuthStore();
-                        authStore.token = payload;
+                        authStore.token = token;
                     } catch (e) {
                         // Pinia might not be ready yet
+                    }
+
+                    // Show visual feedback (UX)
+                    if (f7) {
+                        f7.toast.create({
+                            text: `Switched to ${roleLabel}`,
+                            icon: '<i class="f7-icons">person_crop_circle_fill_badge_checkmark</i>',
+                            position: 'center',
+                            closeTimeout: 2000,
+                            cssClass: 'preview-toast-feedback'
+                        }).open();
                     }
                 }
 
@@ -297,6 +312,23 @@ async function startApp() {
                     window.dispatchEvent(new CustomEvent('schema-override-updated', {
                         detail: { formId, schema, layout }
                     }));
+                }
+
+                if (type === 'REFRESH_DATA') {
+                    logger.info('Received REFRESH_DATA command from Editor');
+                    try {
+                        const dashboardStore = useDashboardStore();
+                        // Reload data forces hard refresh from DB
+                        await dashboardStore.loadData(true);
+                        logger.info('Dashboard data refreshed successfully');
+                        
+                        // Also force F7 to update if needed
+                        if (f7 && f7.view && f7.view.main) {
+                             f7.view.main.router.refreshPage();
+                        }
+                    } catch (e) {
+                        logger.error('Failed to refresh data', e);
+                    }
                 }
             });
 

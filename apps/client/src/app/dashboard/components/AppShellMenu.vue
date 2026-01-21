@@ -1,7 +1,32 @@
 <template>
     <f7-page>
         <f7-navbar title="App Menu"></f7-navbar>
-        <f7-list>
+        <f7-list style="margin-top: 0;">
+            <!-- User Profile Header -->
+            <f7-list-item v-if="user" :title="user.name" class="profile-header" media-item>
+                <template #media>
+                    <div class="menu-icon profile-icon">
+                        <f7-icon f7="person_circle_fill" />
+                    </div>
+                </template>
+                <template #subtitle>
+                    <div class="role-badge">{{ displayRole }} </div>
+                    <div style="font-size: 11px; opacity: 0.7; margin-top: 2px;">{{ user.email }}</div>
+                </template>
+            </f7-list-item>
+
+            <!-- Fallback for Guest / Loading -->
+            <f7-list-item v-else title="Guest" class="profile-header">
+                <template #media>
+                    <div class="menu-icon">
+                        <f7-icon f7="person_circle" />
+                    </div>
+                </template>
+                <template #subtitle>
+                    <div style="font-size: 11px; opacity: 0.7;">Not logged in</div>
+                </template>
+            </f7-list-item>
+
             <!-- Navigation Items (Custom Menu) -->
             <f7-list-item v-for="(item, index) in navigation" :key="'nav-' + index" link="#" :title="item.label"
                 @click="handleNavClick(item)">
@@ -35,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { f7 } from 'framework7-vue'; // Import f7 instance
+import { f7 } from 'framework7-vue';
 import type { PropType } from 'vue';
 
 const props = defineProps({
@@ -54,10 +79,23 @@ const props = defineProps({
     currentFormId: {
         type: [String, Number],
         required: true
+    },
+    user: {
+        type: Object as PropType<any>,
+        default: null
+    },
+    role: {
+        type: String,
+        default: 'Guest'
     }
 });
 
 const emit = defineEmits(['close']);
+
+import { computed } from 'vue';
+
+// Capitalize Role
+const displayRole = computed(() => props.role ? props.role.charAt(0).toUpperCase() + props.role.slice(1) : 'Guest');
 
 function handleNavClick(item: any) {
     f7.panel.close('left');
@@ -111,6 +149,24 @@ function handleFormClick(form: any) {
 </script>
 
 <style scoped>
+/* Profile Header Styling */
+.profile-header {
+    background-color: var(--f7-bg-color);
+    border-bottom: 1px solid var(--f7-list-item-border-color);
+}
+
+.role-badge {
+    background: var(--f7-theme-color);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: bold;
+    margin-top: 4px;
+    display: inline-block;
+}
+
 .menu-icon {
     width: 32px;
     height: 32px;
@@ -120,5 +176,10 @@ function handleFormClick(form: any) {
     align-items: center;
     justify-content: center;
     color: #475569;
+}
+
+.profile-icon {
+    background: #e2e8f0;
+    color: #1e293b;
 }
 </style>

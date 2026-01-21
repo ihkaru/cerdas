@@ -20,6 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const tabs = [
+    { id: 'data', label: 'Data', icon: 'cylinder' }, // Rename from Fields or new tab?
     { id: 'fields', label: 'Fields', icon: 'list_bullet' },
     { id: 'settings', label: 'Settings', icon: 'gear' },
     { id: 'views', label: 'Views', icon: 'rectangle_3_offgrid' },

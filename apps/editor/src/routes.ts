@@ -1,8 +1,7 @@
 import { useAuthStore } from '@/stores/auth.store';
 import type { Router } from 'framework7/types';
 
-import FormEditorPage from './app/form-editor/FormEditorPage.vue';
-import AppDetailPage from './pages/AppDetailPage.vue';
+import AppEditorPage from './app/form-editor/AppEditorPage.vue';
 import AppsPage from './pages/AppsPage.vue';
 import HomePage from './pages/HomePage.vue';
 import LoginPage from './pages/LoginPage.vue';
@@ -62,23 +61,23 @@ const routes: Router.RouteParameters[] = [
     beforeEnter: beforeEnterGuard,
   },
   {
-    path: '/apps',
+    path: '/applications',
     component: AppsPage,
     beforeEnter: beforeEnterGuard,
   },
   {
-    path: '/apps/:slug',
-    component: AppDetailPage,
+    path: '/editor/:slug', // Changed to /editor/ to avoid any regex conflict with /applications
+    component: AppEditorPage,
     beforeEnter: beforeEnterGuard,
   },
   {
     path: '/forms/new',
-    component: FormEditorPage,
+    component: AppEditorPage,
     beforeEnter: beforeEnterGuard,
   },
   {
     path: '/forms/:id',
-    component: FormEditorPage,
+    component: AppEditorPage,
     beforeEnter: beforeEnterGuard,
   },
 ];

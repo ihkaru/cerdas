@@ -6,6 +6,10 @@
         <!-- Forms Grid -->
         <FormsSection :forms="forms" :loading="loading" @create="handleCreateForm" />
 
+
+
+
+
         <!-- App Members Section -->
         <MembersSection :members="members" :loading="loading" />
     </f7-page>
@@ -25,7 +29,13 @@ const props = defineProps<{
     f7router: any;
 }>();
 
-const { app, forms, members, loading, fetchApp } = useAppDetail();
+const {
+    app,
+    forms,
+    members,
+    loading,
+    fetchApp,
+} = useAppDetail();
 const { showCreateFormDialog } = useFormDialog();
 const appStore = useAppStore(); // needed solely for ID access if not exposed by composable or for refreshing
 

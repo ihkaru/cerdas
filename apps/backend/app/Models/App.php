@@ -25,6 +25,7 @@ class App extends Model {
         'description',
         'created_by',
         'is_active',
+        'mode',
         'navigation',
     ];
 
@@ -43,8 +44,14 @@ class App extends Model {
         return $this->hasMany(AppMembership::class);
     }
 
-    public function organizations(): HasMany {
-        return $this->hasMany(Organization::class, 'project_id');
+    /**
+     * Organizations participating in this App.
+     * Many-to-Many via app_organizations pivot.
+     */
+    public function organizations(): BelongsToMany {
+        return $this->belongsToMany(Organization::class, 'app_organizations')
+            ->withPivot('settings')
+            ->withTimestamps();
     }
 
     public function members(): BelongsToMany {
@@ -93,5 +100,19 @@ class App extends Model {
 
     public function getMemberCount(): int {
         return $this->memberships()->count();
+    }
+
+    /**
+     * Check if this App is in Simple mode (direct membership).
+     */
+    public function isSimpleMode(): bool {
+        return $this->mode === 'simple';
+    }
+
+    /**
+     * Check if this App is in Complex mode (organization-based membership).
+     */
+    public function isComplexMode(): bool {
+        return $this->mode === 'complex';
     }
 }

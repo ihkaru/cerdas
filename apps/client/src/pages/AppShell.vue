@@ -2,7 +2,8 @@
     <f7-page name="app-shell" :page-content="false" @page:afterin="onPageAfterIn">
         <!-- Main Sidebar Panel (App Menu) -->
         <f7-panel left cover resizable v-model:opened="panelOpened">
-            <AppShellMenu :forms="appForms" :navigation="appNavigation" :views="appViews" :current-form-id="schemaId" />
+            <AppShellMenu :forms="appForms" :navigation="appNavigation" :views="appViews" :current-form-id="schemaId"
+                :role="currentUserRole" :user="authStore.user" />
         </f7-panel>
 
         <!-- navbar -->
@@ -23,13 +24,11 @@
         <!-- If schema has layout with navigation, show tabs -->
         <template v-else-if="layout && layout.navigation">
             <!-- TAB BAR (Primary Navigation) - BEFORE tabs per F7 docs -->
-            <f7-toolbar position="bottom" tabbar icons>
-                <f7-toolbar-pane>
-                    <f7-link v-for="viewKey in layout.navigation.primary" :key="viewKey" :tab-link="`#${viewKey}`"
-                        :tab-link-active="activeView === viewKey" @click="activeView = viewKey"
-                        :text="layout.views[viewKey]?.title || viewKey"
-                        :icon-f7="getIcon(layout.views[viewKey]?.type)"></f7-link>
-                </f7-toolbar-pane>
+            <f7-toolbar position="bottom" :tabbar="true" :scrollable="true" icons labels>
+                <f7-link v-for="viewKey in layout.navigation.primary" :key="viewKey" :tab-link="`#${viewKey}`"
+                    :tab-link-active="activeView === viewKey" @click="activeView = viewKey"
+                    :text="layout.views[viewKey]?.title + 'ha' || viewKey"
+                    :icon-f7="getIcon(layout.views[viewKey]?.type)"></f7-link>
             </f7-toolbar>
 
             <!-- VIEW CONTENT - AFTER toolbar per F7 docs -->
@@ -48,10 +47,10 @@
         <!-- CASE 0.5: App Level Tabs (Fallback if no Layout Navigation) -->
         <template v-else-if="appNavigation && appNavigation.length > 0">
             <!-- TAB BAR (App Navigation) - BEFORE tabs per F7 docs -->
-            <f7-toolbar position="bottom" tabbar icons>
+            <f7-toolbar position="bottom" :tabbar="true" icons labels>
                 <f7-toolbar-pane>
                     <f7-link v-for="item in appNavigation" :key="`link-${item.id || item.label}`"
-                        :tab-link="item.type === 'view' ? `#view-${item.view_id}` : undefined"
+                        :tab-link="item.type === 'view' ? `#view-${item.view_id}` : 'true'"
                         :tab-link-active="activeView === item.view_id" @click="handleAppNavClick(item)"
                         :text="item.label" :icon-f7="item.icon || 'square'"></f7-link>
                 </f7-toolbar-pane>
@@ -172,6 +171,7 @@ import SkeletonLoader from '../app/dashboard/components/SkeletonLoader.vue';
 import { useAppShellLogic } from '../app/dashboard/composables/useAppShellLogic';
 import { useAppShellPreview } from '../app/dashboard/composables/useAppShellPreview';
 import { useDatabase } from '../common/composables/useDatabase';
+import { useAuthStore } from '../common/stores/authStore';
 import ViewRenderer from '../components/views/ViewRenderer.vue';
 
 // Props
@@ -188,7 +188,7 @@ const {
     filteredAssignments, filteredGroups, statusCounts, headerActions, rowActions, swipeConfig, appName, previewFields,
     loadApp, refreshData, deleteAssignment, completeAssignment, syncApp, createAssignment,
     enterGroup, navigateUp, forceShowItems,
-    isSyncing, syncProgress, syncMessage, pendingUploadCount
+    isSyncing, syncProgress, syncMessage, pendingUploadCount, currentUserRole
 } = useAppShellLogic(props.schemaId);
 const routeViewId = computed(() => props.f7route?.query?.view);
 const currentViewConfig = computed(() => {
@@ -206,6 +206,8 @@ const {
     previewResponseData,
     showPreview
 } = useAppShellPreview(db);
+
+const authStore = useAuthStore();
 
 const handleShowPreview = (id: string) => {
     showPreview(id, assignments);
@@ -369,29 +371,14 @@ const handleAppNavClick = (item: any) => {
 </script>
 
 <style scoped>
-/* Ensure page-content has proper spacing for bottom toolbar */
+/* Page Content Spacing - Framework7 usually handles this with toolbar-bottom, 
+   but we add overrides just to be safe if dynamic content pushes boundaries */
 .page-content {
-    padding-bottom: calc(var(--f7-toolbar-height, 44px) + var(--f7-safe-area-bottom, 0px) + 20px);
+    /* Ensure bottom toolbar doesn't overlap content */
+    padding-bottom: calc(var(--f7-toolbar-height) + var(--f7-safe-area-bottom) + 20px) !important;
 }
 
-/* Fix tabs container to work properly with toolbar */
-/* Fix tabs container */
-:deep(.tabs) {
-    flex: 1;
-    height: 100%;
-}
-
-:deep(.tab) {
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-/* Ensure proper spacing for tabs with toolbar */
-:deep(.tab.page-content),
-.page-content {
-    padding-top: calc(var(--f7-navbar-height, 56px) + var(--f7-safe-area-top, 0px)) !important;
-}
-
+/* Transitions */
 .view-fade-enter-active,
 .view-fade-leave-active {
     transition: opacity 0.3s ease;
@@ -402,3 +389,4 @@ const handleAppNavClick = (item: any) => {
     opacity: 0;
 }
 </style>
+```

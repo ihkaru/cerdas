@@ -1,4 +1,5 @@
 import { apiClient } from '@/common/api/ApiClient';
+import { useAuthStore } from '@/common/stores/authStore';
 import { SQLiteDBConnection } from '@capacitor-community/sqlite';
 
 export const AppMetadataService = {
@@ -50,6 +51,17 @@ export const AppMetadataService = {
                       navigation: d.navigation || [],
                       views: d.views || []
                   };
+                  
+                  // Extract Role
+                  try {
+                      const authStore = useAuthStore();
+                      if (authStore.user && d.memberships) {
+                          const membership = d.memberships.find((m: any) => m.user_id === authStore.user?.id);
+                          if (membership) {
+                               localStorage.setItem(`app_role_${appId}`, membership.role);
+                          }
+                      }
+                  } catch (e) { console.warn('Role extract error', e); }
                   
                   // Update Local DB
                   await db.run(

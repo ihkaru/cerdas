@@ -92,8 +92,8 @@ class AssignmentController extends Controller {
         }
 
         try {
-            // Note: PrelistImport must be updated to accept Form logic
-            Excel::import(new PrelistImport($formVersion->id, $formVersion->form->app_id), $request->file('file'));
+            // Updated PrelistImport to accept form_id
+            Excel::import(new PrelistImport($formVersion->id, $formVersion->form->app_id, $formVersion->form_id), $request->file('file'));
 
             return response()->json([
                 'success' => true,

@@ -45,8 +45,8 @@
                     <f7-icon f7="house_fill" />
                     <span>Dashboard</span>
                 </a>
-                <a href="#" @click.prevent="navigate('/apps')" class="nav-item"
-                    :class="{ active: currentPath.startsWith('/apps') }">
+                <a href="#" @click.prevent="navigate('/applications')" class="nav-item"
+                    :class="{ active: currentPath.startsWith('/applications') }">
                     <f7-icon f7="app_fill" />
                     <span>Apps</span>
                 </a>
@@ -55,7 +55,7 @@
             <div class="sidebar-section">
                 <div class="section-title">Recent Apps</div>
                 <a v-for="app in recentApps" :key="app.id" href="#"
-                    @click.prevent="navigate(`/apps/${app.slug || app.id}`)" class="nav-item sub-item">
+                    @click.prevent="navigate(`/editor/${app.slug || app.id}`)" class="nav-item sub-item">
                     <div class="app-dot" :style="{ background: app.color }"></div>
                     <span>{{ app.name }}</span>
                 </a>
@@ -104,17 +104,22 @@ const recentApps = computed(() => {
 
 // Hide header/sidebar on editor pages or login page
 const isFullscreenPage = computed(() => {
-    return currentPath.value.startsWith('/forms/') || currentPath.value === '/login';
+    return currentPath.value.startsWith('/forms/') ||
+        currentPath.value === '/login' ||
+        currentPath.value.startsWith('/editor/');
 });
 
 // User Initials from Auth Store
 const userInitials = computed(() => {
     if (!authStore.user || !authStore.user.name) return '??';
     const names = authStore.user.name.trim().split(/\s+/);
-    if (names.length >= 2 && names[0] && names[1]) {
-        return (names[0][0] + names[1][0]).toUpperCase();
+    const first = names[0];
+    const second = names[1];
+
+    if (first && second) {
+        return (first.charAt(0) + second.charAt(0)).toUpperCase();
     }
-    return names[0] ? names[0].substring(0, 2).toUpperCase() : '??';
+    return first ? first.substring(0, 2).toUpperCase() : '??';
 });
 
 // Logout Handler

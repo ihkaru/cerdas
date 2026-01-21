@@ -148,12 +148,21 @@ export interface ViewDefinition {
   type: 'deck' | 'table' | 'map' | 'calendar';
   title: string;
   icon?: string;
+  slice_filter?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
   groupBy: string[];
   deck?: {
     primaryHeaderField: string;
     secondaryHeaderField: string;
     imageField: string | null;
     imageShape: 'square' | 'circle';
+  };
+  map?: {
+    mapbox_style: string;
+    lat: string;
+    long: string;
+    label: string;
   };
   actions: string[];
 }

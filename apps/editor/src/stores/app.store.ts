@@ -13,6 +13,8 @@ export interface AppModel {
     memberships_count?: number;
     forms?: any[];
     memberships?: any[];
+    views?: any[];
+    navigation?: any[];
 }
 
 export interface DashboardStats {

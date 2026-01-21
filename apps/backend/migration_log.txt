@@ -1,40 +1,11 @@
 
-  Dropping all tables ........ 126.05ms DONE
-
-   INFO  Preparing database.  
-
-  Creating migration table .... 18.30ms DONE
-
    INFO  Running migrations.  
 
-  0001_01_01_000000_create_users_table  112.55ms DONE
-  0001_01_01_000001_create_cache_table  24.91ms DONE
-  0001_01_01_000002_create_jobs_table  79.31ms DONE
-  2026_01_13_165214_create_personal_access_tokens_table  72.49ms DONE
-  2026_01_13_173611_create_projects_table  141.82ms DONE
-  2026_01_13_173612_create_organizations_table  130.31ms DONE
-  2026_01_13_173614_create_project_memberships_table  364.25ms DONE
-  2026_01_13_173616_create_app_schemas_table  111.02ms DONE
-  2026_01_13_173618_create_app_schema_versions_table  126.05ms DONE
-  2026_01_13_173620_create_assignments_table  375.92ms DONE
-  2026_01_13_173622_create_responses_table  206.91ms DONE
-  2026_01_13_174647_create_fields_table  199.21ms DONE
-  2026_01_13_174649_create_field_options_table  100.90ms DONE
-  2026_01_13_192624_add_layout_to_app_schema_versions_table  11.57ms DONE
-  2026_01_17_090000_rename_projects_to_apps  144.41ms DONE
-  2026_01_17_090001_rename_app_schemas_to_forms  307.56ms DONE
-
-
-   INFO  Seeding database.  
-
-  Database\Seeders\UserSeeder ...... RUNNING  
-  Database\Seeders\UserSeeder .. 826 ms DONE  
-
-  Database\Seeders\AppSeeder ....... RUNNING  
+  2026_01_20_170000_multi_organization_architecture  33.71ms FAIL
 
    Illuminate\Database\QueryException 
 
-  SQLSTATE[01000]: Warning: 1265 Data truncated for column 'role' at row 1 (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: cerdas, SQL: insert into `app_memberships` (`user_id`, `app_id`, `organization_id`, `role`, `updated_at`, `created_at`) values (1, 1, 1, app_admin, 2026-01-17 09:50:43, 2026-01-17 09:50:43))
+  SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name 'organizations_code_unique' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: cerdas, SQL: alter table `organizations` add unique `organizations_code_unique`(`code`))
 
   at vendor\laravel\framework\src\Illuminate\Database\Connection.php:838
     834Γûò             $exceptionType = $this->isUniqueConstraintError($e)
@@ -47,9 +18,9 @@
     841Γûò                 $this->prepareBindings($bindings),
     842Γûò                 $e,
 
-  1   vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:53
-      PDOException::("SQLSTATE[01000]: Warning: 1265 Data truncated for column 'role' at row 1")
+  1   vendor\laravel\framework\src\Illuminate\Database\Connection.php:584
+      PDOException::("SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name 'organizations_code_unique'")
 
-  2   vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:53
+  2   vendor\laravel\framework\src\Illuminate\Database\Connection.php:584
       PDOStatement::execute()
 

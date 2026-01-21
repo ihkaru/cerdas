@@ -1,7 +1,8 @@
+import { ApiClient } from '@/common/api/ApiClient';
 import { useAppStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
-import type { AppDetail, AppForm, AppMember } from '../types/app-detail.types';
+import type { AppDetail, AppForm, AppMember, AppNavigationItem, AppView } from '../types/app-detail.types';
 import { useAppColors } from './useAppColors';
 
 export function useAppDetail() {
@@ -54,6 +55,59 @@ export function useAppDetail() {
         });
     });
 
+    const views = computed<AppView[]>(() => {
+        const rawViews = (appStore.currentApp as any)?.views || [];
+        return rawViews.map((v: any) => ({
+            id: v.id,
+            name: v.name || 'Untitled View',
+            type: v.type || 'table',
+            config: v.config
+        }));
+    });
+
+    const navigation = computed<AppNavigationItem[]>(() => {
+        const rawNav = (appStore.currentApp as any)?.navigation || [];
+        // Helper to map robustly
+        const mapNav = (item: any): AppNavigationItem => ({
+            id: item.id || String(Math.random()),
+            type: item.type || 'view',
+            view_id: item.view_id,
+            label: item.label || 'Item',
+            icon: item.icon || 'square',
+            children: item.children ? item.children.map(mapNav) : undefined
+        });
+        
+        return rawNav.map(mapNav);
+    });
+
+    // Actions (mocking backend for now if endpoints missing)
+    async function createView(payload: { name: string; type: string }) {
+        // Placeholder: POST /apps/:id/views
+        console.log('Creating view:', payload);
+        // await ApiClient.post...
+        // Refresh app
+    }
+
+    async function updateNavigation(navItems: AppNavigationItem[]) {
+        if (!appStore.currentApp) return;
+
+        try {
+            loading.value = true;
+            await ApiClient.put(`/apps/${appStore.currentApp.id}`, {
+                navigation: navItems
+            });
+
+            // Update local store optimistically
+            appStore.currentApp.navigation = navItems;
+            
+        } catch (e) {
+            console.error('Failed to update navigation', e);
+            // Revert logic could be added here if needed
+        } finally {
+            loading.value = false;
+        }
+    }
+
     async function fetchApp(slug: string) {
         await appStore.fetchApp(slug);
     }
@@ -62,8 +116,12 @@ export function useAppDetail() {
         app,
         forms,
         members,
+        views,
+        navigation,
         loading,
         fetchApp,
+        createView,
+        updateNavigation,
         currentAppRaw: computed(() => appStore.currentApp)
     };
 }

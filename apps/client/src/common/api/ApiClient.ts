@@ -130,6 +130,37 @@ export class ApiClient {
         // Use rootUrl instead of baseUrl to avoid attaching /api suffix to assets
         return `${this.rootUrl}${proxyPath}`;
     }
+
+    /**
+     * Get user's context (role, organization) for a specific app
+     * Used to populate ClosureContext for form validation/logic
+     */
+    async getAppContext(appId: number | string): Promise<{
+        user: {
+            id: number;
+            email: string;
+            name: string;
+            role: 'app_admin' | 'org_admin' | 'supervisor' | 'enumerator';
+            organizationId: number | null;
+            organizationName: string | null;
+        };
+        app: {
+            id: number;
+            uuid: string;
+            mode: 'simple' | 'complex';
+        };
+    } | null> {
+        try {
+            const res = await this.get(`/apps/${appId}/context`);
+            if (res.success && res.data) {
+                return res.data;
+            }
+            return null;
+        } catch (e) {
+            logger.error('Failed to fetch app context', e);
+            return null;
+        }
+    }
 }
 
 export const apiClient = new ApiClient();

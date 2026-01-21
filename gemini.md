@@ -21,12 +21,27 @@ Cerdas adalah AppSheet clone - self-hosted, offline-first, no-code app builder u
 5. **Validation Engine**: JavaScript closures executed CLIENT-SIDE (offline-capable)
 6. **Sync Strategy**: Last-write-wins for conflict resolution
 
-## Multi-Tenant Hierarchy
+## Multi-Tenant Hierarchy (Updated 2026-01-20)
+
+**Organization** adalah entitas GLOBAL. Satu Org bisa di banyak App.
+
 ```
-Central Authority → Project → Organization → User (role per project-org)
+Organization (Global) ←→ App (via app_organizations pivot)
+    │                      │
+    └── AppMembership ─────┘ (User + Role per App+Org)
+                           │
+                      ┌────┴────┐
+                      ↓         ↓
+                   Form       View
+                      │
+                 Assignment (form_id, org_id)
 ```
-- 1 Assignment = 1 Org + 1 Supervisor + 1 Enumerator
-- Users can have DIFFERENT roles in different projects
+
+**App Modes:**
+- **Simple**: Membership di level App, 1 Default Org otomatis.
+- **Complex**: Membership di level Organization, multiple Orgs.
+
+Users can have DIFFERENT roles in different App+Org combinations.
 
 ## Monorepo Structure
 ```
@@ -50,6 +65,7 @@ packages/types  - @cerdas/types (shared strict TS types)
 - `docs/task.md` - Current progress tracker
 - `docs/DEVELOPMENT_LIFECYCLE.md` - **Development feedback loop & workflow**
 - `references/SCREEN_FLOW.md` - **User Screen Flow & Routing Guide (Happy/Unhappy Paths)**
+- `ROADMAP.md` - **Feature Roadmap & Progress Tracker (Live Status)**
 - [System Reference & Specification](file:///C:/Users/Admin/.gemini/antigravity/brain/6aa89f4f-fdf3-448d-8799-1234dfbcf31c/system_reference.md) - **Single Source of Truth** for Requirements, Features, and Entity Relationships.
 
 ### Process Management Scripts (Root)
@@ -69,6 +85,32 @@ packages/types  - @cerdas/types (shared strict TS types)
 - User wants strict TypeScript to catch errors early
 - Update gemini.md with important changes/progress
 - **CRITICAL VERSION RULE**: Always update the project version (currently 0.1.0) in `README.md`, `package.json`, and `composer.json` whenever significant progress is made (equivalent to a "push").
+
+## ClosureContext (App-Wide Context) - Updated 2026-01-20
+
+Form closures now have access to typed user context:
+
+```typescript
+// In closures (validation_js, showIf, etc):
+ctx.user.id           // number
+ctx.user.email        // string
+ctx.user.name         // string
+ctx.user.role         // 'app_admin' | 'org_admin' | 'supervisor' | 'enumerator'
+ctx.user.organizationId // number | null
+
+ctx.assignment.id     // string | number
+ctx.assignment.status // string
+ctx.assignment.organization_id // number
+
+ctx.utils.today()     // 'YYYY-MM-DD'
+ctx.utils.now()       // ISO datetime
+ctx.utils.daysSince('2026-01-01') // number
+```
+
+**Files Updated:**
+- `packages/form-engine/src/utils/ClosureCompiler.ts` - Typed ClosureContext
+- `apps/client/src/common/stores/authStore.ts` - User interface with role/org
+- `apps/client/src/pages/AssignmentDetail.vue` - Pass userContext to FormRenderer
 
 ## Framework7 v9 + TypeScript Setup Notes
 F7 Vue has incomplete TypeScript declarations. Required shims:

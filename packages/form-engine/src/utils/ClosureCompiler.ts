@@ -11,17 +11,32 @@ export interface ClosureContext {
     index?: number;               // Current row index (for nested forms)
     parent?: Record<string, any>; // Parent form data (if nested)
     
-    // Global Context
-    user?: any;
-    assignment?: any;
+    // User Context (App-Wide) - Slim, only primitives
+    user?: {
+        id: number;
+        email: string;
+        name: string;
+        role: 'app_admin' | 'org_admin' | 'supervisor' | 'enumerator';
+        organizationId: number | null;
+    };
+    
+    // Assignment Context
+    assignment?: {
+        id: string | number;
+        status: string;
+        form_id?: number;
+        organization_id?: number;
+        prelist_data?: Record<string, any>;
+    };
     
     // Utilities
     utils: {
         now: () => string;
+        today: () => string;
         uuid: () => string;
         sum: (arr: any[], key?: string) => number;
+        daysSince: (date: string) => number;
         log: (...args: any[]) => void;
-        // add more helpers as needed
     };
     
     // Variables/Lookups
@@ -33,6 +48,7 @@ export interface ClosureContext {
  */
 export const defaultUtils = {
     now: () => new Date().toISOString(),
+    today: () => new Date().toISOString().split('T')[0], // YYYY-MM-DD
     uuid: () => Math.random().toString(36).substring(2) + Date.now().toString(36),
     sum: (arr: any[], key?: string) => {
         if (!Array.isArray(arr)) return 0;
@@ -40,6 +56,13 @@ export const defaultUtils = {
              const val = key ? (item[key] || 0) : item;
              return acc + (Number(val) || 0);
         }, 0);
+    },
+    daysSince: (dateStr: string) => {
+        if (!dateStr) return 0;
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        return Math.floor(diffMs / (1000 * 60 * 60 * 24));
     },
     log: (...args: any[]) => console.log('[Closure Log]', ...args),
 };

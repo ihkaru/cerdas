@@ -6,6 +6,10 @@ interface User {
     id: number;
     name: string;
     email: string;
+    // App-wide context properties (populated per-app login)
+    role?: 'app_admin' | 'org_admin' | 'supervisor' | 'enumerator';
+    organizationId?: number | null;
+    organizationName?: string | null;
 }
 
 interface AuthState {
@@ -74,6 +78,13 @@ export const useAuthStore = defineStore('auth', {
             this.user = null;
             localStorage.removeItem('auth_token');
             localStorage.removeItem('auth_user');
+        },
+
+        updateUser(fields: Partial<User>) {
+            if (!this.user) return;
+            this.user = { ...this.user, ...fields };
+            localStorage.setItem('auth_user', JSON.stringify(this.user));
+            log.debug('User updated and saved to LocalStorage', fields);
         }
     }
 });

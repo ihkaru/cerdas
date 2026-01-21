@@ -16,9 +16,12 @@ class PrelistImport implements ToCollection, WithHeadingRow {
     private $enumeratorCache = [];
     private $orgCache = [];
 
-    public function __construct(int $formVersionId, int $appId) {
+    private $formId;
+
+    public function __construct(int $formVersionId, int $appId, int $formId) {
         $this->formVersionId = $formVersionId;
         $this->appId = $appId;
+        $this->formId = $formId;
     }
 
     public function collection(Collection $rows) {
@@ -38,13 +41,11 @@ class PrelistImport implements ToCollection, WithHeadingRow {
         $orgId = null;
         if ($orgCode) {
             if (!isset($this->orgCache[$orgCode])) {
-                // Assuming organization still uses project_id column or we use app_id if migrated
-                // The AppSeeder used firstOrCreate assuming Organization model checks 'project_id' or 'app_id'.
-                // If migration didn't rename organization.project_id, we keep it as is or assume App ID matches.
-                // Safest bet: query using 'project_id' column if it exists, matching $this->appId
-                $org = Organization::where('project_id', $this->appId)
-                    ->where('code', $orgCode)
-                    ->first();
+                // Find organization by code attached to this app
+                $org = Organization::where('code', $orgCode)
+                    ->whereHas('apps', function ($q) {
+                        $q->where('id', $this->appId);
+                    })->first();
                 $this->orgCache[$orgCode] = $org?->id;
             }
             $orgId = $this->orgCache[$orgCode];
@@ -75,6 +76,7 @@ class PrelistImport implements ToCollection, WithHeadingRow {
 
         // Create Assignment
         Assignment::create([
+            'form_id' => $this->formId,
             'form_version_id' => $this->formVersionId,
             'organization_id' => $orgId,
             'supervisor_id' => $supervisorId,

@@ -25,7 +25,8 @@
 
         <div v-else-if="schema && assignment" class="padding-bottom-xl">
             <FormRenderer ref="formRenderer" :schema="schema" :initial-data="formData"
-                :context="{ assignment: assignment, resolveAssetUrl: resolveAssetUrl }" @update:data="handleUpdate" />
+                :context="{ user: userContext, assignment: assignment, resolveAssetUrl: resolveAssetUrl }"
+                @update:data="handleUpdate" />
         </div>
 
         <!-- Validation Summary FAB - Teleported to body to float above everything (including Popups) -->
@@ -189,10 +190,21 @@ import { DashboardRepository } from '../app/dashboard/repositories/DashboardRepo
 import type { Assignment } from '../app/dashboard/types';
 import { apiClient } from '../common/api/ApiClient';
 import { useDatabase } from '../common/composables/useDatabase';
+import { useAuthStore } from '../common/stores/authStore';
 import { useLogger } from '../common/utils/logger';
 
 const log = useLogger('AssignmentDetail');
+const authStore = useAuthStore();
 const resolveAssetUrl = (val: any) => apiClient.getAssetUrl(val);
+
+// Slim user context for closures (minimal, no heavy objects)
+const userContext = computed(() => ({
+    id: authStore.user?.id ?? 0,
+    email: authStore.user?.email ?? '',
+    name: authStore.user?.name ?? '',
+    role: authStore.user?.role ?? 'enumerator',
+    organizationId: authStore.user?.organizationId ?? null,
+}));
 
 const props = defineProps<{
     assignmentId: string;

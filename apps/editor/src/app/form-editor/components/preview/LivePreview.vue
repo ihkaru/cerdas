@@ -83,9 +83,13 @@ async function syncAuth() {
     isSyncing.value = false;
 
     if (token && iframeRef.value?.contentWindow) {
+        const roleLabel = props.role 
+            ? props.role.charAt(0).toUpperCase() + props.role.slice(1) 
+            : 'Admin';
+
         iframeRef.value.contentWindow.postMessage({
             type: 'SET_TOKEN',
-            payload: token
+            payload: { token, roleLabel }
         }, '*');
 
         // Force refresh data in client if role changed
