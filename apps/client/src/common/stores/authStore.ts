@@ -54,6 +54,27 @@ export const useAuthStore = defineStore('auth', {
             return false;
         },
 
+        async loginWithGoogle(idToken: string) {
+            log.info('Attempting Google login');
+            try {
+                // client_type: 'android' or 'web' - but backend handles token verification similarly
+                // We can send 'android' if we want backend to know source
+                const res = await apiClient.post('/auth/google', { id_token: idToken, client_type: 'web' });
+                
+                if (res.data && res.data.token && res.data.user) {
+                    log.info('Google Login successful');
+                    this.setAuth(res.data.token, res.data.user);
+                    return true;
+                } else {
+                    log.warn('Google Login failed: No token or user in response', res);
+                    return false;
+                }
+            } catch (e: any) {
+                log.error('Google Login Error', e);
+                throw e;
+            }
+        },
+
         async logout() {
             try {
                 await apiClient.post('/auth/logout', {});

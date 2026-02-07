@@ -1,3 +1,4 @@
+
 import { useDatabase } from '@/common/composables/useDatabase';
 import { useLogger } from '@/common/utils/logger';
 import type { Ref } from 'vue';
@@ -5,7 +6,7 @@ import { ref } from 'vue';
 import { AppMetadataService } from '../../services/AppMetadataService';
 
 export function useAppMetadata(
-    formId: string, 
+    contextId: string, 
     refreshData: () => Promise<void>,
     fetchAppContext: (appId: string | number) => Promise<void>,
     currentUserRole: Ref<string>, 
@@ -16,7 +17,7 @@ export function useAppMetadata(
 
     const appNavigation = ref<any[]>([]);
     const appViews = ref<any[]>([]);
-    const appForms = ref<any[]>([]);
+    const appTables = ref<any[]>([]); // Renamed from appForms
     const activeView = ref<string>('');
 
     const loadAppMetadata = async (schemaData: any, isRefresh: boolean, loading: Ref<boolean>) => {
@@ -25,7 +26,8 @@ export function useAppMetadata(
 
             // Resolve App ID
             let appId = schemaData?.app_id;
-            let validAppId = await AppMetadataService.resolveAppId(conn, formId, appId);
+            // contextId might be AppID or TableID
+            let validAppId = await AppMetadataService.resolveAppId(conn, contextId, appId);
             
             log.debug('Resolved validAppId:', validAppId);
 
@@ -56,7 +58,7 @@ export function useAppMetadata(
                     }
                     if (views.length) appViews.value = views;
 
-                    appForms.value = await AppMetadataService.getSiblingForms(conn, validAppId);
+                    appTables.value = await AppMetadataService.getSiblingTables(conn, validAppId);
                 } catch (e) {
                     log.warn('Failed to load local app metadata', e);
                 }
@@ -89,8 +91,8 @@ export function useAppMetadata(
                                     activeView.value = appNavigation.value[0].view_id;
                                 }
                             }
-                            if (result.forms) {
-                                appForms.value = result.forms;
+                            if (result.tables) {
+                                appTables.value = result.tables;
                             }
                         }
                     } catch (e) {
@@ -110,7 +112,7 @@ export function useAppMetadata(
     return {
         appNavigation,
         appViews,
-        appForms,
+        appTables,
         activeView,
         loadAppMetadata
     };

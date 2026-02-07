@@ -1,12 +1,11 @@
 
-
-export const FORMS_TABLE = `
-CREATE TABLE IF NOT EXISTS forms (
+export const TABLES_TABLE = `
+CREATE TABLE IF NOT EXISTS tables (
     id TEXT PRIMARY KEY,
     app_id TEXT,
     name TEXT,
     description TEXT,
-    schema TEXT, -- JSON
+    fields TEXT, -- JSON (Renamed from schema)
     layout TEXT, -- JSON
     settings TEXT, -- JSON (icon, color, etc)
     icon TEXT,
@@ -18,7 +17,7 @@ CREATE TABLE IF NOT EXISTS forms (
 export const ASSIGNMENTS_TABLE = `
 CREATE TABLE IF NOT EXISTS assignments (
     id TEXT PRIMARY KEY,
-    form_id TEXT,
+    table_id TEXT, -- Renamed from form_id
     organization_id TEXT,
     supervisor_id TEXT,
     enumerator_id TEXT,
@@ -70,4 +69,4 @@ CREATE TABLE IF NOT EXISTS apps (
 );
 `;
 
-export const SCHEMA_VERSION = 8; // Added icon column to forms table
+export const SCHEMA_VERSION = 11; // Force schema recreation after query fix

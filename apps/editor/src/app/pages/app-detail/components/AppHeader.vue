@@ -6,24 +6,28 @@
                 {{ app.name.substring(0, 2).toUpperCase() }}
             </div>
             <div class="header-info">
-                <h1>{{ app.name }}</h1>
+                <div class="title-row">
+                    <h1>{{ app.name }}</h1>
+                    <f7-chip :text="app.mode" :color="app.mode === 'complex' ? 'purple' : 'blue'" outline
+                        class="mode-badge" />
+                </div>
                 <p>{{ app.description || 'No description' }}</p>
             </div>
         </div>
         <div class="header-actions">
-            <f7-button outline class="settings-btn">
+            <!-- <f7-button outline class="settings-btn">
                 <f7-icon f7="gear" />
                 Settings
-            </f7-button>
-            <f7-button fill @click="$emit('create')" class="create-btn">
-                <f7-icon f7="plus" />
-                New Form
+            </f7-button> -->
+            <f7-button fill @click="$emit('edit')" class="edit-btn">
+                <f7-icon f7="square_pencil" />
+                Open Editor
             </f7-button>
         </div>
     </div>
 </template>
 <script setup lang="ts">
-import { f7Button, f7Icon, f7Link } from 'framework7-vue';
+import { f7Button, f7Chip, f7Icon, f7Link } from 'framework7-vue';
 import type { AppDetail } from '../types/app-detail.types';
 
 defineProps<{
@@ -31,7 +35,7 @@ defineProps<{
 }>();
 
 defineEmits<{
-    (e: 'create'): void;
+    (e: 'edit'): void;
 }>();
 </script>
 <style scoped>
@@ -66,11 +70,24 @@ defineEmits<{
     font-weight: 600;
 }
 
+.title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .header-info h1 {
     font-size: 24px;
     font-weight: 600;
     color: #1e293b;
     margin: 0;
+}
+
+.mode-badge {
+    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: 600;
+    height: 20px;
 }
 
 .header-info p {

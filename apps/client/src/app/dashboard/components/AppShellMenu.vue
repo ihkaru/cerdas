@@ -38,23 +38,23 @@
             </f7-list-item>
 
             <!-- Separator if both exist -->
-            <f7-block-title v-if="navigation.length > 0 && forms.length > 0">All Forms</f7-block-title>
+            <f7-block-title v-if="navigation.length > 0 && tables.length > 0">All Tables</f7-block-title>
 
-            <!-- Forms List (Sibling Forms) -->
-            <f7-list-item v-for="form in forms" :key="'form-' + form.id" link="#" :title="form.name"
-                :after="form.id === currentFormId ? 'Current' : ''" @click="handleFormClick(form)">
+            <!-- Tables List (Sibling Tables) -->
+            <f7-list-item v-for="table in tables" :key="'table-' + table.id" link="#" :title="table.name"
+                :after="table.id === currentTableId ? 'Current' : ''" @click="handleTableClick(table)">
                 <template #media>
                     <div class="menu-icon">
-                        <f7-icon :f7="form.icon || 'doc_text'" />
+                        <f7-icon :f7="table.icon || 'doc_text'" />
                     </div>
                 </template>
                 <template #subtitle>
-                    {{ form.description }}
+                    {{ table.description }}
                 </template>
             </f7-list-item>
 
-            <f7-list-item v-if="forms.length === 0 && navigation.length === 0"
-                title="No other forms found"></f7-list-item>
+            <f7-list-item v-if="tables.length === 0 && navigation.length === 0"
+                title="No other tables found"></f7-list-item>
         </f7-list>
     </f7-page>
 </template>
@@ -64,7 +64,7 @@ import { f7 } from 'framework7-vue';
 import type { PropType } from 'vue';
 
 const props = defineProps({
-    forms: {
+    tables: {
         type: Array as PropType<any[]>,
         default: () => []
     },
@@ -76,7 +76,7 @@ const props = defineProps({
         type: Array as PropType<any[]>,
         default: () => []
     },
-    currentFormId: {
+    currentTableId: {
         type: [String, Number],
         required: true
     },
@@ -131,8 +131,8 @@ function handleNavClick(item: any) {
     });
 }
 
-function handleFormClick(form: any) {
-    if (form.id == props.currentFormId) {
+function handleTableClick(table: any) {
+    if (table.id == props.currentTableId) {
         f7.panel.close('left');
         return;
     }
@@ -140,7 +140,7 @@ function handleFormClick(form: any) {
     f7.panel.close('left');
 
     // Navigate using F7 router
-    const url = `/app/${form.id}`;
+    const url = `/app/${table.id}`;
 
     f7.view.main.router.navigate(url, {
         reloadCurrent: true // Replace current form

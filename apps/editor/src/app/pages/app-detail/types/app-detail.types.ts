@@ -2,6 +2,7 @@ export interface AppDetail {
     id: string | number;
     name: string;
     description: string;
+    mode?: 'simple' | 'complex';
     color: string;
 }
 
@@ -38,4 +39,10 @@ export interface AppNavigationItem {
     label: string;
     icon: string;
     children?: AppNavigationItem[];
+}
+
+export interface AppOrganization {
+    id: string | number;
+    name: string;
+    code: string;
 }

@@ -37,11 +37,11 @@ const routes: Router.RouteParameters[] = [
     }
   },
   {
-    path: '/app/:schemaId',
+    path: '/app/:contextId',
     component: AppShell,
   },
   {
-    path: '/app/:schemaId/view/:viewName/:recordId',
+    path: '/app/:contextId/view/:viewName/:recordId',
     component: DynamicViewPage,
   },
   {

@@ -19,9 +19,9 @@ class AppController extends Controller {
         $user = $request->user();
 
         if ($user->isSuperAdmin()) {
-            $apps = App::withCount(['forms', 'memberships'])->get();
+            $apps = App::withCount(['tables', 'memberships'])->get();
         } else {
-            $apps = $user->apps()->withCount(['forms', 'memberships'])->get();
+            $apps = $user->apps()->withCount(['tables', 'memberships'])->get();
         }
 
         return response()->json([
@@ -37,6 +37,7 @@ class AppController extends Controller {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'mode' => 'nullable|string|in:simple,complex',
         ]);
 
         $user = $request->user();
@@ -54,6 +55,7 @@ class AppController extends Controller {
             'name' => $validated['name'],
             'slug' => $slug,
             'description' => $validated['description'] ?? null,
+            'mode' => $validated['mode'] ?? 'simple',
             'created_by' => $user->id,
         ]);
 
@@ -63,11 +65,6 @@ class AppController extends Controller {
             'user_id' => $user->id,
             'role' => 'app_admin',
             'is_active' => true,
-            // 'organization_id' needs to be handled? Assuming null or default for now.
-            // Migration for app_memberships says organization_id is foreign key but nullable?
-            // Let's check migration content or assume nullable. 
-            // In AppMembership model, organization_id is fillable.
-            // If strictly required, we will fail here. But let's assume it's nullable or we fix later.
         ]);
 
         // Create demo users for this app
@@ -140,7 +137,7 @@ class AppController extends Controller {
     }
 
     /**
-     * Get specific app details (with stats/forms if needed)
+     * Get specific app details (with stats/tables if needed)
      */
     public function show(Request $request, App $app): JsonResponse {
         $user = $request->user();
@@ -149,7 +146,8 @@ class AppController extends Controller {
             return response()->json(['success' => false, 'message' => 'Access denied'], 403);
         }
 
-        $app->load(['forms.latestPublishedVersion', 'memberships.user', 'views']);
+        // Updated relation: forms -> tables
+        $app->load(['tables.latestPublishedVersion', 'memberships.user', 'views', 'organizations']);
 
         return response()->json([
             'success' => true,
@@ -189,7 +187,6 @@ class AppController extends Controller {
 
     /**
      * Get user's context for this app (role, organization)
-     * Used by client to build ClosureContext for form validation/logic
      */
     public function context(Request $request, App $app): JsonResponse {
         $user = $request->user();
@@ -209,7 +206,7 @@ class AppController extends Controller {
                     ],
                     'app' => [
                         'id' => $app->id,
-                        'uuid' => $app->uuid,
+                        'uuid' => $app->id,
                         'mode' => $app->mode ?? 'simple',
                     ],
                 ],
@@ -242,10 +239,52 @@ class AppController extends Controller {
                 ],
                 'app' => [
                     'id' => $app->id,
-                    'uuid' => $app->uuid,
+                    'uuid' => $app->id,
                     'mode' => $app->mode ?? 'simple',
                 ],
             ],
+        ]);
+    }
+
+    /**
+     * Get participating organizations for this app
+     */
+    public function organizations(Request $request, App $app): JsonResponse {
+        // Access check?
+        $app->load('organizations');
+        return response()->json([
+            'success' => true,
+            'data' => $app->organizations,
+        ]);
+    }
+
+    /**
+     * Attach organization to app
+     */
+    public function attachOrganization(Request $request, App $app): JsonResponse {
+        $validated = $request->validate([
+            'organization_id' => 'required|exists:organizations,id',
+        ]);
+
+        $app->organizations()->syncWithoutDetaching([$validated['organization_id']]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Organization attached',
+            'data' => $app->load('organizations')->organizations,
+        ]);
+    }
+
+    /**
+     * Detach organization from app
+     */
+    public function detachOrganization(Request $request, App $app, $organizationId): JsonResponse {
+        $app->organizations()->detach($organizationId);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Organization detached',
+            'data' => $app->load('organizations')->organizations,
         ]);
     }
 }

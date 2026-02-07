@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\Organization;
 use App\Models\App;
-use App\Models\Form;
-use App\Models\FormVersion;
+use App\Models\Table;
+use App\Models\TableVersion;
 use App\Models\AppMembership;
 use Faker\Factory as Faker;
 use Illuminate\Support\Str;
@@ -31,7 +31,8 @@ class PerformanceTestSeeder extends Seeder {
             [
                 'name' => 'Performance Stress Test App',
                 'description' => 'Tested with 10k assignments',
-                'created_by' => $admin->id
+                'created_by' => $admin->id,
+                'mode' => 'complex'
             ]
         );
 
@@ -41,7 +42,7 @@ class PerformanceTestSeeder extends Seeder {
         );
         $app->organizations()->syncWithoutDetaching([$org->id]);
 
-        // 3. ESSENTIAL: App Membership (This was missing!)
+        // 3. ESSENTIAL: App Membership
         $this->command->info('Ensuring App Memberships...');
         AppMembership::firstOrCreate(
             ['app_id' => $app->id, 'user_id' => $supervisor->id],
@@ -53,16 +54,10 @@ class PerformanceTestSeeder extends Seeder {
             ['organization_id' => $org->id, 'role' => 'enumerator', 'supervisor_id' => $supervisor->id]
         );
 
-        // 4. Setup Heavy Schema (Form)
+        // 4. Setup Heavy Schema (Table - renamed from Form)
         $schemaFields = [];
-        $sections = [];
 
         for ($s = 1; $s <= 5; $s++) {
-            $sections[] = [
-                'id' => "section_$s",
-                'title' => "Section $s",
-                'children' => []
-            ];
             for ($i = 1; $i <= 20; $i++) {
                 $idx = ($s - 1) * 20 + $i;
                 $type = match ($idx % 5) {
@@ -78,14 +73,16 @@ class PerformanceTestSeeder extends Seeder {
             }
         }
 
-        $form = Form::firstOrCreate(
+        // Use Table model (renamed from Form)
+        $table = Table::firstOrCreate(
             ['app_id' => $app->id, 'slug' => 'perf-schema-100'],
-            ['name' => 'Performance Form 100', 'current_version' => 1]
+            ['name' => 'Performance Table 100', 'current_version' => 1]
         );
 
-        $version = FormVersion::updateOrCreate(
-            ['form_id' => $form->id, 'version' => 1],
-            ['schema' => ['fields' => $schemaFields], 'layout' => ['sections' => $sections], 'published_at' => now()]
+        // Use TableVersion model (renamed from FormVersion)
+        $version = TableVersion::updateOrCreate(
+            ['table_id' => $table->id, 'version' => 1],
+            ['fields' => $schemaFields, 'layout' => [], 'published_at' => now()]
         );
 
         // 5. CSV Generation/Loading
@@ -95,7 +92,7 @@ class PerformanceTestSeeder extends Seeder {
         $this->command->info("Loading assignments from CSV: $csvPath");
 
         // Clear old
-        DB::table('assignments')->where('form_version_id', $version->id)->delete();
+        DB::table('assignments')->where('table_version_id', $version->id)->delete();
 
         // Read CSV and Insert
         $handle = fopen($csvPath, 'r');
@@ -108,16 +105,17 @@ class PerformanceTestSeeder extends Seeder {
         while (($row = fgetcsv($handle)) !== false) {
             // CSV columns: external_id, status, name, address, notes
             $batch[] = [
-                'form_id' => $form->id, // Added required fields
-                'form_version_id' => $version->id,
+                'id' => (string) Str::uuid(), // Generate UUID for primary key
+                'table_id' => $table->id, // Renamed from form_id
+                'table_version_id' => $version->id, // Renamed from form_version_id
                 'organization_id' => $org->id,
                 'supervisor_id' => $supervisor->id,
                 'enumerator_id' => $enumerator->id,
                 'external_id' => $row[0],
                 'status' => $row[1],
                 'prelist_data' => json_encode([
-                    'name' => $row[2], // Standard property for frontend display
-                    'name_head' => $row[2], // Legacy/Specific property
+                    'name' => $row[2],
+                    'name_head' => $row[2],
                     'address' => $row[3],
                     'notes' => $row[4] ?? ''
                 ]),
@@ -152,7 +150,7 @@ class PerformanceTestSeeder extends Seeder {
 
         for ($i = 1; $i <= 10000; $i++) {
             fputcsv($handle, [
-                $faker->uuid, // Generate UUID
+                $faker->uuid,
                 'assigned',
                 $faker->name,
                 $faker->address,

@@ -50,7 +50,7 @@ api.interceptors.response.use(
 
 export const ApiClient = {
     get: <T = any>(url: string, params?: any) => api.get<T>(url, { params }),
-    post: <T = any>(url: string, data?: any) => api.post<T>(url, data),
-    put: <T = any>(url: string, data?: any) => api.put<T>(url, data),
+    post: <T = any>(url: string, data?: any, config?: any) => api.post<T>(url, data, config),
+    put: <T = any>(url: string, data?: any, config?: any) => api.put<T>(url, data, config),
     delete: <T = any>(url: string) => api.delete<T>(url),
 };

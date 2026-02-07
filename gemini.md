@@ -630,3 +630,40 @@ Dashboard (/) → Apps (/apps) → App Detail (/apps/:id) → Form Editor (/form
   - Smooth cursor changes during drag.
 - **Files Created**:
   - `apps/editor/src/app/form-editor/components/shared/ResizableDivider.vue`
+
+### 2026-02-08: App Schema System Implementation
+
+- **App-Level JSON Schema**:
+  - Designed schema covering: `app` metadata, `tables` (keyed by slug), `views`, `navigation`.
+  - Created TypeScript types: `AppSchema`, `TableSchema`, `ViewSchema`, `NavigationItem`, `TableSourceType`.
+  - Implemented `validateAppJson()` in `jsonValidator.ts` with cross-reference validation (views→tables, navigation→views).
+
+- **Backend API (`AppSchemaController.php`)**:
+  - `getSchema(App $app)`: Returns full App JSON with tables, views, navigation.
+  - `updateSchema(Request $request, App $app)`: Updates from App JSON (creates/updates/deletes tables & views).
+  - `exportSchema(App $app)`: Download JSON file.
+  - `importSchema(Request $request)`: Create new App from JSON.
+  - Routes: `GET/PUT /apps/{app}/schema`, `GET /apps/{app}/schema/export`, `POST /apps/import`.
+
+- **Code Editor Enhancements (`CodeEditorTab.vue`)**:
+  - Auto-detection: `isAppLevel` computed detects App vs Table level JSON.
+  - Schema badges: Blue "APP" or gray "TABLE" indicator.
+  - Import/Export toolbar: Copy, Download, Upload buttons.
+  - File upload: JSON file import with validation.
+
+- **Files Created/Modified**:
+  - `apps/backend/app/Http/Controllers/Api/AppSchemaController.php` (NEW)
+  - `apps/backend/routes/api.php` (Added schema routes)
+  - `apps/editor/src/app/app-editor/types/editor.types.ts` (Added App types)
+  - `apps/editor/src/app/app-editor/utils/jsonValidator.ts` (Added validateAppJson)
+  - `apps/editor/src/app/app-editor/components/code/CodeEditorTab.vue` (Added import/export UI)
+
+### 2026-02-08: Resizable Code Editor
+
+- **Feature**: Code Editor panel is now resizable (drag-to-resize) between 400px and 1000px width.
+- **Implementation**:
+  - Added `codeEditorWidth` state to `AppEditorPage.vue`.
+  - Wrapped `CodeEditorTab` in a resizable container with `ResizableDivider`.
+  - Added JSON Preview placeholder area effectively splitting the view.
+  - Added CSS styles for `.code-content`, `.code-editor-panel`, and `.code-preview-placeholder` in `app-editor.css`.
+

@@ -2,7 +2,7 @@
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { Capacitor } from '@capacitor/core';
 import { useLogger } from '../utils/logger';
-import { APPS_TABLE, ASSIGNMENTS_TABLE, FORMS_TABLE, RESPONSES_TABLE, SCHEMA_VERSION, SYNC_QUEUE_TABLE } from './schema';
+import { APPS_TABLE, ASSIGNMENTS_TABLE, RESPONSES_TABLE, SCHEMA_VERSION, SYNC_QUEUE_TABLE, TABLES_TABLE } from './schema';
 
 const log = useLogger('DatabaseService');
 
@@ -140,17 +140,21 @@ export class DatabaseService {
         if (!this.db) return;
 
         // Check schema version for migrations
-        const storedVersion = parseInt(localStorage.getItem('db_schema_version') || '0', 10);
+        const storedVersionStr = localStorage.getItem('db_schema_version');
+        const storedVersion = parseInt(storedVersionStr || '0', 10);
         const currentVersion = SCHEMA_VERSION;
         
+        log.info(`[Schema Check] Stored: ${storedVersion} (raw: "${storedVersionStr}") | Code: ${currentVersion}`);
+        
         if (storedVersion < currentVersion) {
-            log.info(`Schema migration needed: ${storedVersion} -> ${currentVersion}`);
+            log.warn(`[UUID Migration] Schema outdated! Dropping all tables... (${storedVersion} → ${currentVersion})`);
             
             // Drop and recreate tables (development approach - preserves no data)
             // In production, use proper ALTER TABLE statements
             const dropStatements = [
-                'DROP TABLE IF EXISTS forms',
-                'DROP TABLE IF EXISTS apps', // APPS Added
+                'DROP TABLE IF EXISTS tables', // Renamed
+                'DROP TABLE IF EXISTS forms', // Cleanup old
+                'DROP TABLE IF EXISTS apps',
                 'DROP TABLE IF EXISTS app_schemas',
                 'DROP TABLE IF EXISTS assignments', 
                 'DROP TABLE IF EXISTS responses',
@@ -160,18 +164,19 @@ export class DatabaseService {
             for (const sql of dropStatements) {
                 try {
                     await this.db.execute(sql);
+                    log.debug(`[Migration] Dropped: ${sql.split(' ')[4]}`);
                 } catch (e) {
                     log.warn(`Drop table statement failed: ${sql}`, e);
                 }
             }
-            log.info('Old tables dropped');
+            log.info('[UUID Migration] All old tables dropped successfully');
         } else {
-            log.debug('Schema version matches, skipping migration');
+            log.debug(`[Schema Check] Version OK (${storedVersion}), skipping migration`);
         }
 
         // Create tables
         const tables = [
-            FORMS_TABLE,
+            TABLES_TABLE, // Renamed
             APPS_TABLE,
             ASSIGNMENTS_TABLE,
             RESPONSES_TABLE,
@@ -221,6 +226,7 @@ export class DatabaseService {
 
         // 1. Drop Tables
         const dropStatements = [
+            'DROP TABLE IF EXISTS tables', // Renamed
             'DROP TABLE IF EXISTS forms',
             'DROP TABLE IF EXISTS apps', 
             'DROP TABLE IF EXISTS app_schemas',

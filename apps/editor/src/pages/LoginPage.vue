@@ -46,6 +46,14 @@
                         <span v-if="!authStore.loading">Sign In</span>
                         <span v-else class="loading-spinner"></span>
                     </button>
+
+                    <div class="divider">
+                        <span>OR</span>
+                    </div>
+
+                    <div class="google-login-wrapper">
+                        <GoogleSignInButton @success="handleGoogleLogin" @error="handleGoogleError" />
+                    </div>
                 </form>
             </div>
 
@@ -61,11 +69,29 @@
 import { useAuthStore } from '@/stores/auth.store';
 import { f7 } from 'framework7-vue';
 import { ref } from 'vue';
+import { GoogleSignInButton } from 'vue3-google-signin';
 
 const authStore = useAuthStore();
 
+
 const email = ref('');
 const password = ref('');
+
+const handleGoogleError = () => {
+    f7.dialog.alert('Google Login Failed');
+}
+
+const handleGoogleLogin = async (response: any) => {
+    console.log('Google Login Response:', response);
+    if (response.credential) {
+        const success = await authStore.loginWithGoogle(response.credential);
+        if (success) {
+            window.location.href = '/';
+        }
+    } else {
+        f7.dialog.alert('Failed to get Google Token');
+    }
+};
 
 async function handleLogin() {
     if (!email.value || !password.value) {
@@ -308,5 +334,35 @@ async function handleLogin() {
     font-size: 12px;
     color: #94a3b8;
     margin: 0;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 20px 0;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.divider::before {
+    margin-right: 10px;
+}
+
+.divider::after {
+    margin-left: 10px;
+}
+
+.google-login-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
 }
 </style>

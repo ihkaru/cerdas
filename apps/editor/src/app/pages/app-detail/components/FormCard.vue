@@ -1,5 +1,5 @@
 <template>
-    <a :href="`/forms/${form.id}`" class="form-card">
+    <a :href="`/tables/${form.id}`" class="form-card">
         <div class="form-icon" :class="form.status">
             <f7-icon :f7="form.icon" />
         </div>

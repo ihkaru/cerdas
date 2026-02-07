@@ -2,7 +2,7 @@ import { useDatabase } from '@/common/composables/useDatabase';
 import { f7 } from 'framework7-vue';
 import { DashboardRepository } from '../repositories/DashboardRepository';
 
-export function useAppShellActions(formId: string, refreshCallback: (full?: boolean) => Promise<void>) {
+export function useAppShellActions(contextId: string, refreshCallback: (full?: boolean) => Promise<void>) {
     const db = useDatabase();
 
     const deleteAssignment = async (assignmentId: string) => {
@@ -36,7 +36,7 @@ export function useAppShellActions(formId: string, refreshCallback: (full?: bool
     const createAssignment = async () => {
         try {
             const conn = await db.getDB();
-            const newId = await DashboardRepository.createLocalAssignment(conn, formId);
+            const newId = await DashboardRepository.createLocalAssignment(conn, contextId);
             await db.save();
             await refreshCallback(true);
             return newId;

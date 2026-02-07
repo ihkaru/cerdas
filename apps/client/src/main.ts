@@ -26,10 +26,12 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { f7 } from 'framework7-vue';
 import { defineCustomElements as jeepSqlite } from 'jeep-sqlite/loader';
+import GoogleSignInPlugin from 'vue3-google-signin';
 import { useDashboardStore } from './app/dashboard/stores/dashboardStore';
 import { databaseService } from './common/database/DatabaseService';
 import { useAuthStore } from './common/stores/authStore';
 import { logger } from './common/utils/logger';
+
 
 // =============================================================================
 // ANDROID BACK BUTTON HANDLER (Global Registration - before Vue mounts)
@@ -218,6 +220,11 @@ async function startApp() {
         const pinia = createPinia();
         app.use(pinia);
 
+        // Initialize Google Login (Web Fallback)
+        app.use(GoogleSignInPlugin, {
+          clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID
+        });
+
         // Register all Framework7 Vue components
         registerComponents(app);
 
@@ -262,38 +269,61 @@ async function startApp() {
                 }
 
                 if (type === 'SET_SCHEMA_OVERRIDE') {
-                    const { formId, schema, layout } = payload;
-                    logger.info('Received schema override for form:', formId);
+                    const { tableId, fields, layout, settings } = payload;
+                    // Legacy support for formId
+                    const targetId = tableId || payload.formId;
+                    
+                    // Handle multiple payload formats for name/description:
+                    // 1. Directly on payload: payload.name, payload.description
+                    // 2. Nested in schema: payload.schema.name, payload.schema.description
+                    const name = payload.name || payload.schema?.name;
+                    const description = payload.description || payload.schema?.description;
+                    
+                    // Handle multiple payload formats for fields:
+                    // 1. { fields: [...] } - direct fields array
+                    // 2. { schema: { fields: [...] } } - nested in schema object
+                    // 3. { schema: [...] } - legacy format where schema IS the fields
+                    const targetFields = fields || payload.schema?.fields || (Array.isArray(payload.schema) ? payload.schema : []);
+
+                    logger.info('Received schema override for table:', targetId);
                     
                     // 1. Set Memory Override (for instant component updates)
                     (window as any).__SCHEMA_OVERRIDE = (window as any).__SCHEMA_OVERRIDE || {};
-                    (window as any).__SCHEMA_OVERRIDE[formId] = { schema, layout };
+                    (window as any).__SCHEMA_OVERRIDE[targetId] = { 
+                        schema: { 
+                            name, 
+                            description, 
+                            settings, 
+                            fields: targetFields 
+                        }, 
+                        layout 
+                    };
                     
                     // 2. Persist to SQLite (for Dashboard visibility on refresh)
                     try {
                         const db = await databaseService.getDB();
                         
-                        // Check if we already have this form and what its app_id is
-                        const existingRes = await db.query('SELECT app_id FROM forms WHERE id = ?', [formId]);
+                        // Check if we already have this table and what its app_id is
+                        const existingRes = await db.query('SELECT app_id FROM tables WHERE id = ?', [targetId]);
                         const existingAppId = existingRes.values?.[0]?.app_id;
                         
                         const sql = `
-                            INSERT OR REPLACE INTO forms (id, app_id, name, description, schema, layout, settings, version, synced_at)
+                            INSERT OR REPLACE INTO tables (id, app_id, name, description, fields, layout, settings, version, synced_at)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         `;
                         const values = [
-                            formId,
-                            schema.app_id || existingAppId || null, // Preserve existing app_id
-                            schema.name || 'Untitled',
-                            schema.description || '',
-                            JSON.stringify(schema),
+                            targetId,
+                            payload.appId || existingAppId || targetId, // Use tableId as fallback if no appId
+                            name || 'Preview Table',
+                            description || '',
+                            JSON.stringify(targetFields),
                             JSON.stringify(layout),
-                            JSON.stringify(schema.settings || {}),
-                            schema.version || 1,
+                            JSON.stringify(settings || {}),
+                            payload.version || 1,
                             new Date().toISOString()
                         ];
                         await db.run(sql, values);
-                        logger.debug('Persisted preview schema to DB', { formId, appId: schema.app_id || existingAppId });
+                        logger.debug('Persisted preview schema to DB', { tableId: targetId });
 
                         // 3. Force Dashboard Reload (Critical Fix)
                         try {
@@ -310,7 +340,7 @@ async function startApp() {
 
                     // 4. Notify Components
                     window.dispatchEvent(new CustomEvent('schema-override-updated', {
-                        detail: { formId, schema, layout }
+                         detail: { tableId: targetId, fields: targetFields, layout }
                     }));
                 }
 

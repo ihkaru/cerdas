@@ -10,24 +10,24 @@ use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
 class PrelistImport implements ToCollection, WithHeadingRow {
-    private $formVersionId;
+    private $tableVersionId;
     private $appId;
     private $supervisorCache = [];
     private $enumeratorCache = [];
     private $orgCache = [];
 
-    private $formId;
+    private $tableId;
 
-    public function __construct(int $formVersionId, int $appId, int $formId) {
-        $this->formVersionId = $formVersionId;
+    public function __construct(int $tableVersionId, int $appId, int $tableId) {
+        $this->tableVersionId = $tableVersionId;
         $this->appId = $appId;
-        $this->formId = $formId;
+        $this->tableId = $tableId;
     }
 
     public function collection(Collection $rows) {
-        foreach ($rows as $row) {
+        $rows->each(function ($row) {
             $this->createAssignment($row);
-        }
+        });
     }
 
     private function createAssignment($row) {
@@ -76,8 +76,8 @@ class PrelistImport implements ToCollection, WithHeadingRow {
 
         // Create Assignment
         Assignment::create([
-            'form_id' => $this->formId,
-            'form_version_id' => $this->formVersionId,
+            'table_id' => $this->tableId,
+            'table_version_id' => $this->tableVersionId,
             'organization_id' => $orgId,
             'supervisor_id' => $supervisorId,
             'enumerator_id' => $enumeratorId,

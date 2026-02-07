@@ -1,95 +1,121 @@
-# Schema Editor - Implementation Plan
+# App Editor - Implementation Plan
 
-> Phase 5: No-Code Form Builder / Schema Editor
+> Phase 5: No-Code Form Builder / App Editor
 
 ## 1. Architecture Overview
 
 ```
 apps/editor/src/
 ├── app/
-│   └── schema-editor/                    # Feature Module
-│       ├── SchemaEditorPage.vue          # Main page (orchestrator only)
+│   └── app-editor/                        # Feature Module
+│       ├── AppEditorPage.vue              # Main page (orchestrator only)
+│       ├── TableEditorPage.vue            # Table fields editor
 │       ├── components/
 │       │   ├── layout/
-│       │   │   ├── EditorLayout.vue      # Split panel container
-│       │   │   ├── EditorPanel.vue       # Left panel wrapper
-│       │   │   └── PreviewPanel.vue      # Right panel wrapper
+│       │   │   ├── EditorLayout.vue       # Split panel container
+│       │   │   ├── EditorPanel.vue        # Left panel wrapper
+│       │   │   └── PreviewPanel.vue       # Right panel wrapper
 │       │   ├── field-list/
-│       │   │   ├── FieldList.vue         # Sortable field list
-│       │   │   ├── FieldListItem.vue     # Single field row
-│       │   │   └── FieldListEmpty.vue    # Empty state
+│       │   │   ├── FieldList.vue          # Sortable field list
+│       │   │   ├── FieldListItem.vue      # Single field row
+│       │   │   └── FieldListEmpty.vue     # Empty state
 │       │   ├── field-config/
-│       │   │   ├── FieldConfigPanel.vue  # Config panel container
-│       │   │   ├── FieldBasicConfig.vue  # Name, label, type
+│       │   │   ├── FieldConfigPanel.vue   # Config panel container
+│       │   │   ├── FieldBasicConfig.vue   # Name, label, type
 │       │   │   ├── FieldOptionsConfig.vue # Options for select/radio
-│       │   │   ├── FieldLogicConfig.vue  # show_if, required_if, etc.
+│       │   │   ├── FieldLogicConfig.vue   # show_if, required_if, etc.
 │       │   │   ├── FieldFormulaConfig.vue # formula_fn editor
 │       │   │   └── FieldAdvancedConfig.vue # Other props
 │       │   ├── preview/
-│       │   │   ├── DeviceFrame.vue       # Mock device frame
-│       │   │   └── PreviewToolbar.vue    # Device selector, orientation
+│       │   │   ├── DeviceFrame.vue        # Mock device frame
+│       │   │   └── PreviewToolbar.vue     # Device selector, orientation
 │       │   └── shared/
-│       │       ├── CodeEditor.vue        # Monaco/simple textarea for closures
-│       │       ├── IconPicker.vue        # Icon selector
-│       │       └── TypeSelector.vue      # Field type dropdown
+│       │       ├── CodeEditor.vue         # Monaco/simple textarea for closures
+│       │       ├── IconPicker.vue         # Icon selector
+│       │       └── TypeSelector.vue       # Field type dropdown
 │       ├── composables/
-│       │   ├── useSchemaEditor.ts        # Main state management
-│       │   ├── useFieldConfig.ts         # Selected field state
-│       │   ├── usePreview.ts             # Preview device/orientation
-│       │   └── useDragDrop.ts            # Sortable field reordering
+│       │   ├── useTableEditor.ts          # Main state management
+│       │   ├── useFieldConfig.ts          # Selected field state
+│       │   ├── usePreview.ts              # Preview device/orientation
+│       │   └── useDragDrop.ts             # Sortable field reordering
 │       └── types/
-│           └── editor.types.ts           # Editor-specific types
+│           └── editor.types.ts            # Editor-specific types
 ├── common/
-│   ├── api/                              # API client (copy from client)
-│   ├── stores/                           # Pinia stores
-│   └── utils/                            # Logger, helpers
+│   ├── api/                               # API client (copy from client)
+│   ├── stores/                            # Pinia stores
+│   └── utils/                             # Logger, helpers
 └── pages/
-    └── HomePage.vue                      # Dashboard / schema list
+    └── HomePage.vue                       # Dashboard / app list
 ```
 
-## 2. Component Hierarchy
+## 2. Terminology Mapping
+
+| User-Facing | Dev-Facing | Database | Description |
+|-------------|------------|----------|-------------|
+| App | `App` | `apps` | Container project |
+| Table | `Table` | `tables` | Data source with field definitions |
+| Fields | `fields` | `table_versions.fields` | Field definitions (JSON) |
+| View | `View` | `views` | Presentation layer (deck, table, map) |
+| Assignment | `Assignment` | `assignments` | Task linked to Table |
+
+## 3. Component Hierarchy
 
 ```
-SchemaEditorPage.vue (Page)
-└── EditorLayout.vue (Split Panel Container)
-    ├── EditorPanel.vue (Left Side)
-    │   ├── FieldList.vue
-    │   │   └── FieldListItem.vue (×N)
-    │   └── FieldConfigPanel.vue (if field selected)
-    │       ├── FieldBasicConfig.vue
-    │       ├── FieldOptionsConfig.vue (if select/radio)
-    │       ├── FieldLogicConfig.vue
-    │       └── FieldAdvancedConfig.vue
-    │
-    └── PreviewPanel.vue (Right Side)
-        ├── PreviewToolbar.vue
-        └── DeviceFrame.vue
-            └── FormRenderer (from @cerdas/form-engine)
+AppEditorPage.vue (Page with Tabs)
+├── [Tables Tab]
+│   └── TableList.vue
+├── [Fields Tab] (when Table selected)
+│   └── EditorLayout.vue (Split Panel Container)
+│       ├── EditorPanel.vue (Left Side)
+│       │   ├── FieldList.vue
+│       │   │   └── FieldListItem.vue (×N)
+│       │   └── FieldConfigPanel.vue (if field selected)
+│       │       ├── FieldBasicConfig.vue
+│       │       ├── FieldOptionsConfig.vue (if select/radio)
+│       │       ├── FieldLogicConfig.vue
+│       │       └── FieldAdvancedConfig.vue
+│       └── PreviewPanel.vue (Right Side)
+│           ├── PreviewToolbar.vue
+│           └── DeviceFrame.vue
+│               └── FormRenderer (from @cerdas/form-engine)
+├── [Views Tab]
+│   └── ViewsPanel.vue
+├── [Actions Tab]
+│   └── ActionsPanel.vue
+└── [Settings Tab]
+    └── SettingsPanel.vue
 ```
 
-## 3. State Management
+## 4. State Management
 
-### Central Store: `useSchemaEditor.ts`
+### Central Store: `useTableEditor.ts`
+
 ```typescript
-interface SchemaEditorState {
-  // Schema Data
-  schemaId: string | null;
-  schema: AppSchemaDefinition;
-  originalSchema: AppSchemaDefinition; // For dirty check
+interface TableEditorState {
+  // Table Data
+  tableId: string | null;
+  tableName: string;
+  appId: string | null;
+  
+  // Fields (from active TableVersion)
+  fields: EditableFieldDefinition[];
+  originalFields: EditableFieldDefinition[]; // For dirty check
   
   // UI State
-  selectedFieldPath: string | null; // e.g., "fields.0" or "fields.2.fields.1"
+  selectedFieldPath: string | null;
   isDirty: boolean;
   isSaving: boolean;
+  isLoading: boolean;
   
   // Preview State
   previewDevice: 'phone' | 'tablet';
   previewOrientation: 'portrait' | 'landscape';
-  previewData: Record<string, any>;
+  previewData: Record<string, unknown>;
 }
 ```
 
 ### Actions
+
 ```typescript
 // Field CRUD
 addField(fieldDef: Partial<FieldDefinition>, afterIndex?: number): void
@@ -102,25 +128,24 @@ selectField(path: string): void
 clearSelection(): void
 
 // Persistence
-loadSchema(schemaId: string): Promise<void>
-saveSchema(): Promise<void>
-publishSchema(): Promise<void>
+loadTable(tableId: string): Promise<void>
+saveTable(): Promise<void>
+publishTable(): Promise<void>
 ```
 
-## 4. Implementation Phases
+## 5. Implementation Phases
 
 ### Phase 5A: Core Structure (Sprint 1)
-- [ ] Create folder structure
+- [ ] Rename folder `form-editor/` → `app-editor/`
+- [ ] Update component names (FormEditorPage → TableEditorPage)
 - [ ] Create EditorLayout with responsive split panel
 - [ ] Create FieldList with basic display
-- [ ] Create FieldListItem with type icon
 - [ ] Add FormRenderer preview (readonly)
-- [ ] Create useSchemaEditor composable
+- [ ] Create useTableEditor composable
 
 ### Phase 5B: Field CRUD (Sprint 2)
 - [ ] Add Field button + type selector
 - [ ] FieldConfigPanel with basic properties
-- [ ] FieldBasicConfig (name, label, type, required)
 - [ ] Delete field functionality
 - [ ] Drag-and-drop reordering (vue-draggable-plus)
 
@@ -133,127 +158,30 @@ publishSchema(): Promise<void>
 - [ ] FieldLogicConfig component
 - [ ] show_if_fn editor
 - [ ] required_if_fn editor
-- [ ] editable_if_fn editor
 - [ ] CodeEditor component with syntax highlighting
 
-### Phase 5E: Formula & Advanced (Sprint 5)
-- [ ] FieldFormulaConfig (formula_fn)
-- [ ] FieldAdvancedConfig (warning_fn, hint, placeholder)
-- [ ] Nested form editor (recursive FieldList)
-
-### Phase 5F: Save & Publish (Sprint 6)
+### Phase 5E: Save & Publish (Sprint 5)
 - [ ] API integration (save draft, publish)
 - [ ] Version management
-- [ ] Schema validation before publish
+- [ ] Table validation before publish
 
-## 5. Component Specs
+## 6. File Creation Order
 
-### EditorLayout.vue
-**Purpose**: Responsive container that switches between split (desktop) and tabs (mobile)
+1. `src/app/app-editor/types/editor.types.ts`
+2. `src/app/app-editor/composables/useTableEditor.ts`
+3. `src/app/app-editor/components/layout/EditorLayout.vue`
+4. `src/app/app-editor/components/field-list/FieldListItem.vue`
+5. `src/app/app-editor/components/field-list/FieldList.vue`
+6. `src/app/app-editor/components/preview/DeviceFrame.vue`
+7. `src/app/app-editor/AppEditorPage.vue`
+8. Update `src/routes.ts`
 
-```vue
-<template>
-  <div class="editor-layout" :class="{ 'split-mode': !isMobile }">
-    <template v-if="isMobile">
-      <f7-toolbar tabbar>
-        <f7-link tab-link="#editor" tab-link-active>Editor</f7-link>
-        <f7-link tab-link="#preview">Preview</f7-link>
-      </f7-toolbar>
-      <f7-tabs>
-        <f7-tab id="editor" tab-active><slot name="editor" /></f7-tab>
-        <f7-tab id="preview"><slot name="preview" /></f7-tab>
-      </f7-tabs>
-    </template>
-    <template v-else>
-      <div class="editor-pane"><slot name="editor" /></div>
-      <div class="preview-pane"><slot name="preview" /></div>
-    </template>
-  </div>
-</template>
-```
-
-### FieldListItem.vue
-**Purpose**: Single row in field list with icon, name, and actions
-
-**Props**:
-- `field: FieldDefinition`
-- `selected: boolean`
-- `depth: number` (for nested fields indentation)
-
-**Emits**:
-- `select`
-- `delete`
-- `duplicate`
-
-### FieldConfigPanel.vue
-**Purpose**: Right sidebar (or inline accordion on mobile) for editing selected field
-
-**Structure**: Accordion with sections:
-1. Basic (always open)
-2. Options (if applicable)
-3. Logic (collapsible)
-4. Advanced (collapsible)
-
-### DeviceFrame.vue
-**Purpose**: Mock phone/tablet frame around FormRenderer
-
-**Props**:
-- `device: 'phone' | 'tablet'`
-- `orientation: 'portrait' | 'landscape'`
-
-## 6. State Flow Diagram
-
-```
-                    ┌─────────────────────┐
-                    │   SchemaEditorPage  │
-                    │   (provide state)   │
-                    └──────────┬──────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              ▼                ▼                ▼
-      ┌───────────┐    ┌────────────┐    ┌───────────┐
-      │ FieldList │    │FieldConfig │    │  Preview  │
-      │  (reads)  │    │  (writes)  │    │  (reads)  │
-      └─────┬─────┘    └─────┬──────┘    └─────┬─────┘
-            │                │                  │
-            ▼                ▼                  ▼
-      ┌─────────────────────────────────────────────┐
-      │           useSchemaEditor (store)           │
-      │  - schema: reactive                         │
-      │  - selectedFieldPath                        │
-      │  - previewDevice                            │
-      └─────────────────────────────────────────────┘
-```
-
-## 7. File Creation Order
-
-1. `src/app/schema-editor/types/editor.types.ts`
-2. `src/app/schema-editor/composables/useSchemaEditor.ts`
-3. `src/app/schema-editor/components/layout/EditorLayout.vue`
-4. `src/app/schema-editor/components/field-list/FieldListItem.vue`
-5. `src/app/schema-editor/components/field-list/FieldList.vue`
-6. `src/app/schema-editor/components/preview/DeviceFrame.vue`
-7. `src/app/schema-editor/components/preview/PreviewToolbar.vue`
-8. `src/app/schema-editor/SchemaEditorPage.vue`
-9. Update `src/routes.ts`
-
-## 8. Dependencies to Add
-
-```json
-{
-  "dependencies": {
-    "@cerdas/form-engine": "workspace:^",
-    "vue-draggable-plus": "^0.6.0"
-  }
-}
-```
-
-## 9. Success Criteria
+## 7. Success Criteria
 
 - [ ] Split panel works on desktop, tabs on mobile
 - [ ] Can add fields of all types
 - [ ] Can edit field properties
 - [ ] Can reorder fields via drag-and-drop
-- [ ] Live preview updates as schema changes
-- [ ] Can save schema to backend
-- [ ] Can handle nested forms (recursive editing)
+- [ ] Live preview updates as fields change
+- [ ] Can save Table to backend
+- [ ] Can handle nested fields (recursive editing)

@@ -12,7 +12,7 @@
             @action="(action: string, item: any) => handleAction(action, item)" />
 
         <!-- FORM VIEW -->
-        <FormView v-else-if="config.type === 'form'" :config="config" :data="viewData" :schemaId="schemaId"
+        <FormView v-else-if="config.type === 'form'" :config="config" :data="viewData" :contextId="contextId"
             @action="(action: string, item: any) => handleAction(action, item)" />
 
         <!-- TABLE VIEW (Fallback) -->
@@ -33,7 +33,7 @@ import MapView from './MapView.vue';
 const props = defineProps<{
     config: any; // The view configuration object (from layout json)
     data: any[]; // The raw data (assignments/responses)
-    schemaId: string; // Context
+    contextId: string; // Context
 }>();
 
 const viewData = computed(() => {
@@ -71,7 +71,7 @@ const handleAction = (action: string, item: any) => {
         // We assume detail view is named 'view_detail' by convention for now, or we could look it up
         // ideally the config action should say 'view_detail' -> navigate to view named 'view_detail'
         // For now, let's hardcode the target view name as 'view_detail'
-        f7.view.main.router.navigate(`/app/${props.schemaId}/view/view_detail/${item.id || item.local_id}`);
+        f7.view.main.router.navigate(`/app/${props.contextId}/view/view_detail/${item.id || item.local_id}`);
     } else if (action === 'edit') {
         // Navigate to form for editing
         // Assuming we route to generic assignment detail for editing or a form view

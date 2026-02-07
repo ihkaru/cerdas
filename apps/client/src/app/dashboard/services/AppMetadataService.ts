@@ -3,19 +3,50 @@ import { useAuthStore } from '@/common/stores/authStore';
 import { SQLiteDBConnection } from '@capacitor-community/sqlite';
 
 export const AppMetadataService = {
-    async resolveAppId(db: SQLiteDBConnection, formId: string, schemaAppId?: string): Promise<string | null> {
-         console.log('[AppMetadata] Resolving AppID for form:', formId, 'SchemaAppID:', schemaAppId);
-         if (schemaAppId) return schemaAppId;
+    async resolveAppId(db: SQLiteDBConnection, id: string, schemaAppId?: string): Promise<string | null> {
+         // id could be AppID or TableID
+         console.log('[AppMetadata] resolveAppId called:', { id, schemaAppId });
+         
+         if (schemaAppId && schemaAppId !== 'undefined' && schemaAppId !== 'null') {
+             console.log('[AppMetadata] Using schemaAppId directly:', schemaAppId);
+             return schemaAppId;
+         }
+         
+         if (!id || id === 'undefined' || id === 'null') {
+             console.log('[AppMetadata] Invalid id, returning null');
+             return null;
+         }
+
          try {
-             const fRes = await db.query('SELECT * FROM forms WHERE id = ?', [formId]);
-             console.log('[AppMetadata] Form Query Result:', fRes.values);
-             if (fRes.values && fRes.values.length > 0) {
-                 console.log('[AppMetadata] Found app_id in DB:', fRes.values[0].app_id);
-                 return fRes.values[0].app_id;
+             // Try assuming it's a Table ID
+             const tRes = await db.query('SELECT id, app_id FROM tables WHERE id = ?', [id]);
+             console.log('[AppMetadata] Tables query result:', { 
+                 searchId: id, 
+                 found: tRes.values?.length ?? 0,
+                 rows: tRes.values?.slice(0, 3) 
+             });
+             
+             if (tRes.values && tRes.values.length > 0) {
+                 const foundAppId = tRes.values[0].app_id;
+                 console.log('[AppMetadata] Found app_id in tables:', { tableId: id, app_id: foundAppId, type: typeof foundAppId });
+                 return foundAppId;
+             }
+             
+             // Try assuming it's an App ID
+             const aRes = await db.query('SELECT id FROM apps WHERE id = ?', [id]);
+             console.log('[AppMetadata] Apps query result:', { 
+                 searchId: id, 
+                 found: aRes.values?.length ?? 0 
+             });
+             
+             if (aRes.values && aRes.values.length > 0) {
+                 return aRes.values[0].id;
              }
          } catch (e) {
-             console.warn('Failed to resolve app_id', e);
+             console.warn('[AppMetadata] Failed to resolve app_id', e);
          }
+         
+         console.log('[AppMetadata] Could not resolve, returning null');
          return null;
     },
 
@@ -32,12 +63,12 @@ export const AppMetadataService = {
         return { navigation, views };
     },
     
-    async getSiblingForms(db: SQLiteDBConnection, appId: string) {
-         // Use SELECT * to be resilient to schema versions, and manually extract icon if needed
-         const formsRes = await db.query(`SELECT * FROM forms WHERE app_id = ? ORDER BY name ASC`, [appId]);
-         return (formsRes.values || []).map(f => ({
-             ...f,
-             icon: f.icon || (typeof f.settings === 'string' ? JSON.parse(f.settings).icon : f.settings?.icon) || 'doc_text_search'
+    async getSiblingTables(db: SQLiteDBConnection, appId: string) {
+         // Renamed from getSiblingForms
+         const tablesRes = await db.query(`SELECT * FROM tables WHERE app_id = ? ORDER BY name ASC`, [appId]);
+         return (tablesRes.values || []).map(t => ({
+             ...t,
+             icon: t.icon || (typeof t.settings === 'string' ? JSON.parse(t.settings).icon : t.settings?.icon) || 'doc_text_search'
          }));
     },
 
@@ -73,19 +104,27 @@ export const AppMetadataService = {
                   );
               }
 
-              // 2. Get Forms List
-              const formsApiRes = await apiClient.get(`/forms?app_id=${appId}`);
-              let forms = [];
-              if (formsApiRes.success && formsApiRes.data) {
-                  forms = formsApiRes.data.map((f: any) => ({
-                      id: f.id,
-                      name: f.name,
-                      description: f.description,
-                      icon: f.settings?.icon || 'doc_text_search'
+              // 2. Get Tables List (Renamed from Forms)
+              const tablesApiRes = await apiClient.get(`/tables?app_id=${appId}`);
+              let tables = [];
+              if (tablesApiRes.success && tablesApiRes.data) {
+                  tables = tablesApiRes.data.map((t: any) => ({
+                      id: t.id,
+                      name: t.name,
+                      description: t.description,
+                      icon: t.settings?.icon || 'doc_text_search'
                   }));
+                  
+                  // Need to sync tables content too? Or handled by other syncs?
+                  // Currently SyncAppShellSync might handle full sync. 
+                  // But here we likely just want basic list for menu?
+                  // Actually, we should probably insert into tables table minimally?
+                  // The useAppShellSync likely handles detailed sync. 
+                  // But wait, if useTableLoader tries to load local table, it needs data.
+                  // Only minimal data here for listing.
               }
               
-              return { appData, forms };
+              return { appData, tables };
         } catch (e) {
             console.warn('Failed to fetch remote app metadata', e);
             throw e;

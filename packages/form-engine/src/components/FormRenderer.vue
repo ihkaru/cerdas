@@ -145,6 +145,10 @@ watch(hasMoreFields, (val) => {
 
 onMounted(() => {
   console.log('[FormRenderer] Mounted with schema fields count:', props.schema?.fields?.length || 0);
+  console.log('[FormRenderer] Schema fields:', props.schema?.fields);
+  console.log('[FormRenderer] visibleFields count:', visibleFields.value?.length);
+  console.log('[FormRenderer] displayedFields count:', displayedFields.value?.length);
+  console.log('[FormRenderer] First displayedField:', displayedFields.value?.[0]);
   initDefaults();
   setupObserver();
 });

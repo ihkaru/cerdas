@@ -22,6 +22,7 @@ class AppSeeder extends Seeder {
             'name' => 'Housing Survey 2026',
             'description' => 'Pendataan Rumah Tidak Layak Huni (RTLH) Kabupaten Mempawah',
             'created_by' => $admin->id,
+            'mode' => 'complex', // Explicitly set to complex (Organization Based)
         ]);
 
         // 2. Organization (Dinas) -> Note: Organization model might need update if it has project_id
@@ -37,11 +38,20 @@ class AppSeeder extends Seeder {
         $org = Organization::firstOrCreate([
             'code' => 'DPR-MPW'
         ], [
-            'name' => 'Dinas Perumahan Rakyat'
+            'name' => 'Dinas Perumahan Rakyat',
+            'creator_id' => $admin->id,
         ]);
 
         // Attach Organization to App
         $app->organizations()->syncWithoutDetaching([$org->id]);
+
+        // 2b. Organization (Testing Source) - Not attached initially
+        Organization::firstOrCreate([
+            'code' => 'BPS-BDG'
+        ], [
+            'name' => 'BPS Kabupaten Bandung',
+            'creator_id' => $admin->id,
+        ]);
 
         // 3. Memberships
 

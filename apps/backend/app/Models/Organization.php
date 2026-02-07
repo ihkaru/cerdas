@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
+use App\Models\User;
 
 /**
  * Organization Model
@@ -18,10 +20,22 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Organization extends Model {
     use HasFactory, SoftDeletes;
 
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected static function booted() {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
+
     protected $fillable = [
         'name',
         'code',
         'metadata',
+        'creator_id',
     ];
 
     protected $casts = [
@@ -29,6 +43,13 @@ class Organization extends Model {
     ];
 
     // ========== Relationships ==========
+
+    /**
+     * The user who created this organization (if any).
+     */
+    public function creator() {
+        return $this->belongsTo(User::class, 'creator_id');
+    }
 
     /**
      * Apps that this organization participates in.
@@ -48,10 +69,31 @@ class Organization extends Model {
     }
 
     /**
+     * Users who are members of this organization.
+     * New: Reusable Teams logic.
+     */
+    public function members(): BelongsToMany {
+        // Pivot table organization_members
+        return $this->belongsToMany(User::class, 'organization_members')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    public function invitations(): HasMany {
+        return $this->hasMany(OrganizationInvitation::class);
+    }
+
+    /**
      * Assignments owned by this organization.
      */
     public function assignments(): HasMany {
         return $this->hasMany(Assignment::class);
+    }
+
+    // ========== Scopes ==========
+
+    public function scopeOwnedBy($query, $user) {
+        return $query->where('creator_id', $user->id);
     }
 
     // ========== Helpers ==========

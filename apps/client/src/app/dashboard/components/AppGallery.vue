@@ -27,10 +27,10 @@
 </template>
 
 <script setup lang="ts">
-import type { Form } from '../types';
+import type { Table } from '../types';
 
 const props = defineProps<{
-    apps: Form[];
+    apps: Table[]; // "apps" represents tables/forms here
 }>();
 
 const emit = defineEmits<{
@@ -42,7 +42,7 @@ const handleAppClick = (id: string) => {
     emit('open-app', id);
 };
 
-const getAppIcon = (app: Form) => {
+const getAppIcon = (app: Table) => {
     let settings = app.settings;
     if (typeof settings === 'string') {
         try {

@@ -7,13 +7,25 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Assignment extends Model {
     use HasFactory, SoftDeletes;
 
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected static function booted() {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
+
     protected $fillable = [
-        'form_id',
-        'form_version_id',
+        'table_id',          // Renamed from form_id
+        'table_version_id',  // Renamed from form_version_id
         'organization_id',
         'supervisor_id',
         'enumerator_id',
@@ -29,19 +41,17 @@ class Assignment extends Model {
     // ========== Relationships ==========
 
     /**
-     * The Form this assignment belongs to.
-     * Assignment follows the active FormVersion automatically.
+     * The Table this assignment belongs to.
      */
-    public function form(): BelongsTo {
-        return $this->belongsTo(Form::class);
+    public function table(): BelongsTo {
+        return $this->belongsTo(Table::class);
     }
 
     /**
-     * Legacy: Direct link to a specific FormVersion.
-     * Kept for backward compatibility during migration.
+     * The specific TableVersion this assignment was created with.
      */
-    public function formVersion(): BelongsTo {
-        return $this->belongsTo(FormVersion::class, 'form_version_id');
+    public function tableVersion(): BelongsTo {
+        return $this->belongsTo(TableVersion::class);
     }
 
     public function organization(): BelongsTo {
@@ -66,11 +76,11 @@ class Assignment extends Model {
         return $query->where('status', $status);
     }
 
-    public function scopeForEnumerator($query, int $userId) {
+    public function scopeForEnumerator($query, string $userId) {
         return $query->where('enumerator_id', $userId);
     }
 
-    public function scopeForSupervisor($query, int $userId) {
+    public function scopeForSupervisor($query, string $userId) {
         return $query->where('supervisor_id', $userId);
     }
 
@@ -93,9 +103,9 @@ class Assignment extends Model {
     }
 
     /**
-     * Get the active FormVersion for this assignment's Form.
+     * Get the active TableVersion for this assignment's Table.
      */
-    public function getActiveFormVersion(): ?FormVersion {
-        return $this->form?->activeVersion;
+    public function getActiveTableVersion(): ?TableVersion {
+        return $this->table?->latestPublishedVersion;
     }
 }

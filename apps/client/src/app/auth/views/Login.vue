@@ -29,6 +29,23 @@
             <f7-button fill large round @click="signIn" :loading="isLoading" preloader>
               Sign In
             </f7-button>
+
+            <!-- Divider -->
+            <div class="display-flex justify-content-center align-items-center margin-vertical">
+              <span class="text-color-gray uppercase size-12">OR</span>
+            </div>
+
+            <!-- Native Google Button -->
+            <f7-button v-if="isNative" fill large round color="white" text-color="black" class="google-btn"
+              @click="signInWithGoogleNative" :disabled="isLoading">
+              <f7-icon f7="logo_google" size="20" class="margin-right-half"></f7-icon>
+              <span>Sign in with Google</span>
+            </f7-button>
+
+            <!-- Web Google Button (Wrapper) -->
+            <div v-else class="display-flex justify-content-center">
+              <GoogleSignInButton @success="handleGoogleLoginWeb" @error="handleGoogleErrorWeb" />
+            </div>
           </div>
 
           <div class="margin-top text-align-center">
@@ -63,13 +80,19 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '@/common/stores/authStore';
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { f7 } from 'framework7-vue';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
+
+import { GoogleSignInButton } from 'vue3-google-signin';
 
 const email = ref('user@example.com');
 const password = ref('password');
 const authStore = useAuthStore();
 const isLoading = ref(false);
+
+const isNative = Capacitor.isNativePlatform();
 
 const signIn = async () => {
   if (!email.value || !password.value) {
@@ -83,8 +106,6 @@ const signIn = async () => {
     isLoading.value = false;
 
     if (success) {
-      // Use reloadCurrent to force the async route resolver to re-evaluate
-      // This ensures the '/' route now resolves to DashboardPage since isAuthenticated is true
       f7.view.main.router.navigate('/', { reloadCurrent: true, clearPreviousHistory: true });
     } else {
       f7.dialog.alert('Login failed. Please check your credentials.', 'Authentication Error');
@@ -94,4 +115,59 @@ const signIn = async () => {
     f7.dialog.alert(e.message || 'Login failed. Please check your credentials.', 'Authentication Error');
   }
 }
+
+// Web Handler (vue3-google-signin)
+const handleGoogleErrorWeb = () => {
+  f7.dialog.alert('Google Login Failed', 'Error');
+}
+
+const handleGoogleLoginWeb = async (response: any) => {
+  if (response.credential) {
+    try {
+      isLoading.value = true;
+      const success = await authStore.loginWithGoogle(response.credential);
+      if (success) {
+        f7.view.main.router.navigate('/', { reloadCurrent: true, clearPreviousHistory: true });
+      }
+    } catch (e) {
+      f7.dialog.alert('Google Login Failed', 'Error');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+};
+
+// Native Handler
+const signInWithGoogleNative = async () => {
+  try {
+    isLoading.value = true;
+    const googleUser = await GoogleAuth.signIn();
+    // Native returns { authentication: { idToken: ... } }
+    const idToken = googleUser.authentication.idToken;
+
+    if (idToken) {
+      const success = await authStore.loginWithGoogle(idToken);
+      if (success) {
+        f7.view.main.router.navigate('/', { reloadCurrent: true, clearPreviousHistory: true });
+      }
+    } else {
+      throw new Error('No ID Token from Google');
+    }
+  } catch (e: any) {
+    console.error(e);
+    // f7.dialog.alert('Google Sign-In Cancelled or Failed', 'Error');
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+onMounted(() => {
+  if (isNative) {
+    GoogleAuth.initialize({
+      clientId: 'YOUR_WEB_CLIENT_ID_HERE', // Should match strings.xml / capacitor.config.ts config
+      scopes: ['profile', 'email'],
+      grantOfflineAccess: true,
+    });
+  }
+});
 </script>

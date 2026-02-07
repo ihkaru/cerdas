@@ -1,16 +1,15 @@
 # App Editor & Workflow Architecture
 
-> Blueprint arsitektur dan alur kerja untuk "Cerdas App Editor". Dokumen ini menjelaskan hubungan antara App, Data Sources (Forms), Slices, Views, dan Navigation, mengadopsi prinsip fleksibel ala AppSheet.
+> Blueprint arsitektur dan alur kerja untuk "Cerdas App Editor". Dokumen ini menjelaskan hubungan antara App, Tables, Views, dan Navigation, mengadopsi prinsip fleksibel ala AppSheet.
 
 ## 1. Core Philosophy: The Layered Architecture
 
 Arsitektur Cerdas didesain modular untuk memisahkan **Data**, **Logic**, dan **Presentation**:
 
-1.  **Data Sources (Physical Tables):** Database fisik atau tabel asli (Assignments, Users, Places). Ini adalah "Single Source of Truth".
-2.  **Forms / Virtual Tables (Schema):** Definisi struktur data di dalam App. Satu App bisa terhubung ke banyak Form.
-3.  **Slices (Virtual Subsets):** Lapisan logika untuk memfilter data tanpa mengubah data asli. (Misal: "Assignments Saya", "Assignments Pending").
-4.  **Views (Presentation):** Komponen UI yang menempel pada Slice/Form (Map, Table, Deck, Chart).
-5.  **App Navigation (Menu):** Pintu masuk user untuk mengakses Views.
+1.  **Tables:** Definisi struktur data (fields) di dalam App. Satu App bisa memiliki banyak Tables.
+2.  **Views (Presentation):** Komponen UI yang menampilkan data dari Table (Map, Table View, Deck, Chart).
+3.  **App Navigation (Menu):** Pintu masuk user untuk mengakses Views.
+4.  **Assignments:** Tugas yang terikat ke Table, diberikan kepada Enumerator.
 
 ### Conceptual Model
 ```mermaid
@@ -80,7 +79,7 @@ erDiagram
     ORGANIZATION ||--o{ APP_ORGANIZATION : participates
     APP ||--o{ APP_ORGANIZATION : includes
     
-    APP ||--o{ FORM : contains
+    APP ||--o{ TABLE : contains
     APP ||--o{ VIEW : defines
     APP ||--o{ APP_MEMBERSHIP : has
     
@@ -89,8 +88,8 @@ erDiagram
     
     APP_MEMBERSHIP }o--|| USER : belongs_to
     
-    FORM ||--o{ FORM_VERSION : versions
-    FORM ||--o{ ASSIGNMENT : used_by
+    TABLE ||--o{ TABLE_VERSION : versions
+    TABLE ||--o{ ASSIGNMENT : used_by
     
     ASSIGNMENT }o--|| USER : enumerator
     ASSIGNMENT }o--|| USER : supervisor
@@ -99,16 +98,17 @@ erDiagram
 
 **Terminology:**
 
-| Entity | Deskripsi |
-|--------|-----------|
-| **Organization** | Entitas global (BPS Bandung, Dinas Sosial Bogor) |
-| **App** | Container project dengan mode (simple/complex) |
-| **AppOrganization** | Pivot: Organization mana saja yang ikut di App |
-| **AppMembership** | User + Role + Organization (per App) |
-| **Form** | DataSource/Schema definition |
-| **FormVersion** | Versi schema (v1, v2, ...) dengan is_active flag |
-| **Assignment** | Tugas terikat ke Form (mengikuti FormVersion aktif) |
-| **View** | Presentasi data (Map, Deck, Table) |
+| Entity | User-Facing | Dev-Facing | Deskripsi |
+|--------|-------------|------------|----------|
+| **Organization** | Organization | `organizations` | Entitas global (BPS Bandung, Dinas Sosial Bogor) |
+| **App** | App | `apps` | Container project dengan mode (simple/complex) |
+| **AppOrganization** | - | `app_organizations` | Pivot: Organization mana saja yang ikut di App |
+| **AppMembership** | - | `app_memberships` | User + Role + Organization (per App) |
+| **Table** | Table | `tables` | Data source dengan field definitions |
+| **TableVersion** | - (hidden) | `table_versions` | Versi fields (v1, v2, ...) dengan is_active flag |
+| **Fields** | Fields | `table_versions.fields` | Field definitions (JSON) |
+| **Assignment** | Assignment | `assignments` | Tugas terikat ke Table (auto-follow active version) |
+| **View** | View | `views` | Presentasi data (Map, Deck, Table View) |
 
 **Lifecycle Flow:**
 
@@ -117,7 +117,7 @@ erDiagram
 3. **Super Admin** mengundang Organization ke App (via app_organizations pivot).
 4. **Super Admin** assign User ke App+Organization dengan role tertentu.
 5. **App Admin** membuat Assignment yang terikat ke Form dan Organization.
-6. **Enumerator** mengerjakan Assignment (menggunakan FormVersion aktif).
+6. **Enumerator** mengerjakan Assignment (menggunakan TableVersion aktif).
 7. **Supervisor** memonitor semua Assignment di Organization-nya.
 
 ---
@@ -126,17 +126,17 @@ erDiagram
 
 Alur kerja pembuatan aplikasi "App-Centric":
 
-### FASE 1: Data Modeling (Forms)
-1.  **Create App:** Wadah project.
-2.  **Add/Create Forms:** Menentukan sumber data.
-    *   *Primary Form:* Tabel utama transaksi (misal: "Survey").
-    *   *Reference Form:* Tabel referensi (misal: "List Kecamatan").
+### FASE 1: Data Modeling (Tables)
+1. **Create App:** Wadah project.
+2. **Add/Create Tables:** Menentukan sumber data.
+   - *Primary Table:* Tabel utama transaksi (misal: "Survey").
+   - *Reference Table:* Tabel referensi (misal: "List Kecamatan").
 
-### FASE 2: Data Logic (Slices / Filters)
-1.  **Define Slice Logic:** Slice adalah **filter inline** yang didefinisikan di dalam View config, bukan entitas terpisah.
-    - *Contoh:* View "Pending Tasks" punya `slice_filter: "status == 'pending' AND user_id == @me"`
-    - *Kolom:* Bisa pilih kolom yang ditampilkan di View config.
-    - *Catatan:* Filter logic dieksekusi di Client-side (offline-capable).
+### FASE 2: Data Logic (View Filters)
+1. **Define Filter Logic:** Filter adalah **inline expression** yang didefinisikan di dalam View config.
+   - *Contoh:* View "Pending Tasks" punya `filter: "status == 'pending' AND user_id == @me"`
+   - *Kolom:* Bisa pilih kolom yang ditampilkan di View config.
+   - *Catatan:* Filter logic dieksekusi di Client-side (offline-capable).
 
 ### FASE 3: UX Design (Views)
 1.  **Create View:** Memvisualisasikan Slice.
@@ -186,16 +186,16 @@ sequenceDiagram
     API->>DB: INSERT app_memberships
     
     Note over Admin,DB: Step C - Data Modeling
-    Admin->>Editor: Add Form Data Rumah
-    Editor->>API: POST /apps/id/forms
-    API->>DB: INSERT forms
-    API-->>Editor: form_id, uuid
+    Admin->>Editor: Add Table Data Rumah
+    Editor->>API: POST /apps/id/tables
+    API->>DB: INSERT tables
+    API-->>Editor: table_id, uuid
     
     Note over Admin,DB: Step D - View Construction
     Admin->>Editor: Create View Peta Sebaran
     Editor->>Editor: Configure Map View
     Admin->>Editor: Create View Input Baru
-    Editor->>Editor: Configure Form View
+    Editor->>Editor: Configure Deck View
     Editor->>API: POST /apps/id/views
     API->>DB: INSERT views
     
@@ -315,8 +315,8 @@ sequenceDiagram
 |-------|----------|
 | `apps` | Container project dengan `mode`, `navigation` (JSON) |
 | `views` | **Tabel terpisah** - View definitions dengan `config` (JSON) |
-| `forms` | DataSource/Schema dengan `settings` (JSON) |
-| `form_versions` | Versioned schema dengan `is_active` flag |
+| `tables` | Data source dengan `settings`, `source_type`, `source_config` (JSON) |
+| `table_versions` | Versioned fields dengan `is_active` flag |
 | `app_organizations` | Pivot: Org M:N App |
 | `app_memberships` | User + Role + Org per App |
 
@@ -325,17 +325,17 @@ sequenceDiagram
 CREATE TABLE views (
     id UUID PRIMARY KEY,
     app_id BIGINT REFERENCES apps,
-    form_id BIGINT REFERENCES forms,
+    table_id BIGINT REFERENCES tables,
     name VARCHAR,
-    type ENUM('deck', 'table', 'map', 'details', 'form'),
-    config JSON  -- slice_filter, groupBy, sortBy, columns, etc
+    type ENUM('deck', 'table', 'map', 'details', 'calendar'),
+    config JSON  -- filter, groupBy, sortBy, columns, etc
 );
 ```
 
 **`views.config` (JSON Example):**
 ```json
 {
-  "slice_filter": "status != 'completed' AND user_id == @me",
+  "filter": "status != 'completed' AND user_id == @me",
   "groupBy": ["province", "city"],
   "sortBy": "created_at DESC",
   "deck": {
@@ -353,23 +353,23 @@ CREATE TABLE views (
 ]
 ```
 
-### B. FormVersion Publishing Logic
+### B. TableVersion Publishing Logic
 
 > ⚠️ **Penting:** Aturan versioning untuk menjaga integritas data.
 
 | State | Action | Result |
 |-------|--------|--------|
-| **Draft** (unpublished) | Edit schema | In-place update di FormVersion yang sama |
-| **Published** | Edit schema | Create FormVersion baru (v2, v3, ...) |
+| **Draft** (unpublished) | Edit fields | In-place update di TableVersion yang sama |
+| **Published** | Edit fields | Create TableVersion baru (v2, v3, ...) |
 | **Published** | Activate new version | Update `is_active` flag, semua client harus sync |
 
 **Alur:**
-1. Admin edit Form di Editor.
-2. Jika Form belum dipublish → langsung update.
-3. Jika Form sudah dipublish → sistem buat FormVersion baru.
+1. Admin edit Table di Editor.
+2. Jika Table belum dipublish → langsung update.
+3. Jika Table sudah dipublish → sistem buat TableVersion baru.
 4. Admin klik "Publish" → set `is_active = true` di versi baru.
-5. Semua client **wajib** sync untuk mendapat FormVersion terbaru.
-6. Assignment tetap terikat ke **Form** (bukan FormVersion), sehingga otomatis ikut versi aktif.
+5. Semua client **wajib** sync untuk mendapat TableVersion terbaru.
+6. Assignment tetap terikat ke **Table** (bukan TableVersion), sehingga otomatis ikut versi aktif.
 
 ### B. Client-Side Logic (`useAppShellLogic.ts`)
 
@@ -628,11 +628,13 @@ Setiap View type memiliki config properties berbeda:
 }
 ```
 
-### 6.4 Form View (Entry)
+### 6.4 Entry Mode (via Details View)
+
+> **Note:** Data entry is handled by navigating to Details view with `mode: 'create'`, not a separate view type.
 
 ```json
 {
-  "type": "form",
+  "type": "details",
   "config": {
     "mode": "create",
     "autoSave": true,

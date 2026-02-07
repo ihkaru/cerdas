@@ -4,10 +4,13 @@ use App\Http\Controllers\Api\AppController;
 use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\FieldController;
-use App\Http\Controllers\Api\FormController;
+use App\Http\Controllers\Api\TableController;
 use App\Http\Controllers\Api\ResponseController;
+use App\Http\Controllers\Api\OrganizationController;
+use App\Http\Controllers\Api\AppSchemaController;
+use App\Http\Controllers\Api\GoogleAuthController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,13 +22,35 @@ use Illuminate\Support\Facades\Route;
 | routes are loaded by the RouteServiceProvider within a group which
 | is assigned the "api" middleware group.
 |
+|
 */
+
+// Broadcasting Auth Route (manual implementation for API-only setup)
+Route::post('/broadcasting/auth', function (Request $request) {
+    // Return 401 for unauthenticated requests 
+    if (!$request->user()) {
+        return response()->json(['error' => 'Unauthenticated'], 401);
+    }
+
+    try {
+        return Broadcast::auth($request);
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error('Broadcast Auth Failed', [
+            'error' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->json(['error' => 'Internal Server Error', 'message' => $e->getMessage()], 500);
+    }
+})->middleware('auth:sanctum');
 
 // ========== Public Routes ==========
 
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/google', [GoogleAuthController::class, 'login']);
 });
 
 // Health check
@@ -105,23 +130,62 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{app}', [AppController::class, 'update']);
         Route::get('/{app}/context', [AppController::class, 'context']); // User's role/org for this app
         // Route::delete('/{app}', [AppController::class, 'destroy']);
+
+        // App Schema Operations (Full JSON export/import)
+        Route::get('/{app}/schema', [AppSchemaController::class, 'getSchema']);
+        Route::put('/{app}/schema', [AppSchemaController::class, 'updateSchema']);
+        Route::get('/{app}/schema/export', [AppSchemaController::class, 'exportSchema']);
+
+        // App Organization Management
+        Route::get('/{app}/organizations', [AppController::class, 'organizations']);
+        Route::post('/{app}/organizations', [AppController::class, 'attachOrganization']);
+        Route::delete('/{app}/organizations/{organization}', [AppController::class, 'detachOrganization']);
     });
 
-    // Form Management (Ex-Schemas)
-    Route::prefix('forms')->group(function () {
-        Route::get('/', [FormController::class, 'index']); // Accepts ?app_id=X
-        Route::post('/', [FormController::class, 'store']);
-        Route::get('/{form}', [FormController::class, 'show']);
-        Route::put('/{form}', [FormController::class, 'update']);
-        Route::delete('/{form}', [FormController::class, 'destroy']);
+    // Import App from Schema (standalone route)
+    Route::post('/apps/import', [AppSchemaController::class, 'importSchema']);
+
+    // Organization Lookup
+    // Organizations (Global/User-Owned)
+    Route::prefix('organizations')->group(function () {
+        Route::get('/', [OrganizationController::class, 'index']);
+        Route::post('/', [OrganizationController::class, 'store']);
+
+        Route::prefix('{organization}')->group(function () {
+            Route::put('/', [OrganizationController::class, 'update']);
+            Route::delete('/', [OrganizationController::class, 'destroy']);
+
+            // Members Management
+            Route::get('/members', [OrganizationController::class, 'members']);
+            Route::post('/members', [OrganizationController::class, 'addMember']);
+            Route::delete('/members/{user}', [OrganizationController::class, 'removeMember']);
+
+            // Invitations
+            Route::delete('/invitations/{invitation}', [OrganizationController::class, 'cancelInvitation']);
+        });
+    });
+
+    // Notifications
+    Route::get('/notifications', [App\Http\Controllers\Api\NotificationController::class, 'index']);
+    Route::post('/notifications/{id}/read', [App\Http\Controllers\Api\NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [App\Http\Controllers\Api\NotificationController::class, 'markAllRead']);
+
+    // Table Management (Ex-Forms)
+    Route::prefix('tables')->group(function () {
+        Route::get('/', [TableController::class, 'index']); // Accepts ?app_id=X
+        Route::post('/', [TableController::class, 'store']);
+        Route::get('/{table}', [TableController::class, 'show']);
+        Route::put('/{table}', [TableController::class, 'update']);
+        Route::delete('/{table}', [TableController::class, 'destroy']);
 
         // Version management
-        Route::get('/{form}/versions/{version}', [FormController::class, 'showVersion']);
-        Route::post('/{form}/versions/{version}/publish', [FormController::class, 'publishVersion']);
-        Route::post('/{form}/versions/draft', [FormController::class, 'createDraftVersion']);
+        Route::get('/{table}/versions', [TableController::class, 'listVersions']); // Version history
+        Route::get('/{table}/versions/{version}', [TableController::class, 'showVersion']);
+        Route::post('/{table}/versions/{version}/publish', [TableController::class, 'publishVersion']);
+        Route::post('/{table}/versions/draft', [TableController::class, 'createDraftVersion']);
 
-        // Update Version Content (JSON Schema)
-        Route::put('/{form}/versions/{version}', [FormController::class, 'updateVersion']);
+        // Update Version Content (Fields & Layout)
+        Route::put('/{table}/versions/{version}', [TableController::class, 'updateVersion']);
     });
 
     // ========================================================================
@@ -143,4 +207,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Ideally should be under Editor routes, but path is /assignments/import.
     // Keeping it accessible generally for now.
     Route::post('/assignments/import', [AssignmentController::class, 'import']);
+
+    // ========================================================================
+    // Excel Data Import
+    // ========================================================================
+    Route::post('/excel/upload', [App\Http\Controllers\Api\ExcelImportController::class, 'upload']);
+    Route::post('/excel/preview', [App\Http\Controllers\Api\ExcelImportController::class, 'preview']);
+    Route::post('/excel/import', [App\Http\Controllers\Api\ExcelImportController::class, 'import']);
 });

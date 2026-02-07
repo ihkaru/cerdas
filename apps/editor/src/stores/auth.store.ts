@@ -82,6 +82,31 @@ export const useAuthStore = defineStore('auth', () => {
         // Redirect logic handled by router guard or component
     }
 
+
+    async function loginWithGoogle(idToken: string) {
+        loading.value = true;
+        error.value = null;
+        try {
+            const res = await ApiClient.post('/auth/google', { id_token: idToken, client_type: 'web' });
+            
+            if (res.data.success) {
+                token.value = res.data.token;
+                user.value = res.data.user;
+                if (token.value) {
+                    localStorage.setItem('auth_token', token.value);
+                }
+                return true;
+            } else {
+                throw new Error(res.data.message || 'Google Login failed');
+            }
+        } catch (e: any) {
+            error.value = e.response?.data?.message || e.message || 'Google Login failed';
+            return false;
+        } finally {
+            loading.value = false;
+        }
+    }
+
     return {
         user,
         token,
@@ -90,6 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
         isAuthenticated,
         isSuperAdmin,
         login,
+        loginWithGoogle,
         fetchUser,
         logout
     };

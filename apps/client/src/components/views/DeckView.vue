@@ -4,9 +4,8 @@
             :title="resolvePath(item, options.title)" :subtitle="resolvePath(item, options.subtitle)"
             @click="$emit('click', item)" link="#">
             <template #media v-if="options.image">
-                <img v-if="resolvePath(item, options.image)"
-                    :src="apiClient.getAssetUrl(resolvePath(item, options.image)) + '?t=' + Date.now()" width="44"
-                    height="44" style="border-radius: 4px; object-fit: cover;" />
+                <img v-if="resolvePath(item, options.image)" :src="getImageUrl(resolvePath(item, options.image))"
+                    width="44" height="44" style="border-radius: 4px; object-fit: cover;" />
                 <!-- Empty White/Gray Box when no image -->
                 <div v-else
                     style="width: 44px; height: 44px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px;">
@@ -119,5 +118,13 @@ const resolvePath = (obj: any, path: string) => {
         (prelistData && typeof prelistData === 'object' && getDeep(prelistData, path));
 
     return result;
+};
+
+const getImageUrl = (path: string) => {
+    if (!path) return '';
+    const url = apiClient.getAssetUrl(path);
+    // Don't append timestamp to data URIs or Blobs
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+    return url + '?t=' + Date.now();
 };
 </script>

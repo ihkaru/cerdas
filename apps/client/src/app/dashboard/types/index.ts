@@ -1,23 +1,24 @@
-export interface Form {
+export interface Table {
     id: string;
     app_id?: string;
     name: string;
     description: string | null;
     layout: any;
-    schema: any; // Form Definition
+    fields: any; // Renamed from schema
     settings: {
         icon?: string;
         color?: string;
-        actions?: any; // Added actions
+        actions?: any;
     } | null;
     version: number;
 }
 
 export interface Assignment {
     id: string;
-    form_id: string;
+    table_id: string; // Renamed from form_id
     organization_id?: string;
     supervisor_id?: string;
+    enumerator_id?: string; // Added for simple mode logic
     external_id: string | null;
     status: 'pending' | 'in_progress' | 'completed' | 'synced';
     synced_at: string | null;

@@ -1,38 +1,35 @@
 import { useAuthStore } from '@/stores/auth.store';
 import type { Router } from 'framework7/types';
 
-import AppEditorPage from './app/form-editor/AppEditorPage.vue';
+import AppEditorPage from './app/app-editor/AppEditorPage.vue';
+import AppDetailPage from './pages/AppDetailPage.vue';
 import AppsPage from './pages/AppsPage.vue';
 import HomePage from './pages/HomePage.vue';
 import LoginPage from './pages/LoginPage.vue';
+import OrganizationsPage from './pages/OrganizationsPage.vue';
 
 // Guard: Check if authenticated
 const checkAuth = async ({ resolve }: any) => {
   const authStore = useAuthStore();
-  console.log('[AuthGuard] Checking auth state...', { 
-      token: authStore.token, 
-      isAuthenticated: authStore.isAuthenticated,
-      user: authStore.user 
-  });
+  const start = performance.now();
+  console.log('[DEBUG-PERF] [AuthGuard] Starting check. Auth:', authStore.isAuthenticated, 'User:', !!authStore.user);
   
   if (!authStore.isAuthenticated) {
-     console.log('[AuthGuard] Not authenticated. Redirecting to /login');
-     // Redirect to login handled by resolve
+     console.log('[DEBUG-PERF] [AuthGuard] Not authenticated. Redirecting to /login');
      resolve({ url: '/login' }); 
   } else {
-    // Check if user data is loaded?
-    console.log('[AuthGuard] Authenticated.');
     if (!authStore.user) {
-        console.log('[AuthGuard] Fetching user profile...');
+        console.log('[DEBUG-PERF] [AuthGuard] User missing. Fetching...');
         try {
             await authStore.fetchUser();
-            console.log('[AuthGuard] Profile fetched:', authStore.user);
+            console.log('[DEBUG-PERF] [AuthGuard] User fetched. Duration:', performance.now() - start);
         } catch (e) {
-            console.error('[AuthGuard] Failed to fetch profile:', e);
-            // If fetch fails (e.g. 401), store might logout, so strictly we should recheck but let's proceed or logout
+            console.error('[DEBUG-PERF] [AuthGuard] Fetch failed:', e);
         }
+    } else {
+        console.log('[DEBUG-PERF] [AuthGuard] User exists. Proceeding immediately.');
     }
-    console.log('[AuthGuard] Proceeding.');
+    console.log('[DEBUG-PERF] [AuthGuard] Resolving. Total duration:', performance.now() - start);
     resolve();
   }
 };
@@ -66,17 +63,27 @@ const routes: Router.RouteParameters[] = [
     beforeEnter: beforeEnterGuard,
   },
   {
-    path: '/editor/:slug', // Changed to /editor/ to avoid any regex conflict with /applications
+    path: '/organizations',
+    component: OrganizationsPage,
+    beforeEnter: beforeEnterGuard,
+  },
+  {
+    path: '/apps/:slug',
+    component: AppDetailPage,
+    beforeEnter: beforeEnterGuard,
+  },
+  {
+    path: '/editor/:slug',
     component: AppEditorPage,
     beforeEnter: beforeEnterGuard,
   },
   {
-    path: '/forms/new',
+    path: '/tables/new',
     component: AppEditorPage,
     beforeEnter: beforeEnterGuard,
   },
   {
-    path: '/forms/:id',
+    path: '/tables/:id',
     component: AppEditorPage,
     beforeEnter: beforeEnterGuard,
   },

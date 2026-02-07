@@ -2,7 +2,7 @@ import { ApiClient } from '@/common/api/ApiClient';
 import { useAppStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
-import type { AppDetail, AppForm, AppMember, AppNavigationItem, AppView } from '../types/app-detail.types';
+import type { AppDetail, AppForm, AppMember, AppNavigationItem, AppOrganization, AppView } from '../types/app-detail.types';
 import { useAppColors } from './useAppColors';
 
 export function useAppDetail() {
@@ -24,18 +24,28 @@ export function useAppDetail() {
         };
     });
 
+    const organizations = computed<AppOrganization[]>(() => {
+        const rawOrgs = (appStore.currentApp as any)?.organizations || [];
+        return rawOrgs.map((o: any) => ({
+            id: o.id,
+            name: o.name,
+            code: o.code
+        }));
+    });
+
     const forms = computed<AppForm[]>(() => {
-        const rawForms = (appStore.currentApp as any)?.forms || [];
+        // Use 'tables' from the updated model, fall back to 'forms' just in case of old API response
+        const rawForms = (appStore.currentApp as any)?.tables || (appStore.currentApp as any)?.forms || [];
 
         return rawForms.map((f: any) => ({
             id: f.id,
             name: f.name,
             description: f.description || 'No description',
-            icon: 'doc_text_fill',
+            icon: f.settings?.icon || 'doc_text_fill', // Updated to use settings.icon if available
             status: f.current_version ? 'published' : 'draft',
             version: f.current_version || 1,
-            fieldCount: 0,
-            responseCount: 0,
+            fieldCount: f.fields?.length || 0, // Fallback if count not provided directly
+            responseCount: f.response_count || 0,
         }));
     });
 
@@ -80,7 +90,35 @@ export function useAppDetail() {
         return rawNav.map(mapNav);
     });
 
-    // Actions (mocking backend for now if endpoints missing)
+    // Actions
+
+
+    async function addOrganization(orgId: string | number) {
+        if (!appStore.currentApp) return;
+        try {
+            loading.value = true;
+            await ApiClient.post(`/apps/${appStore.currentApp.id}/organizations`, {
+                organization_id: orgId
+            });
+            // Refresh
+            await fetchApp(appStore.currentApp.id);
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function removeOrganization(orgId: string | number) {
+        if (!appStore.currentApp) return;
+        try {
+            loading.value = true;
+            await ApiClient.delete(`/apps/${appStore.currentApp.id}/organizations/${orgId}`);
+            // Refresh
+            await fetchApp(appStore.currentApp.id);
+        } finally {
+            loading.value = false;
+        }
+    }
+
     async function createView(payload: { name: string; type: string }) {
         // Placeholder: POST /apps/:id/views
         console.log('Creating view:', payload);
@@ -108,8 +146,9 @@ export function useAppDetail() {
         }
     }
 
-    async function fetchApp(slug: string) {
-        await appStore.fetchApp(slug);
+    // Consolidated fetchApp
+    async function fetchApp(slugOrId: string | number) {
+        return appStore.fetchApp(String(slugOrId));
     }
 
     return {
@@ -118,10 +157,13 @@ export function useAppDetail() {
         members,
         views,
         navigation,
+        organizations,
         loading,
         fetchApp,
         createView,
         updateNavigation,
+        addOrganization,
+        removeOrganization,
         currentAppRaw: computed(() => appStore.currentApp)
     };
 }

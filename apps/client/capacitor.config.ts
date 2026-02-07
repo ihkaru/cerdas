@@ -31,6 +31,11 @@ const config: CapacitorConfig = {
       iosIsEncryption: false,
       androidIsEncryption: false,
     },
+    GoogleAuth: {
+      scopes: ['profile', 'email'],
+      serverClientId: 'YOUR_WEB_CLIENT_ID_HERE', // Create .env variable for build script injection ideally, but hardcoded placeholder for now
+      forceCodeForRefreshToken: true,
+    },
   },
 };
 

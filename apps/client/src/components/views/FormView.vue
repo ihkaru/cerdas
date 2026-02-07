@@ -26,7 +26,7 @@ import { useAuthStore } from '../../common/stores/authStore';
 const props = defineProps<{
     config: any;
     data: any[]; // Expecting single item logic
-    schemaId: string;
+    contextId: string;
 }>();
 
 const emit = defineEmits(['action']);
@@ -43,7 +43,7 @@ const formContext = computed(() => ({
     user: authStore.user || {},
     // assignments/responses might need more context like 'assignment' object itself
     assignment: record.value,
-    schemaId: props.schemaId
+    contextId: props.contextId
 }));
 
 // Initialize
@@ -71,13 +71,27 @@ const loadSchema = async () => {
         loading.value = true;
         const conn = await db.getDB();
 
-        // Get Schema by Context ID
-        const schemaRes = await conn.query(`SELECT * FROM app_schemas WHERE id = ?`, [props.schemaId]);
+        // Get Schema by Context ID (Table ID)
+        const schemaRes = await conn.query(`SELECT * FROM tables WHERE id = ?`, [props.contextId]);
         if (schemaRes.values && schemaRes.values.length > 0) {
             const row = schemaRes.values[0];
-            schema.value = typeof row.schema === 'string' ? JSON.parse(row.schema) : row.schema;
+            // fields column
+            let fieldsObj = row.fields;
+            if (typeof fieldsObj === 'string') {
+                try { fieldsObj = JSON.parse(fieldsObj); } catch (e) { }
+            }
+
+            // Wrap if array
+            if (Array.isArray(fieldsObj)) {
+                schema.value = { fields: fieldsObj } as unknown as AppSchema;
+            } else if (fieldsObj?.fields) {
+                schema.value = fieldsObj as unknown as AppSchema;
+            } else {
+                schema.value = { fields: [] } as unknown as AppSchema; // Fallback
+            }
+
         } else {
-            throw new Error("Schema not found");
+            throw new Error("Table Schema not found");
         }
     } catch (e: any) {
         error.value = e.message;

@@ -1,6 +1,6 @@
 <template>
     <f7-block-title medium class="display-flex justify-content-between align-items-center margin-top">
-        <span>My Tasks</span>
+        <span>Tasks</span>
         <f7-chip :text="`${totalCount || assignments.length}`" class="bg-color-gray-200 text-color-black"></f7-chip>
     </f7-block-title>
 
@@ -12,11 +12,15 @@
     <f7-list v-else media-list strong-ios dividers-ios inset-ios class="assignment-list no-margin-top">
         <f7-list-item v-for="assignment in assignments" :key="assignment.id" swipeout link="#" no-chevron
             class="no-ripple" @click.prevent="$emit('open-assignment', assignment.id)"
-            :title="assignment.prelist_data?.name || 'Unnamed'" :subtitle="assignment.external_id || 'TASK'"
+            :title="assignment.prelist_data?.name || 'Unnamed'"
+            :subtitle="!assignment.enumerator_id ? 'Unassigned / Open' : (assignment.external_id || 'TASK')"
             :text="assignment.prelist_data?.address || 'No Address'">
             <!-- Status Indicator -->
             <template #media>
                 <div class="status-dot" :class="`bg-color-${statusColor(assignment.status)}`"></div>
+            </template>
+            <template #after>
+                <f7-badge v-if="!assignment.enumerator_id" color="blue">OPEN</f7-badge>
             </template>
 
             <!-- Swipe Left Actions (revealed when swiping RIGHT) -->

@@ -8,10 +8,23 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, HasRoles;
+    use HasFactory, Notifiable, HasApiTokens, HasRoles, SoftDeletes;
+
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected static function booted() {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -21,6 +34,7 @@ class User extends Authenticatable {
     protected $fillable = [
         'name',
         'email',
+        'email_verified_at',
         'password',
         'is_super_admin',
     ];
@@ -88,12 +102,22 @@ class User extends Authenticatable {
         return $this->hasMany(Assignment::class, 'supervisor_id');
     }
 
+    /**
+     * Get all organizations the user is a member of.
+     * New: Reusable Teams logic.
+     */
+    public function organizations(): \Illuminate\Database\Eloquent\Relations\BelongsToMany {
+        return $this->belongsToMany(Organization::class, 'organization_members')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
     // ========== Helpers ==========
 
     /**
      * Get membership for a specific app
      */
-    public function getMembershipForApp(int $appId): ?AppMembership {
+    public function getMembershipForApp(string $appId): ?AppMembership {
         return $this->appMemberships()
             ->where('app_id', $appId)
             ->first();
@@ -102,13 +126,27 @@ class User extends Authenticatable {
     /**
      * Check if user has access to an app
      */
-    public function hasAppAccess(int $appId): bool {
+    public function hasAppAccess(string $appId): bool {
         if ($this->isSuperAdmin()) {
             return true;
         }
-        return $this->appMemberships()
+
+        // 1. Direct App Membership
+        $direct = $this->appMemberships()
             ->where('app_id', $appId)
             ->where('is_active', true)
+            ->exists();
+
+        if ($direct) {
+            return true;
+        }
+
+        // 2. Indirect Access via Organization Membership (Reusable Teams)
+        // Check if user is a member of any organization that is attached to this app.
+        return $this->organizations()
+            ->whereHas('apps', function ($q) use ($appId) {
+                $q->where('apps.id', $appId);
+            })
             ->exists();
     }
 }

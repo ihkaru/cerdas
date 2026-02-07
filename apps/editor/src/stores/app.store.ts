@@ -9,22 +9,23 @@ export interface AppModel {
     slug: string;
     created_at: string;
     pending_tasks?: number;
-    forms_count?: number;
+    tables_count?: number;
     memberships_count?: number;
-    forms?: any[];
+    tables?: any[];
     memberships?: any[];
     views?: any[];
     navigation?: any[];
+    mode?: 'simple' | 'complex';
 }
 
 export interface DashboardStats {
     totalApps: number;
-    totalForms: number;
+    totalTables: number;
     published: number;
     responses: number;
 }
 
-export interface RecentForm {
+export interface RecentTable {
     id: number;
     name: string;
     app_name?: string;
@@ -37,19 +38,21 @@ export const useAppStore = defineStore('app', () => {
     const currentApp = ref<AppModel | null>(null);
     const stats = ref<DashboardStats>({
         totalApps: 0,
-        totalForms: 0,
+        totalTables: 0,
         published: 0,
         responses: 0
     });
-    const recentForms = ref<RecentForm[]>([]);
+    const recentTables = ref<RecentTable[]>([]);
 
     const loading = ref(false);
     const error = ref<string | null>(null);
 
     async function fetchApps() {
+        console.log('[AppStore] fetchApps called, current apps:', apps.value.length);
         loading.value = true;
         try {
             const res = await ApiClient.get('/apps');
+            console.log('[AppStore] fetchApps received:', res.data.data?.length, 'apps');
             apps.value = res.data.data;
         } catch (e: any) {
             error.value = e.message || 'Failed to fetch apps';
@@ -60,30 +63,24 @@ export const useAppStore = defineStore('app', () => {
     }
 
     async function fetchDashboard() {
+        console.log('[AppStore] fetchDashboard called, current apps:', apps.value.length);
         loading.value = true;
         try {
             const res = await ApiClient.get('/dashboard');
             const data = res.data.data;
             
             // Map dashboard data to store state
-            // Apps list from dashboard might be simplified, but we need it for sidebar
+            console.log('[AppStore] fetchDashboard received, apps in response:', data.apps?.length);
             if (data.apps && Array.isArray(data.apps)) {
                  apps.value = data.apps;
             }
-            recentForms.value = data.recent_forms;
-            
-            // Stats logic?
-            // Dashboard now returns { pending, in_progress, completed }
-            // If homepage expects totalApps/forms, we might need to adjust Backend or calculate here.
-            // Backend DashboardController returns: stats (assignments), apps (list), recent_forms.
-            // It DOES NOT return totalApps global count directly in 'stats' object (it returns assignment stats).
-            // But we can count apps.value.length.
+            recentTables.value = data.recent_tables || [];
             
             stats.value = {
-                totalApps: data.apps.length,
-                totalForms: 0, // Need to fetch or calculate?
-                published: 0,
-                responses: data.stats.completed, // Approximation
+                totalApps: data.apps?.length || 0,
+                totalTables: data.stats?.total_tables || 0, 
+                published: data.stats?.published || 0,
+                responses: data.stats?.completed || 0,
             };
 
         } catch (e: any) {
@@ -117,7 +114,7 @@ export const useAppStore = defineStore('app', () => {
         }
     }
 
-    async function createApp(payload: { name: string; description?: string }) {
+    async function createApp(payload: { name: string; description?: string; mode?: string }) {
         loading.value = true;
         try {
             const res = await ApiClient.post('/apps', payload);
@@ -139,7 +136,7 @@ export const useAppStore = defineStore('app', () => {
         apps,
         currentApp,
         stats,
-        recentForms,
+        recentTables,
         loading,
         error,
         fetchApps,

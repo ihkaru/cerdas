@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\App;
 use App\Models\Assignment;
-use App\Models\Form;
+use App\Models\Table;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller {
     /**
-     * Get global dashboard stats, app list, and recent forms
+     * Get global dashboard stats, app list, and recent tables
      */
     public function index(Request $request): JsonResponse {
         $user = $request->user();
@@ -48,35 +48,35 @@ class DashboardController extends Controller {
             ];
         });
 
-        // 3. Recent Forms (e.g. last edited or accessed)
-        // For now, list all forms user has access to, limited to 5
-        $formIds = Form::whereIn('app_id', $user->apps->pluck('id'))->pluck('id');
-        $recentForms = Form::whereIn('id', $formIds)
+        // 3. Recent Tables (e.g. last edited or accessed)
+        // For now, list all tables user has access to, limited to 5
+        $tableIds = Table::whereIn('app_id', $user->apps->pluck('id'))->pluck('id');
+        $recentTables = Table::whereIn('id', $tableIds)
             ->with(['app'])
             ->orderBy('updated_at', 'desc')
             ->take(5)
             ->get()
-            ->map(function ($form) {
+            ->map(function ($table) {
                 return [
-                    'id' => $form->id,
-                    'name' => $form->name,
-                    'app_name' => $form->app->name ?? 'Unknown App',
-                    'updated_at' => $form->updated_at,
-                    'version' => $form->current_version,
+                    'id' => $table->id,
+                    'name' => $table->name,
+                    'app_name' => $table->app->name ?? 'Unknown App',
+                    'updated_at' => $table->updated_at,
+                    'version' => $table->current_version,
                 ];
             });
 
-        // 4. All Forms (for Client Sync)
-        $allForms = Form::whereIn('app_id', $user->apps->pluck('id'))
+        // 4. All Tables (for Client Sync)
+        $allTables = Table::whereIn('app_id', $user->apps->pluck('id'))
             ->get()
-            ->map(function ($form) {
+            ->map(function ($table) {
                 return [
-                    'id' => $form->id,
-                    'app_id' => $form->app_id,
-                    'name' => $form->name,
-                    'description' => $form->description,
-                    'version' => $form->current_version,
-                    'updated_at' => $form->updated_at,
+                    'id' => $table->id,
+                    'app_id' => $table->app_id,
+                    'name' => $table->name,
+                    'description' => $table->description,
+                    'version' => $table->current_version,
+                    'updated_at' => $table->updated_at,
                 ];
             });
 
@@ -85,8 +85,8 @@ class DashboardController extends Controller {
             'data' => [
                 'stats' => $stats,
                 'apps' => $apps,
-                'recent_forms' => $recentForms,
-                'forms' => $allForms
+                'recent_tables' => $recentTables, // Renamed from recent_forms
+                'tables' => $allTables // Renamed from forms
             ]
         ]);
     }

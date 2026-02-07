@@ -45,6 +45,9 @@ export interface FieldDefinition {
     // Runtime Flags (Computed)
     readonly?: boolean;
     
+    // Field-specific configuration (used by ImageField, etc.)
+    config?: Record<string, any>;
+    
     // Nested
     fields?: FieldDefinition[];
 

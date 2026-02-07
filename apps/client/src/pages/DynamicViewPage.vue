@@ -12,7 +12,7 @@
         </div>
 
         <ViewRenderer v-else-if="viewConfig && recordData" :config="viewConfig" :data="[recordData]"
-            :schemaId="schemaId" />
+            :contextId="contextId" />
 
         <f7-block v-else class="text-align-center">
             Item not found or Invalid View configuration.
@@ -27,7 +27,7 @@ import { useDatabase } from '../common/composables/useDatabase';
 import ViewRenderer from '../components/views/ViewRenderer.vue';
 
 const props = defineProps<{
-    schemaId: string;
+    contextId: string;
     viewName: string;
     recordId: string;
 }>();
@@ -45,25 +45,24 @@ onMounted(async () => {
         loading.value = true;
         const conn = await db.getDB();
 
-        // 1. Get Schema
-        const schemaRes = await conn.query(`SELECT * FROM app_schemas WHERE id = ?`, [props.schemaId]);
+        // 1. Get Schema (Table)
+        const schemaRes = await conn.query(`SELECT * FROM tables WHERE id = ?`, [props.contextId]);
         let schemaRow = null;
         if (schemaRes.values && schemaRes.values.length > 0) {
             schemaRow = schemaRes.values[0];
         } else {
-            // Fallback for demo
-            const anySchema = await conn.query(`SELECT * FROM app_schemas WHERE layout IS NOT NULL LIMIT 1`);
-            if (anySchema.values && anySchema.values.length > 0) schemaRow = anySchema.values[0];
+            throw new Error("Table not found");
         }
 
-        if (!schemaRow || !schemaRow.layout) {
-            throw new Error("Schema or Layout not found");
+        if (!schemaRow) {
+            throw new Error("Table not found");
         }
 
         const layout = typeof schemaRow.layout === 'string' ? JSON.parse(schemaRow.layout) : schemaRow.layout;
+        if (!layout) throw new Error("Layout not found in table");
 
         // 2. Get View Config
-        viewConfig.value = layout.views[props.viewName];
+        viewConfig.value = layout.views?.[props.viewName];
         if (!viewConfig.value) {
             throw new Error(`View '${props.viewName}' not found in layout`);
         }

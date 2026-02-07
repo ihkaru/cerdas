@@ -1,28 +1,33 @@
 <template>
     <f7-page name="app-detail" class="app-detail-page">
         <!-- Page Header -->
-        <AppHeader :app="app" @create="handleCreateForm" />
+        <AppHeader :app="app" @edit="handleEditApp" />
 
-        <!-- Forms Grid -->
-        <FormsSection :forms="forms" :loading="loading" @create="handleCreateForm" />
+        <!-- Forms Grid Removed as per user request -->
+        <!-- <FormsSection :forms="forms" :loading="loading" @create="handleCreateForm" /> -->
 
-
-
-
+        <!-- Organizations (Complex Mode Only) -->
+        <div v-if="app.mode === 'complex'">
+            <OrganizationsSection :organizations="organizations" :loading="loading" @add="isAddOrgOpen = true"
+                @remove="removeOrganization" />
+        </div>
 
         <!-- App Members Section -->
         <MembersSection :members="members" :loading="loading" />
+
+        <!-- Dialogs -->
+        <AddOrganizationDialog :opened="isAddOrgOpen" @update:opened="isAddOrgOpen = $event" @select="handleAddOrg" />
     </f7-page>
 </template>
 
 <script setup lang="ts">
 import { useAppStore } from '@/stores';
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
+import AddOrganizationDialog from '../app/pages/app-detail/components/AddOrganizationDialog.vue';
 import AppHeader from '../app/pages/app-detail/components/AppHeader.vue';
-import FormsSection from '../app/pages/app-detail/components/FormsSection.vue';
 import MembersSection from '../app/pages/app-detail/components/MembersSection.vue';
+import OrganizationsSection from '../app/pages/app-detail/components/OrganizationsSection.vue';
 import { useAppDetail } from '../app/pages/app-detail/composables/useAppDetail';
-import { useFormDialog } from '../app/pages/app-detail/composables/useFormDialog';
 
 const props = defineProps<{
     f7route: any;
@@ -31,22 +36,26 @@ const props = defineProps<{
 
 const {
     app,
-    forms,
     members,
+    organizations,
     loading,
     fetchApp,
+    addOrganization,
+    removeOrganization
 } = useAppDetail();
-const { showCreateFormDialog } = useFormDialog();
-const appStore = useAppStore(); // needed solely for ID access if not exposed by composable or for refreshing
 
-function handleCreateForm() {
-    showCreateFormDialog(app.value.id, async (newFormId) => {
-        // Refresh App to show new form (or manually push if optimized)
-        await appStore.fetchApp(props.f7route.params.slug);
+const appStore = useAppStore();
 
-        // Navigate to editor
-        props.f7router.navigate(`/forms/${newFormId}`);
-    });
+const isAddOrgOpen = ref(false);
+
+function handleEditApp() {
+    // Navigate strictly to the editor route for this app
+    props.f7router.navigate(`/editor/${props.f7route.params.slug}`);
+}
+
+async function handleAddOrg(orgId: string | number) {
+    await addOrganization(orgId);
+    isAddOrgOpen.value = false;
 }
 
 onMounted(() => {

@@ -8,6 +8,9 @@ use App\Models\Response;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use App\Models\Table;
 
 class ResponseController extends Controller {
     /**
@@ -17,7 +20,7 @@ class ResponseController extends Controller {
         $user = $request->user();
 
         // Log request params for debugging
-        \Illuminate\Support\Facades\Log::info('Fetching Responses', [
+        Log::info('Fetching Responses', [
             'user_id' => $user->id,
             'params' => $request->all()
         ]);
@@ -32,17 +35,17 @@ class ResponseController extends Controller {
             });
         }
 
-        // Filter by Form ID (app_schema_id or form_id)
-        $formId = $request->input('app_schema_id') ?? $request->input('form_id');
-        if ($formId) {
-            $query->whereHas('assignment.formVersion', function ($q) use ($formId) {
-                $q->where('form_id', $formId);
+        // Filter by Table ID (renamed from form_id)
+        $tableId = $request->input('table_id');
+        if ($tableId) {
+            $query->whereHas('assignment.tableVersion', function ($q) use ($tableId) {
+                $q->where('table_id', $tableId);
             });
         }
 
         $responses = $query->get();
 
-        \Illuminate\Support\Facades\Log::info('Responses Fetched', ['count' => $responses->count()]);
+        Log::info('Responses Fetched', ['count' => $responses->count()]);
 
         return response()->json([
             'success' => true,
@@ -68,14 +71,13 @@ class ResponseController extends Controller {
                 }
 
                 // Generate Path: responses/{assignment_id}/{user_id}/{timestamp}_{random}.ext
-                $fileName = time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $extension;
+                $fileName = time() . '_' . Str::random(10) . '.' . $extension;
                 $path = "responses/{$assignmentId}/{$userId}/{$fileName}";
 
                 // Store to Disk (Public)
                 \Illuminate\Support\Facades\Storage::disk('public')->put($path, $imageData);
 
-                // Return the URL (or relative path if preferred)
-                // Storing full URL for easier client consumption for now, or relative path which is cleaner
+                // Return the URL
                 $url = \Illuminate\Support\Facades\Storage::url($path);
 
                 $data[$key] = $url;
@@ -95,7 +97,7 @@ class ResponseController extends Controller {
             'responses' => 'required|array',
             'responses.*.local_id' => 'required|uuid',
             'responses.*.assignment_id' => 'required', // String (UUID) or Integer
-            'responses.*.app_schema_id' => 'nullable', // Needed for creation
+            'responses.*.table_id' => 'nullable', // Needed for creation (ad-hoc)
             'responses.*.data' => 'required|array',
             'responses.*.created_at' => 'nullable|date',
             'responses.*.updated_at' => 'nullable|date',
@@ -105,47 +107,51 @@ class ResponseController extends Controller {
         $user = $request->user();
         $results = [];
 
-        \Illuminate\Support\Facades\Log::info('Sync Push Started', [
+        Log::info('Sync Push Started', [
             'user_id' => $user->id,
             'count' => count($validated['responses'])
         ]);
 
-        // Added Log as requested
-        \Illuminate\Support\Facades\Log::info('Sync Push Payload JSON', ['payload' => $validated['responses']]);
+        Log::info('Sync Push Payload JSON', ['payload' => $validated['responses']]);
 
         DB::transaction(function () use ($validated, $user, &$results) {
             foreach ($validated['responses'] as $respData) {
                 $assignmentInput = $respData['assignment_id'];
 
-                \Illuminate\Support\Facades\Log::debug('Processing Item', ['local_id' => $respData['local_id'], 'assignment_input' => $assignmentInput]);
+                Log::debug('Processing Item', ['local_id' => $respData['local_id'], 'assignment_input' => $assignmentInput]);
 
                 $assignment = null;
 
                 // 1. Try to find assignment
                 if (is_numeric($assignmentInput)) {
                     $assignment = Assignment::find($assignmentInput);
-                } elseif (\Illuminate\Support\Str::isUuid($assignmentInput)) {
-                    $assignment = Assignment::where('external_id', $assignmentInput)->first();
-                }
+                } elseif (Str::isUuid($assignmentInput)) {
+                    // First try to find by id (primary key)
+                    $assignment = Assignment::find($assignmentInput);
 
+                    // If not found, try by external_id (for ad-hoc assignments created earlier)
+                    if (!$assignment) {
+                        $assignment = Assignment::where('external_id', $assignmentInput)->first();
+                    }
+                }
                 // 2. Create if not found and is UUID (Self-Assignment)
                 $newAssignmentId = null;
-                if (!$assignment && \Illuminate\Support\Str::isUuid($assignmentInput) && !empty($respData['app_schema_id'])) {
-                    // Get latest version for this schema
-                    // Note: We assume the user is using the latest published version or we find one
-                    $form = \App\Models\Form::with('app')->find($respData['app_schema_id']);
+                if (!$assignment && Str::isUuid($assignmentInput) && !empty($respData['table_id'])) {
+                    // Get latest version for this table
+                    $table = Table::with('app')->find($respData['table_id']);
 
-                    if ($form && $form->latestPublishedVersion) {
+                    if ($table && $table->latestPublishedVersion) {
                         // Determine Supervisor: Try to find from AppMembership, else self
                         $supervisorId = $user->id; // Default fallback
-                        $membership = $user->getMembershipForApp($form->app_id);
+                        $membership = $user->getMembershipForApp($table->app_id);
                         if ($membership && $membership->supervisor_id) {
                             $supervisorId = $membership->supervisor_id;
                         }
 
                         // Create Ad-hoc Assignment
                         $assignment = Assignment::create([
-                            'form_version_id' => $form->latestPublishedVersion->id,
+                            'table_id' => $table->id,
+                            'table_version_id' => $table->latestPublishedVersion->id,
                             'organization_id' => $membership->organization_id ?? $user->appMemberships->first()?->organization_id,
                             'supervisor_id' => $supervisorId,
                             'enumerator_id' => $user->id,
@@ -156,12 +162,12 @@ class ResponseController extends Controller {
                             'updated_at' => now(),
                         ]);
                         $newAssignmentId = $assignment->id;
-                        \Illuminate\Support\Facades\Log::info('Created Ad-Hoc Assignment', ['id' => $assignment->id]);
+                        Log::info('Created Ad-Hoc Assignment', ['id' => $assignment->id]);
                     }
                 }
 
                 if (!$assignment) {
-                    \Illuminate\Support\Facades\Log::warning('Assignment Not Found', ['input' => $assignmentInput]);
+                    Log::warning('Assignment Not Found', ['input' => $assignmentInput]);
                     $results[] = [
                         'local_id' => $respData['local_id'],
                         'status' => 'error',
@@ -176,7 +182,7 @@ class ResponseController extends Controller {
                     $assignment->supervisor_id !== $user->id &&
                     !$user->isSuperAdmin()
                 ) {
-                    \Illuminate\Support\Facades\Log::warning('Access Denied', ['user_id' => $user->id, 'assignment_id' => $assignment->id]);
+                    Log::warning('Access Denied', ['user_id' => $user->id, 'assignment_id' => $assignment->id]);
                     $results[] = [
                         'local_id' => $respData['local_id'],
                         'status' => 'error',
@@ -186,18 +192,13 @@ class ResponseController extends Controller {
                 }
 
                 // Process Base64 Images -> Disk
-                \Illuminate\Support\Facades\Log::debug('Processing Base64 Images', ['item_keys' => array_keys($respData['data'])]);
+                Log::debug('Processing Base64 Images', ['item_keys' => array_keys($respData['data'])]);
 
                 $cleanData = $this->handleBase64Images(
                     $respData['data'],
                     (string)$assignment->id,
                     (string)$user->id
                 );
-
-                // Compare keys to see if images were transformed
-                $originalKeys = array_keys($respData['data']);
-                $cleanKeys = array_keys($cleanData);
-                // Simple check: if values changed from long string to short URL
 
                 // Check if response already exists (idempotency by local_id)
                 $existing = Response::where('local_id', $respData['local_id'])->first();
@@ -214,7 +215,7 @@ class ResponseController extends Controller {
                             'updated_at' => $respData['updated_at'] ?? now(),
                         ]);
                         $response = $existing;
-                        \Illuminate\Support\Facades\Log::info('Response Updated', [
+                        Log::info('Response Updated', [
                             'server_id' => $response->id,
                             'local_id' => $respData['local_id'],
                             'data_keys' => array_keys($cleanData)
@@ -222,7 +223,7 @@ class ResponseController extends Controller {
                     } else {
                         // Client data is older or same, skip update but confirm sync
                         $response = $existing;
-                        \Illuminate\Support\Facades\Log::info('Response Update Skipped (Older)', [
+                        Log::info('Response Update Skipped (Older)', [
                             'server_id' => $response->id,
                             'client_time' => $clientTime,
                             'server_time' => $serverTime
@@ -238,7 +239,7 @@ class ResponseController extends Controller {
                         'created_at' => $respData['created_at'] ?? now(),
                         'updated_at' => $respData['updated_at'] ?? now(),
                     ]);
-                    \Illuminate\Support\Facades\Log::info('Response Created', [
+                    Log::info('Response Created', [
                         'server_id' => $response->id,
                         'local_id' => $respData['local_id'],
                         'data_keys' => array_keys($cleanData)
@@ -264,8 +265,7 @@ class ResponseController extends Controller {
             }
         });
 
-        // Added Log as requested
-        \Illuminate\Support\Facades\Log::info('Sync Push Response JSON', ['results' => $results]);
+        Log::info('Sync Push Response JSON', ['results' => $results]);
 
         return response()->json([
             'success' => true,

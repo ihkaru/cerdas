@@ -1,0 +1,233 @@
+/* ============================================================================
+   AppEditorPage Styles
+   Extracted from AppEditorPage.vue for maintainability
+   ============================================================================ */
+
+/* Tab Content */
+.tab-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    overflow: hidden;
+    min-width: 0; /* Prevent flex items from growing beyond container */
+}
+
+.fields-content {
+    display: flex;
+}
+
+/* Panel Layouts */
+.field-list-panel {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: white;
+    border-right: 1px solid #e2e8f0;
+}
+
+.field-list-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.field-config-panel {
+    flex: 1;
+    overflow: hidden;
+    overflow-y: auto;
+    background: white;
+}
+
+.settings-scroll {
+    width: 100%;
+    overflow-y: auto;
+    background: white;
+}
+
+/* ============================================================================
+   Data Tab Styles
+   ============================================================================ */
+
+.panel-header {
+    padding: 16px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+}
+
+.panel-title {
+    font-weight: 600;
+    color: #374151;
+    font-size: 16px;
+}
+
+.start-message {
+    text-align: center;
+    padding: 24px;
+    color: #6b7280;
+}
+
+.form-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.form-item:hover {
+    background-color: #f9fafb;
+    border-color: #d1d5db;
+}
+
+.form-item.active {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+    background-color: #eff6ff;
+}
+
+.form-icon-wrapper {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background-color: #dbeafe;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.form-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.form-title {
+    font-weight: 500;
+    color: #111827;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.form-desc {
+    font-size: 12px;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.active-check {
+    color: #2563eb;
+}
+
+.empty-selection-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f9fafb;
+    color: #9ca3af;
+    height: 100%;
+    font-size: 14px;
+}
+
+/* ============================================================================
+   Empty State Styling for Tabs
+   ============================================================================ */
+
+.empty-state-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 48px;
+    max-width: 400px;
+}
+
+.empty-state-icon {
+    font-size: 56px !important;
+    color: #cbd5e1;
+    margin-bottom: 16px;
+}
+
+.empty-state h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.empty-state p {
+    margin: 0 0 20px 0;
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.empty-state p strong {
+    color: #3b82f6;
+}
+
+/* ============================================================================
+   Code Tab Styles
+   ============================================================================ */
+
+.code-content {
+    display: flex;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+}
+
+.code-editor-panel {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    overflow: hidden;
+    height: 100%;
+    flex-shrink: 0;
+    border-right: 1px solid #e2e8f0;
+}
+
+.code-preview-placeholder {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    min-width: 0;
+}
+
+.code-preview-placeholder p {
+    margin: 16px 0 8px 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.code-preview-placeholder small {
+    font-size: 13px;
+    color: #94a3b8;
+}
+

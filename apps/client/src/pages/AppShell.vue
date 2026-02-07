@@ -2,8 +2,8 @@
     <f7-page name="app-shell" :page-content="false" @page:afterin="onPageAfterIn">
         <!-- Main Sidebar Panel (App Menu) -->
         <f7-panel left cover resizable v-model:opened="panelOpened">
-            <AppShellMenu :forms="appForms" :navigation="appNavigation" :views="appViews" :current-form-id="schemaId"
-                :role="currentUserRole" :user="authStore.user" />
+            <AppShellMenu :tables="appTables" :navigation="appNavigation" :views="appViews"
+                :current-table-id="contextId" :role="currentUserRole" :user="authStore.user" />
         </f7-panel>
 
         <!-- navbar -->
@@ -13,7 +13,7 @@
         <!-- CASE 0: Dynamic View Logic (from Navigation) -->
         <template v-if="currentViewConfig">
             <div class="page-content">
-                <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(schemaId)" />
+                <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
                 <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                     :counts="statusCounts" />
 
@@ -22,13 +22,14 @@
                     <!-- Grouping UI (Folders) -->
                     <div v-if="isGroupingActive" key="grouping">
                         <AppShellGroupList :key="currentGroupLevel" :groups="filteredGroups" :config="groupByConfig"
-                            :current-level="currentGroupLevel" @enter-group="enterGroup" />
+                            :current-level="currentGroupLevel" @enter-group="enterGroup"
+                            @show-all="forceShowItems = true" />
                     </div>
 
                     <!-- Leaf Views (Assignments/Map/etc) -->
                     <div v-else key="leaf">
                         <ViewRenderer :config="currentViewConfig.config"
-                            :data="getViewData(currentViewConfig.config.source)" :schemaId="schemaId"
+                            :data="getViewData(currentViewConfig.config.source)" :contextId="contextId"
                             @action="handleRowAction" />
                     </div>
                 </transition>
@@ -49,11 +50,11 @@
             <f7-tabs animated>
                 <f7-tab v-for="viewKey in (layout?.navigation?.primary || [])" :key="viewKey" :id="viewKey"
                     :tab-active="activeView === viewKey" class="page-content">
-                    <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(schemaId)" />
+                    <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
                     <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                         :counts="statusCounts" />
                     <ViewRenderer v-if="layout.views[viewKey]" :config="layout.views[viewKey]"
-                        :data="getViewData(layout.views[viewKey]?.source)" :schemaId="schemaId" />
+                        :data="getViewData(layout.views[viewKey]?.source)" :contextId="contextId" />
                 </f7-tab>
             </f7-tabs>
         </template>
@@ -78,7 +79,7 @@
 
                     <!-- Only render content if active to save resources & prevent background map loads -->
                     <template v-if="activeView === item.view_id">
-                        <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(schemaId)" />
+                        <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
                         <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                             :counts="statusCounts" />
 
@@ -87,15 +88,15 @@
                             <!-- Grouping UI (Folders) -->
                             <div v-if="isGroupingActive" key="grouping">
                                 <AppShellGroupList :key="currentGroupLevel" :groups="filteredGroups"
-                                    :config="groupByConfig" :current-level="currentGroupLevel"
-                                    @enter-group="enterGroup" />
+                                    :config="groupByConfig" :current-level="currentGroupLevel" @enter-group="enterGroup"
+                                    @show-all="forceShowItems = true" />
                             </div>
 
                             <!-- Leaf Views (Assignments/Map/etc) -->
                             <div v-else key="leaf">
                                 <ViewRenderer v-if="getAppViewConfig(item.view_id)"
                                     :config="getAppViewConfig(item.view_id)"
-                                    :data="getViewData(getAppViewConfig(item.view_id).source)" :schemaId="schemaId"
+                                    :data="getViewData(getAppViewConfig(item.view_id).source)" :contextId="contextId"
                                     @action="handleRowAction" />
                                 <div v-else class="padding text-align-center">
                                     <p>View configuration not found: {{ item.view_id }}</p>
@@ -121,7 +122,7 @@
                 class="app-content-area safe-area-bottom">
 
                 <!-- Sync Pending Warning -->
-                <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(schemaId)" />
+                <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
 
                 <!-- Search Bar & Filters -->
                 <div class="search-filter-container sticky-top">
@@ -190,7 +191,7 @@ import ViewRenderer from '../components/views/ViewRenderer.vue';
 
 // Props
 const props = defineProps<{
-    schemaId: string;
+    contextId: string;
     f7router?: any;
     f7route?: any; // Ensure f7route is available
 }>();
@@ -198,12 +199,12 @@ const props = defineProps<{
 // --- 1. Core Logic & State ---
 const {
     loading, layout, assignments, totalAssignments, activeView,
-    searchQuery, statusFilter, isGroupingActive, groupByConfig, currentGroupLevel, appForms, appViews, appNavigation,
+    searchQuery, statusFilter, isGroupingActive, groupByConfig, currentGroupLevel, appTables, appViews, appNavigation,
     filteredAssignments, filteredGroups, statusCounts, headerActions, rowActions, swipeConfig, appName, previewFields,
     loadApp, refreshData, deleteAssignment, completeAssignment, syncApp, createAssignment,
     enterGroup, navigateUp, forceShowItems,
     isSyncing, syncProgress, syncMessage, pendingUploadCount, currentUserRole
-} = useAppShellLogic(props.schemaId);
+} = useAppShellLogic(props.contextId);
 const routeViewId = computed(() => props.f7route?.query?.view);
 const currentViewConfig = computed(() => {
     if (routeViewId.value && appViews.value.length) {
@@ -400,7 +401,10 @@ watchEffect(() => {
     console.log('Layout Navigation:', layout.value?.navigation);
 
     console.log('App Navigation Length:', appNavigation.value?.length);
-    console.log('App Navigation Items:', appNavigation.value);
+    if (appNavigation.value?.length) {
+        console.log('App Navigation IDs:', appNavigation.value.map((n: any) => n.view_id));
+        console.log('Active View Match Found:', appNavigation.value.some((n: any) => n.view_id === activeView.value));
+    }
 
     console.log('Is Grouping Active:', isGroupingActive.value);
     console.log('Group By Config:', groupByConfig.value);

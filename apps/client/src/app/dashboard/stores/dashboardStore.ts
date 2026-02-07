@@ -3,14 +3,14 @@ import { ref } from 'vue';
 import { useDatabase } from '../../../common/composables/useDatabase';
 import { useLogger } from '../../../common/utils/logger';
 import { DashboardRepository } from '../repositories/DashboardRepository';
-import type { Assignment, Form } from '../types';
+import type { Assignment, Table } from '../types';
 
 export const useDashboardStore = defineStore('dashboard', () => {
     const logger = useLogger('DashboardStore');
     const db = useDatabase(); 
 
     // State
-    const apps = ref<Form[]>([]);
+    const apps = ref<Table[]>([]);
     const assignments = ref<Assignment[]>([]);
     const totalAssignments = ref(0);
     const assignmentStats = ref<{ status: string; count: number }[]>([]);
@@ -33,7 +33,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
             
             // Parallel fetch for performance
             const [fetchedApps, fetchedAssignments, fetchedPending, fetchedCount, fetchedStats] = await Promise.all([
-                DashboardRepository.getForms(conn),
+                DashboardRepository.getTables(conn),
                 DashboardRepository.getAssignments(conn),
                 DashboardRepository.getPendingUploadCount(conn),
                 DashboardRepository.getAssignmentCount(conn),

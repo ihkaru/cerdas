@@ -1,5 +1,5 @@
 <template>
-    <f7-page name="home" class="home-page" @page:afterin="onPageAfterIn">
+    <f7-page name="home" class="home-page" @page:afterin="onPageAfterIn" @page:reinit="onPageReinit">
         <!-- Welcome Section -->
 
         <section class="welcome-section">
@@ -29,8 +29,8 @@
                     <f7-icon f7="doc_text_fill" />
                 </div>
                 <div class="stat-info">
-                    <div class="stat-value">{{ stats.totalForms }}</div>
-                    <div class="stat-label">Total Forms</div>
+                    <div class="stat-value">{{ stats.totalTables }}</div>
+                    <div class="stat-label">Total Tables</div>
                 </div>
             </div>
             <div class="stat-card">
@@ -55,24 +55,24 @@
 
         <!-- Two Column Layout -->
         <div class="content-grid">
-            <!-- Recent Forms -->
+            <!-- Recent Tables -->
             <section class="content-card">
                 <div class="card-header">
-                    <h2>Recent Forms</h2>
+                    <h2>Recent Tables</h2>
                     <f7-link href="/apps">View All →</f7-link>
                 </div>
                 <div class="form-list">
-                    <a v-for="form in recentForms" :key="form.id" :href="`/forms/${form.id}`" class="form-item">
-                        <div class="form-icon" :class="form.status">
-                            <f7-icon :f7="form.icon" />
+                    <a v-for="table in recentTables" :key="table.id" :href="`/tables/${table.id}`" class="form-item">
+                        <div class="form-icon" :class="table.status">
+                            <f7-icon :f7="table.icon" />
                         </div>
                         <div class="form-info">
-                            <div class="form-name">{{ form.name }}</div>
-                            <div class="form-meta">{{ form.appName }}</div>
+                            <div class="form-name">{{ table.name }}</div>
+                            <div class="form-meta">{{ table.appName }}</div>
                         </div>
                         <div class="form-status">
-                            <span class="status-badge" :class="form.status">{{ form.status }}</span>
-                            <span class="form-time">{{ form.updatedAt }}</span>
+                            <span class="status-badge" :class="table.status">{{ table.status }}</span>
+                            <span class="form-time">{{ table.updatedAt }}</span>
                         </div>
                     </a>
                 </div>
@@ -93,13 +93,13 @@
                             <div class="action-desc">Create new application</div>
                         </div>
                     </a>
-                    <a href="#" class="action-card">
+                    <a href="/organizations" class="action-card">
                         <div class="action-icon teal">
-                            <f7-icon f7="arrow_down_doc_fill" />
+                            <f7-icon f7="building_2_fill" />
                         </div>
                         <div class="action-text">
-                            <div class="action-title">Import</div>
-                            <div class="action-desc">From JSON file</div>
+                            <div class="action-title">Organizations</div>
+                            <div class="action-desc">Manage user groups</div>
                         </div>
                     </a>
                     <a href="#" class="action-card">
@@ -127,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAppStore, type RecentForm } from '@/stores';
+import { useAppStore, type RecentTable } from '@/stores';
 import { computed } from 'vue';
 
 const appStore = useAppStore();
@@ -138,14 +138,14 @@ const appStore = useAppStore();
 
 const stats = computed(() => appStore.stats);
 
-const recentForms = computed(() => {
-    return appStore.recentForms.map((f: RecentForm) => ({
-        id: f.id,
-        name: f.name,
-        appName: f.app_name || 'Unknown App',
+const recentTables = computed(() => {
+    return appStore.recentTables.map((t: RecentTable) => ({
+        id: t.id,
+        name: t.name,
+        appName: t.app_name || 'Unknown App',
         icon: 'doc_text_fill', // Default icon
-        status: f.version ? 'v' + f.version : 'Draft',
-        updatedAt: new Date(f.updated_at).toLocaleDateString(undefined, {
+        status: t.version ? 'v' + t.version : 'Draft',
+        updatedAt: new Date(t.updated_at).toLocaleDateString(undefined, {
             month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
         }),
     }));
@@ -153,9 +153,12 @@ const recentForms = computed(() => {
 
 
 const onPageAfterIn = () => {
-    // Fetch data only when page is fully visible
-    // Check if data is already loaded to avoid excessive refetches if desired,
-    // but for dashboard fresher data is usually better.
+    console.log('[DEBUG-PERF] [HomePage] page:afterin triggered. Fetching dashboard...');
+    appStore.fetchDashboard();
+};
+
+const onPageReinit = () => {
+    console.log('[HomePage] page:reinit triggered (cached page re-activated)');
     appStore.fetchDashboard();
 };
 

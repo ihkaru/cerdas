@@ -8,10 +8,12 @@ export const AssignmentQueryService = {
         params: any[]
     ) {
         // Prioritize keys from Response (User Input) -> Prelist (Static Data)
-        const responseExpr = `json_extract(responses.data, '$.${field}')`;
+        // Use latest_response alias to match the subquery pattern
+        const responseExpr = `json_extract(latest_response.data, '$.${field}')`;
         const prelistExpr = `json_extract(assignments.prelist_data, '$.${field}')`;
         const groupKeyExpr = `COALESCE(${responseExpr}, ${prelistExpr})`;
 
+        // Use subquery to get only latest response per assignment (prevents duplicates)
         const sql = `
             SELECT 
                 ${groupKeyExpr} as group_key, 
@@ -20,7 +22,15 @@ export const AssignmentQueryService = {
                 SUM(CASE WHEN assignments.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
                 SUM(CASE WHEN assignments.status = 'completed' THEN 1 ELSE 0 END) as completed
             FROM assignments
-            LEFT JOIN responses ON assignments.id = responses.assignment_id
+            LEFT JOIN (
+                SELECT assignment_id, data, updated_at
+                FROM responses r1
+                WHERE r1.updated_at = (
+                    SELECT MAX(r2.updated_at) 
+                    FROM responses r2 
+                    WHERE r2.assignment_id = r1.assignment_id
+                )
+            ) AS latest_response ON assignments.id = latest_response.assignment_id
             ${whereClause} 
             GROUP BY ${groupKeyExpr} 
             ORDER BY count DESC
@@ -44,28 +54,35 @@ export const AssignmentQueryService = {
         params: any[],
         limit = 1000
     ) {
-        // Alias assignments as 'a' context implicitly handled by standard columns
-        // BUT 'whereClause' comes without alias prefixes usually. 
-        // Simple Left Join works if column names distinctive or handled carefully.
-        // Safer to just join without alias prefix issues if whereclause is clean.
-        
-        // Better Strategy: Just use standard JOIN syntx without heavy alias rewrites if the where clause is compatible.
-        // Most filters are on 'form_id' or 'prelist_data' which are on assignments. 'status' is also on assignments.
-        // 'responses' has 'assignment_id', 'local_id', 'data'.
-        
-
-
+        // Use subquery to get ONLY the latest response per assignment
+        // This prevents duplicate rows when an assignment has multiple responses
         const sqlJoin = `
-            SELECT assignments.*, responses.data as response_data, responses.created_at as response_created_at, responses.updated_at as response_updated_at
+            SELECT assignments.*, 
+                   latest_response.data as response_data, 
+                   latest_response.created_at as response_created_at, 
+                   latest_response.updated_at as response_updated_at
             FROM assignments
-            LEFT JOIN responses ON assignments.id = responses.assignment_id
+            LEFT JOIN (
+                SELECT assignment_id, data, created_at, updated_at
+                FROM responses r1
+                WHERE r1.updated_at = (
+                    SELECT MAX(r2.updated_at) 
+                    FROM responses r2 
+                    WHERE r2.assignment_id = r1.assignment_id
+                )
+            ) AS latest_response ON assignments.id = latest_response.assignment_id
             ${whereClause}
             ORDER BY assignments.id DESC LIMIT ${limit}
         `;
         
-
-
+        console.log('[AssignmentQueryService] getAssignments SQL:', { whereClause, params, limit });
+        
         const assignRes = await db.query(sqlJoin, params);
+        
+        console.log('[AssignmentQueryService] getAssignments result:', { 
+            count: assignRes.values?.length || 0,
+            firstRow: assignRes.values?.[0] || null
+        });
         
         if (assignRes.values) {
             return assignRes.values.map(a => ({
@@ -81,8 +98,8 @@ export const AssignmentQueryService = {
         return [];
     },
 
-    async getTotalAssignments(db: SQLiteDBConnection, formId: string) {
-        const countRes = await db.query(`SELECT COUNT(*) as total FROM assignments WHERE form_id = ?`, [formId]);
+    async getTotalAssignments(db: SQLiteDBConnection, tableId: string) {
+        const countRes = await db.query(`SELECT COUNT(*) as total FROM assignments WHERE table_id = ?`, [tableId]);
         return countRes.values?.[0]?.total || 0;
     },
 
@@ -91,6 +108,7 @@ export const AssignmentQueryService = {
         whereClause: string,
         params: any[]
     ) {
+        // Use subquery to get only latest response per assignment (to match whereClause using latest_response.data)
         const sql = `
             SELECT 
                 COUNT(*) as all_count,
@@ -98,7 +116,15 @@ export const AssignmentQueryService = {
                 SUM(CASE WHEN assignments.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
                 SUM(CASE WHEN assignments.status = 'completed' THEN 1 ELSE 0 END) as completed
             FROM assignments
-            LEFT JOIN responses ON assignments.id = responses.assignment_id
+            LEFT JOIN (
+                SELECT assignment_id, data, updated_at
+                FROM responses r1
+                WHERE r1.updated_at = (
+                    SELECT MAX(r2.updated_at) 
+                    FROM responses r2 
+                    WHERE r2.assignment_id = r1.assignment_id
+                )
+            ) AS latest_response ON assignments.id = latest_response.assignment_id
             ${whereClause}
         `;
         const res = await db.query(sql, params);

@@ -12,6 +12,9 @@ use Illuminate\Support\Str;
 class Response extends Model {
     use HasFactory, SoftDeletes;
 
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'assignment_id',
         'parent_response_id',
@@ -32,6 +35,10 @@ class Response extends Model {
         parent::boot();
 
         static::creating(function ($response) {
+            // Auto-generate id if not provided
+            if (empty($response->id)) {
+                $response->id = (string) Str::uuid();
+            }
             // Auto-generate local_id if not provided
             if (empty($response->local_id)) {
                 $response->local_id = (string) Str::uuid();

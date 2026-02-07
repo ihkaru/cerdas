@@ -1,16 +1,18 @@
+
 import { SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { useLogger } from '../../../common/utils/logger';
 import { generateUUID } from '../../../common/utils/uuid';
-import type { Assignment, Form } from '../types';
+import type { Assignment, Table } from '../types';
 
 const log = useLogger('DashboardRepository');
 
 export const DashboardRepository = {
-    async getForms(db: SQLiteDBConnection): Promise<Form[]> {
-        const res = await db.query(`SELECT * FROM forms`);
+    async getTables(db: SQLiteDBConnection): Promise<Table[]> {
+        const res = await db.query(`SELECT * FROM tables`);
         return (res.values || []).map(row => ({
             ...row,
             layout: typeof row.layout === 'string' ? JSON.parse(row.layout) : row.layout,
+            fields: typeof row.fields === 'string' ? JSON.parse(row.fields) : row.fields,
             settings: typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings
         }));
     },
@@ -18,11 +20,19 @@ export const DashboardRepository = {
     async getAssignments(db: SQLiteDBConnection, limit: number = 50, offset: number = 0): Promise<Assignment[]> {
         log.debug(`getAssignments fetching limit=${limit} offset=${offset}...`);
         
-        // LEFT JOIN to get response data
+        // LEFT JOIN with subquery to get only LATEST response per assignment (prevents duplicates)
         const res = await db.query(
-            `SELECT a.*, r.data as response_data 
+            `SELECT a.*, latest_response.data as response_data 
              FROM assignments a 
-             LEFT JOIN responses r ON a.id = r.assignment_id 
+             LEFT JOIN (
+                SELECT assignment_id, data, updated_at
+                FROM responses r1
+                WHERE r1.updated_at = (
+                    SELECT MAX(r2.updated_at) 
+                    FROM responses r2 
+                    WHERE r2.assignment_id = r1.assignment_id
+                )
+             ) AS latest_response ON a.id = latest_response.assignment_id
              ORDER BY a.synced_at DESC 
              LIMIT ? OFFSET ?`, 
             [limit, offset]
@@ -67,10 +77,19 @@ export const DashboardRepository = {
     },
 
     async getAssignmentById(db: SQLiteDBConnection, id: string): Promise<Assignment | null> {
+        // Use subquery to get only latest response (prevents duplicates)
         const res = await db.query(
-            `SELECT a.*, r.data as response_data 
+            `SELECT a.*, latest_response.data as response_data 
              FROM assignments a 
-             LEFT JOIN responses r ON a.id = r.assignment_id 
+             LEFT JOIN (
+                SELECT assignment_id, data, updated_at
+                FROM responses r1
+                WHERE r1.updated_at = (
+                    SELECT MAX(r2.updated_at) 
+                    FROM responses r2 
+                    WHERE r2.assignment_id = r1.assignment_id
+                )
+             ) AS latest_response ON a.id = latest_response.assignment_id
              WHERE a.id = ?`, 
             [id]
         );
@@ -83,44 +102,44 @@ export const DashboardRepository = {
         };
     },
 
-    async getForm(db: SQLiteDBConnection, id: string): Promise<Form | null> {
-        const res = await db.query(`SELECT * FROM forms WHERE id = ?`, [id]);
+    async getTable(db: SQLiteDBConnection, id: string): Promise<Table | null> {
+        const res = await db.query(`SELECT * FROM tables WHERE id = ?`, [id]);
         if (!res.values || res.values.length === 0) return null;
         const row = res.values[0];
         
-        let parsedSchema = row.schema;
-        if (typeof parsedSchema === 'string') {
+        let parsedFields = row.fields;
+        if (typeof parsedFields === 'string') {
             try {
-                parsedSchema = JSON.parse(parsedSchema);
+                parsedFields = JSON.parse(parsedFields);
             } catch (e) {
-                log.error('Failed to parse schema JSON', e);
-                parsedSchema = { fields: [] };
+                log.error('Failed to parse fields JSON', e);
+                parsedFields = { fields: [] };
             }
         }
         
-        if (parsedSchema && typeof parsedSchema === 'object') {
-            if ('schema' in parsedSchema) {
-                let innerSchema = parsedSchema.schema;
-                if (typeof innerSchema === 'string') {
-                    try {
-                        innerSchema = JSON.parse(innerSchema);
-                    } catch (e) {
-                        innerSchema = { fields: [] };
-                    }
+        // Handle legacy schema structure if present
+        if (parsedFields && typeof parsedFields === 'object') {
+            if ('fields' in parsedFields && Array.isArray(parsedFields.fields)) {
+                // Correct structure
+            } else if ('schema' in parsedFields) {
+                // Nested schema object, extract
+                let inner = parsedFields.schema;
+                if (typeof inner === 'string') {
+                    try { inner = JSON.parse(inner); } catch(e) {}
                 }
-                parsedSchema = innerSchema;
+                parsedFields = inner;
             }
         }
         
-        if (!parsedSchema || typeof parsedSchema !== 'object' || !('fields' in parsedSchema)) {
-            parsedSchema = { fields: [] };
+        if (!parsedFields || typeof parsedFields !== 'object' || !('fields' in parsedFields)) {
+            parsedFields = { fields: [] };
         }
         
         return {
             ...row,
             layout: typeof row.layout === 'string' ? JSON.parse(row.layout) : row.layout,
             settings: typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings,
-            schema: parsedSchema
+            fields: parsedFields
         };
     },
 
@@ -168,12 +187,12 @@ export const DashboardRepository = {
         return res.values?.[0]?.count || 0;
     },
 
-    async createLocalAssignment(db: SQLiteDBConnection, formId: string): Promise<string> {
+    async createLocalAssignment(db: SQLiteDBConnection, tableId: string): Promise<string> {
         const id = generateUUID();
         const now = new Date().toISOString();
         await db.run(
-            `INSERT INTO assignments (id, form_id, status, created_at, updated_at) VALUES (?, ?, 'assigned', ?, ?)`,
-            [id, formId, now, now]
+            `INSERT INTO assignments (id, table_id, status, created_at, updated_at) VALUES (?, ?, 'assigned', ?, ?)`,
+            [id, tableId, now, now]
         );
         return id;
     }

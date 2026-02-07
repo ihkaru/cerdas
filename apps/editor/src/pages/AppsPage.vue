@@ -1,5 +1,5 @@
 <template>
-    <f7-page name="apps" class="apps-page" @page:afterin="onPageAfterIn">
+    <f7-page name="apps" class="apps-page" @page:afterin="onPageAfterIn" @page:reinit="onPageReinit">
         <!-- Page Header -->
         <div class="page-header">
             <div class="header-info">
@@ -13,8 +13,8 @@
         </div>
 
         <!-- Apps Grid -->
-        <div class="apps-grid">
-            <a v-for="app in apps" :key="app.id" :href="`/editor/${app.slug}`" class="app-card">
+        <div class="apps-grid" v-if="apps.length > 0">
+            <a v-for="app in apps" :key="app.id" :href="`/apps/${app.slug}`" class="app-card">
                 <div class="card-header">
                     <div class="app-avatar" :style="{ background: app.color }">
                         {{ app.name.substring(0, 2).toUpperCase() }}
@@ -55,6 +55,14 @@
             </div>
         </div>
 
+        <div v-else class="empty-state-container" style="text-align: center; padding: 40px; color: #64748b;">
+            <f7-icon f7="app_badge" size="48" style="margin-bottom: 16px; opacity: 0.5;"></f7-icon>
+            <h3>No Apps Found</h3>
+            <p>Create your first application to get started.</p>
+            <f7-button fill @click="showCreateDialog" style="max-width: 200px; margin: 20px auto;">Create
+                App</f7-button>
+        </div>
+
         <!-- Recent Activity Section -->
         <section class="activity-section">
             <div class="section-header">
@@ -72,19 +80,56 @@
                 </div>
             </div>
         </section>
+
+        <!-- Create App Popup - MUST be inside f7-page for proper lifecycle management -->
+        <f7-popup class="create-app-popup" v-model:opened="createPopupOpened" @popup:closed="resetCreateForm"
+            @popup:open="onPopupOpen">
+            <f7-page>
+                <f7-navbar title="Create New App">
+                    <f7-nav-right>
+                        <f7-link popup-close>Cancel</f7-link>
+                    </f7-nav-right>
+                </f7-navbar>
+                <f7-block>
+                    <p>Enter the details for your new application.</p>
+                    <f7-list strong-ios dividers-ios inset-ios>
+                        <f7-list-input label="App Name" type="text" placeholder="e.g. Housing Survey 2026"
+                            :value="newApp.name" @input="newApp.name = $event.target.value" clear-button />
+                        <f7-list-input type="textarea" label="Description" placeholder="Brief description of the app..."
+                            :value="newApp.description" @input="newApp.description = $event.target.value" />
+                        <f7-list-input label="Mode" type="select" :value="newApp.mode"
+                            @change="newApp.mode = $event.target.value" placeholder="Select mode">
+                            <option value="simple">Simple (Direct Membership)</option>
+                            <option value="complex">Complex (Organization Based)</option>
+                        </f7-list-input>
+                    </f7-list>
+                    <f7-button fill large @click="handleCreateApp" :loading="isCreating" :disabled="!newApp.name">
+                        Create App
+                    </f7-button>
+                </f7-block>
+            </f7-page>
+        </f7-popup>
     </f7-page>
 </template>
 
 <script setup lang="ts">
 import { useAppStore } from '@/stores';
 import { f7 } from 'framework7-vue';
-import { computed, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 const appStore = useAppStore();
 
 // ============================================================================
 // State
 // ============================================================================
+
+const createPopupOpened = ref(false);
+const isCreating = ref(false);
+const newApp = reactive({
+    name: '',
+    description: '',
+    mode: 'simple'
+});
 
 const apps = computed(() => {
     const colors = ['#2563eb', '#16a34a', '#ea580c', '#9333ea', '#ec4899'];
@@ -94,7 +139,7 @@ const apps = computed(() => {
         name: app.name,
         description: app.description,
         color: colors[app.id % colors.length] || colors[0],
-        formCount: app.forms_count || 0,
+        formCount: app.tables_count || 0,
         memberCount: app.memberships_count || 0,
     }));
 });
@@ -110,25 +155,71 @@ const recentActivity = ref([
 // ============================================================================
 
 function showCreateDialog() {
-    f7.dialog.prompt('Enter app name', 'New App', async (name) => {
-        if (name && name.trim()) {
-            try {
-                await appStore.createApp({ name: name.trim() });
-                f7.toast.show({ text: 'App created successfully', position: 'center', closeTimeout: 2000 });
-            } catch (e: any) {
-                f7.dialog.alert(e.message || 'Failed to create app');
-            }
-        }
-    });
+    createPopupOpened.value = true;
 }
+
+function resetCreateForm() {
+    newApp.name = '';
+    newApp.description = '';
+    isCreating.value = false;
+}
+
+function onPopupOpen() {
+    console.log('[AppsPage] popup:open EVENT FIRED, createPopupOpened:', createPopupOpened.value, new Error().stack);
+}
+
+async function handleCreateApp() {
+    if (!newApp.name || !newApp.name.trim()) return;
+
+    isCreating.value = true;
+    try {
+        await appStore.createApp({
+            name: newApp.name.trim(),
+            description: newApp.description?.trim(),
+            mode: newApp.mode
+        });
+        f7.toast.show({ text: 'App created successfully', position: 'center', closeTimeout: 2000 });
+        createPopupOpened.value = false;
+    } catch (e: any) {
+        f7.dialog.alert(e.message || 'Failed to create app');
+    } finally {
+        isCreating.value = false;
+    }
+}
+
+import { onMounted } from 'vue';
 
 function showAppMenu(app: any) {
     f7.toast.show({ text: `Menu for ${app.name}`, position: 'center', closeTimeout: 1500 });
 }
 
 function onPageAfterIn() {
+    console.log('[AppsPage] page:afterin triggered, current apps:', appStore.apps.length);
+    // Ensure popup is closed when entering page
+    createPopupOpened.value = false;
     appStore.fetchApps();
 }
+
+function onPageReinit() {
+    console.log('[AppsPage] page:reinit triggered, current apps:', appStore.apps.length);
+    // Ensure popup is closed when page is reinitialized
+    createPopupOpened.value = false;
+    appStore.fetchApps();
+}
+
+import { onBeforeUnmount } from 'vue';
+
+onMounted(() => {
+    console.log('[AppsPage] MOUNTED, current apps:', appStore.apps.length);
+    // Ensure popup is closed on mount
+    createPopupOpened.value = false;
+    appStore.fetchApps();
+});
+
+onBeforeUnmount(() => {
+    console.log('[AppsPage] UNMOUNTING, closing popup');
+    createPopupOpened.value = false;
+});
 </script>
 
 <style scoped>

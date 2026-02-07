@@ -38,6 +38,7 @@
 <script setup lang="ts">
 import { html } from '@codemirror/lang-html';
 import { javascript } from '@codemirror/lang-javascript';
+import { json } from '@codemirror/lang-json';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView } from '@codemirror/view';
 import {
@@ -100,8 +101,10 @@ const extensions = computed(() => {
     // Language support
     if (props.language === 'html') {
         exts.push(html());
+    } else if (props.language === 'json') {
+        exts.push(json());
     } else {
-        // Default to JS/JSON
+        // Default to JS
         exts.push(javascript());
     }
 
@@ -235,13 +238,28 @@ async function formatCode() {
     color: #2563eb;
 }
 
-/* Ensure codemirror takes full height */
+/* Ensure codemirror takes full height and constrained width */
 :deep(.cm-editor) {
     height: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 :deep(.cm-scroller) {
     font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+}
+
+/* Force content area to not push width */
+:deep(.cm-content) {
+    width: max-content;
+    min-width: 100%;
+}
+
+/* Constrain gutters */
+:deep(.cm-gutters) {
+    flex-shrink: 0;
 }
 
 .expanded-editor-container {

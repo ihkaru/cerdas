@@ -1,3 +1,4 @@
+
 import { useDatabase } from '@/common/composables/useDatabase';
 import { useLogger } from '@/common/utils/logger';
 import type { Ref } from 'vue';
@@ -6,7 +7,7 @@ import { DashboardRepository } from '../../repositories/DashboardRepository';
 import { AssignmentQueryService } from '../../services/AssignmentQueryService';
 
 export function useAssignmentQueries(
-    formId: string,
+    contextId: Ref<string> | string,
     state: {
         pendingUploadCount: Ref<number>;
         searchQuery: Ref<string>;
@@ -24,6 +25,9 @@ export function useAssignmentQueries(
 ) {
     const log = useLogger('UseAssignmentQueries');
     const db = useDatabase();
+    
+    // Resolve contextId helper
+    const getContextId = () => typeof contextId === 'string' ? contextId : contextId.value;
     
     const statusCounts = ref({ assigned: 0, in_progress: 0, completed: 0, all: 0 });
 
@@ -49,18 +53,18 @@ export function useAssignmentQueries(
             // Override WHERE if searching (Global Search)
             if (state.searchQuery.value) {
                 const q = `%${state.searchQuery.value}%`;
-                // Global Search Mode within the form
-                const baseConditions = [`form_id = ?`];
-                const baseParams = [formId];
+                // Global Search Mode within the table
+                const baseConditions = [`table_id = ?`];
+                const baseParams = [getContextId()];
 
-                // Search targeting merged data
-                const searchCond = `json_patch(COALESCE(assignments.prelist_data, '{}'), COALESCE(responses.data, '{}')) LIKE ?`;
+                // Search targeting merged data (uses latest_response subquery alias)
+                const searchCond = `json_patch(COALESCE(assignments.prelist_data, '{}'), COALESCE(latest_response.data, '{}')) LIKE ?`;
                 
-                // For Counts: form_id + search
+                // For Counts: table_id + search
                 countsWhere = `WHERE ${baseConditions.join(' AND ')} AND ${searchCond}`;
                 countsParams = [...baseParams, q];
 
-                // For Data: form_id + search + status
+                // For Data: table_id + search + status
                 const dataConditions = [...baseConditions, searchCond];
                 const dataParams = [...baseParams, q];
 
@@ -98,7 +102,7 @@ export function useAssignmentQueries(
                 state.assignments.value = await AssignmentQueryService.getAssignments(conn, where, params);
                 log.debug('[RefreshData] Assignments loaded:', state.assignments.value.length);
             }
-            state.totalAssignments.value = await AssignmentQueryService.getTotalAssignments(conn, formId);
+            state.totalAssignments.value = await AssignmentQueryService.getTotalAssignments(conn, getContextId());
         } catch (e) {
             console.error('Failed to refresh data', e);
         }

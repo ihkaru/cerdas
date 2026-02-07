@@ -1,4 +1,3 @@
 @echo off
-rem Wrapper to run the PowerShell script
-powershell -ExecutionPolicy Bypass -File "./scripts/detect-large-files.ps1"
-pause
+REM Wrapper for scripts/audit/detect-large-files.bat
+call "%~dp0scripts\audit\detect-large-files.bat"

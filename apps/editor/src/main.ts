@@ -47,6 +47,7 @@ import './editor-theme.css';
 
 // Import Pinia
 import { createPinia } from 'pinia';
+import GoogleSignInPlugin from 'vue3-google-signin';
 
 console.log('[5-MAIN] All imports completed');
 
@@ -60,7 +61,13 @@ console.log('[6-MAIN] Vue app created');
 // Initialize Pinia
 const pinia = createPinia();
 app.use(pinia);
-console.log('[7-MAIN] Pinia initialized');
+
+// Initialize Google Login
+app.use(GoogleSignInPlugin, {
+  clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID
+});
+
+console.log('[7-MAIN] Pinia and Google Login initialized');
 
 // Register all Framework7 Vue components
 registerComponents(app);

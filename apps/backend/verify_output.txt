@@ -1,0 +1,10 @@
+Bootstrapped Laravel.
+Created Org: Invitation Test Org (bb255f66-7ee0-4612-a427-3c8ec2cbf20e)
+Invite Response: {"success":true,"message":"Invitation sent"}
+SUCCESS: Invitation created for invite_test_1770479157@example.com
+Simulating Registration...
+Found 1 pending invitations.
+Processed invitation for Org: Invitation Test Org
+SUCCESS: User is now a member of the Org.
+SUCCESS: Invitation record deleted.
+Cleanup done.

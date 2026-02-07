@@ -3,7 +3,7 @@
         <!-- Desktop Header (Static) - Hidden on full-screen pages -->
         <header v-if="!isFullscreenPage" class="desktop-header">
             <div class="header-left">
-                <a href="#" @click.prevent="navigate('/')" class="logo">
+                <a href="javascript:void(0)" @click.prevent="navigate('/')" class="logo">
                     <f7-icon f7="cube_fill" color="blue" />
                     <span class="logo-text">Cerdas Editor</span>
                 </a>
@@ -16,7 +16,9 @@
                 </div>
             </div>
             <div class="header-right">
-                <f7-link icon-f7="bell" class="header-icon" />
+                <f7-link icon-f7="bell" class="header-icon" popover-open=".notification-popover">
+                    <span v-if="unreadCount > 0" class="badge color-red">{{ unreadCount }}</span>
+                </f7-link>
                 <f7-link icon-f7="gear" class="header-icon" />
 
                 <f7-link popover-open=".user-menu-popover" class="avatar-link">
@@ -26,6 +28,11 @@
                 </f7-link>
             </div>
         </header>
+
+        <!-- Notification Popover -->
+        <f7-popover class="notification-popover">
+            <NotificationList />
+        </f7-popover>
 
         <!-- User Menu Popover -->
         <f7-popover class="user-menu-popover">
@@ -41,20 +48,26 @@
         <!-- Sidebar (Static) - Hidden on full-screen pages -->
         <aside v-if="!isFullscreenPage" class="sidebar">
             <nav class="sidebar-nav">
-                <a href="#" @click.prevent="navigate('/')" class="nav-item" :class="{ active: currentPath === '/' }">
+                <a href="javascript:void(0)" @click.prevent="navigate('/')" class="nav-item"
+                    :class="{ active: currentPath === '/' }">
                     <f7-icon f7="house_fill" />
                     <span>Dashboard</span>
                 </a>
-                <a href="#" @click.prevent="navigate('/applications')" class="nav-item"
+                <a href="javascript:void(0)" @click.prevent="navigate('/applications')" class="nav-item"
                     :class="{ active: currentPath.startsWith('/applications') }">
                     <f7-icon f7="app_fill" />
                     <span>Apps</span>
+                </a>
+                <a href="javascript:void(0)" @click.prevent="navigate('/organizations')" class="nav-item"
+                    :class="{ active: currentPath.startsWith('/organizations') }">
+                    <f7-icon f7="building_2_fill" />
+                    <span>Organizations</span>
                 </a>
             </nav>
 
             <div class="sidebar-section">
                 <div class="section-title">Recent Apps</div>
-                <a v-for="app in recentApps" :key="app.id" href="#"
+                <a v-for="app in recentApps" :key="app.id" href="javascript:void(0)"
                     @click.prevent="navigate(`/editor/${app.slug || app.id}`)" class="nav-item sub-item">
                     <div class="app-dot" :style="{ background: app.color }"></div>
                     <span>{{ app.name }}</span>
@@ -62,7 +75,7 @@
             </div>
 
             <div class="sidebar-footer">
-                <a href="#" class="nav-item">
+                <a href="javascript:void(0)" class="nav-item">
                     <f7-icon f7="question_circle" />
                     <span>Help & Docs</span>
                 </a>
@@ -74,11 +87,16 @@
 <script setup lang="ts">
 import { useAppStore } from '@/stores';
 import { useAuthStore } from '@/stores/auth.store';
+import { useNotificationStore } from '@/stores/notification.store';
 import { f7, f7ready } from 'framework7-vue';
+import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
+import NotificationList from './NotificationList.vue';
 
 const authStore = useAuthStore();
 const appStore = useAppStore();
+const notificationStore = useNotificationStore();
+const { unreadCount } = storeToRefs(notificationStore);
 
 // ============================================================================
 // State
@@ -135,6 +153,20 @@ const handleLogout = () => {
 onMounted(() => {
     // Get initial path
     currentPath.value = window.location.pathname;
+    
+    // Fetch notifications
+    notificationStore.fetchNotifications();
+
+    // Listen to real-time notifications
+    if (authStore.user?.id) {
+        import('@/common/echo').then(({ default: echo }) => {
+            echo.private(`App.Models.User.${authStore.user.id}`)
+                .notification((notification: any) => {
+                    console.log('Realtime notification:', notification);
+                    notificationStore.handleRealtimeNotification(notification);
+                });
+        });
+    }
 
     // Listen to route changes
     // Use f7ready to ensure F7 is fully initialized
@@ -148,10 +180,13 @@ onMounted(() => {
 
 // Helper for navigation since this component is outside f7-view
 const navigate = (path: string) => {
+    console.log('[AppLayout] navigating to:', path);
     const f7Instance = f7 || (window as any).f7;
     if (f7Instance && f7Instance.view && f7Instance.view.main) {
+        console.log('[AppLayout] using router.navigate');
         f7Instance.view.main.router.navigate(path);
     } else {
+        console.log('[AppLayout] fallback to window.location');
         // Fallback
         window.location.href = path;
     }

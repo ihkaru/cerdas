@@ -13,11 +13,22 @@ use Illuminate\Support\Str;
 /**
  * App Model
  * 
- * An App is a container for multiple Forms.
+ * An App is a container for multiple Tables.
  * Previously known as "Project".
  */
 class App extends Model {
     use HasFactory, SoftDeletes;
+
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected static function booted() {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
 
     protected $fillable = [
         'name',
@@ -27,11 +38,13 @@ class App extends Model {
         'is_active',
         'mode',
         'navigation',
+        'settings',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'navigation' => 'array',
+        'settings' => 'array',
     ];
 
     // ========== Relationships ==========
@@ -60,8 +73,8 @@ class App extends Model {
             ->withTimestamps();
     }
 
-    public function forms(): HasMany {
-        return $this->hasMany(Form::class);
+    public function tables(): HasMany {
+        return $this->hasMany(Table::class);
     }
 
     public function views(): HasMany {
@@ -74,13 +87,7 @@ class App extends Model {
         return $query->where('is_active', true);
     }
 
-    protected static function booted() {
-        static::creating(function ($model) {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
+
 
     /**
      * Resolve the route binding for ID, Slug, or UUID.
@@ -88,14 +95,13 @@ class App extends Model {
     public function resolveRouteBinding($value, $field = null) {
         return $this->where('id', $value)
             ->orWhere('slug', $value)
-            ->orWhere('uuid', $value)
             ->firstOrFail();
     }
 
     // ========== Helpers ==========
 
-    public function getFormCount(): int {
-        return $this->forms()->count();
+    public function getTableCount(): int {
+        return $this->tables()->count();
     }
 
     public function getMemberCount(): int {

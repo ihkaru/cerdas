@@ -24,6 +24,7 @@ import { computed, onMounted, ref } from 'vue';
 import AppLayout from './components/AppLayout.vue';
 import routes from './routes';
 import { useAuthStore } from './stores/auth.store';
+import { initRefreshRateDetection } from './utils/refreshRate';
 
 console.log('[12-APP] App.vue script setup executing');
 
@@ -36,6 +37,7 @@ const currentPath = ref(window.location.pathname);
 const isFullscreenPage = computed(() => {
   return currentPath.value === '/login' ||
     currentPath.value.startsWith('/forms/') ||
+    currentPath.value.startsWith('/tables/') ||
     currentPath.value.startsWith('/editor/');
 });
 
@@ -83,18 +85,45 @@ onMounted(async () => {
     initialUrl.value = '/login';
   }
 
-  console.log('[18-APP] Auth check complete, setting isCheckingAuth to false');
+  console.log('[18-APP] Auth check complete. initialUrl set to:', initialUrl.value);
   isCheckingAuth.value = false;
+  console.log('[DEBUG-PERF] f7-app should render now with url:', initialUrl.value);
 
-  // Listen to route changes to update currentPath reactively
   // Listen to route changes to update currentPath reactively
   f7ready((f7) => {
     console.log('[19-APP] F7 Ready, attaching route listener');
-    f7.on('routeChange', (route: { path: string }) => {
+
+    // Start FPS monitoring when a route change begins
+    // Using 'routeChange' as the start event
+    f7.on('routeChange', (newRoute: { path: string }) => {
+      const fromPath = currentPath.value;
+      // Dynamically import to avoid bundling when not needed
+      import('./utils/refreshRate').then(({ startTransitionMonitor }) => {
+        startTransitionMonitor(`${fromPath} → ${newRoute.path}`);
+      });
+    });
+
+    // Stop monitoring when route change completes (after animation)
+    f7.on('routeChanged', (route: { path: string }) => {
       console.log('[APP-ROUTE] Route changed to:', route.path);
       currentPath.value = route.path;
+
+      // Stop FPS monitor after a small delay to capture the full transition
+      setTimeout(() => {
+        import('./utils/refreshRate').then(({ stopTransitionMonitor }) => {
+          stopTransitionMonitor();
+        });
+      }, 50); // 50ms after routeChanged to capture tail of animation
     });
   });
+
+  // Initialize refresh rate detection for adaptive animations
+  try {
+    const refreshInfo = await initRefreshRateDetection();
+    console.log('[20-APP] Refresh rate detected:', refreshInfo);
+  } catch (e) {
+    console.warn('[20-APP] Could not detect refresh rate:', e);
+  }
 });
 
 // Framework7 parameters - Using MD theme with desktop optimizations
@@ -220,6 +249,8 @@ a {
   right: 0 !important;
   bottom: 0 !important;
   width: auto !important;
+  z-index: 100;
+  overflow-y: auto;
 }
 
 /* ============================================================================
@@ -244,35 +275,87 @@ a {
 }
 
 /* ============================================================================
-   Page Transition - Slide Up Animation
+   Page Transition - GPU Accelerated, Adaptive Refresh Rate
    ============================================================================ */
 
-/* Ensure pages stack properly during transition */
-.main-view-with-sidebar .page {
-  background: #f8fafc;
+/*
+ * BEST PRACTICES IMPLEMENTED:
+ * 1. Only animate transform & opacity (GPU-accelerated, no layout thrashing)
+ * 2. Use CSS custom properties for adaptive animation duration
+ * 3. Respect prefers-reduced-motion for accessibility
+ * 4. Duration adapts to detected refresh rate via --page-transition-duration
+ */
+
+:root {
+  /* Default values - will be overridden by refreshRate.ts */
+  --page-transition-duration: 200ms;
+  --page-transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Material Design standard */
 }
 
-/* Slide-up + fade animation */
-@keyframes slideUpFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --page-transition-duration: 0ms;
   }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
-/* Apply slide-up animation to new page */
-.main-view-with-sidebar .page-current {
-  animation: slideUpFadeIn 0.25s ease-out forwards;
+/* Base page styling - all pages absolutely positioned with GPU hints */
+.framework7-root .view .page {
+  background: #f8fafc !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  /* GPU acceleration hint */
+  will-change: transform, opacity;
+  /* Smooth transitions using only GPU-accelerated properties */
+  transition:
+    transform var(--page-transition-duration) var(--page-transition-easing),
+    opacity var(--page-transition-duration) var(--page-transition-easing);
 }
 
-/* Hide previous page to prevent overlap */
-.main-view-with-sidebar .page-previous {
-  display: none !important;
+/* Current page - visible, on top, at final position */
+.framework7-root .view .page-current {
+  z-index: 10 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+  transform: translateY(0) !important;
+}
+
+/* Previous page - slide up and fade out */
+.framework7-root .view .page-previous {
+  z-index: 1 !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(-20px) !important;
+}
+
+/* Next page (entering from below) - start below, invisible */
+.framework7-root .view .page-next {
+  z-index: 5 !important;
+  visibility: visible !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(20px) !important;
+}
+
+/* Master/detail pages */
+.framework7-root .view .page-master,
+.framework7-root .view .page-master-detail {
+  z-index: 5 !important;
+}
+
+/* Remove will-change after animation to free GPU memory */
+.framework7-root .view .page-previous,
+.framework7-root .view .page-next {
+  will-change: auto;
 }
 
 /* ============================================================================

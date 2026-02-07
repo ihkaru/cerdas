@@ -1,0 +1,32 @@
+
+   INFO  Seeding database.  
+
+  Database\Seeders\UserSeeder ........................... RUNNING  
+  Database\Seeders\UserSeeder ..................... 1,401 ms DONE  
+
+  Database\Seeders\AppSeeder ............................ RUNNING  
+  Database\Seeders\AppSeeder ......................... 54 ms DONE  
+
+  Database\Seeders\TableSeeder .......................... RUNNING  
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[HY000]: General error: 1364 Field 'id' doesn't have a default value (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: cerdas, SQL: insert into `table_versions` (`table_id`, `version`, `fields`, `published_at`, `updated_at`, `created_at`) values (48cb4c54-8078-48a3-bcf2-246c6f742cdb, 1, [{"name":"section_info","type":"separator","label":"Informasi Dasar"},{"name":"nik","type":"text","label":"NIK Kepala Keluarga","required":true},{"name":"name","type":"text","label":"Nama Kepala Keluarga","required":true},{"name":"address","type":"text","label":"Alamat Lengkap","required":true},{"name":"section_kondisi","type":"separator","label":"Kondisi Rumah"},{"name":"building_area","type":"number","label":"Luas Bangunan (m2)","required":true},{"name":"floor_type","type":"select","label":"Jenis Lantai","options":["Keramik","Semen","Tanah","Kayu"],"required":true},{"name":"wall_type","type":"select","label":"Jenis Dinding","options":["Tembok","Kayu","Bambu"],"required":true},{"name":"roof_type","type":"select","label":"Jenis Atap","options":["Genteng","Seng","Asbes","Daun"],"required":true},{"name":"photo_front","type":"image","label":"Foto Depan Rumah","required":true},{"name":"gps_location","type":"gps","label":"Lokasi GPS","required":true}], 2026-02-07 08:56:34, 2026-02-07 08:56:34, 2026-02-07 08:56:34))
+
+  at vendor\laravel\framework\src\Illuminate\Database\Connection.php:838
+    834▕             $exceptionType = $this->isUniqueConstraintError($e)
+    835▕                 ? UniqueConstraintViolationException::class
+    836▕                 : QueryException::class;
+    837▕ 
+  ➜ 838▕             throw new $exceptionType(
+    839▕                 $this->getNameWithReadWriteType(),
+    840▕                 $query,
+    841▕                 $this->prepareBindings($bindings),
+    842▕                 $e,
+
+  1   vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:53
+      PDOException::("SQLSTATE[HY000]: General error: 1364 Field 'id' doesn't have a default value")
+
+  2   vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:53
+      PDOStatement::execute()
+

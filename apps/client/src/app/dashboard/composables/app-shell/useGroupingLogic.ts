@@ -1,3 +1,4 @@
+
 import { useLogger } from '@/common/utils/logger';
 import type { Ref } from 'vue';
 import { computed, ref } from 'vue';
@@ -8,10 +9,13 @@ export function useGroupingLogic(
     layout: Ref<any>,
     schemaData: Ref<any>,
     searchQuery: Ref<string>,
-    formId: string,
+    contextId: Ref<string> | string, // Renamed from formId
     onGroupingChanged: () => void 
 ) {
     const log = useLogger('UseGroupingLogic');
+    
+    // Resolve contextId to string value helper
+    const getContextId = () => typeof contextId === 'string' ? contextId : contextId.value;
 
     // Grouping State
     const groupPath = ref<string[]>([]);
@@ -73,16 +77,27 @@ export function useGroupingLogic(
 
     // Helper for Query Construction (Drill-down)
     const buildGroupWhere = (statusFilterValue: string) => {
-        let conditions: string[] = [`form_id = ?`];
-        let params: any[] = [formId];
+        let conditions: string[] = [`table_id = ?`];
+        let params: any[] = [getContextId()];
 
         // Add group path filters
+        // IMPORTANT: Must match AssignmentQueryService.getGroupedAssignments COALESCE logic
+        // The GROUP BY uses COALESCE(responses.data, assignments.prelist_data)
+        // So drill-down WHERE must also check BOTH sources
         if (groupByConfig.value?.levels) {
             groupPath.value.forEach((val, idx) => {
                 const field = groupByConfig.value.levels[idx]?.field;
                 if (field) {
-                    conditions.push(`json_extract(prelist_data, '$.${field}') = ?`);
-                    params.push(val);
+                    // Build COALESCE expression matching AssignmentQueryService (uses latest_response subquery alias)
+                    const coalescedExpr = `COALESCE(json_extract(latest_response.data, '$.${field}'), json_extract(assignments.prelist_data, '$.${field}'))`;
+                    
+                    if (val === '' || val === null || val === 'null') {
+                        // Handle Empty/Null Group - check the coalesced value
+                        conditions.push(`(${coalescedExpr} IS NULL OR ${coalescedExpr} = '' OR ${coalescedExpr} = 'null')`);
+                    } else {
+                        conditions.push(`${coalescedExpr} = ?`);
+                        params.push(val);
+                    }
                 }
             });
         }
@@ -94,6 +109,15 @@ export function useGroupingLogic(
         }
 
         const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+        
+        log.debug('[buildGroupWhere] Query:', { 
+            tableId: getContextId(), 
+            statusFilter: statusFilterValue,
+            groupPath: groupPath.value,
+            where, 
+            params 
+        });
+        
         return { where, params };
     };
 

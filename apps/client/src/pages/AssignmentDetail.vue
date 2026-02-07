@@ -290,38 +290,78 @@ const loadData = async () => {
         assignment.value = fetchedAssign;
         log.debug('Assignment loaded', {
             id: fetchedAssign.id,
-            form_id: fetchedAssign.form_id,
+            table_id: fetchedAssign.table_id,
             status: fetchedAssign.status
         });
 
         // 2. Get Schema (Support Preview Override)
-        const override = (window as any).__SCHEMA_OVERRIDE?.[assignment.value.form_id];
+        log.debug('Schema loading for table:', {
+            table_id: assignment.value.table_id,
+            hasOverride: !!(window as any).__SCHEMA_OVERRIDE?.[assignment.value.table_id]
+        });
+        const override = (window as any).__SCHEMA_OVERRIDE?.[assignment.value.table_id];
         if (override) {
             log.info('[PreviewMode] Using Schema Override for Form Detail');
-            schema.value = override.schema;
-        } else if (assignment.value.form_id) {
-            const fetchedSchema = await DashboardRepository.getForm(conn, assignment.value.form_id);
-            log.debug('Schema from DB', {
-                hasSchema: !!fetchedSchema,
-                hasFields: !!(fetchedSchema?.schema as any)?.fields,
-                fieldCount: (fetchedSchema?.schema as any)?.fields?.length || 0
+            log.debug('[PreviewMode] Override structure:', {
+                hasSchema: !!override.schema,
+                schemaKeys: override.schema ? Object.keys(override.schema) : [],
+                fieldsType: typeof override.schema?.fields,
+                fieldsIsArray: Array.isArray(override.schema?.fields),
+                fieldsLength: Array.isArray(override.schema?.fields) ? override.schema.fields.length : 'N/A',
+                firstField: override.schema?.fields?.[0]
             });
 
-            if (!fetchedSchema) {
-                throw new Error('Form Schema not found locally. Please Sync.');
+            // Normalize: Ensure fields is always an array
+            let overrideFields = override.schema?.fields;
+            if (overrideFields && !Array.isArray(overrideFields)) {
+                // Convert object to array if needed (shouldn't happen but safety check)
+                log.warn('[PreviewMode] Fields is not array, attempting conversion:', typeof overrideFields);
+                overrideFields = Object.values(overrideFields);
             }
 
-            // Repository already handles parsing and nested extraction
-            // Just ensure we have a valid schema object with fields
-            const schemaObj = fetchedSchema.schema as any;
-            if (!schemaObj || !schemaObj.fields || schemaObj.fields.length === 0) {
-                log.error('Invalid schema structure or empty fields', schemaObj);
-                throw new Error('Form Schema is empty. Please re-sync.');
+            schema.value = {
+                ...override.schema,
+                fields: overrideFields || []
+            };
+
+            log.debug('[PreviewMode] Schema loaded:', {
+                hasFields: !!schema.value?.fields,
+                fieldsIsArray: Array.isArray(schema.value?.fields),
+                fieldCount: schema.value?.fields?.length || 0
+            });
+        } else if (assignment.value.table_id) {
+            const fetchedTable = await DashboardRepository.getTable(conn, assignment.value.table_id);
+            log.debug('Schema from DB', {
+                hasTable: !!fetchedTable,
+                hasFields: !!(fetchedTable?.fields as any)?.length,
+                fieldCount: (fetchedTable?.fields as any)?.length || 0
+            });
+
+            if (!fetchedTable) {
+                throw new Error('Table Schema not found locally. Please Sync.');
             }
 
-            schema.value = schemaObj as unknown as AppSchema;
+            // Repository already handles parsing
+            const fieldsObj = fetchedTable.fields;
+            if (!fieldsObj || (Array.isArray(fieldsObj) && fieldsObj.length === 0)) {
+                log.error('Invalid schema structure or empty fields', fieldsObj);
+                // Fallback for nested 'schema' key from legacy
+                if ((fetchedTable as any).schema?.fields) {
+                    schema.value = (fetchedTable as any).schema;
+                } else {
+                    throw new Error('Table Schema is empty. Please re-sync.');
+                }
+            } else {
+                // If fields is just an array, wrap it
+                if (Array.isArray(fieldsObj)) {
+                    schema.value = { fields: fieldsObj } as unknown as AppSchema;
+                } else {
+                    schema.value = fieldsObj as unknown as AppSchema;
+                }
+            }
+
         } else {
-            throw new Error('Assignment has no form ID');
+            throw new Error('Assignment has no table ID');
         }
 
         // 3. Merge prelist_data (pre-fill) with existing response
@@ -426,22 +466,30 @@ const onPageBeforeOut = () => {
 
 // Live Preview: Listen for schema updates from Editor
 const handleSchemaOverrideUpdate = (event: CustomEvent) => {
-    const { formId, schema: newSchema } = event.detail;
+    const { tableId, formId, fields, layout } = event.detail;
+    const targetId = tableId || formId;
 
     // Check if we're in preview mode (iframe)
     const isInPreviewMode = window.self !== window.top;
 
     log.debug('[LivePreview] Received schema update event', {
-        receivedFormId: formId,
-        currentFormId: assignment.value?.form_id,
+        receivedId: targetId,
+        currentTableId: assignment.value?.table_id,
         isInPreviewMode,
-        hasNewSchema: !!newSchema
+        hasFields: !!fields,
+        fieldsCount: Array.isArray(fields) ? fields.length : 0
     });
 
-    // In preview mode (iframe), always accept schema updates since we're showing one form
-    if (isInPreviewMode && newSchema && assignment.value) {
+    // In preview mode (iframe), accept schema updates for live preview
+    if (isInPreviewMode && fields && assignment.value) {
+        // Construct schema from fields array
+        const newSchema = {
+            ...schema.value,
+            fields: Array.isArray(fields) ? fields : []
+        };
+
         log.info('[LivePreview] Schema updated in preview mode, re-rendering form');
-        schema.value = newSchema;
+        schema.value = newSchema as any;
     }
 };
 

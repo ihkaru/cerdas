@@ -26,6 +26,22 @@ class AuthController extends Controller {
             'password' => Hash::make($validated['password']),
         ]);
 
+        // Process Organization Invitations
+        $invitations = \App\Models\OrganizationInvitation::where('email', $user->email)->get();
+        foreach ($invitations as $invitation) {
+            $invitation->organization->members()->syncWithoutDetaching([
+                $user->id => ['role' => $invitation->role]
+            ]);
+
+            // Notify User
+            $user->notify(new \App\Notifications\OrganizationInviteNotification(
+                $invitation->organization->name,
+                $invitation->creator->name ?? 'System'
+            ));
+
+            $invitation->delete();
+        }
+
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([

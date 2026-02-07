@@ -8,17 +8,20 @@
     <div class="input-wrapper image-wrapper">
       <!-- Image Preview State -->
       <div v-if="value" class="img-preview-container" @click="showFullImage">
-        <img :src="imageUrl" class="img-preview" />
+        <img :src="displayUrl" class="img-preview" />
 
         <!-- Overlay Controls -->
         <div class="img-controls" v-if="!field.readonly">
-          <f7-button small fill color="white" text-color="black" class="btn-control" @click.stop="takePhoto">
+          <f7-button small fill color="white" text-color="black" class="btn-control" @click.stop="captureImage">
             <f7-icon f7="camera_fill" size="16" class="margin-right-half"></f7-icon> Retake
           </f7-button>
-          <f7-button small fill color="red" class="btn-control icon-only" @click.stop="$emit('update:value', null)">
+          <f7-button small fill color="red" class="btn-control icon-only" @click.stop="clearImage">
             <f7-icon f7="trash" size="16"></f7-icon>
           </f7-button>
         </div>
+        
+        <!-- Size Indicator -->
+        <div v-if="imageSize" class="img-size-badge">{{ imageSize }}</div>
       </div>
 
       <!-- Empty State -->
@@ -26,16 +29,16 @@
 
         <!-- Interactive Actions -->
         <div v-if="!field.readonly" class="placeholder-actions">
-          <div class="action-btn camera-btn" @click.stop="takePhoto">
+          <div class="action-btn camera-btn" @click.stop="captureImage">
             <f7-icon f7="camera_fill" size="24" color="blue"></f7-icon>
             <span>Camera</span>
           </div>
 
           <div class="action-divider"></div>
 
-          <div class="action-btn upload-btn" @click.stop="triggerUpload">
+          <div class="action-btn upload-btn" @click.stop="selectFromGallery">
             <f7-icon f7="photo_fill" size="24" color="purple"></f7-icon>
-            <span>Upload</span>
+            <span>Gallery</span>
           </div>
         </div>
 
@@ -47,14 +50,33 @@
 
       </div>
 
+      <!-- Processing Indicator -->
+      <div v-if="processing" class="processing-overlay">
+        <f7-preloader></f7-preloader>
+        <span>Processing...</span>
+      </div>
+
       <div v-if="error" class="field-error">{{ error }}</div>
     </div>
 
-    <!-- Hidden File Input for Fallback -->
-    <input type="file" accept="image/*" ref="fileInput" style="display: none" @change="handleFileUpload" />
-
-    <!-- Using Framework7 Photo Browser logic for zoom (simplified here via simple binding, 
-         in real app f7-photo-browser is better but complex to setup dynamically per field) -->
+    <!-- Hidden File Inputs -->
+    <!-- Camera input for mobile browsers -->
+    <input 
+      type="file" 
+      accept="image/*" 
+      capture="environment" 
+      ref="cameraInput" 
+      style="display: none" 
+      @change="handleFileCapture" 
+    />
+    <!-- Gallery input (no capture) -->
+    <input 
+      type="file" 
+      accept="image/*" 
+      ref="galleryInput" 
+      style="display: none" 
+      @change="handleFileCapture" 
+    />
   </div>
 </template>
 
@@ -79,15 +101,14 @@
   overflow: hidden;
   border: 1px solid #e0e0e0;
   background: #f8f9fa;
+  position: relative;
 }
 
 .img-preview-container {
   position: relative;
   width: 100%;
   height: 220px;
-  /* Fixed height for consistency */
   background-color: #222;
-  /* Dark bg for images */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -99,7 +120,6 @@
   width: auto;
   height: auto;
   object-fit: contain;
-  /* Ensure full image is visible */
 }
 
 .img-controls {
@@ -112,6 +132,17 @@
   padding: 6px;
   border-radius: 20px;
   backdrop-filter: blur(4px);
+}
+
+.img-size-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
 .btn-control {
@@ -138,12 +169,10 @@
   justify-content: center;
   align-items: center;
   cursor: default;
-  /* Changed from pointer as inner buttons assume role */
   transition: background 0.2s;
   border: 2px dashed #d1d5db;
 }
 
-/* Actions Container */
 .placeholder-actions {
   display: flex;
   align-items: center;
@@ -184,11 +213,6 @@
   background-color: #ddd;
 }
 
-.img-placeholder:active {
-  /* Remove global active state on placeholder */
-  background: #f0f2f5;
-}
-
 .img-placeholder.is-readonly {
   background: #f5f5f5;
   cursor: default;
@@ -199,6 +223,26 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.processing-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.processing-overlay span {
+  font-size: 12px;
+  color: #666;
 }
 
 .field-error {
@@ -214,6 +258,17 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { f7 } from 'framework7-vue';
 import { computed, ref } from 'vue';
 import type { FieldDefinition } from '../../types/schema';
+import {
+    compressImage,
+    estimateDataUrlSize,
+    formatBytes,
+    isCapacitorNative,
+    validateImageFile
+} from '../../utils/imageUtils';
+
+// ============================================================================
+// Props & Emits
+// ============================================================================
 
 const props = defineProps<{
   field: FieldDefinition;
@@ -223,114 +278,194 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['update:value']);
-const fileInput = ref<HTMLInputElement | null>(null);
 
-const imageUrl = computed(() => {
+// ============================================================================
+// Refs
+// ============================================================================
+
+const cameraInput = ref<HTMLInputElement | null>(null);
+const galleryInput = ref<HTMLInputElement | null>(null);
+const processing = ref(false);
+
+// ============================================================================
+// Computed
+// ============================================================================
+
+const displayUrl = computed(() => {
   if (!props.value) return null;
+  
   // If it's already a full URL or data URI, return as is
-  if (props.value.startsWith('data:image/') || props.value.startsWith('http') || props.value.startsWith('blob:')) {
+  if (props.value.startsWith('data:') || props.value.startsWith('http') || props.value.startsWith('blob:')) {
     return props.value;
   }
+  
   // Try to resolve via context if provided (e.g. prepend API base URL)
   if (props.context?.resolveAssetUrl) {
     return props.context.resolveAssetUrl(props.value);
   }
+  
   return props.value;
 });
 
-const triggerUpload = () => {
-  fileInput.value?.click();
+const imageSize = computed(() => {
+  if (!props.value || !props.value.startsWith('data:')) return null;
+  const bytes = estimateDataUrlSize(props.value);
+  return formatBytes(bytes);
+});
+
+// ============================================================================
+// Compression Settings (can be overridden via field config)
+// ============================================================================
+
+const getCompressionOptions = () => ({
+  maxWidth: props.field.config?.maxWidth || 1200,
+  maxHeight: props.field.config?.maxHeight || 1200,
+  quality: props.field.config?.quality || 0.7,
+  mimeType: 'image/jpeg' as const
+});
+
+// ============================================================================
+// Image Capture Methods
+// ============================================================================
+
+/**
+ * Main camera capture - routes to Capacitor or PWA method
+ */
+const captureImage = async () => {
+  if (props.field.readonly) return;
+  
+  if (isCapacitorNative()) {
+    await captureWithCapacitor(CameraSource.Camera);
+  } else {
+    // PWA: Use file input with capture attribute
+    cameraInput.value?.click();
+  }
+};
+
+/**
+ * Gallery selection - routes to Capacitor or PWA method
+ */
+const selectFromGallery = async () => {
+  if (props.field.readonly) return;
+  
+  if (isCapacitorNative()) {
+    await captureWithCapacitor(CameraSource.Photos);
+  } else {
+    // PWA: Use file input without capture
+    galleryInput.value?.click();
+  }
+};
+
+/**
+ * Capacitor Camera capture
+ */
+const captureWithCapacitor = async (source: CameraSource) => {
+  processing.value = true;
+  
+  try {
+    const image = await Camera.getPhoto({
+      quality: 80, // Higher initial quality, we'll compress after
+      allowEditing: false,
+      resultType: CameraResultType.DataUrl,
+      source,
+      correctOrientation: true,
+      // Capacitor handles resizing better on device
+      width: 1600,
+      height: 1600
+    });
+    
+    if (image.dataUrl) {
+      // Compress to reduce storage size
+      const compressed = await compressImage(image.dataUrl, getCompressionOptions());
+      emit('update:value', compressed);
+    }
+  } catch (e: any) {
+    handleCameraError(e);
+  } finally {
+    processing.value = false;
+  }
+};
+
+/**
+ * Handle file input change (PWA path)
+ */
+const handleFileCapture = async (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  
+  // Reset input for re-selection of same file
+  (event.target as HTMLInputElement).value = '';
+  
+  // Validate
+  const validation = validateImageFile(file);
+  if (!validation.valid) {
+    f7.dialog.alert(validation.error!, 'Error');
+    return;
+  }
+  
+  processing.value = true;
+  
+  try {
+    // Compress image
+    const compressed = await compressImage(file, getCompressionOptions());
+    emit('update:value', compressed);
+    
+    console.log('[ImageField] Compressed image:', {
+      original: formatBytes(file.size),
+      compressed: formatBytes(estimateDataUrlSize(compressed))
+    });
+  } catch (e: any) {
+    console.error('[ImageField] Compression failed:', e);
+    f7.toast.show({ text: 'Failed to process image', closeTimeout: 2000 });
+  } finally {
+    processing.value = false;
+  }
+};
+
+/**
+ * Handle camera errors with appropriate fallbacks
+ */
+const handleCameraError = (e: any) => {
+  // User cancelled - silently ignore
+  if (e.message?.includes('cancelled') || e.message?.includes('User cancelled')) {
+    return;
+  }
+  
+  console.warn('[ImageField] Camera error:', e);
+  
+  // Permission or availability issues - fallback to file picker
+  if (
+    e.message?.includes('Permission') || 
+    e.message?.includes('not allowed') || 
+    e.message?.includes('Not implemented') || 
+    e.message?.includes('Unavailable')
+  ) {
+    f7.toast.show({ text: 'Camera unavailable, using file picker...', closeTimeout: 2000 });
+    galleryInput.value?.click();
+    return;
+  }
+  
+  f7.toast.show({ text: 'Failed to capture image', closeTimeout: 2000 });
+};
+
+// ============================================================================
+// Actions
+// ============================================================================
+
+const clearImage = () => {
+  emit('update:value', null);
 };
 
 const showFullImage = () => {
-  // ... (keep existing) ...
-  if (!imageUrl.value) return;
+  if (!displayUrl.value) return;
 
   const pb = f7.photoBrowser.create({
-    photos: [imageUrl.value],
+    photos: [displayUrl.value],
     theme: 'dark',
     type: 'popup',
     toolbar: false,
     navbar: true
   });
   pb.open();
-};
-
-const handleFileUpload = (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0];
-  if (file) {
-    // Validate size (e.g. max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      f7.dialog.alert('Image too large (Max 5MB)', 'Error');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      // Compress logic could be added here if needed, for now raw base64
-      emit('update:value', e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  }
-};
-
-const showSourceOptions = () => {
-  if (props.field.readonly) return;
-
-  const buttons = [
-    {
-      text: 'Ambil Foto',
-      icon: '<i class="icon f7-icons">camera</i>',
-      onClick: () => takePhoto()
-    },
-    {
-      text: 'Pilih File',
-      icon: '<i class="icon f7-icons">photo</i>',
-      onClick: () => fileInput.value?.click()
-    },
-    {
-      text: 'Batal',
-      color: 'red',
-      close: true
-    }
-  ];
-
-  f7.actions.create({ buttons }).open();
-};
-
-const takePhoto = async () => {
-  try {
-    const image = await Camera.getPhoto({
-      // PERFORMANCE: Reduced quality to prevent main thread overload
-      // Base64 strings at 90 quality can be huge (2-5MB) and freeze SQLite writes
-      quality: 60,
-      // Limit dimensions to reduce Base64 size further
-      width: 800,
-      height: 800,
-      allowEditing: false,
-      resultType: CameraResultType.DataUrl,
-      source: CameraSource.Camera,
-      // Ensure JPEG for consistent compression
-      correctOrientation: true,
-    });
-    emit('update:value', image.dataUrl);
-  } catch (e: any) {
-    // Ignore if user cancelled
-    if (e.message?.includes('cancelled') || e.message?.includes('User cancelled')) {
-      return;
-    }
-
-    console.warn('[ImageField] Camera failed, trying fallback:', e);
-
-    // Fallback for Permission/Web errors
-    if (e.message?.includes('Permission') || e.message?.includes('not allowed') || e.message?.includes('Not implemented') || e.message?.includes('Unavailable')) {
-      f7.toast.show({ text: 'Camera unavailable, trying file upload...', closeTimeout: 2000 });
-      fileInput.value?.click();
-      return;
-    }
-
-    console.error(e);
-    f7.toast.show({ text: 'Failed to take photo', closeTimeout: 2000 });
-  }
 };
 </script>

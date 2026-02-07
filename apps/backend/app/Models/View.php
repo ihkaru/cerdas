@@ -2,17 +2,28 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class View extends Model {
-    use HasFactory, HasUuids;
+    use HasFactory;
+
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected static function booted() {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
 
     protected $fillable = [
         'app_id',
-        'form_id',
+        'table_id', // Renamed from form_id
         'name',
         'type',
         'description',
@@ -27,7 +38,7 @@ class View extends Model {
         return $this->belongsTo(App::class);
     }
 
-    public function form(): BelongsTo {
-        return $this->belongsTo(Form::class);
+    public function table(): BelongsTo {
+        return $this->belongsTo(Table::class);
     }
 }

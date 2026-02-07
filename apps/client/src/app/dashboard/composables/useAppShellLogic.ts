@@ -1,6 +1,7 @@
+
 import { useAuthStore } from '@/common/stores/authStore';
 import { useLogger } from '@/common/utils/logger';
-import { computed, onMounted, onUnmounted, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 // Composables
 import { useAppContext } from './app-shell/useAppContext';
@@ -8,12 +9,12 @@ import { useAppMetadata } from './app-shell/useAppMetadata';
 import { useAppShellState } from './app-shell/useAppShellState';
 import { useAssignmentQueries } from './app-shell/useAssignmentQueries';
 import { useGroupingLogic } from './app-shell/useGroupingLogic';
-import { useSchemaLoader } from './app-shell/useSchemaLoader';
 import { useSearchAndFilter } from './app-shell/useSearchAndFilter';
+import { useTableLoader } from './app-shell/useTableLoader'; // Renamed import
 import { useAppShellActions } from './useAppShellActions';
 import { useAppShellSync } from './useAppShellSync';
 
-export function useAppShellLogic(formId: string) {
+export function useAppShellLogic(contextId: string) { // Renamed formId to contextId
     const authStore = useAuthStore();
     const log = useLogger('UseAppShellLogic');
 
@@ -26,18 +27,21 @@ export function useAppShellLogic(formId: string) {
     // Forward Declaration for Dependencies
     let refreshDataFn = async () => {};
 
+    // 4. Schema Loader
+    // We need a reactive Table ID because contextId might be an AppID
+    const resolvedTableId = ref(contextId);
+    
     // 3. Metadata (Depends on refreshDataFn logic)
     // We pass a wrapper that calls the real function later
     const metadata = useAppMetadata(
-        formId,
+        contextId,
         () => refreshDataFn(),
         context.fetchAppContext,
         state.currentUserRole,
         authStore
     );
 
-    // 4. Schema Loader
-    const schemaLoader = useSchemaLoader(formId, state.schemaData, state.layout);
+    const schemaLoader = useTableLoader(contextId, state.schemaData, state.layout);
 
     // 5. Grouping Logic
     const grouping = useGroupingLogic(
@@ -46,13 +50,13 @@ export function useAppShellLogic(formId: string) {
         state.layout,
         state.schemaData,
         state.searchQuery,
-        formId,
+        resolvedTableId,
         () => refreshDataFn()
     );
 
     // 6. Assignment Queries (The source of truth for refreshData)
     const queries = useAssignmentQueries(
-        formId,
+        resolvedTableId,
         {
             pendingUploadCount: state.pendingUploadCount,
             searchQuery: state.searchQuery,
@@ -101,24 +105,48 @@ export function useAppShellLogic(formId: string) {
     const loadApp = async (isRefresh = false) => {
         if (!isRefresh) state.loading.value = true;
         try {
-            await schemaLoader.loadFormSchema();
-            await metadata.loadAppMetadata(state.schemaData.value, isRefresh, state.loading);
+            // STEP 1: Load App Metadata FIRST (Resolves App Context)
+            // Passing null to schemaData forces resolution by ID (App vs Table check)
+            await metadata.loadAppMetadata(null, isRefresh, state.loading);
+
+            // STEP 2: Determine Target Table ID from App Context
+            let targetTableId = contextId; // Fallback: Assume contextId is TableID
+            
+            // If we found an App context with tables, use the first table (or default view logic later)
+            if (metadata.appTables.value && metadata.appTables.value.length > 0) {
+                 // Logic: If contextId was an AppID, we must pick a Table ID to load.
+                 // Ideally this comes from the active View, but for now specific Table ID from list.
+                 // Check if contextId matches any table ID?
+                 const exactTable = metadata.appTables.value.find((t: any) => t.id === contextId);
+                 if (!exactTable) {
+                     // contextId is likely AppID, so pick first table as default
+                     targetTableId = metadata.appTables.value[0].id;
+                     log.debug(`Context ${contextId} resolved to Default Table ${targetTableId}`);
+                 }
+            }
+
+            // Update the reactive ID so queries and grouping use the correct Table ID
+            resolvedTableId.value = targetTableId;
+
+            // STEP 3: Load Table Schema
+            await schemaLoader.loadTable(targetTableId); 
+            
         } catch (e) {
             log.error('Failed to load app', e);
             if (!isRefresh) state.loading.value = false;
         }
     };
 
-    const { deleteAssignment, completeAssignment, createAssignment } = useAppShellActions(formId, (full) => loadApp(full));
+    const { deleteAssignment, completeAssignment, createAssignment } = useAppShellActions(resolvedTableId, (full) => loadApp(full));
 
-    const { isSyncing, syncProgress, syncMessage, syncApp } = useAppShellSync(formId, (full) => loadApp(full), () => {
+    const { isSyncing, syncProgress, syncMessage, syncApp } = useAppShellSync(contextId, (full) => loadApp(full), () => {
         grouping.groupPath.value = []; 
     });
 
     // Listener for real-time updates from Editor
     const onOverrideUpdate = (e: Event) => {
         const detail = (e as CustomEvent).detail;
-        if (detail?.formId === formId) {
+        if (detail?.formId === contextId) {
             log.info('[AppShell] Override updated, reloading app...');
             loadApp();
         }
@@ -155,7 +183,7 @@ export function useAppShellLogic(formId: string) {
         
         // Metadata
         activeView: metadata.activeView,
-        appForms: metadata.appForms,
+        appTables: metadata.appTables, // Renamed
         appNavigation: metadata.appNavigation,
         appViews: metadata.appViews,
         

@@ -12,7 +12,7 @@ class DatabaseSeeder extends Seeder {
         $this->call([
             UserSeeder::class,
             AppSeeder::class,
-            FormSeeder::class,
+            TableSeeder::class,
             PerformanceTestSeeder::class,
             ComponentShowcaseSeeder::class,
         ]);

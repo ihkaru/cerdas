@@ -3,7 +3,7 @@ import { f7 } from 'framework7-vue';
 import { ref } from 'vue';
 
 export function useAppShellSync(
-    formId: string, 
+    contextId: string, 
     refreshCallback: (full?: boolean) => Promise<void>,
     onSyncStart?: () => void
 ) {
@@ -13,11 +13,11 @@ export function useAppShellSync(
     const syncProgress = ref(0);
     const syncMessage = ref('');
 
-    const syncApp = async (formIdOverride?: string) => {
-        const targetFormId = formIdOverride || formId;
+    const syncApp = async (contextIdOverride?: string) => {
+        const targetId = contextIdOverride || contextId;
 
         // PROTECTION: Disable Sync in Preview Mode (Drafts don't exist on server)
-        const isPreview = (window as any).__SCHEMA_OVERRIDE?.[targetFormId];
+        const isPreview = (window as any).__SCHEMA_OVERRIDE?.[targetId];
         
         isSyncing.value = true;
         syncProgress.value = 0;
@@ -29,12 +29,12 @@ export function useAppShellSync(
             if (isPreview) {
                 f7.toast.show({ text: 'Preview Mode: Syncing data only...', closeTimeout: 2000 });
                 // Use new Data-Only Sync to preserve Schema Draft
-                await sync.syncAppDataOnly(targetFormId, (phase, progress) => {
+                await sync.syncTableDataOnly(targetId, (phase: string, progress?: number) => {
                     syncMessage.value = phase;
                     if (progress !== undefined) syncProgress.value = progress;
                 });
             } else {
-                await sync.syncApp(targetFormId, (phase, progress) => {
+                await sync.syncTable(targetId, (phase: string, progress?: number) => {
                     syncMessage.value = phase;
                     if (progress !== undefined) syncProgress.value = progress;
                 });

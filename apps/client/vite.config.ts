@@ -24,7 +24,9 @@ export default defineConfig({
     port: 9981,  // Fixed port for Android to connect
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
+      // 'credentialless' allows loading external images without CORP headers
+      // while still enabling SharedArrayBuffer for SQLite WASM
+      'Cross-Origin-Embedder-Policy': 'credentialless',
     },
   },
 })

@@ -2,39 +2,46 @@
     <f7-list class="no-hairlines-between margin-top-half">
         <!-- Option to see ALL items at this level -->
         <f7-list-item link="#" @click="$emit('show-all')" class="group-item">
-            <div slot="media" class="group-avatar"
-                style="background-color: #f5f5f5; color: #555; border: 1px dashed #ccc;">
-                <f7-icon f7="list_bullet" size="24px"></f7-icon>
-            </div>
-            <div slot="title" class="group-info">
-                <div class="group-name">Lihat Semua Data</div>
-                <div class="group-count">Tanpa Grouping</div>
-            </div>
+            <template #media>
+                <div class="group-avatar" style="background-color: #f5f5f5; color: #555; border: 1px dashed #ccc;">
+                    <f7-icon f7="list_bullet" size="24px"></f7-icon>
+                </div>
+            </template>
+            <template #title>
+                <div class="group-info">
+                    <div class="group-name">Lihat Semua Data</div>
+                    <div class="group-count">Tanpa Grouping</div>
+                </div>
+            </template>
         </f7-list-item>
 
         <f7-list-item v-for="(group, idx) in groups" :key="idx" link="#"
             @click="$emit('enter-group', group.value || '')" class="group-item enter-animation"
             :style="{ animationDelay: `${idx * 0.05}s` }">
-            <div slot="media" class="group-avatar" :style="getAvatarStyle(group.value || '')">
-                {{ (group.value || '?').charAt(0).toUpperCase() }}
-            </div>
-            <div slot="title" class="group-info">
-                <div class="group-name">{{ group.value || 'Data Lainnya' }}</div>
-                <div class="group-stats-row">
-                    <span v-if="group.assigned > 0" class="stat-pill orange">
-                        {{ group.assigned }} Pending
-                    </span>
-                    <span v-if="group.in_progress > 0" class="stat-pill blue">
-                        {{ group.in_progress }} Proses
-                    </span>
-                    <span v-if="group.completed > 0" class="stat-pill green">
-                        {{ group.completed }} Selesai
-                    </span>
-                    <span class="stat-pill gray">
-                        {{ group.count }} Total
-                    </span>
+            <template #media>
+                <div class="group-avatar" :style="getAvatarStyle(group.value || '')">
+                    {{ (group.value || '?').charAt(0).toUpperCase() }}
                 </div>
-            </div>
+            </template>
+            <template #title>
+                <div class="group-info">
+                    <div class="group-name">{{ group.value || 'Data Lainnya' }}</div>
+                    <div class="group-stats-row">
+                        <span v-if="group.assigned > 0" class="stat-pill orange">
+                            {{ group.assigned }} Pending
+                        </span>
+                        <span v-if="group.in_progress > 0" class="stat-pill blue">
+                            {{ group.in_progress }} Proses
+                        </span>
+                        <span v-if="group.completed > 0" class="stat-pill green">
+                            {{ group.completed }} Selesai
+                        </span>
+                        <span class="stat-pill gray">
+                            {{ group.count }} Total
+                        </span>
+                    </div>
+                </div>
+            </template>
         </f7-list-item>
 
         <f7-block v-if="groups.length === 0" class="text-align-center text-color-gray">
