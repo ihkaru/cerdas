@@ -1,4 +1,5 @@
 
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { defineStore } from 'pinia';
 import { apiClient } from '../api/ApiClient';
 
@@ -81,6 +82,14 @@ export const useAuthStore = defineStore('auth', {
             } catch (e) {
                 // ignore
             }
+
+            // Google Sign Out (Native)
+            try {
+                await GoogleAuth.signOut();
+            } catch (e) {
+                // Ignore if not signed in or not native
+            }
+
             this.clearAuth();
         },
 

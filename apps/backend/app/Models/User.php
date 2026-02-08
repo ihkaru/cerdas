@@ -149,4 +149,31 @@ class User extends Authenticatable {
             })
             ->exists();
     }
+
+    /**
+     * Helper: Accept all pending App Invitations for this user
+     */
+    public function acceptPendingInvitations() {
+        // Process App Invitations (Auto-Accept)
+        $appInvitations = \App\Models\AppInvitation::where('email', $this->email)->get();
+        foreach ($appInvitations as $invite) {
+            // Check if already member
+            $existing = \App\Models\AppMembership::where('app_id', $invite->app_id)
+                ->where('user_id', $this->id)
+                ->exists();
+
+            if (!$existing) {
+                \App\Models\AppMembership::create([
+                    'app_id' => $invite->app_id,
+                    'user_id' => $this->id,
+                    'role' => $invite->role,
+                    'is_active' => true,
+                ]);
+            }
+
+            $invite->delete();
+        }
+
+        return $appInvitations->count();
+    }
 }

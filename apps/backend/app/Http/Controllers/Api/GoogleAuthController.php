@@ -79,6 +79,9 @@ class GoogleAuthController extends Controller {
                 // Assign default role/organization logic here if needed
             }
 
+            // Process Pending Invitations (Auto-Accept)
+            $user->acceptPendingInvitations();
+
             // Create Sanctum Token
             $token = $user->createToken('google-login-' . ($request->client_type ?? 'web'))->plainTextToken;
 

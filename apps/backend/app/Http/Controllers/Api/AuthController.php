@@ -42,6 +42,26 @@ class AuthController extends Controller {
             $invitation->delete();
         }
 
+        // Process App Invitations (New: Auto-Accept)
+        $appInvitations = \App\Models\AppInvitation::where('email', $user->email)->get();
+        foreach ($appInvitations as $invite) {
+            // Check if already member (safety)
+            $existing = \App\Models\AppMembership::where('app_id', $invite->app_id)
+                ->where('user_id', $user->id)
+                ->exists();
+
+            if (!$existing) {
+                \App\Models\AppMembership::create([
+                    'app_id' => $invite->app_id,
+                    'user_id' => $user->id,
+                    'role' => $invite->role,
+                    'is_active' => true,
+                ]);
+            }
+
+            $invite->delete();
+        }
+
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
@@ -78,6 +98,9 @@ class AuthController extends Controller {
 
         // Revoke previous tokens if you want single-device login
         // $user->tokens()->delete();
+
+        // Process Pending Invitations (Auto-Accept)
+        $user->acceptPendingInvitations();
 
         $token = $user->createToken('auth-token')->plainTextToken;
 

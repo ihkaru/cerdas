@@ -28,10 +28,14 @@ class ResponseController extends Controller {
         $query = Response::query();
 
         // If NOT Super Admin, restrict to own assignments
+        // If NOT Super Admin, restrict to own assignments OR Simple Mode Apps
         if (!$user->isSuperAdmin()) {
             $query->whereHas('assignment', function ($q) use ($user) {
                 $q->where('enumerator_id', $user->id)
-                    ->orWhere('supervisor_id', $user->id);
+                    ->orWhere('supervisor_id', $user->id)
+                    ->orWhereHas('tableVersion.table.app', function ($appQ) {
+                        $appQ->where('mode', 'simple');
+                    });
             });
         }
 
@@ -182,7 +186,15 @@ class ResponseController extends Controller {
                 $isSupervisor = $assignment->supervisor_id === $user->id;
                 $isUnassigned = is_null($assignment->enumerator_id);
 
-                if (!$isOwner && !$isSupervisor && !$user->isSuperAdmin() && !$isUnassigned) {
+                // NEW: Allow access if App Mode is Simple (Shared Access)
+                $isSimpleShared = false;
+                $assignment->loadMissing('tableVersion.table.app');
+                $app = $assignment->tableVersion->table->app ?? null;
+                if ($app && $app->mode === 'simple') {
+                    $isSimpleShared = true;
+                }
+
+                if (!$isSimpleShared && !$isOwner && !$isSupervisor && !$user->isSuperAdmin() && !$isUnassigned) {
                     Log::warning('Access Denied', ['user_id' => $user->id, 'assignment_id' => $assignment->id]);
                     $results[] = [
                         'local_id' => $respData['local_id'],

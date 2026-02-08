@@ -42,13 +42,11 @@ class AssignmentController extends Controller {
                 $q->where('enumerator_id', $user->id)
                     ->orWhere('supervisor_id', $user->id);
 
-                // 2. Unassigned in allowed apps
+                // 2. Unassigned in allowed apps (Simple Mode & Not Restricted)
+                // MODIFIED: Also include assigned tasks in Simple Mode (Shared Access)
                 if ($allowedAppIds->isNotEmpty()) {
-                    $q->orWhere(function ($sub) use ($allowedAppIds) {
-                        $sub->whereNull('enumerator_id')
-                            ->whereHas('tableVersion.table', function ($t) use ($allowedAppIds) {
-                                $t->whereIn('app_id', $allowedAppIds);
-                            });
+                    $q->orWhereHas('tableVersion.table', function ($t) use ($allowedAppIds) {
+                        $t->whereIn('app_id', $allowedAppIds);
                     });
                 }
             });

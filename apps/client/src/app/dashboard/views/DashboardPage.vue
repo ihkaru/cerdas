@@ -36,8 +36,17 @@ const sync = useSync();
 const auth = useAuthStore();
 const isSyncing = ref(false);
 
-onMounted(() => {
-    dashboardStore.loadData();
+onMounted(async () => {
+    // 1. Instant load from local DB
+    await dashboardStore.loadData();
+
+    // 2. Background Sync (Silent)
+    // Runs after local data is shown to avoid delay
+    if (navigator.onLine) {
+        sync.sync()
+            .then(() => dashboardStore.loadData(true))
+            .catch(err => console.error('Background sync failed', err));
+    }
 });
 
 const onPageAfterIn = () => {
