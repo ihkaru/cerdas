@@ -30,3 +30,8 @@ RUN chown -R www-data:www-data /var/www/html
 
 # Switch to non-root user
 USER www-data
+
+# Make bootstrap/cache directory
+RUN mkdir -p bootstrap/cache
+RUN chmod -R 777 bootstrap/cache
+
