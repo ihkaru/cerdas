@@ -28,6 +28,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - coolify
+      - default
 
   # ==========================================
   # CLIENT (Mobile PWA)
@@ -43,6 +46,9 @@ services:
       - "80"
     environment:
       - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+    networks:
+      - coolify
+      - default
 
   # ==========================================
   # EDITOR (Web Dashboard)
@@ -58,6 +64,9 @@ services:
       - "80"
     environment:
       - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+    networks:
+      - coolify
+      - default
 
   # ==========================================
   # WORKER (Queue)
@@ -78,6 +87,9 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
     depends_on:
       - backend
+    networks:
+      - coolify
+      - default
 
   # ==========================================
   # SCHEDULER (Cron)
@@ -98,3 +110,10 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
     depends_on:
       - backend
+    networks:
+      - coolify
+      - default
+
+networks:
+  coolify:
+    external: true
