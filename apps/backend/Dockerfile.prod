@@ -1,0 +1,23 @@
+FROM serversideup/php:8.3-fpm-nginx-alpine
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Install additional extensions if needed (e.g. for queues, redis, db)
+# serversideup image includes most common extensions by default
+# If you need more: RUN install-php-extensions <ext-name>
+
+# Copy Composer dependencies
+COPY composer.json composer.lock ./
+
+# Install dependencies (no dev, optimize)
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+# Copy Application Code
+COPY . .
+
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html
+
+# Switch to non-root user
+USER www-data
