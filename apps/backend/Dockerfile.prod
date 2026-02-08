@@ -7,11 +7,20 @@ WORKDIR /var/www/html
 # serversideup image includes most common extensions by default
 # If you need more: RUN install-php-extensions <ext-name>
 
+# Install additional extensions
+# gd and zip are required for maatwebsite/excel
+# pdo_mysql for database
+# bcmath and intl are common laravel requirements
+USER root
+RUN install-php-extensions gd zip intl bcmath pdo_mysql opcache
+
 # Copy Composer dependencies
 COPY composer.json composer.lock ./
 
-# Install dependencies (no dev, optimize)
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+# Install dependencies
+# --no-scripts: Skip post-install scripts (like artisan package:discover) to avoid errors during build
+# --ignore-platform-reqs: Avoid issues if lock file was generated on Windows
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-reqs --no-scripts
 
 # Copy Application Code
 COPY . .
