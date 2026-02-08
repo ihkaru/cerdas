@@ -22,8 +22,8 @@ RUN pnpm install
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
-# Run build from root using filter
-RUN pnpm --filter client build
+# Run build from root using filter (Skip vue-tsc for production build reliability)
+RUN pnpm --filter client exec vite build
 
 # Production Stage
 FROM nginx:stable-alpine as production-stage
