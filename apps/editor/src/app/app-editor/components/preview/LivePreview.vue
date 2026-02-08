@@ -32,7 +32,7 @@ const impersonatedToken = ref<string | null>(null);
 
 // The client app URL - auto navigate to specific app if ID exists
 const iframeUrl = computed(() => {
-    const baseUrl = 'http://localhost:9981';
+    const baseUrl = import.meta.env.VITE_CLIENT_URL || window.location.origin.replace('editor', 'client');
     if (schemaId.value) {
         return `${baseUrl}/app/${schemaId.value}`;
     }
@@ -54,7 +54,8 @@ async function resolveToken(): Promise<string | null> {
     if (impersonatedToken.value) return impersonatedToken.value;
 
     try {
-        const res = await fetch('http://localhost:8080/api/auth/impersonate', {
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+        const res = await fetch(`${apiUrl}/auth/impersonate`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
