@@ -34,8 +34,8 @@ services:
   # ==========================================
   client:
     build:
-      context: ./apps/client
-      dockerfile: Dockerfile.prod
+      context: .
+      dockerfile: apps/client/Dockerfile.prod
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL}
     restart: always
@@ -49,8 +49,8 @@ services:
   # ==========================================
   editor:
     build:
-      context: ./apps/editor
-      dockerfile: Dockerfile.prod
+      context: .
+      dockerfile: apps/editor/Dockerfile.prod
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL}
     restart: always

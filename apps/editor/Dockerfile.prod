@@ -1,15 +1,29 @@
 # Build Stage
 FROM node:20-alpine as build-stage
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
 
+# Enable pnpm
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+
+# Copy Root Workspace configs
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy Packages
+COPY packages/ ./packages/
+
+# Copy Editor App
+COPY apps/editor/ ./apps/editor/
+
+# Install dependencies from root
+RUN pnpm install
+
+# Build Editor (Scope: editor)
 # Vite needs env vars at build time
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
-RUN npm run build
+# Run build from root using filter
+RUN pnpm --filter editor build
 
 # Production Stage
 FROM nginx:stable-alpine as production-stage
