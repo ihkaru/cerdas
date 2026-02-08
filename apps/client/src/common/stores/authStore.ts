@@ -61,9 +61,9 @@ export const useAuthStore = defineStore('auth', {
                 // We can send 'android' if we want backend to know source
                 const res = await apiClient.post('/auth/google', { id_token: idToken, client_type: 'web' });
                 
-                if (res.data && res.data.token && res.data.user) {
+                if (res && res.token && res.user) {
                     log.info('Google Login successful');
-                    this.setAuth(res.data.token, res.data.user);
+                    this.setAuth(res.token, res.user);
                     return true;
                 } else {
                     log.warn('Google Login failed: No token or user in response', res);

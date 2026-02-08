@@ -386,7 +386,7 @@ const initMap = (lat: number, lng: number) => {
     // Simple blue location marker pin
     const iconUrl = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNSIgaGVpZ2h0PSI0MSIgdmlld0JveD0iMCAwIDI1IDQxIj48cGF0aCBmaWxsPSIjMjE5NkYzIiBkPSJNMTIuNSAwQzUuNiAwIDAgNS42IDAgMTIuNWMwIDkuNCAxMi41IDI4LjUgMTIuNSAyOC41UzI1IDIxLjkgMjUgMTIuNUMyNSA1LjYgMTkuNCAwIDEyLjUgMHoiLz48Y2lyY2xlIGZpbGw9IiNmZmYiIGN4PSIxMi41IiBjeT0iMTIuNSIgcj0iNSIvPjwvc3ZnPg==';
     const iconRetinaUrl = iconUrl;
-    const shadowUrl = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'; // Use CDN for shadow or skip it
+    // shadowUrl removed - not used, skip shadow for cleaner look/offline
 
     // Default Icon Setup
     const DefaultIcon = L.icon({

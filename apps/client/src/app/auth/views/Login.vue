@@ -164,7 +164,7 @@ const signInWithGoogleNative = async () => {
 onMounted(() => {
   if (isNative) {
     GoogleAuth.initialize({
-      clientId: 'YOUR_WEB_CLIENT_ID_HERE', // Should match strings.xml / capacitor.config.ts config
+      clientId: '133588067257-0huo4ja0kaavpg704si2htphl0kvgobt.apps.googleusercontent.com',
       scopes: ['profile', 'email'],
       grantOfflineAccess: true,
     });

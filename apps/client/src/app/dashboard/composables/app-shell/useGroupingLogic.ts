@@ -25,36 +25,68 @@ export function useGroupingLogic(
     const groupByConfig = computed(() => {
         const viewId = activeView.value;
         
+        // UNIQUE MARKER - Direct console.log to verify execution
+        console.log('[GROUPBY-DEBUG-XYZ]', 'groupByConfig computing...', { viewId, hasLayout: !!layout.value, layoutViews: layout.value?.views });
+        
+        log.debug('[groupByConfig] Evaluating...', { viewId, hasLayout: !!layout.value });
+        
         // 1. Check if there's a selected active view that has grouping
         if (viewId) {
             const view = appViews.value.find(v => v.id === viewId || v.view_id === viewId);
             
             if (view?.config?.groupBy) {
                 const gb = view.config.groupBy;
-                log.debug('Grouping found in view:', { viewId, groupBy: gb });
+                log.debug('[groupByConfig] Found in appViews:', { viewId, groupBy: gb });
                 if (Array.isArray(gb)) {
                     return { levels: gb.map(f => ({ field: f as string })) };
                 }
                 return gb;
             }
+            log.debug('[groupByConfig] viewId set but NOT found in appViews, checking fallback...', { viewId, appViewsCount: appViews.value.length });
         }
 
         // 2. Fallback to schema-level grouping (Layout or Settings or 'default' view in layout)
-        let config = layout.value?.grouping || 
-                     layout.value?.groupBy || 
-                     schemaData.value?.settings?.grouping || 
-                     schemaData.value?.settings?.groupBy ||
-                     layout.value?.views?.default?.groupBy; 
+        // IMPORTANT: Check for non-empty arrays, not just existence!
+        // Empty arrays [] are truthy in JS, so we need explicit length checks
+        const hasNonEmptyArray = (val: any) => Array.isArray(val) && val.length > 0;
+        const hasNonEmptyObject = (val: any) => val && typeof val === 'object' && !Array.isArray(val) && (val.levels?.length > 0 || val.groupBy?.length > 0);
         
-        if (config) {
-            log.debug('Grouping found in schema fallback');
+        let config = null;
+        
+        // Priority order: layout.grouping > layout.groupBy > settings.grouping > settings.groupBy > views.default.groupBy
+        if (hasNonEmptyArray(layout.value?.grouping) || hasNonEmptyObject(layout.value?.grouping)) {
+            config = layout.value.grouping;
+        } else if (hasNonEmptyArray(layout.value?.groupBy)) {
+            config = layout.value.groupBy;
+        } else if (hasNonEmptyArray(schemaData.value?.settings?.grouping) || hasNonEmptyObject(schemaData.value?.settings?.grouping)) {
+            config = schemaData.value.settings.grouping;
+        } else if (hasNonEmptyArray(schemaData.value?.settings?.groupBy)) {
+            config = schemaData.value.settings.groupBy;
+        } else if (hasNonEmptyArray(layout.value?.views?.default?.groupBy)) {
+            config = layout.value.views.default.groupBy;
         }
+        
+        console.log('[GROUPBY-FIX]', 'Fallback result:', { 
+            layoutGroupBy: layout.value?.groupBy, 
+            viewsDefaultGroupBy: layout.value?.views?.default?.groupBy,
+            finalConfig: config 
+        });
+        
+        log.debug('[groupByConfig] Fallback check:', {
+            'layout.grouping': layout.value?.grouping || 'undefined',
+            'layout.groupBy': layout.value?.groupBy || 'undefined',
+            'schemaData.settings.grouping': schemaData.value?.settings?.grouping || 'undefined',
+            'schemaData.settings.groupBy': schemaData.value?.settings?.groupBy || 'undefined',
+            'layout.views.default.groupBy': layout.value?.views?.default?.groupBy || 'undefined',
+            'finalConfig': config || 'null'
+        });
 
         // Support simple array format ['field1', 'field2']
         if (Array.isArray(config)) {
             config = { levels: config.map((f: string) => ({ field: f })) };
         }
 
+        log.debug('[groupByConfig] Final config:', JSON.stringify(config));
         return config || null;
     });
 
@@ -77,6 +109,10 @@ export function useGroupingLogic(
 
     // Helper for Query Construction (Drill-down)
     const buildGroupWhere = (statusFilterValue: string) => {
+        // VERIFY HMR AND LOG groupByConfig value - STRINGIFIED FOR FULL VISIBILITY
+        console.log('[BUILDGROUPWHERE-ABC]', 'groupByConfig FULL VALUE:', JSON.stringify(groupByConfig.value));
+        console.log('[BUILDGROUPWHERE-ABC]', 'isGroupingActive:', isGroupingActive.value, 'currentGroupField:', currentGroupField.value);
+        
         let conditions: string[] = [`table_id = ?`];
         let params: any[] = [getContextId()];
 

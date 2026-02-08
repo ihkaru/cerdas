@@ -59,6 +59,10 @@
                 </f7-list-input>
             </f7-list>
 
+            <!-- Group By Config -->
+            <GroupByConfig :group-by="view.groupBy || []" :fields="fields"
+                @update="(v) => $emit('update:groupBy', v)" />
+
             <!-- View Specific Configs -->
             <DeckViewConfig v-if="view.type === 'deck' && view.deck" :deck-config="view.deck" :fields="fields"
                 @update="(k, v) => $emit('update:deckConfig', k, v)" />
@@ -79,6 +83,7 @@
 import type { ViewConfigPanelProps } from '../../../types/view-config.types';
 import FieldPicker from '../../shared/FieldPicker.vue';
 import { getViewIcon } from '../utils/viewHelpers';
+import GroupByConfig from './GroupByConfig.vue';
 import DeckViewConfig from './view-types/DeckViewConfig.vue';
 import MapViewConfig from './view-types/MapViewConfig.vue';
 import ViewActionsSelector from './ViewActionsSelector.vue';
@@ -89,6 +94,7 @@ const emit = defineEmits<{
     (e: 'update:viewProp', key: string, value: any): void;
     (e: 'update:deckConfig', key: string, value: any): void;
     (e: 'update:mapConfig', key: string, value: any): void;
+    (e: 'update:groupBy', value: string[]): void;
     (e: 'toggle-action', actionId: string): void;
     (e: 'delete-view'): void;
 }>();

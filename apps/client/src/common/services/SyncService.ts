@@ -131,18 +131,52 @@ export class SyncService {
         const res = await apiClient.get(`/tables/${tableId}`);
         if (res.success && res.data) {
             const table = res.data;
+            
+            // --- DEBUG LOGGING START ---
+            logger.info(`[SyncService] 📥 Pulled Table ${tableId}`, {
+                serverTableId: table.id,
+                serverVersion: table.version,
+                updatedAt: table.updated_at,
+                versionsCount: table.versions?.length || 0,
+                hasCurrentModel: !!table.current_version_model,
+                currentModelVer: table.current_version_model?.version,
+                latestPubVer: table.latest_published_version?.version,
+                firstFallbackVer: table.versions?.[0]?.version
+            });
+            // --- DEBUG LOGGING END ---
+
             // Use current_version_model from 'show' endpoint
             const version = table.current_version_model || table.latest_published_version || (table.versions?.[0]);
+
+            logger.info(`[SyncService] 🧐 Version Selection logic for ${tableId}:`, {
+                selectedVersion: version?.version,
+                source: table.current_version_model ? 'current_version_model' : 
+                        (table.latest_published_version ? 'latest_published_version' : 'versions[0] (fallback)')
+            });
             
             if (version) {
                  // Check if 'schema' or 'fields' exists in version. Legacy support.
                  const fieldsData = version.fields || version.schema;
+                 const layoutData = version.layout || {};
+                 
+                 logger.info(`[SyncService] Saving Table ${tableId}. Version Check:`, {
+                     tableVersion: table.version,
+                     currentModelVer: table.current_version_model?.version,
+                     latestPubVer: table.latest_published_version?.version,
+                     chosenVer: version.version
+                 });
+
+                 logger.info(`[SyncService] Saving Table ${tableId}. Layout:`, {
+                     hasLayout: !!version.layout,
+                     layoutKeys: Object.keys(layoutData),
+                     grouping: (layoutData as any).grouping ? 'YES' : 'NO'
+                 });
 
                 await db.run(
                     `UPDATE tables SET fields = ?, layout = ?, settings = ?, version = ?, synced_at = ? WHERE id = ?`,
                     [
                         JSON.stringify(fieldsData), 
-                        JSON.stringify(version.layout || {}),
+                        JSON.stringify(layoutData),
                         JSON.stringify(table.settings || {}),
                         version.version,
                         new Date().toISOString(),

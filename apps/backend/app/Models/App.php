@@ -57,6 +57,10 @@ class App extends Model {
         return $this->hasMany(AppMembership::class);
     }
 
+    public function invitations(): HasMany {
+        return $this->hasMany(AppInvitation::class);
+    }
+
     /**
      * Organizations participating in this App.
      * Many-to-Many via app_organizations pivot.

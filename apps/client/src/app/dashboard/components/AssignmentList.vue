@@ -10,9 +10,9 @@
     </div>
 
     <f7-list v-else media-list strong-ios dividers-ios inset-ios class="assignment-list no-margin-top">
-        <f7-list-item v-for="assignment in assignments" :key="assignment.id" swipeout link="#" no-chevron
-            class="no-ripple" @click.prevent="$emit('open-assignment', assignment.id)"
-            :title="assignment.prelist_data?.name || 'Unnamed'"
+        <f7-list-item v-for="(assignment, idx) in assignments" :key="assignment.id" swipeout link="#" no-chevron
+            class="no-ripple enter-animation" :style="{ animationDelay: `${idx * 0.03}s` }"
+            @click.prevent="$emit('open-assignment', assignment.id)" :title="assignment.prelist_data?.name || 'Unnamed'"
             :subtitle="!assignment.enumerator_id ? 'Unassigned / Open' : (assignment.external_id || 'TASK')"
             :text="assignment.prelist_data?.address || 'No Address'">
             <!-- Status Indicator -->
@@ -104,5 +104,23 @@ const emitRowAction = (actionId: string, assignmentId: string) => {
 
 .height-50 {
     height: 50px;
+}
+
+/* Staggered slide-up animation for list items */
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.enter-animation {
+    opacity: 0;
+    animation: slideUpFade 0.35s ease-out forwards;
 }
 </style>

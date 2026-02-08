@@ -46,3 +46,10 @@ export interface AppOrganization {
     name: string;
     code: string;
 }
+
+export interface AppInvitation {
+    id: string | number;
+    email: string;
+    role: string;
+    created_at?: string;
+}

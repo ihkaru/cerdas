@@ -31,17 +31,29 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
     // We need a reactive Table ID because contextId might be an AppID
     const resolvedTableId = ref(contextId);
     
-    // 3. Metadata (Depends on refreshDataFn logic)
-    // We pass a wrapper that calls the real function later
+    // 3. Metadata
+    // refreshData is now called AFTER loadTable in loadApp() for correct groupByConfig timing
     const metadata = useAppMetadata(
         contextId,
-        () => refreshDataFn(),
         context.fetchAppContext,
         state.currentUserRole,
         authStore
     );
 
     const schemaLoader = useTableLoader(contextId, state.schemaData, state.layout);
+
+    // DEBUG: Monitor Schema Version
+    watch(() => state.schemaData.value, (newVal) => {
+        log.debug('[AppShellLogic] Schema Loaded:', { 
+            id: newVal?.id,
+            version: newVal?.version, 
+            versionType: typeof newVal?.version,
+            hasVersionProp: newVal && 'version' in newVal,
+            keys: newVal ? Object.keys(newVal) : [],
+            appVersion: metadata.appVersion.value,
+            computed: computed(() => state.schemaData.value?.version || metadata.appVersion.value).value
+        });
+    }, { immediate: true });
 
     // 5. Grouping Logic
     const grouping = useGroupingLogic(
@@ -128,8 +140,14 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
             // Update the reactive ID so queries and grouping use the correct Table ID
             resolvedTableId.value = targetTableId;
 
-            // STEP 3: Load Table Schema
+            // STEP 3: Load Table Schema (Layout with groupByConfig)
             await schemaLoader.loadTable(targetTableId); 
+            
+            // STEP 4: Now load data - groupByConfig is available from layout
+            // This ensures first render has grouping applied, preventing flashing
+            await refreshDataFn();
+            
+            if (!isRefresh) state.loading.value = false;
             
         } catch (e) {
             log.error('Failed to load app', e);
@@ -144,11 +162,46 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
     });
 
     // Listener for real-time updates from Editor
-    const onOverrideUpdate = (e: Event) => {
+    const onOverrideUpdate = async (e: Event) => {
         const detail = (e as CustomEvent).detail;
-        if (detail?.formId === contextId) {
-            log.info('[AppShell] Override updated, reloading app...');
-            loadApp();
+        // Check both tableId (new format) and formId (legacy) for compatibility
+        const targetId = detail?.tableId || detail?.formId;
+        
+        // LOG BEFORE CONDITION - always log to trace if event is received
+        log.debug('[OVERRIDE] Event received:', { 
+            targetId, 
+            contextId, 
+            resolvedTableIdValue: resolvedTableId.value,
+            willMatch: targetId === contextId || targetId === resolvedTableId.value
+        });
+        
+        if (targetId === contextId || targetId === resolvedTableId.value) {
+            log.info('[AppShell] Override updated, reloading app...', { targetId, contextId, resolvedTableId: resolvedTableId.value });
+            
+            // CRITICAL FIX: Load SQLite data FIRST for instant preview update
+            log.debug('[OVERRIDE] Step 1: Calling loadTable...');
+            await schemaLoader.loadTable(resolvedTableId.value);
+            
+            // Log the layout AFTER loadTable
+            log.debug('[OVERRIDE] Step 2: Layout AFTER loadTable:', JSON.stringify({
+                hasLayout: !!state.layout.value,
+                viewsDefaultGroupBy: state.layout.value?.views?.default?.groupBy || 'NONE',
+                viewsDefaultDeck: !!state.layout.value?.views?.default?.deck
+            }));
+            
+            // Log grouping state
+            log.debug('[OVERRIDE] Step 3: Grouping state:', JSON.stringify({
+                groupByConfig: grouping.groupByConfig.value,
+                isGroupingActive: grouping.isGroupingActive.value,
+                currentGroupField: grouping.currentGroupField.value
+            }));
+            
+            // Then refresh data to apply the new layout
+            log.debug('[OVERRIDE] Step 4: Calling refreshData...');
+            refreshDataFn();
+            
+            // Full app reload in background (for metadata sync)
+            loadApp(true); // isRefresh=true to skip loading spinner
         }
     };
 
@@ -161,6 +214,7 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
     });
 
     onMounted(() => {
+         log.debug('[AppShell] Mounted - Registering override listener', { contextId, resolvedTableIdValue: resolvedTableId.value });
          window.addEventListener('schema-override-updated', onOverrideUpdate);
     });
 
@@ -186,6 +240,8 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
         appTables: metadata.appTables, // Renamed
         appNavigation: metadata.appNavigation,
         appViews: metadata.appViews,
+        // Prefer Table Schema Version (e.g. v8) -> App Version -> Draft
+        appVersion: computed(() => state.schemaData.value?.version || metadata.appVersion.value),
         
         // Sync
         isSyncing, syncProgress, syncMessage, syncApp,

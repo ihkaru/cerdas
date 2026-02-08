@@ -56,6 +56,14 @@
             <f7-list-item v-if="tables.length === 0 && navigation.length === 0"
                 title="No other tables found"></f7-list-item>
         </f7-list>
+
+        <!-- Version Footer -->
+        <f7-block-footer style="text-align: center; margin-top: 20px; padding-bottom: 20px;">
+            <small style="opacity: 0.6;">
+                App v{{ appVersion }}<br>
+                Build {{ buildTimestamp }}
+            </small>
+        </f7-block-footer>
     </f7-page>
 </template>
 
@@ -87,6 +95,14 @@ const props = defineProps({
     role: {
         type: String,
         default: 'Guest'
+    },
+    appVersion: {
+        type: [String, Number],
+        default: 'Draft'
+    },
+    buildTimestamp: {
+        type: String,
+        default: '-'
     }
 });
 

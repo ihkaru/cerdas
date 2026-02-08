@@ -33,7 +33,7 @@ const config: CapacitorConfig = {
     },
     GoogleAuth: {
       scopes: ['profile', 'email'],
-      serverClientId: 'YOUR_WEB_CLIENT_ID_HERE', // Create .env variable for build script injection ideally, but hardcoded placeholder for now
+      serverClientId: '133588067257-0huo4ja0kaavpg704si2htphl0kvgobt.apps.googleusercontent.com',
       forceCodeForRefreshToken: true,
     },
   },

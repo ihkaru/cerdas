@@ -3,7 +3,8 @@
         <!-- Main Sidebar Panel (App Menu) -->
         <f7-panel left cover resizable v-model:opened="panelOpened">
             <AppShellMenu :tables="appTables" :navigation="appNavigation" :views="appViews"
-                :current-table-id="contextId" :role="currentUserRole" :user="authStore.user" />
+                :current-table-id="contextId" :role="currentUserRole" :user="authStore.user" :app-version="appVersion"
+                :build-timestamp="buildTimestamp" />
         </f7-panel>
 
         <!-- navbar -->
@@ -130,18 +131,25 @@
                         :counts="statusCounts" />
                 </div>
 
-                <!-- CASE 1: GROUPING LIST (FOLDERS) -->
-                <template v-if="isGroupingActive">
-                    <AppShellGroupList :groups="filteredGroups" @enter-group="enterGroup"
-                        @show-all="forceShowItems = true" />
-                </template>
+                <!-- Animated Transition between Grouping and Flat List -->
+                <transition name="view-fade" mode="out-in">
+                    <!-- CASE 1: GROUPING LIST (FOLDERS) -->
+                    <div v-if="isGroupingActive" key="grouping-standard">
+                        <AppShellGroupList :groups="filteredGroups" @enter-group="enterGroup"
+                            @show-all="forceShowItems = true" />
+                    </div>
 
-                <!-- CASE 2: ITEM LIST (FINAL LEVEL) -->
-                <template v-else>
-                    <AssignmentList :assignments="displayedAssignments" :total-count="totalAssignments" :loading="false"
-                        :row-actions="rowActions" :swipe-config="swipeConfig" @open-assignment="handleShowPreview"
-                        @row-action="handleRowAction" />
-                </template>
+                    <!-- CASE 2: ITEM LIST (FINAL LEVEL) -->
+                    <div v-else key="leaf-standard">
+                        <!-- Use ViewRenderer if layout has a default view -->
+                        <ViewRenderer v-if="layout?.views?.default" :config="layout.views.default"
+                            :data="displayedAssignments" :contextId="contextId" @action="handleRowAction" />
+                        <!-- Fallback to AssignmentList if no layout view defined -->
+                        <AssignmentList v-else :assignments="displayedAssignments" :total-count="totalAssignments"
+                            :loading="false" :row-actions="rowActions" :swipe-config="swipeConfig"
+                            @open-assignment="handleShowPreview" @row-action="handleRowAction" />
+                    </div>
+                </transition>
             </f7-page-content>
         </template>
 
@@ -163,6 +171,10 @@
             <f7-actions-group>
                 <f7-actions-button color="red">Cancel</f7-actions-button>
             </f7-actions-group>
+            <!-- Version Indicator -->
+            <f7-actions-group>
+                <f7-actions-label>v{{ appVersion }} (Build {{ buildTimestamp }})</f7-actions-label>
+            </f7-actions-group>
         </f7-actions>
 
     </f7-page>
@@ -171,6 +183,11 @@
 <script setup lang="ts">
 import { f7 } from 'framework7-vue';
 import { computed, onMounted, ref, watch } from 'vue';
+
+// Version
+// @ts-ignore
+const buildTimestamp = typeof __BUILD_TIMESTAMP__ !== 'undefined' ? __BUILD_TIMESTAMP__ : 'Dev';
+console.log(`[AppShell] Build: ${buildTimestamp}`);
 
 // Components
 import { getIcon } from '@/app/dashboard/utils/iconHelpers';
@@ -203,7 +220,7 @@ const {
     filteredAssignments, filteredGroups, statusCounts, headerActions, rowActions, swipeConfig, appName, previewFields,
     loadApp, refreshData, deleteAssignment, completeAssignment, syncApp, createAssignment,
     enterGroup, navigateUp, forceShowItems,
-    isSyncing, syncProgress, syncMessage, pendingUploadCount, currentUserRole
+    isSyncing, syncProgress, syncMessage, pendingUploadCount, currentUserRole, appVersion
 } = useAppShellLogic(props.contextId);
 const routeViewId = computed(() => props.f7route?.query?.view);
 const currentViewConfig = computed(() => {
@@ -429,15 +446,34 @@ watchEffect(() => {
     padding-bottom: calc(var(--f7-toolbar-height) + var(--f7-safe-area-bottom) + 20px) !important;
 }
 
-/* Transitions */
+/* Transitions - Fade for basic view switch */
 .view-fade-enter-active,
 .view-fade-leave-active {
-    transition: opacity 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .view-fade-enter-from,
 .view-fade-leave-to {
     opacity: 0;
+}
+
+/* Drill-down slide transitions - slide from right when going deeper */
+.view-fade-enter-from {
+    transform: translateX(30px);
+}
+
+.view-fade-leave-to {
+    transform: translateX(-30px);
+}
+
+/* Smooth transition for group items when level changes */
+:deep(.group-item) {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+:deep(.group-item:active) {
+    transform: scale(0.98);
+    opacity: 0.8;
 }
 </style>
 ```

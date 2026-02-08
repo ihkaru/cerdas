@@ -48,7 +48,7 @@ export interface ClosureContext {
  */
 export const defaultUtils = {
     now: () => new Date().toISOString(),
-    today: () => new Date().toISOString().split('T')[0], // YYYY-MM-DD
+    today: () => new Date().toISOString().split('T')[0] || '', // YYYY-MM-DD, fallback to empty string
     uuid: () => Math.random().toString(36).substring(2) + Date.now().toString(36),
     sum: (arr: any[], key?: string) => {
         if (!Array.isArray(arr)) return 0;

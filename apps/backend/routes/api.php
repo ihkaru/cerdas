@@ -140,6 +140,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{app}/organizations', [AppController::class, 'organizations']);
         Route::post('/{app}/organizations', [AppController::class, 'attachOrganization']);
         Route::delete('/{app}/organizations/{organization}', [AppController::class, 'detachOrganization']);
+
+        // App Members Management (Simple Mode)
+        Route::post('/{app}/members', [AppController::class, 'addMember']);
+        Route::delete('/{app}/members/{user}', [AppController::class, 'removeMember']);
+        Route::delete('/{app}/invitations/{invitation}', [AppController::class, 'cancelInvitation']);
     });
 
     // Import App from Schema (standalone route)

@@ -117,13 +117,14 @@ export const DashboardRepository = {
             }
         }
         
-        // Handle legacy schema structure if present
         if (parsedFields && typeof parsedFields === 'object') {
-            if ('fields' in parsedFields && Array.isArray(parsedFields.fields)) {
-                // Correct structure
+            if (Array.isArray(parsedFields)) {
+                // Correct structure (Direct Array of Fields)
+            } else if ('fields' in parsedFields && Array.isArray(parsedFields.fields)) {
+                // Correct structure (Object with fields array)
             } else if ('schema' in parsedFields) {
                 // Nested schema object, extract
-                let inner = parsedFields.schema;
+                let inner = (parsedFields as any).schema;
                 if (typeof inner === 'string') {
                     try { inner = JSON.parse(inner); } catch(e) {}
                 }
@@ -131,7 +132,7 @@ export const DashboardRepository = {
             }
         }
         
-        if (!parsedFields || typeof parsedFields !== 'object' || !('fields' in parsedFields)) {
+        if (!parsedFields || typeof parsedFields !== 'object' || (!Array.isArray(parsedFields) && !('fields' in parsedFields))) {
             parsedFields = { fields: [] };
         }
         

@@ -60,7 +60,7 @@ export const AppMetadataService = {
             navigation = row.navigation ? JSON.parse(row.navigation) : [];
             views = row.views ? JSON.parse(row.views) : [];
         }
-        return { navigation, views };
+        return { navigation, views, version: localApp.values?.[0]?.version || 'Draft' };
     },
     
     async getSiblingTables(db: SQLiteDBConnection, appId: string) {
@@ -83,7 +83,8 @@ export const AppMetadataService = {
                   const d = appApiRes.data;
                   appData = {
                       navigation: d.navigation || [],
-                      views: d.views || []
+                      views: d.views || [],
+                      version: d.version || 'Draft'
                   };
                   
                   // Extract Role

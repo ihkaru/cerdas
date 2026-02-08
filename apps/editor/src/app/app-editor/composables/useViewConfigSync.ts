@@ -58,7 +58,9 @@ export function useViewConfigSync(
 
     // Method to force push local changes to upstreams
     function commitLocalChanges() {
-        onUpdate(toRaw(localLayout));
+        const raw = toRaw(localLayout);
+        console.log('[DEBUG] useViewConfigSync.commitLocalChanges called', JSON.stringify(raw));
+        onUpdate(raw);
     }
 
     return {

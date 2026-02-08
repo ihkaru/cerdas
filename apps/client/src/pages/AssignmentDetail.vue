@@ -466,7 +466,7 @@ const onPageBeforeOut = () => {
 
 // Live Preview: Listen for schema updates from Editor
 const handleSchemaOverrideUpdate = (event: CustomEvent) => {
-    const { tableId, formId, fields, layout } = event.detail;
+    const { tableId, formId, fields, layout: _layout } = event.detail;
     const targetId = tableId || formId;
 
     // Check if we're in preview mode (iframe)

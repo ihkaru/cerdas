@@ -2,7 +2,7 @@ import { ApiClient } from '@/common/api/ApiClient';
 import { useAppStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
-import type { AppDetail, AppForm, AppMember, AppNavigationItem, AppOrganization, AppView } from '../types/app-detail.types';
+import type { AppDetail, AppForm, AppInvitation, AppMember, AppNavigationItem, AppOrganization, AppView } from '../types/app-detail.types';
 import { useAppColors } from './useAppColors';
 
 export function useAppDetail() {
@@ -63,6 +63,16 @@ export function useAppDetail() {
                 color: getMemberColor(u.id)
             };
         });
+    });
+
+    const invitations = computed<AppInvitation[]>(() => {
+        const rawInvites = (appStore.currentApp as any)?.invitations || [];
+        return rawInvites.map((i: any) => ({
+            id: i.id,
+            email: i.email,
+            role: i.role,
+            created_at: i.created_at
+        }));
     });
 
     const views = computed<AppView[]>(() => {
@@ -145,6 +155,42 @@ export function useAppDetail() {
             loading.value = false;
         }
     }
+    
+    async function addMember(email: string, role: string) {
+        if (!appStore.currentApp) return;
+        try {
+            loading.value = true;
+            await ApiClient.post(`/apps/${appStore.currentApp.id}/members`, {
+                email,
+                role
+            });
+            await fetchApp(appStore.currentApp.id);
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function removeMember(userId: string | number) {
+        if (!appStore.currentApp) return;
+        try {
+            loading.value = true;
+            await ApiClient.delete(`/apps/${appStore.currentApp.id}/members/${userId}`);
+            await fetchApp(appStore.currentApp.id);
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function cancelInvitation(invitationId: string | number) {
+        if (!appStore.currentApp) return;
+        try {
+            loading.value = true;
+            await ApiClient.delete(`/apps/${appStore.currentApp.id}/invitations/${invitationId}`);
+            await fetchApp(appStore.currentApp.id);
+        } finally {
+            loading.value = false;
+        }
+    }
 
     // Consolidated fetchApp
     async function fetchApp(slugOrId: string | number) {
@@ -155,6 +201,7 @@ export function useAppDetail() {
         app,
         forms,
         members,
+        invitations,
         views,
         navigation,
         organizations,
@@ -164,6 +211,9 @@ export function useAppDetail() {
         updateNavigation,
         addOrganization,
         removeOrganization,
+        addMember,
+        removeMember,
+        cancelInvitation,
         currentAppRaw: computed(() => appStore.currentApp)
     };
 }

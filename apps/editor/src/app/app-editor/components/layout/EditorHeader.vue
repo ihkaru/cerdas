@@ -24,7 +24,7 @@
                 <f7-icon f7="arrow_down_doc" />
                 Save Draft
             </f7-button>
-            <f7-button fill class="publish-btn" @click="emit('publish')">
+            <f7-button fill class="publish-btn" @click="emit('publish')" :disabled="!canPublish">
                 <f7-icon f7="paperplane_fill" />
                 Publish
             </f7-button>
@@ -59,6 +59,7 @@ interface Props {
     isDirty: boolean;
     isPublished: boolean;
     version?: number;
+    canPublish?: boolean;
 }
 
 defineProps<Props>();

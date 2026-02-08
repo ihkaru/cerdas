@@ -115,8 +115,21 @@ export function useEditorState() {
 
   /** Update Layout Config */
   function updateLayout(updates: Partial<LayoutConfig>): void {
-    Object.assign(editorState.layout, updates);
+    console.log('[DEBUG] useEditorState.updateLayout called with updates:', JSON.stringify(updates));
+    // Deep merge to ensure nested reactivity (views, deck configs, etc.)
+    // We need to replace the entire layout to trigger Vue reactivity for computed properties
+    const merged = {
+      ...editorState.layout,
+      ...updates,
+      // Deep merge views if both exist
+      views: updates.views 
+        ? { ...editorState.layout.views, ...updates.views }
+        : editorState.layout.views
+    };
+    editorState.layout = JSON.parse(JSON.stringify(merged));
     editorState.isDirty = true;
+    console.log('[DEBUG] Layout updated, isDirty:', editorState.isDirty);
+    console.log('[DEBUG] New layout.views:', JSON.stringify(editorState.layout.views));
   }
 
   /** Replace all fields (for Code Editor mode) */

@@ -1,154 +1,96 @@
 ---
-description: Start Android development with Live Reload
+description: Fresh start Android development with Live Reload and clean servers
 ---
 
-# Android Development Workflow with Live Reload
+# Fresh Android Dev with Live Reload
 
-This workflow enables fast development cycle with Live Reload on Android Emulator.
+Complete fresh start for Android development using the frontend dev server with Live Reload. Ensures everything is clean and synced.
+
+## What This Does
+1. Stops all running servers
+2. Cleans Android app from device
+3. Clears Android assets 
+4. Syncs Capacitor (without build - uses dev server)
+5. Starts all servers fresh
+6. Opens Android Studio
 
 ## Prerequisites
 - Android Studio installed
-- AVD (Android Virtual Device) created with API 29+ (Android 10+)
-- Backend and Client servers running
+- AVD or physical device connected
+- `useLiveReload = true` in `capacitor.config.ts`
 
 ## Steps
 
 // turbo-all
 
-### 1. Kill any existing servers
+### 1. Stop all running servers
 ```powershell
-taskkill /F /IM php.exe /IM node.exe 2>nul
+taskkill /F /IM php.exe /IM node.exe 2>$null
+Write-Host "All servers stopped"
 ```
 
-### 2. Start all servers (Backend + Client + Editor)
+### 2. Force stop and uninstall app from device
 ```powershell
-cd c:\projects\cerdas
-start-all.bat
+adb shell am force-stop com.cerdas.client
+adb uninstall com.cerdas.client
+Write-Host "App cleaned from device"
 ```
 
-### 3. Wait for servers to start (5 seconds)
-Check that:
-- Backend is running at http://localhost:9980
-- Client is running at http://localhost:9981
-
-### 4. Build the client
+### 3. Clear Android assets folder
 ```powershell
 cd c:\projects\cerdas\apps\client
-pnpm build
+Remove-Item -Recurse -Force android\app\src\main\assets\public -ErrorAction SilentlyContinue
+Write-Host "Android assets cleared"
 ```
 
-### 5. Sync with Android project
+### 4. Sync Capacitor (copies dist folder for fallback)
 ```powershell
 cd c:\projects\cerdas\apps\client
 npx cap sync android
 ```
 
-### 6. Open in Android Studio
+### 5. Start all servers (Backend + Client + Editor)
+```powershell
+cd c:\projects\cerdas
+Start-Process -FilePath "cmd.exe" -ArgumentList "/c start-all.bat"
+Write-Host "Servers starting..."
+```
+
+### 6. Wait for servers to initialize
+```powershell
+Start-Sleep -Seconds 5
+Write-Host "Waiting for servers..."
+```
+
+### 7. Open Android Studio
 ```powershell
 cd c:\projects\cerdas\apps\client
 npx cap open android
 ```
 
-### 7. In Android Studio
+### 8. In Android Studio
 1. Wait for Gradle sync to complete
-2. Select your AVD (Android Virtual Device)
-3. Click "Run" (green play button)
-4. The app will load from your local dev server with Live Reload!
+2. Click **Run** (green play button)
+3. App loads from dev server with **Live Reload** enabled!
 
-## Live Reload in Action
-- Edit any Vue/TS file in `apps/client/src`
+## Quick One-Liner
+
+```powershell
+taskkill /F /IM php.exe /IM node.exe 2>$null; adb shell am force-stop com.cerdas.client; adb uninstall com.cerdas.client; cd c:\projects\cerdas\apps\client; Remove-Item -Recurse -Force android\app\src\main\assets\public -ErrorAction SilentlyContinue; npx cap sync android; cd c:\projects\cerdas; Start-Process cmd.exe -ArgumentList "/c start-all.bat"; Start-Sleep 5; cd apps\client; npx cap open android
+```
+
+## Live Reload Benefits
+- Edit any file in `apps/client/src`
 - Save the file
-- The app in the emulator will **automatically refresh** within 2 seconds!
+- App in emulator **auto-refreshes** within 2 seconds!
+- No need to rebuild or restart
 
 ## Troubleshooting
 
-### App shows blank screen
-- Check if Vite dev server is running (`pnpm dev`)
-- Verify `capacitor.config.ts` has `useLiveReload = true`
+### App shows "Cannot connect to server"
+- Dev servers not running - check if `start-all.bat` windows are open
+- Vite server not on port 9981 - check for port conflicts
 
-### Cannot connect to API
-- Ensure backend is running on port 9980
-- Verify `.env.local` has `VITE_API_URL=http://10.0.2.2:9980/api`
-
-### Database errors
-- SQLite uses native driver on Android - no WASM issues!
-
-## Switching to Production Build
-In `capacitor.config.ts`, set:
-```typescript
-const useLiveReload = false;
-```
-Then rebuild and run.
-
-## Android Debugging Feedback Loop (ADB)
-
-**IMPORTANT**: This is the preferred method for fast debugging on Android. Use these commands to programmatically restart the app and capture logs without manual interaction.
-
-### Quick Commands
-
-```powershell
-# Restart app + capture log (one command)
-.\restart-android.bat
-
-# Or manually:
-adb shell am force-stop com.cerdas.client && adb shell am start -n com.cerdas.client/.MainActivity
-
-# Save logs only (without restart)
-.\save-android-log.bat
-
-# Clear logs before fresh capture
-adb logcat -c
-```
-
-### Automated Debugging Cycle
-
-When debugging Android issues, use this cycle:
-
-```powershell
-# 1. Clear old logs
-adb logcat -c
-
-# 2. Force stop and restart app
-adb shell am force-stop com.cerdas.client
-adb shell am start -n com.cerdas.client/.MainActivity
-
-# 3. Wait for app to initialize (3-5 seconds)
-timeout /t 4 /nobreak > nul
-
-# 4. Capture logs to file
-adb logcat -d *:S Capacitor/Console:* > logs\android.log
-
-# 5. View the log file for errors
-# (I can read this file directly)
-```
-
-### Log Filtering
-
-```powershell
-# All Capacitor console output
-adb logcat -d *:S Capacitor/Console:*
-
-# Only errors
-adb logcat -d *:S Capacitor/Console:E
-
-# Full Capacitor (verbose)
-adb logcat -d *:S Capacitor:V Capacitor/Console:V Capacitor/Plugin:V
-```
-
-### Log Files Location
-- `logs/android.log` - Latest captured log
-
-### What to Look For in Logs
-1. **`[vite] connected.`** - Live reload working
-2. **`Database initialized`** - SQLite ready
-3. **`Capacitor/Console: E`** - Errors (red flag!)
-4. **`Sending plugin error`** - Native plugin errors
-
-### Common Issues & Fixes
-| Error | Solution |
-|-------|----------|
-| `Connection cerdas_db already exists` | Handled automatically, check for `Connection exists, retrieving...` |
-| `no such column: xyz` | Query uses wrong column name, check schema |
-| `Unexpected token` | WebView too old, use API 30+ emulator for dev |
-| `Unable to read file at path public/plugins` | Harmless warning, ignore |
-
+### App loads but no live reload
+- Check `useLiveReload = true` in `capacitor.config.ts`
+- Verify emulator can reach `10.0.2.2:9981`

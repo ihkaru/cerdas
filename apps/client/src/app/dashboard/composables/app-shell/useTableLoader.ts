@@ -20,16 +20,43 @@ export function useTableLoader(
             
             if (tables.values && tables.values.length > 0) {
                 const t = tables.values[0];
+                log.debug('Raw SQLite Row:', { 
+                    layoutType: typeof t.layout, 
+                    fieldsType: typeof t.fields,
+                    version: t.version,
+                    keys: Object.keys(t),
+                    layoutSample: typeof t.layout === 'string' ? t.layout.substring(0, 50) : 'OBJ',
+                    fieldsSample: typeof t.fields === 'string' ? t.fields.substring(0, 50) : 'OBJ'
+                });
+
+                let parsedLayout = t.layout;
+                try {
+                    if (typeof t.layout === 'string') parsedLayout = JSON.parse(t.layout);
+                } catch (e) {
+                    log.error('Failed to parse layout JSON:', t.layout);
+                }
+
+                let parsedFields = t.fields;
+                try {
+                    if (typeof t.fields === 'string') parsedFields = JSON.parse(t.fields);
+                } catch (e) {
+                    log.error('Failed to parse fields JSON:', t.fields);
+                }
+
                 schemaData.value = {
                     ...t,
-                    // Parse JSON fields
-                    fields: typeof t.fields === 'string' ? JSON.parse(t.fields) : t.fields,
-                    layout: typeof t.layout === 'string' ? JSON.parse(t.layout) : t.layout,
+                    version: t.version, // Explicitly assign version
+                    fields: parsedFields,
+                    layout: parsedLayout,
                     settings: typeof t.settings === 'string' ? JSON.parse(t.settings) : t.settings
                 };
                 layout.value = schemaData.value.layout || {};
                 
                 log.debug(`Loaded Table Data. Layout: ${!!schemaData.value.layout}`);
+                log.debug(`[UseTableLoader] Layout views.default loaded:`, JSON.stringify({
+                    groupBy: layout.value?.views?.default?.groupBy || 'NONE',
+                    deck: layout.value?.views?.default?.deck || 'NO DECK'
+                }));
                 
                 return schemaData.value;
             }

@@ -2,8 +2,8 @@
     <EditorShell>
         <template #header>
             <EditorHeader :title="tableName" :is-dirty="isDirty" :is-published="isPublished" :version="currentVersion"
-                @rename="handleRename" @save="handleSave" @publish="handlePublish" @back="handleBack"
-                @export="exportTable" />
+                :can-publish="isDirty && hasTableSelected" @rename="handleRename" @save="handleSave"
+                @publish="handlePublish" @back="handleBack" @export="exportTable" />
         </template>
 
         <template #sidebar>
@@ -265,13 +265,13 @@ async function selectTable(id: string | number) {
     try {
         await tableStore.fetchTable(id);
         const table = tableStore.currentTable;
-        
+
         // Find latest version (assuming backend returns versions ordered desc)
         // If not ordered, we should sort, but TableController::show loads them.
         // Actually TableController::show does "load(['versions'])", default order might be ASC by ID.
         // Let's rely on TableController::listVersions behavior or sort here?
         // Safest: Use tableStore.currentTable which should have versions.
-        
+
         let versionToLoad = null;
 
         if (table?.versions && table.versions.length > 0) {
@@ -282,22 +282,22 @@ async function selectTable(id: string | number) {
 
         // If no version found (shouldn't happen for valid table), create one?
         // But TableController::store creates v1 draft.
-        
+
         if (!versionToLoad) {
-             // Fallback if no versions exist (rare edge case)
-             const draft = await tableStore.createDraft(id);
-             versionToLoad = draft;
+            // Fallback if no versions exist (rare edge case)
+            const draft = await tableStore.createDraft(id);
+            versionToLoad = draft;
         }
 
         // Check if latest is published
         if (versionToLoad.published_at) {
-             isPublished.value = true;
-             // DO NOT create draft here. Just load the published version.
-             // User must explicitly click "Edit" or "Create Draft" (to be implemented if needed)
-             // For now, loading it as currentVersion.
-             
-             // The existing loadTable expects a "draft" object structure which matches TableVersion
-             loadTable(
+            isPublished.value = true;
+            // DO NOT create draft here. Just load the published version.
+            // User must explicitly click "Edit" or "Create Draft" (to be implemented if needed)
+            // For now, loading it as currentVersion.
+
+            // The existing loadTable expects a "draft" object structure which matches TableVersion
+            loadTable(
                 String(table!.id),
                 table!.name || 'Untitled',
                 versionToLoad.fields || [],
@@ -305,13 +305,14 @@ async function selectTable(id: string | number) {
                 versionToLoad.layout?.settings,
                 versionToLoad.layout,
                 String(table!.app_id || '')
-             );
-             currentVersion.value = versionToLoad.version;
-             
+            );
+            currentVersion.value = versionToLoad.version;
+            tableStore.currentVersion = versionToLoad; // Set store version for publish
+
         } else {
-             // It's a draft, use it
-             isPublished.value = false;
-             loadTable(
+            // It's a draft, use it
+            isPublished.value = false;
+            loadTable(
                 String(table!.id),
                 table!.name || 'Untitled',
                 versionToLoad.fields || [],
@@ -319,8 +320,9 @@ async function selectTable(id: string | number) {
                 versionToLoad.layout?.settings,
                 versionToLoad.layout,
                 String(table!.app_id || '')
-             );
-             currentVersion.value = versionToLoad.version;
+            );
+            currentVersion.value = versionToLoad.version;
+            tableStore.currentVersion = versionToLoad; // Set store version for publish
         }
 
     } catch (e: any) {
@@ -414,7 +416,23 @@ async function handleSave() {
     try {
         const tableId = props.f7route.params.id || currentTableId.value;
         if (!tableId) throw new Error('No table selected');
-        const version = tableStore.currentVersion.version;
+
+        let version = tableStore.currentVersion.version;
+        let createdNewDraft = false;
+
+        // If current version is published, we need to create a new draft first
+        if (isPublished.value || tableStore.currentVersion.published_at) {
+            console.log('[handleSave] Current version is published, creating new draft...');
+            f7.toast.show({ text: 'Creating new draft...', position: 'center', closeTimeout: 1000 });
+
+            const draft = await tableStore.createDraft(tableId);
+            version = draft.version;
+            isPublished.value = false;
+            createdNewDraft = true;
+
+            console.log('[handleSave] Draft created, version:', version);
+            f7.toast.show({ text: `Draft v${version} created`, position: 'center', closeTimeout: 1000 });
+        }
 
         // Ensure settings are in layout
         const layoutPayload = {
@@ -426,6 +444,12 @@ async function handleSave() {
 
         await tableStore.updateVersion(tableId, version, fieldsPayload, layoutPayload);
 
+        // If we created a new draft, reload the table to update currentVersion in store
+        if (createdNewDraft) {
+            console.log('[handleSave] Reloading table to sync currentVersion...');
+            await tableStore.fetchTable(tableId);
+        }
+
         f7.toast.show({ text: 'Table saved', position: 'center', closeTimeout: 2000 });
     } catch (e: any) {
         f7.dialog.alert(e.message || 'Failed to save');
@@ -433,7 +457,11 @@ async function handleSave() {
 }
 
 async function handlePublish() {
-    if (!tableStore.currentVersion) return;
+    console.log('[DEBUG] handlePublish called. currentVersion:', tableStore.currentVersion);
+    if (!tableStore.currentVersion) {
+        console.warn('[DEBUG] handlePublish aborted: currentVersion is null');
+        return;
+    }
     try {
         // Prompt for optional changelog before publishing
         f7.dialog.prompt(
@@ -443,10 +471,10 @@ async function handlePublish() {
                 await handleSave(); // Save first
                 const pubId = props.f7route.params.id || currentTableId.value;
                 if (!pubId) return;
-                const result = await tableStore.publishVersion(pubId, tableStore.currentVersion!.version, changelog || undefined);
+                await tableStore.publishVersion(pubId, tableStore.currentVersion!.version, changelog || undefined);
                 f7.toast.show({ text: `Version ${currentVersion.value} published!`, position: 'center', closeTimeout: 2000 });
                 isPublished.value = true; // Mark as published (read-only)
-                
+
                 // Reload table to refresh version list/status
                 if (pubId) {
                     await tableStore.fetchTable(pubId);

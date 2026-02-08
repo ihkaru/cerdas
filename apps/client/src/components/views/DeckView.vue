@@ -1,6 +1,7 @@
 <template>
     <f7-list media-list>
-        <f7-list-item v-for="item in data" :key="item.id || item.local_id" :class="`status-border-${item.status}`"
+        <f7-list-item v-for="(item, idx) in data" :key="item.id || item.local_id"
+            :class="[`status-border-${item.status}`, 'enter-animation']" :style="{ animationDelay: `${idx * 0.03}s` }"
             :title="resolvePath(item, options.title)" :subtitle="resolvePath(item, options.subtitle)"
             @click="$emit('click', item)" link="#">
             <template #media v-if="options.image">
@@ -38,6 +39,24 @@
 /* Ensure border is visible */
 :deep(.item-inner) {
     padding-left: 8px;
+}
+
+/* Staggered slide-up animation for list items */
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.enter-animation {
+    opacity: 0;
+    animation: slideUpFade 0.35s ease-out forwards;
 }
 </style>
 

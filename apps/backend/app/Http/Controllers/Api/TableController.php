@@ -119,7 +119,9 @@ class TableController extends Controller {
             ], 403);
         }
 
-        $table->load(['versions']);
+        $table->load(['versions' => function ($query) {
+            $query->orderBy('version', 'desc');
+        }, 'currentVersionModel', 'latestPublishedVersion']);
 
         return response()->json([
             'success' => true,

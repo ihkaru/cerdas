@@ -147,7 +147,7 @@ class AppController extends Controller {
         }
 
         // Updated relation: forms -> tables
-        $app->load(['tables.latestPublishedVersion', 'memberships.user', 'views', 'organizations']);
+        $app->load(['tables.latestPublishedVersion', 'memberships.user', 'views', 'organizations', 'invitations']);
 
         return response()->json([
             'success' => true,
@@ -285,6 +285,154 @@ class AppController extends Controller {
             'success' => true,
             'message' => 'Organization detached',
             'data' => $app->load('organizations')->organizations,
+        ]);
+    }
+    /**
+     * Add member to app (Simple Mode)
+     */
+    public function addMember(Request $request, App $app): JsonResponse {
+        $user = $request->user();
+
+        // 1. Authorization: Only App Admin or Super Admin can add members
+        if (!$user->isSuperAdmin()) {
+            $membership = $user->getMembershipForApp($app->id);
+            if (!$membership || $membership->role !== 'app_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+        }
+
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'role' => 'required|in:app_admin,editor,enumerator,supervisor,viewer',
+        ]);
+
+        // 2. Find User
+        $targetUser = User::where('email', $validated['email'])->first();
+
+        if (!$targetUser) {
+            // Create Invitation for non-existing user
+            // Check if already invited
+            $existingInvite = \App\Models\AppInvitation::where('app_id', $app->id)
+                ->where('email', $validated['email'])
+                ->first();
+
+            if ($existingInvite) {
+                return response()->json(['success' => false, 'message' => 'User already invited.'], 409);
+            }
+
+            \App\Models\AppInvitation::create([
+                'app_id' => $app->id,
+                'email' => $validated['email'],
+                'role' => $validated['role'],
+                'created_by' => $user->id,
+            ]);
+
+            // TODO: Send Email
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invitation sent to ' . $validated['email'],
+                'data' => [
+                    'members' => $app->load('memberships.user')->memberships->map(function ($m) {
+                        return [
+                            'id' => $m->id,
+                            'user' => $m->user,
+                            'role' => $m->role,
+                        ];
+                    }),
+                    'invitations' => $app->load('invitations')->invitations
+                ]
+            ]);
+        }
+
+        // 3. Add/Update Membership
+        // Check if already member
+        $existing = AppMembership::where('app_id', $app->id)
+            ->where('user_id', $targetUser->id)
+            ->first();
+
+        if ($existing) {
+            $existing->update(['role' => $validated['role']]);
+            $message = 'Member role updated successfully.';
+        } else {
+            AppMembership::create([
+                'app_id' => $app->id,
+                'user_id' => $targetUser->id,
+                'role' => $validated['role'],
+                'is_active' => true,
+            ]);
+            $message = 'Member added successfully.';
+        }
+
+        // 4. Return updated member list
+        $app->load(['memberships.user', 'invitations']); // Refresh members & invitations
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => [
+                'members' => $app->memberships->map(function ($m) {
+                    return [
+                        'id' => $m->id,
+                        'user' => $m->user,
+                        'role' => $m->role,
+                    ];
+                }),
+                'invitations' => $app->invitations
+            ]
+        ]);
+    }
+
+    /**
+     * Remove member from app
+     */
+    public function removeMember(Request $request, App $app, User $targetUser): JsonResponse {
+        $user = $request->user();
+
+        // 1. Authorization
+        if (!$user->isSuperAdmin()) {
+            $membership = $user->getMembershipForApp($app->id);
+            if (!$membership || $membership->role !== 'app_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+        }
+
+        // Prevent removing self if it leaves app without admin? (Optional safety)
+        // For now allow it.
+
+        AppMembership::where('app_id', $app->id)
+            ->where('user_id', $targetUser->id)
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Member removed successfully.',
+            'data' => $app->load('memberships.user')->memberships, // Return updated list
+        ]);
+    }
+
+    /**
+     * Cancel invitation
+     */
+    public function cancelInvitation(Request $request, App $app, $invitationId): JsonResponse {
+        $user = $request->user();
+
+        // 1. Authorization
+        if (!$user->isSuperAdmin()) {
+            $membership = $user->getMembershipForApp($app->id);
+            if (!$membership || $membership->role !== 'app_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+        }
+
+        \App\Models\AppInvitation::where('app_id', $app->id)
+            ->where('id', $invitationId)
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invitation cancelled.',
+            'data' => $app->load('invitations')->invitations,
         ]);
     }
 }

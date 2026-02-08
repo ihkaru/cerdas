@@ -1,9 +1,14 @@
 import { useDatabase } from '@/common/composables/useDatabase';
 import { f7 } from 'framework7-vue';
+import type { Ref } from 'vue';
+import { isRef } from 'vue';
 import { DashboardRepository } from '../repositories/DashboardRepository';
 
-export function useAppShellActions(contextId: string, refreshCallback: (full?: boolean) => Promise<void>) {
+export function useAppShellActions(contextId: string | Ref<string>, refreshCallback: (full?: boolean) => Promise<void>) {
     const db = useDatabase();
+    
+    // Helper to resolve contextId whether it's a string or Ref
+    const getContextId = () => isRef(contextId) ? contextId.value : contextId;
 
     const deleteAssignment = async (assignmentId: string) => {
         try {
@@ -36,7 +41,7 @@ export function useAppShellActions(contextId: string, refreshCallback: (full?: b
     const createAssignment = async () => {
         try {
             const conn = await db.getDB();
-            const newId = await DashboardRepository.createLocalAssignment(conn, contextId);
+            const newId = await DashboardRepository.createLocalAssignment(conn, getContextId());
             await db.save();
             await refreshCallback(true);
             return newId;

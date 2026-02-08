@@ -13,16 +13,19 @@
         </div>
 
         <!-- App Members Section -->
-        <MembersSection :members="members" :loading="loading" />
+        <MembersSection :members="members" :invitations="invitations" :loading="loading" @invite="handleInvite" @remove="handleRemoveMember"
+            @cancel-invitation="handleCancelInvitation" />
 
         <!-- Dialogs -->
         <AddOrganizationDialog :opened="isAddOrgOpen" @update:opened="isAddOrgOpen = $event" @select="handleAddOrg" />
+        <AddMemberDialog :opened="isAddMemberOpen" :loading="loading" @update:opened="isAddMemberOpen = $event"
+            @submit="handleAddMember" />
     </f7-page>
 </template>
 
 <script setup lang="ts">
-import { useAppStore } from '@/stores';
 import { onMounted, ref } from 'vue';
+import AddMemberDialog from '../app/pages/app-detail/components/AddMemberDialog.vue';
 import AddOrganizationDialog from '../app/pages/app-detail/components/AddOrganizationDialog.vue';
 import AppHeader from '../app/pages/app-detail/components/AppHeader.vue';
 import MembersSection from '../app/pages/app-detail/components/MembersSection.vue';
@@ -41,10 +44,14 @@ const {
     loading,
     fetchApp,
     addOrganization,
-    removeOrganization
+    removeOrganization,
+    addMember,
+    removeMember,
+    invitations,
+    cancelInvitation
 } = useAppDetail();
 
-const appStore = useAppStore();
+
 
 const isAddOrgOpen = ref(false);
 
@@ -56,6 +63,28 @@ function handleEditApp() {
 async function handleAddOrg(orgId: string | number) {
     await addOrganization(orgId);
     isAddOrgOpen.value = false;
+}
+
+const isAddMemberOpen = ref(false);
+
+function handleInvite() {
+    isAddMemberOpen.value = true;
+}
+
+async function handleAddMember(payload: { email: string, role: string }) {
+    await addMember(payload.email, payload.role);
+    isAddMemberOpen.value = false;
+    // f7.toast.show({ text: 'Member added', position: 'center', closeTimeout: 2000 });
+}
+
+async function handleRemoveMember(userId: string | number) {
+    if (!confirm('Are you sure you want to remove this member?')) return;
+    await removeMember(userId);
+}
+
+async function handleCancelInvitation(invitationId: string | number) {
+    if (!confirm('Cancel this invitation?')) return;
+    await cancelInvitation(invitationId);
 }
 
 onMounted(() => {

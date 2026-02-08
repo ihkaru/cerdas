@@ -177,11 +177,12 @@ class ResponseController extends Controller {
                 }
 
                 // Check permissions (User must be enumerator or supervisor)
-                if (
-                    $assignment->enumerator_id !== $user->id &&
-                    $assignment->supervisor_id !== $user->id &&
-                    !$user->isSuperAdmin()
-                ) {
+                // OR if assignment is unassigned (enumerator_id is null) - Simple Mode Auto-Claim
+                $isOwner = $assignment->enumerator_id === $user->id;
+                $isSupervisor = $assignment->supervisor_id === $user->id;
+                $isUnassigned = is_null($assignment->enumerator_id);
+
+                if (!$isOwner && !$isSupervisor && !$user->isSuperAdmin() && !$isUnassigned) {
                     Log::warning('Access Denied', ['user_id' => $user->id, 'assignment_id' => $assignment->id]);
                     $results[] = [
                         'local_id' => $respData['local_id'],
@@ -189,6 +190,12 @@ class ResponseController extends Controller {
                         'message' => 'Access denied'
                     ];
                     continue;
+                }
+
+                // If unassigned, claim it for the user
+                if ($isUnassigned) {
+                    $assignment->update(['enumerator_id' => $user->id]);
+                    Log::info('Assignment Auto-Claimed via Sync', ['id' => $assignment->id, 'user_id' => $user->id]);
                 }
 
                 // Process Base64 Images -> Disk

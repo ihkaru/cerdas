@@ -324,6 +324,10 @@ async function startApp() {
                         ];
                         await db.run(sql, values);
                         logger.debug('Persisted preview schema to DB', { tableId: targetId });
+                        logger.debug('[DEBUG] Layout views.default saved to SQLite:', JSON.stringify({
+                            groupBy: layout?.views?.default?.groupBy || 'NONE',
+                            deck: layout?.views?.default?.deck || 'NO DECK'
+                        }));
 
                         // 3. Force Dashboard Reload (Critical Fix)
                         try {
@@ -339,9 +343,11 @@ async function startApp() {
                     }
 
                     // 4. Notify Components
+                    logger.debug('[MAIN] Dispatching schema-override-updated event', { tableId: targetId });
                     window.dispatchEvent(new CustomEvent('schema-override-updated', {
                          detail: { tableId: targetId, fields: targetFields, layout }
                     }));
+                    logger.debug('[MAIN] Event dispatched successfully');
                 }
 
                 if (type === 'REFRESH_DATA') {

@@ -57,10 +57,16 @@ export function useViewManagement(
     }
 
    function updateDeckConfigProp(viewKey: string, key: string, value: any) {
+        console.log('[DEBUG] useViewManagement.updateDeckConfigProp called', { viewKey, key, value });
         const view = layout.views[viewKey];
-        if (!view) return;
+        if (!view) {
+            console.warn('[DEBUG] View not found for key:', viewKey);
+            return;
+        }
         if (!view.deck) view.deck = { primaryHeaderField: '', secondaryHeaderField: '', imageField: null, imageShape: 'square' };
         (view.deck as any)[key] = value;
+        console.log('[DEBUG] Updated view.deck:', JSON.stringify(view.deck));
+        console.log('[DEBUG] Calling commitChanges...');
         commitChanges();
     }
 
@@ -82,6 +88,13 @@ export function useViewManagement(
         commitChanges();
     }
 
+    function updateGroupBy(viewKey: string, groupBy: string[]) {
+        const view = layout.views[viewKey];
+        if (!view) return;
+        view.groupBy = groupBy;
+        commitChanges();
+    }
+
     return {
         selectedViewKey,
         selectedView,
@@ -91,6 +104,7 @@ export function useViewManagement(
         updateViewProp,
         updateDeckConfigProp,
         updateMapConfigProp,
-        toggleAction
+        toggleAction,
+        updateGroupBy
     };
 }

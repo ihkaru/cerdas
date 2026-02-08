@@ -19,6 +19,7 @@
                 <ViewConfigPanel v-if="configMode === 'view' && selectedView" :view="selectedView" :fields="fields"
                     :actions="availableActions" @update:viewProp="handleViewUpdate"
                     @update:deckConfig="handleDeckUpdate" @update:mapConfig="handleMapUpdate"
+                    @update:groupBy="handleGroupByUpdate"
                     @toggle-action="handleActionToggle" @delete-view="handleDeleteView" />
 
                 <!-- Navigation Configuration Mode -->
@@ -86,7 +87,8 @@ const {
     updateViewProp,
     updateDeckConfigProp,
     updateMapConfigProp,
-    toggleAction
+    toggleAction,
+    updateGroupBy
 } = useViewManagement(localLayout, commitLocalChanges);
 
 // Navigation Management (Tab bar)
@@ -145,6 +147,7 @@ function handleViewUpdate(key: string, value: any) {
 }
 
 function handleDeckUpdate(key: string, value: any) {
+    console.log('[DEBUG] ViewsPanel.handleDeckUpdate called', { key, value, selectedViewKey: selectedViewKey.value });
     if (selectedViewKey.value) {
         updateDeckConfigProp(selectedViewKey.value, key, value);
     }
@@ -159,6 +162,12 @@ function handleMapUpdate(key: string, value: any) {
 function handleActionToggle(actionId: string) {
     if (selectedViewKey.value) {
         toggleAction(selectedViewKey.value, actionId);
+    }
+}
+
+function handleGroupByUpdate(groupBy: string[]) {
+    if (selectedViewKey.value) {
+        updateGroupBy(selectedViewKey.value, groupBy);
     }
 }
 
