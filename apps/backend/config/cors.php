@@ -19,15 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'http://localhost:5173',
-        'http://127.0.0.1:5173',
-        'http://localhost:8100',
-        'http://localhost:9981',
-        'http://localhost:9982',
-        'http://10.0.2.2:9981',
-        'http://10.0.2.2:*'
-    ],
+    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:8100,http://localhost:9981,http://localhost:9982,http://10.0.2.2:9981')),
 
     'allowed_origins_patterns' => [],
 
