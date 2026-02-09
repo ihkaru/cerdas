@@ -15,8 +15,9 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
-
+    'paths' => [
+        '*',
+    ],
     'allowed_methods' => ['*'],
 
     'allowed_origins' => array_map('trim', explode(',', env(
