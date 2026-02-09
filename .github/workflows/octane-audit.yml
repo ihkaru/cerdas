@@ -1,0 +1,72 @@
+name: Octane Safety Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/backend/app/**"
+      - "apps/backend/config/**"
+      - "apps/backend/routes/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/backend/app/**"
+      - "apps/backend/config/**"
+      - "apps/backend/routes/**"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    name: Scan for Octane-unsafe patterns
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for CRITICAL patterns
+        run: |
+          echo "🔍 Octane Safety Audit"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          ISSUES=0
+
+          # CRITICAL: Static mutable properties
+          HITS=$(grep -rn 'static\s\+\(public\|private\|protected\)\s\+\$' apps/backend/app/ --include="*.php" || true)
+          if [ -n "$HITS" ]; then
+            echo "🔴 [CRITICAL] Static mutable properties found:"
+            echo "$HITS"
+            ISSUES=$((ISSUES + 1))
+          fi
+
+          # CRITICAL: Global variables
+          HITS=$(grep -rn 'global\s\+\$' apps/backend/app/ --include="*.php" || true)
+          if [ -n "$HITS" ]; then
+            echo "🔴 [CRITICAL] Global variables found:"
+            echo "$HITS"
+            ISSUES=$((ISSUES + 1))
+          fi
+
+          # CRITICAL: Superglobals
+          HITS=$(grep -rn '\$_\(SESSION\|GLOBALS\)' apps/backend/app/ --include="*.php" || true)
+          if [ -n "$HITS" ]; then
+            echo "🔴 [CRITICAL] Superglobal access found:"
+            echo "$HITS"
+            ISSUES=$((ISSUES + 1))
+          fi
+
+          if [ $ISSUES -gt 0 ]; then
+            echo ""
+            echo "❌ Found $ISSUES CRITICAL issue(s). Fix before deploying with Octane."
+            exit 1
+          fi
+
+          echo "✅ No CRITICAL Octane-unsafe patterns found."
+
+      - name: Check for WARNING patterns (non-blocking)
+        if: always()
+        run: |
+          echo "🟡 WARNING checks (informational only):"
+
+          grep -rn 'config()->set\|Config::set(' apps/backend/app/ --include="*.php" && echo "  ⚠️ Runtime config set detected" || true
+          grep -rn '\benv(' apps/backend/app/ --include="*.php" && echo "  ⚠️ env() in app code detected" || true
+          grep -rn '\$_SERVER\[' apps/backend/app/ --include="*.php" && echo "  ⚠️ Direct \$_SERVER access detected" || true
+          grep -rn '\$_\(REQUEST\|GET\|POST\)\[' apps/backend/app/ --include="*.php" && echo "  ⚠️ Direct superglobal access detected" || true
+
+          echo "✅ WARNING check complete (non-blocking)."
