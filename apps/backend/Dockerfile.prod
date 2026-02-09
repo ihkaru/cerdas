@@ -25,13 +25,14 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
 # Copy Application Code
 COPY . .
 
+# Run post-install scripts (package discovery, etc.)
+RUN composer dump-autoload --optimize
+
+# Create required directories
+RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
+
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html
 
 # Switch to non-root user
 USER www-data
-
-# Make bootstrap/cache directory
-RUN mkdir -p bootstrap/cache
-RUN chmod -R 777 bootstrap/cache
-
