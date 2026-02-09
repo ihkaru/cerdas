@@ -32,7 +32,7 @@ const impersonatedToken = ref<string | null>(null);
 
 // The client app URL - auto navigate to specific app if ID exists
 const iframeUrl = computed(() => {
-    const baseUrl = import.meta.env.VITE_CLIENT_URL || window.location.origin.replace('editor', 'client');
+    const baseUrl = import.meta.env.VITE_CLIENT_URL || window.location.origin.replace('editor', 'app');
     if (schemaId.value) {
         return `${baseUrl}/app/${schemaId.value}`;
     }

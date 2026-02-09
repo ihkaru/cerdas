@@ -35,4 +35,4 @@ RUN chown -R www-data:www-data /var/www/html
 EXPOSE 8080
 
 # Start Octane with FrankenPHP worker mode
-ENTRYPOINT ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8080", "--max-requests=500"]
+ENTRYPOINT ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8080", "--workers=auto", "--max-requests=500"]
