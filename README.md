@@ -44,9 +44,9 @@ Most no-code platforms come with **heavy restrictions**. Cerdas was born out of 
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
-│                      Monorepo (pnpm + Turbo)            │
+│                    Monorepo (pnpm workspaces)            │
 ├──────────────┬──────────────┬──────────────┬────────────┤
 │  apps/client │ apps/editor  │ apps/backend │  packages/ │
 │  Mobile PWA  │  Web Editor  │  Laravel API │  Shared    │

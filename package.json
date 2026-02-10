@@ -4,20 +4,20 @@
   "private": true,
   "description": "Self-hosted, offline-first, no-code app builder for data collection",
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "test": "turbo run test",
-    "clean": "turbo run clean",
-    "typecheck": "turbo run typecheck"
+    "dev:client": "pnpm --filter client dev",
+    "dev:editor": "pnpm --filter editor dev",
+    "build:client": "pnpm --filter client build",
+    "build:editor": "pnpm --filter editor build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
     "typescript": "^5.4.0"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "pnpm": {
     "overrides": {
