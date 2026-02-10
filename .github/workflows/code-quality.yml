@@ -9,6 +9,10 @@ on:
       - ".github/workflows/code-quality.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - ".github/workflows/code-quality.yml"
 
 jobs:
   frontend-lint:
@@ -17,13 +21,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install

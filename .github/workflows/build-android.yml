@@ -24,23 +24,25 @@ jobs:
           distribution: "temurin"
           java-version: "21"
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install
 
       - name: Create production env
         run: |
-          cat > apps/client/.env.production << EOF
+          cat > apps/client/.env.production << 'EOF'
           VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
           VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           EOF
+        shell: bash
 
       - name: Build web assets
         run: pnpm --filter client build
