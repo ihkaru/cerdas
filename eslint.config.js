@@ -30,6 +30,12 @@ export default [
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
 
+      // TypeScript anti-pattern prevention
+      'eqeqeq': ['error', 'always'],                          // prevent == gotchas ([] == false is true!)
+      '@typescript-eslint/no-explicit-any': 'warn',            // prevent lazy typing
+      '@typescript-eslint/no-non-null-assertion': 'warn',      // prevent user!.name crash
+      '@typescript-eslint/prefer-nullish-coalescing': 'off',   // needs type-checked config, enforce via code review
+
       // Vue consistency
       'vue/multi-word-component-names': 'off',
       'vue/no-unused-vars': 'warn',
@@ -55,6 +61,13 @@ export default [
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
+
+      // TypeScript anti-pattern prevention
+      'eqeqeq': ['error', 'always'],                          // prevent == gotchas
+      '@typescript-eslint/no-explicit-any': 'warn',            // prevent lazy typing
+      '@typescript-eslint/no-non-null-assertion': 'warn',      // prevent user!.name crash
+      '@typescript-eslint/prefer-nullish-coalescing': 'off',   // needs type-checked config, enforce via code review
     },
   },
 ];
+
