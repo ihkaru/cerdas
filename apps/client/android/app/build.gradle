@@ -19,14 +19,45 @@ android {
 
     signingConfigs {
         release {
-            def keystoreFile = new File(rootProject.file("local.properties").exists() ? 
-                new java.util.Properties().tap { load(new FileInputStream(rootProject.file("local.properties"))) }.getProperty("signing.keystore") : "")
-            
-            if (keystoreFile.exists()) {
-                storeFile keystoreFile
-                storePassword new java.util.Properties().tap { load(new FileInputStream(rootProject.file("local.properties"))) }.getProperty("signing.password")
-                keyAlias new java.util.Properties().tap { load(new FileInputStream(rootProject.file("local.properties"))) }.getProperty("signing.alias")
-                keyPassword new java.util.Properties().tap { load(new FileInputStream(rootProject.file("local.properties"))) }.getProperty("signing.keyPassword")
+            def _keystorePath = ""
+            def _keystorePassword = ""
+            def _keyAlias = ""
+            def _keyPassword = ""
+
+            // Try to load from local.properties
+            try {
+                if (rootProject.file("local.properties").exists()) {
+                    def properties = new java.util.Properties()
+                    properties.load(new FileInputStream(rootProject.file("local.properties")))
+                    
+                    _keystorePath = properties.getProperty("signing.keystore", "")
+                    _keystorePassword = properties.getProperty("signing.password", "")
+                    _keyAlias = properties.getProperty("signing.alias", "")
+                    _keyPassword = properties.getProperty("signing.keyPassword", "")
+                }
+            } catch (Exception e) {
+                logger.warn("Could not load local.properties: " + e.message)
+            }
+
+            // Fallback to Env Vars
+            if (!_keystorePath && project.hasProperty('android.injected.signing.store.file')) {
+                _keystorePath = project.property('android.injected.signing.store.file')
+            }
+            if (!_keystorePassword && project.hasProperty('android.injected.signing.store.password')) {
+                _keystorePassword = project.property('android.injected.signing.store.password')
+            }
+            if (!_keyAlias && project.hasProperty('android.injected.signing.key.alias')) {
+                _keyAlias = project.property('android.injected.signing.key.alias')
+            }
+            if (!_keyPassword && project.hasProperty('android.injected.signing.key.password')) {
+                _keyPassword = project.property('android.injected.signing.key.password')
+            }
+
+            if (_keystorePath) {
+                storeFile project.file(_keystorePath)
+                storePassword _keystorePassword
+                keyAlias _keyAlias
+                keyPassword _keyPassword
             }
         }
     }
