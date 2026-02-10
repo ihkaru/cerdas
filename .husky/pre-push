@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Pre-push hook: verify client build before pushing
+# Pre-push hook: verify Android build before pushing
 # Bypass with: git push --no-verify
 
 # Get list of files being pushed
@@ -14,17 +14,40 @@ if [ -z "$CLIENT_CHANGED" ]; then
     exit 0
 fi
 
-echo "🔍 Client changes detected, running build verification..."
+echo "🔍 Client changes detected, running full Android build verification..."
+echo ""
 
-# Cross-platform: use pnpm directly
+# Step 1: Build web assets
+echo "🏗️  [1/3] Building web assets..."
 pnpm --filter client build
-
 if [ $? -ne 0 ]; then
-    echo ""
-    echo "❌ BUILD FAILED! Push blocked."
-    echo "Fix the errors above, then try again."
+    echo "❌ WEB BUILD FAILED! Push blocked."
+    echo "To bypass: git push --no-verify"
+    exit 1
+fi
+echo "✅ Web assets OK"
+
+# Step 2: Cap sync
+echo "🔄 [2/3] Syncing to Android..."
+cd apps/client
+npx cap sync android
+if [ $? -ne 0 ]; then
+    echo "❌ CAP SYNC FAILED! Push blocked."
+    echo "To bypass: git push --no-verify"
+    exit 1
+fi
+echo "✅ Cap sync OK"
+
+# Step 3: Gradle build (debug, no signing needed)
+echo "🤖 [3/3] Building Android native..."
+cd android
+chmod +x gradlew 2>/dev/null
+./gradlew assembleDebug
+if [ $? -ne 0 ]; then
+    echo "❌ GRADLE BUILD FAILED! Push blocked."
     echo "To bypass: git push --no-verify"
     exit 1
 fi
 
-echo "✅ Build verification passed. Pushing..."
+echo ""
+echo "✅ Full Android build verification passed. Pushing..."
