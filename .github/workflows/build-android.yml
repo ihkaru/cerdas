@@ -47,9 +47,11 @@ jobs:
         env:
           NODE_ENV: production
 
-      - name: Sync Capacitor
+      - name: Add & Sync Capacitor Android
         working-directory: apps/client
-        run: npx cap sync android
+        run: |
+          npx cap add android
+          npx cap sync android
 
       - name: Decode keystore
         run: |
