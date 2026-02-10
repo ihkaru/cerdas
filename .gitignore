@@ -37,7 +37,7 @@ apps/backend/storage/logs/
 apps/backend/bootstrap/cache/
 
 # Capacitor
-apps/client/android/
+
 apps/client/ios/
 apps/editor/android/
 apps/editor/ios/

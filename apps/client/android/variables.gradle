@@ -1,0 +1,16 @@
+ext {
+    minSdkVersion = 29  // Android 10
+    compileSdkVersion = 35  // Android 15 - needed for Capacitor
+    targetSdkVersion = 34
+    androidxActivityVersion = '1.8.2'  // Downgraded
+    androidxAppCompatVersion = '1.6.1'  // Downgraded
+    androidxCoordinatorLayoutVersion = '1.2.0'  // Downgraded
+    androidxCoreVersion = '1.12.0'  // Downgraded
+    androidxFragmentVersion = '1.6.2'  // Downgraded
+    coreSplashScreenVersion = '1.0.1'  // Downgraded
+    androidxWebkitVersion = '1.10.0'  // Downgraded
+    junitVersion = '4.13.2'
+    androidxJunitVersion = '1.1.5'  // Downgraded
+    androidxEspressoCoreVersion = '3.5.1'  // Downgraded
+    cordovaAndroidVersion = '10.1.1'  // Downgraded
+}
