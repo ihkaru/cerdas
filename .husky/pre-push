@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# Pre-push hook: verify client build before pushing
+# Bypass with: git push --no-verify
+
+# Get list of files being pushed
+CHANGED_FILES=$(git diff --name-only HEAD@{1}..HEAD 2>/dev/null || git diff --name-only HEAD~1..HEAD 2>/dev/null || echo "")
+
+# Check if any client or packages files changed
+CLIENT_CHANGED=$(echo "$CHANGED_FILES" | grep -E "^(apps/client/|packages/)" || true)
+
+if [ -z "$CLIENT_CHANGED" ]; then
+    echo "⏭️  No client/packages changes detected, skipping build verification."
+    exit 0
+fi
+
+echo "🔍 Client changes detected, running build verification..."
+
+# Cross-platform: use pnpm directly
+pnpm --filter client build
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ BUILD FAILED! Push blocked."
+    echo "Fix the errors above, then try again."
+    echo "To bypass: git push --no-verify"
+    exit 1
+fi
+
+echo "✅ Build verification passed. Pushing..."
