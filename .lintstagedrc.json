@@ -1,0 +1,8 @@
+{
+  "*.{js,ts,vue,json}": [
+    "eslint --fix"
+  ],
+  "apps/backend/**/*.php": [
+    "apps/backend/vendor/bin/pint"
+  ]
+}

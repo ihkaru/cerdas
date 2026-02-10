@@ -11,18 +11,20 @@
             </template>
 
             <!-- Skeleton Forms -->
-            <div v-if="loading && forms.length === 0" v-for="i in 3" :key="'skel-form-' + i"
-                class="form-card skeleton-text skeleton-effect-wave">
-                <div class="form-icon skeleton-block" style="background: rgba(0,0,0,0.1)"></div>
-                <div class="form-info" style="width: 100%">
-                    <div class="skeleton-block"
-                        style="width: 60%; height: 16px; margin-bottom: 8px; border-radius: 4px"></div>
-                    <div class="skeleton-block" style="width: 90%; height: 12px; border-radius: 4px"></div>
+            <!-- Skeleton Forms -->
+            <template v-if="loading && forms.length === 0">
+                <div v-for="i in 3" :key="'skel-form-' + i" class="form-card skeleton-text skeleton-effect-wave">
+                    <div class="form-icon skeleton-block" style="background: rgba(0,0,0,0.1)"></div>
+                    <div class="form-info" style="width: 100%">
+                        <div class="skeleton-block"
+                            style="width: 60%; height: 16px; margin-bottom: 8px; border-radius: 4px"></div>
+                        <div class="skeleton-block" style="width: 90%; height: 12px; border-radius: 4px"></div>
+                    </div>
+                    <div class="form-meta">
+                        <div class="skeleton-block" style="width: 60px; height: 20px; border-radius: 12px"></div>
+                    </div>
                 </div>
-                <div class="form-meta">
-                    <div class="skeleton-block" style="width: 60px; height: 20px; border-radius: 12px"></div>
-                </div>
-            </div>
+            </template>
 
             <!-- Add New Form Card -->
             <AddFormCard @click="$emit('create')" />

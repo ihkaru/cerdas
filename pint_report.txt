@@ -1,0 +1,75 @@
+
+  Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿».Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿».Γ¿».Γ¿»..Γ¿»..Γ¿»...........Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»
+  Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»Γ¿»..Γ¿».Γ¿»..Γ¿»Γ¿»Γ¿»
+
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ Laravel  
+    FAIL   ................................ 91 files, 68 style issues  
+  Γ¿» apps\backend\app\Http\Controllers\Api\AppController.php class_atΓÇª  
+  Γ¿» apps\backend\app\Http\Controllers\Api\AppSchemaController.php clΓÇª  
+  Γ¿» apps\backend\app\Http\Controllers\Api\AssignmentController.php cΓÇª  
+  Γ¿» apps\backend\app\Http\Controllers\Api\AuthController.php class_dΓÇª  
+  Γ¿» apps\backend\app\Http\Controllers\Api\DashboardController.php clΓÇª  
+  Γ¿» apps\backend\app\Http\Controllers\Api\ExcelImportController.php ΓÇª  
+  Γ¿» apps\backend\app\Http\Controllers\Api\GoogleAuthController.php cΓÇª  
+  Γ¿» apps\backend\app\Http\Controllers\Api\NotificationController.php class_definition, trailing_comma_in_multiline, braces_position  
+  Γ¿» apps\backend\app\Http\Controllers\Api\OrganizationController.php class_definition, trailing_comma_in_multiline, braces_position, not_operator_with_successor_space  
+  Γ¿» apps\backend\app\Http\Controllers\Api\ResponseController.php claΓÇª  
+  Γ¿» apps\backend\app\Http\Controllers\Api\TableController.php class_ΓÇª  
+  Γ¿» apps\backend\app\Imports\PrelistImport.php class_attributes_sepaΓÇª  
+  Γ¿» apps\backend\app\Models\App.php class_attributes_separation, claΓÇª  
+  Γ¿» apps\backend\app\Models\AppInvitation.php class_attributes_separΓÇª  
+  Γ¿» apps\backend\app\Models\AppMembership.php class_definition, no_tΓÇª  
+  Γ¿» apps\backend\app\Models\AppOrganization.php class_definition, noΓÇª  
+  Γ¿» apps\backend\app\Models\AppRecord.php class_attributes_separatioΓÇª  
+  Γ¿» apps\backend\app\Models\Assignment.php class_attributes_separatiΓÇª  
+  Γ¿» apps\backend\app\Models\Organization.php class_attributes_separaΓÇª  
+  Γ¿» apps\backend\app\Models\OrganizationInvitation.php class_definitΓÇª  
+  Γ¿» apps\backend\app\Models\Response.php class_attributes_separationΓÇª  
+  Γ¿» apps\backend\app\Models\Table.php class_attributes_separation, cΓÇª  
+  Γ¿» apps\backend\app\Models\TableVersion.php class_attributes_separaΓÇª  
+  Γ¿» apps\backend\app\Models\User.php class_attributes_separation, clΓÇª  
+  Γ¿» apps\backend\app\Models\View.php class_attributes_separation, clΓÇª  
+  Γ¿» apps\backend\app\Notifications\OrganizationInviteNotification.php class_definition, braces_position, no_unused_imports, single_line_empty_body, ordered_imports  
+  Γ¿» apps\backend\bootstrap\app.php concat_space, blank_line_before_sΓÇª  
+  Γ¿» apps\backend\check_apps.php blank_line_after_opening_tag, concatΓÇª  
+  Γ¿» apps\backend\config\broadcasting.php                 concat_space  
+  Γ¿» apps\backend\config\database.php                     concat_space  
+  Γ¿» apps\backend\database\migrations\2026_01_01_000000_create_users_and_auth.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_01_01_000001_create_organizations_structure.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_01_01_000002_create_apps_structure.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_01_01_000003_create_tables_structure.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_01_01_000004_create_assignments_structure.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_01_01_000005_create_cache_table.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_01_01_000006_create_supporting_tables.php braces_position, no_extra_blank_lines  
+  Γ¿» apps\backend\database\migrations\2026_02_07_104828_add_local_id_to_responses_table.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_02_07_105029_add_device_id_to_responses_table.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_02_07_105432_make_table_version_id_nullable_in_responses.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_02_07_120000_add_creator_id_to_organizations.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_02_07_130000_create_organization_members_table.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_02_07_153935_create_organization_invitations_table.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_02_07_154923_create_notifications_table.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_02_07_195128_add_changelog_to_table_versions.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_02_07_225250_create_app_invitations_table.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_02_08_010826_create_app_records_table.php braces_position  
+  Γ¿» apps\backend\database\migrations\2026_02_08_012000_make_assignment_actor_ids_nullable.php no_trailing_whitespace, braces_position, no_unused_imports  
+  Γ¿» apps\backend\database\migrations\2026_02_08_012500_add_settings_to_apps_table.php braces_position  
+  Γ¿» apps\backend\database\seeders\AppSeeder.php class_definition, trΓÇª  
+  Γ¿» apps\backend\database\seeders\ComponentShowcaseSeeder.php class_ΓÇª  
+  Γ¿» apps\backend\database\seeders\DatabaseSeeder.php class_definitioΓÇª  
+  Γ¿» apps\backend\database\seeders\LayoutDemoSeeder.php class_definitΓÇª  
+  Γ¿» apps\backend\database\seeders\PerformanceTestSeeder.php class_deΓÇª  
+  Γ¿» apps\backend\database\seeders\TableSeeder.php  class_definition,ΓÇª  
+  Γ¿» apps\backend\database\seeders\UserSeeder.php class_definition, tΓÇª  
+  Γ¿» apps\backend\debug_forms.php single_quote, blank_line_after_openΓÇª  
+  Γ¿» apps\backend\fix_schemas.php concat_space, no_trailing_whitespacΓÇª  
+  Γ¿» apps\backend\move_form_smart.php blank_line_after_opening_tag, cΓÇª  
+  Γ¿» apps\backend\public\debug_schema.php blank_line_after_opening_taΓÇª  
+  Γ¿» apps\backend\public\index.php                        concat_space  
+  Γ¿» apps\backend\public\test.php single_quote, blank_line_after_openΓÇª  
+  Γ¿» apps\backend\routes\api.php no_trailing_whitespace, trailing_comΓÇª  
+  Γ¿» apps\backend\routes\web.php control_structure_braces, concat_spaΓÇª  
+  Γ¿» apps\backend\tests\Feature\SyncIdempotencyTest.php class_attribuΓÇª  
+  Γ¿» apps\backend\tests\verify_broadcasting_config.php new_with_parenΓÇª  
+  Γ¿» apps\backend\tests\verify_invitation_flow.php new_with_parenthesΓÇª  
+  Γ¿» apps\backend\tests\verify_notification_flow.php new_with_parenthΓÇª  
+

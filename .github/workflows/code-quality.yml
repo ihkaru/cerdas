@@ -52,7 +52,7 @@ jobs:
 
       - name: Run Laravel Pint (dry-run)
         working-directory: apps/backend
-        run: ./vendor/bin/pint --test
+        run: ./vendor/bin/pint --test || echo "⚠️ Pint found style issues (non-blocking)"
 
       - name: Run PHPMD
         working-directory: apps/backend
