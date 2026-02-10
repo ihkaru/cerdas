@@ -1,0 +1,64 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - ".github/workflows/code-quality.yml"
+  pull_request:
+    branches: [main]
+
+jobs:
+  frontend-lint:
+    name: Frontend (ESLint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Lint Client App
+        run: pnpm --filter client lint
+
+      - name: Lint Editor App
+        run: pnpm --filter editor lint
+
+  backend-lint:
+    name: Backend (Laravel Pint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          tools: composer:v2
+
+      - name: Install Composer dependencies
+        working-directory: apps/backend
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run Laravel Pint (dry-run)
+        working-directory: apps/backend
+        run: ./vendor/bin/pint --test
+
+      - name: Run PHPMD
+        working-directory: apps/backend
+        run: |
+          if [ -f vendor/bin/phpmd ]; then
+            ./vendor/bin/phpmd app text cleancode,codesize,naming,unusedcode --exclude app/Console/Kernel.php || true
+          else
+            echo "⚠️ PHPMD not installed, skipping..."
+          fi

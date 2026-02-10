@@ -131,6 +131,8 @@ cerdas/
 |----------|---------|---------|
 | **Build APK** | Push to `main` (client changes) | Auto-build signed APK → GitHub Releases |
 | **Octane Audit** | Push to `main` (backend changes) | Detect memory leak patterns before deploy |
+| **Code Quality** | Push to `main` (apps changes) | ESLint (Vue/TS) + Laravel Pint (PHP) style enforcement |
+| **Secret Scan** | Push to `main` (all) | Detect leaked credentials/keys |
 
 ## Security
 
