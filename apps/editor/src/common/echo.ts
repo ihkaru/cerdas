@@ -16,7 +16,7 @@ const echo = new Echo({
     disableStats: true,
     cluster: 'mt1',
     enabledTransports: ['ws', 'wss'],
-    authEndpoint: `${import.meta.env.VITE_API_BASE_URL}/api/broadcasting/auth`,
+    authEndpoint: `${(import.meta.env.VITE_API_BASE_URL || '').replace(/\/api\/?$/, '')}/api/broadcasting/auth`,
     auth: {
         headers: {
             // This is static, but we can override the authorizer below for dynamic token
@@ -27,7 +27,8 @@ const echo = new Echo({
         return {
             authorize: (socketId: any, callback: any) => {
                 const token = localStorage.getItem('auth_token'); // Use correct key 'auth_token'
-                fetch(`${import.meta.env.VITE_API_BASE_URL}/api/broadcasting/auth`, {
+                const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/api\/?$/, '');
+                fetch(`${baseUrl}/api/broadcasting/auth`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
