@@ -74,7 +74,7 @@ onMounted(async () => {
             // In real app, recordId might be uuid or int.
             const assignmentsRes = await conn.query(`SELECT * FROM assignments`);
             const assignments = assignmentsRes.values || [];
-            recordData.value = assignments.find((a: any) => a.id == props.recordId || a.local_id == props.recordId);
+            recordData.value = assignments.find((a: any) => String(a.id) === String(props.recordId) || String(a.local_id) === String(props.recordId));
 
             // Parse prelist if needed
             if (recordData.value && typeof recordData.value.prelist_data === 'string') {
@@ -85,7 +85,7 @@ onMounted(async () => {
             // Fetch all responses for now
             const responsesRes = await conn.query(`SELECT * FROM responses`);
             const responses = responsesRes.values || [];
-            recordData.value = responses.find((r: any) => r.local_id == props.recordId);
+            recordData.value = responses.find((r: any) => String(r.local_id) === String(props.recordId));
 
             if (recordData.value && typeof recordData.value.data === 'string') {
                 try { recordData.value.data = JSON.parse(recordData.value.data); } catch { }

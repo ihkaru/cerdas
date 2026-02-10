@@ -148,7 +148,7 @@ function handleNavClick(item: any) {
 }
 
 function handleTableClick(table: any) {
-    if (table.id == props.currentTableId) {
+    if (String(table.id) === String(props.currentTableId)) {
         f7.panel.close('left');
         return;
     }
