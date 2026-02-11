@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.4](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.3...cerdas-v0.1.4) (2026-02-11)
+
+
+### Features
+
+* **client:** add advanced connection probe and fix ApiClient ([0104819](https://github.com/ihkaru/cerdas/commit/0104819eaac8859d03e0ca1833b29f410cc1004f))
+
+
+### Bug Fixes
+
+* **backend:** add android origins to cors allow list ([1e55611](https://github.com/ihkaru/cerdas/commit/1e5561117954e3d2aaca45c3dffbd4465369ca2e))
+
 ## [0.1.3](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.2...cerdas-v0.1.3) (2026-02-11)
 
 
