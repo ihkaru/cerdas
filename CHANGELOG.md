@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.2](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.1...cerdas-v0.1.2) (2026-02-11)
+
+
+### Features
+
+* **ci:** automate android build trigger from release-please ([23b5a60](https://github.com/ihkaru/cerdas/commit/23b5a607615898c89e0e766c71387044b5585ef8))
+
+
+### Bug Fixes
+
+* **client:** improve debug menu scrolling on android ([67d1d3a](https://github.com/ihkaru/cerdas/commit/67d1d3a8a1bac292dfa4dd3aed10623632d93dbf))
+* **prod:** improve android debug scrolling and health check, add assetlinks, print sha256 in ci ([77be455](https://github.com/ihkaru/cerdas/commit/77be4559f6224b3b415d8bcb801d286e362d3020))
+
 ## [0.1.1](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.0...cerdas-v0.1.1) (2026-02-11)
 
 
