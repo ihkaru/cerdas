@@ -3,6 +3,11 @@ name: Build Android APK
 on:
   release:
     types: [published]
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
   workflow_dispatch:
 
 permissions:
@@ -75,11 +80,12 @@ jobs:
             -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
       - name: Upload APK to Release
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || inputs.tag_name != ''
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          TAG_NAME="${{ inputs.tag_name || github.event.release.tag_name }}"
           cp apps/client/android/app/build/outputs/apk/release/app-release.apk cerdas-v${VERSION}.apk
-          gh release upload "${{ github.event.release.tag_name }}" cerdas-v${VERSION}.apk --clobber
+          gh release upload "$TAG_NAME" cerdas-v${VERSION}.apk --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
