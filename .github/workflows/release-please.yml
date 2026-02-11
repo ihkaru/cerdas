@@ -26,7 +26,7 @@ jobs:
   # Trigger Android Build immediately after release is created
   trigger-android-build:
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
+    if: needs.release-please.outputs.release_created == 'true'
     uses: ./.github/workflows/build-android.yml
     with:
       tag_name: ${{ needs.release-please.outputs.tag_name }}
