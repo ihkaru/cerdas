@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.7...cerdas-v0.1.8) (2026-02-11)
+
+
+### Features
+
+* **backend:** add SHA-256 fingerprint to assetlinks.json for Google Login ([530c88d](https://github.com/ihkaru/cerdas/commit/530c88dd421240bd382eb82dbb358a56c222571d))
+
 ## [0.1.7](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.6...cerdas-v0.1.7) (2026-02-11)
 
 
