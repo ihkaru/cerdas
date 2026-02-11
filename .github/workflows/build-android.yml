@@ -99,7 +99,18 @@ jobs:
           cp apps/client/android/app/build/outputs/apk/release/app-release.apk cerdas-v${VERSION}.apk
           gh release upload "$TAG_NAME" cerdas-v${VERSION}.apk --clobber
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Notify Discord
+        if: always() && secrets.DISCORD_WEBHOOK != ''
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "Android Build: ${{ job.status }}"
+          description: "Build triggered by ${{ github.event_name }} on ${{ github.ref }}"
+          image: ${{ job.status == 'success' && 'https://media.giphy.com/media/nXxOjZrbnbRxS/giphy.gif' || 'https://media.giphy.com/media/26n6qnmrJaYBymBxnC/giphy.gif' }}
+          color: ${{ job.status == 'success' && '0x00ff00' || '0xff0000' }}
+          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          username: Cerdas Bot
+          avatar_url: https://cdn-icons-png.flaticon.com/512/25/25231.png
 
       - name: Upload APK (manual trigger)
         if: github.event_name == 'workflow_dispatch'
