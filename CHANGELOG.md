@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.9...cerdas-v0.1.10) (2026-02-11)
+
+
+### Bug Fixes
+
+* **client:** log actual origin for CORS debugging ([b78219d](https://github.com/ihkaru/cerdas/commit/b78219d51bf0c8d05ba4f45ed6809b4945b1cd17))
+
 ## [0.1.9](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.8...cerdas-v0.1.9) (2026-02-11)
 
 
