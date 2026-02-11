@@ -25,6 +25,16 @@ export class HealthCheckService {
             return true;
         } catch (error) {
             logger.error('[HealthCheck] API Check Failed:', error);
+            
+            // DIAGNOSTIC PROBE: Check if it's CORS or Network
+            try {
+                logger.info('[HealthCheck] Probing with no-cors mode...');
+                const probe = await fetch(`${this.apiClient.baseUrl}/ping`, { mode: 'no-cors' });
+                logger.warn('[HealthCheck] Probe success (type=' + probe.type + '). This indicates a CORS configuration issue on the server!');
+            } catch (probeError) {
+                logger.error('[HealthCheck] Probe failed too. This indicates a low-level Network or SSL issue (DNS, Certificate, Offline).', probeError);
+            }
+
             return false;
         }
     }

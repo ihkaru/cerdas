@@ -3,8 +3,10 @@ import { Capacitor } from '@capacitor/core';
 import { logger } from '../utils/logger';
 
 export class ApiClient {
-    private baseUrl: string;
+    private _baseUrl: string;
     private rootUrl: string;
+
+    get baseUrl() { return this._baseUrl; }
 
     constructor() {
         // Get all platform info for debugging
@@ -30,11 +32,11 @@ export class ApiClient {
             url = url.replace('localhost', '10.0.2.2');
         }
 
-        this.baseUrl = url;
+        this._baseUrl = url;
         // Derive root URL by removing '/api' suffix
-        this.rootUrl = this.baseUrl.replace(/\/api\/?$/, '');
+        this.rootUrl = this._baseUrl.replace(/\/api\/?$/, '');
         
-        logger.info(`ApiClient initialized. Base: ${this.baseUrl}, Root: ${this.rootUrl}`);
+        logger.info(`ApiClient initialized. Base: ${this._baseUrl}, Root: ${this.rootUrl}`);
     }
 
     private getHeaders() {
