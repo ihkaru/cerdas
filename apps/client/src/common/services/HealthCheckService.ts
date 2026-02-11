@@ -20,8 +20,8 @@ export class HealthCheckService {
 
     public async checkApi(): Promise<boolean> {
         try {
-            // Use a lightweight endpoint. /api/user is good if auth, otherwise /api/health if exists.
-            await this.apiClient.get('/user');
+            // Use a lightweight, public endpoint for connectivity check.
+            await this.apiClient.get('/ping');
             return true;
         } catch (error) {
             logger.error('[HealthCheck] API Check Failed:', error);

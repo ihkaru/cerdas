@@ -84,6 +84,13 @@ jobs:
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
+      - name: Print Code Signing SHA-256
+        run: |
+          echo "::group::🔐 App Signing Fingerprints"
+          keytool -printcert -jarfile apps/client/android/app/build/outputs/apk/release/app-release.apk | grep "SHA256: "
+          echo "::endgroup::"
+          echo "✅ Copy the SHA256 above to your assetlinks.json file"
+
       - name: Upload APK to Release
         if: github.event_name == 'release' || inputs.tag_name != ''
         run: |

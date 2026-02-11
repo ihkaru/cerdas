@@ -63,6 +63,10 @@ Route::get('/health', function () {
 
 // ========== Protected Routes ==========
 
+Route::get('/ping', function () {
+    return response()->json(['status' => 'ok', 'timestamp' => now()->toIso8601String()]);
+});
+
 Route::middleware('auth:sanctum')->group(function () {
 
     // ========================================================================
