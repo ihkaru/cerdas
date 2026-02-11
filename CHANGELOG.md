@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.6](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.5...cerdas-v0.1.6) (2026-02-11)
+
+
+### Bug Fixes
+
+* **android:** repair build.gradle syntax ([551798d](https://github.com/ihkaru/cerdas/commit/551798d9ed450ee3c83497d11c989728c929d8ad))
+* **ci:** simplify discord notification to avoid length limit ([637a0b6](https://github.com/ihkaru/cerdas/commit/637a0b6da37747e8138d074ead415effe4fec7bc))
+
 ## [0.1.5](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.4...cerdas-v0.1.5) (2026-02-11)
 
 
