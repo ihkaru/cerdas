@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.5](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.4...cerdas-v0.1.5) (2026-02-11)
+
+
+### Features
+
+* add GitHub Actions workflow for automated releases and Android build triggering ([4c14788](https://github.com/ihkaru/cerdas/commit/4c14788fa51bdc4e6baa032864d10f2f548bc530))
+
+
+### Bug Fixes
+
+* **ci:** declare secrets in workflow_call definition ([fae1104](https://github.com/ihkaru/cerdas/commit/fae1104d89ae99b4a7dcd559668c001e20fa63bd))
+* **ci:** grant write permissions to release-please ([511e96e](https://github.com/ihkaru/cerdas/commit/511e96e4bf14f03784ff2622c8b200af6916629d))
+* **ci:** remove reserved GITHUB_TOKEN from workflow_call definition ([5d201d8](https://github.com/ihkaru/cerdas/commit/5d201d8d26819fb870c58a3e65b72ddecc085524))
+* **ci:** restore github token and fix yaml syntax ([8caacfc](https://github.com/ihkaru/cerdas/commit/8caacfc6d468558412ff094a2b8ed6a04d754d96))
+* **ci:** restore workflow_dispatch trigger ([127bec2](https://github.com/ihkaru/cerdas/commit/127bec2c29492fd53bfc9a9496c174e69149856d))
+* **ci:** use env var for discord checking ([71a2aaa](https://github.com/ihkaru/cerdas/commit/71a2aaa961e1a6e3beb71e1f5877f242c5922844))
+
 ## [0.1.4](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.3...cerdas-v0.1.4) (2026-02-11)
 
 
