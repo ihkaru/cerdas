@@ -1,124 +1,123 @@
 <template>
   <f7-sheet
     v-model:opened="isOpened"
-    class="debug-menu-sheet"
-    style="height: auto; --f7-sheet-bg-color: #fff; max-height: 90vh;"
+    class="debug-sheet"
+    style="height: auto; --f7-sheet-bg-color: #fff;"
     swipe-to-close
     backdrop
   >
-    <f7-toolbar>
-      <div class="left"><small class="text-color-gray">Debug Console</small></div>
-      <div class="right">
-        <f7-link sheet-close>Close</f7-link>
-      </div>
-    </f7-toolbar>
-    <f7-page-content>
-      <f7-block-title medium>🔧 Debug Info</f7-block-title>
-      <f7-block>
+    <div style="max-height: 85vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+      <f7-block-title medium style="margin-top: 16px;">🔧 Debug Console</f7-block-title>
+      <f7-block strong inset>
 
         <!-- App Info -->
-        <f7-list media-list no-hairlines>
-          <f7-list-item header="App" :title="`Cerdas Client v${appVersion}`" :subtitle="`Build: ${buildTime}`">
-            <template #after>
-              <span class="badge" :class="platform === 'android' ? 'color-green' : 'color-blue'">{{ platform }}</span>
-            </template>
-          </f7-list-item>
-        </f7-list>
+        <div class="dbg-section">
+          <div class="dbg-label">App</div>
+          <div class="dbg-value">Cerdas Client v{{ appVersion }}</div>
+          <div class="dbg-sub">Build: {{ buildTime }} | Platform: {{ platform }}</div>
+        </div>
 
         <!-- Auth State -->
-        <f7-block-title>Auth State</f7-block-title>
-        <f7-list simple-list>
-          <f7-list-item title="Logged In">
-            <template #after>
-              <span :class="authState.hasToken ? 'text-color-green' : 'text-color-red'">
-                {{ authState.hasToken ? '✅ Yes' : '❌ No' }}
-              </span>
-            </template>
-          </f7-list-item>
-          <f7-list-item v-if="authState.userEmail" title="User" :after="authState.userEmail"></f7-list-item>
-          <f7-list-item title="Token" :after="authState.tokenInfo"></f7-list-item>
-        </f7-list>
-
-        <!-- Connection Status -->
-        <f7-block-title>Connection Status</f7-block-title>
-        <f7-list simple-list>
-          <f7-list-item title="API Server">
-            <template #after>
-              <span v-if="checking" class="text-color-gray">checking...</span>
-              <span v-else :class="apiStatus ? 'text-color-green' : 'text-color-red'">
-                {{ apiStatus ? '✅ Connected' : '❌ Failed' }}
-              </span>
-            </template>
-          </f7-list-item>
-          <f7-list-item title="Reverb (Realtime)">
-            <template #after>
-              <span v-if="reverbStatus === null" class="badge color-gray">N/A</span>
-              <span v-else :class="reverbStatus ? 'text-color-green' : 'text-color-red'">
-                {{ reverbStatus ? '✅ Connected' : '❌ Failed' }}
-              </span>
-            </template>
-          </f7-list-item>
-          <f7-list-item title="Network">
-            <template #after>
-              <span :class="isOnline ? 'text-color-green' : 'text-color-red'">
-                {{ isOnline ? '✅ Online' : '❌ Offline' }}
-              </span>
-            </template>
-          </f7-list-item>
-          <f7-list-item v-if="apiLatency !== null" title="API Latency">
-            <template #after>
-              <span :class="apiLatency < 500 ? 'text-color-green' : apiLatency < 2000 ? 'text-color-orange' : 'text-color-red'">
-                {{ apiLatency }}ms
-              </span>
-            </template>
-          </f7-list-item>
-        </f7-list>
-
-        <!-- Environment -->
-        <f7-block-title>Environment</f7-block-title>
-        <f7-list>
-          <f7-list-item title="API URL" :footer="envVars.apiUrl || 'NOT SET'"></f7-list-item>
-          <f7-list-item title="Reverb Host" :footer="envVars.reverbHost || 'NOT SET'"></f7-list-item>
-          <f7-list-item title="Reverb Key" :footer="envVars.reverbKey"></f7-list-item>
-          <f7-list-item title="Google Client ID" :footer="envVars.googleClientId"></f7-list-item>
-        </f7-list>
-
-        <!-- Recent Logs -->
-        <f7-block-title>
-          Recent Logs ({{ logEntries.length }})
-          <f7-link @click="refreshLogs" style="float: right; font-size: 14px;">Refresh</f7-link>
-        </f7-block-title>
-        <div class="debug-log-container">
-          <div v-if="logEntries.length === 0" class="text-align-center padding text-color-gray">
-            No log entries yet
+        <div class="dbg-section">
+          <div class="dbg-label">Auth State</div>
+          <div class="dbg-row">
+            <span>Logged In:</span>
+            <strong :style="{ color: authState.hasToken ? '#4caf50' : '#f44336' }">
+              {{ authState.hasToken ? '✅ Yes' : '❌ No' }}
+            </strong>
           </div>
-          <div v-for="(entry, i) in logEntries" :key="i" class="debug-log-entry" :class="`log-${entry.level.toLowerCase()}`">
-            <div class="log-header">
-              <span class="log-time">{{ entry.time }}</span>
-              <span class="log-level">{{ entry.level }}</span>
-              <span class="log-context">{{ entry.context }}</span>
-            </div>
-            <div class="log-message">{{ entry.message }}</div>
-            <div v-if="entry.data" class="log-data">{{ entry.data }}</div>
+          <div v-if="authState.userEmail" class="dbg-row">
+            <span>User:</span>
+            <strong>{{ authState.userEmail }}</strong>
+          </div>
+          <div class="dbg-row">
+            <span>Token:</span>
+            <span class="dbg-mono">{{ authState.tokenInfo }}</span>
           </div>
         </div>
 
-        <!-- Device Info -->
-        <f7-block-title>Device</f7-block-title>
-        <f7-list>
-          <f7-list-item title="Screen" :after="`${screenInfo.width}x${screenInfo.height} @${screenInfo.dpr}x`"></f7-list-item>
-          <f7-list-item title="Language" :after="browserLang"></f7-list-item>
-          <f7-list-item title="User Agent" :subtitle="userAgent" class="debug-ua"></f7-list-item>
-        </f7-list>
+        <!-- Connection -->
+        <div class="dbg-section">
+          <div class="dbg-label">Connection</div>
+          <div class="dbg-row">
+            <span>API Server:</span>
+            <strong v-if="checking" style="color: #999;">checking...</strong>
+            <strong v-else :style="{ color: apiStatus ? '#4caf50' : '#f44336' }">
+              {{ apiStatus ? '✅ Connected' : '❌ Failed' }}
+            </strong>
+          </div>
+          <div class="dbg-row">
+            <span>Reverb:</span>
+            <strong v-if="reverbStatus === null" style="color: #999;">N/A</strong>
+            <strong v-else :style="{ color: reverbStatus ? '#4caf50' : '#f44336' }">
+              {{ reverbStatus ? '✅ Connected' : '❌ Failed' }}
+            </strong>
+          </div>
+          <div class="dbg-row">
+            <span>Network:</span>
+            <strong :style="{ color: isOnline ? '#4caf50' : '#f44336' }">
+              {{ isOnline ? '✅ Online' : '❌ Offline' }}
+            </strong>
+          </div>
+          <div v-if="apiLatency !== null" class="dbg-row">
+            <span>Latency:</span>
+            <strong :style="{ color: apiLatency < 500 ? '#4caf50' : apiLatency < 2000 ? '#ff9800' : '#f44336' }">
+              {{ apiLatency }}ms
+            </strong>
+          </div>
+          <div v-if="apiError" class="dbg-row">
+            <span>Error:</span>
+            <span style="color: #f44336; font-size: 12px;">{{ apiError }}</span>
+          </div>
+        </div>
+
+        <!-- Environment -->
+        <div class="dbg-section">
+          <div class="dbg-label">Environment</div>
+          <div class="dbg-row"><span>API URL:</span></div>
+          <div class="dbg-mono" style="font-size: 11px; word-break: break-all;">{{ envVars.apiUrl || 'NOT SET' }}</div>
+          <div class="dbg-row"><span>Reverb Host:</span> <span class="dbg-mono">{{ envVars.reverbHost || 'NOT SET' }}</span></div>
+          <div class="dbg-row"><span>Reverb Key:</span> <span class="dbg-mono">{{ envVars.reverbKey }}</span></div>
+          <div class="dbg-row"><span>Google Client:</span> <span class="dbg-mono">{{ envVars.googleClientId }}</span></div>
+        </div>
+
+        <!-- Recent Logs -->
+        <div class="dbg-section">
+          <div class="dbg-label" style="display: flex; justify-content: space-between;">
+            <span>Recent Logs ({{ logEntries.length }})</span>
+            <a href="#" @click.prevent="refreshLogs" style="font-size: 12px;">↻ Refresh</a>
+          </div>
+          <div class="dbg-log-box">
+            <div v-if="logEntries.length === 0" style="color: #888; text-align: center; padding: 12px;">
+              No log entries
+            </div>
+            <div v-for="(entry, i) in logEntries" :key="i"
+                 class="dbg-log-entry"
+                 :class="`dbg-log-${entry.level.toLowerCase()}`">
+              <span class="dbg-log-time">{{ entry.time }}</span>
+              <span class="dbg-log-level">{{ entry.level }}</span>
+              <span class="dbg-log-ctx">{{ entry.context }}</span>
+              <div class="dbg-log-msg">{{ entry.message }}</div>
+              <div v-if="entry.data" class="dbg-log-data">{{ entry.data }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Device -->
+        <div class="dbg-section">
+          <div class="dbg-label">Device</div>
+          <div class="dbg-row"><span>Screen:</span> <span>{{ screenInfo.width }}x{{ screenInfo.height }} @{{ screenInfo.dpr }}x</span></div>
+          <div class="dbg-row"><span>Language:</span> <span>{{ browserLang }}</span></div>
+          <div class="dbg-sub" style="word-break: break-all;">{{ userAgent }}</div>
+        </div>
 
         <!-- Actions -->
-        <div class="display-flex" style="gap: 8px;">
+        <div style="display: flex; gap: 8px; margin-top: 16px; padding-bottom: 24px;">
           <f7-button fill color="gray" @click="copyInfo" style="flex: 1;">📋 Copy All</f7-button>
           <f7-button outline color="blue" @click="runChecks" style="flex: 1;">🔄 Re-check</f7-button>
         </div>
-        <br/>
       </f7-block>
-    </f7-page-content>
+    </div>
   </f7-sheet>
 </template>
 
@@ -134,8 +133,8 @@ const checking = ref(false);
 const apiStatus = ref(false);
 const reverbStatus = ref<boolean | null>(null);
 const apiLatency = ref<number | null>(null);
+const apiError = ref('');
 
-// Static info
 const appVersion = __APP_VERSION__;
 const buildTime = typeof __BUILD_TIMESTAMP__ !== 'undefined' ? __BUILD_TIMESTAMP__ : 'Dev';
 const platform = Capacitor.getPlatform();
@@ -160,7 +159,6 @@ const envVars = {
         : 'NOT SET',
 };
 
-// Auth state (read from localStorage directly)
 const authState = reactive({
     hasToken: false,
     tokenInfo: 'none',
@@ -172,7 +170,7 @@ function refreshAuth() {
     const userJson = localStorage.getItem('auth_user');
     authState.hasToken = !!token;
     authState.tokenInfo = token
-        ? `${token.length} chars, ...${token.slice(-6)}`
+        ? `${token.length} chars ...${token.slice(-6)}`
         : 'none';
     authState.userEmail = '';
     if (userJson) {
@@ -185,7 +183,6 @@ function refreshAuth() {
     }
 }
 
-// Log buffer (reversed: newest first)
 const logEntries = ref<LogEntry[]>([]);
 
 function refreshLogs() {
@@ -200,13 +197,13 @@ onMounted(() => {
         refreshLogs();
         runChecks();
     });
-
     window.addEventListener('online', () => { isOnline.value = true; });
     window.addEventListener('offline', () => { isOnline.value = false; });
 });
 
 const runChecks = async () => {
     checking.value = true;
+    apiError.value = '';
     apiLatency.value = null;
 
     const start = performance.now();
@@ -218,20 +215,17 @@ const runChecks = async () => {
     } catch (e: unknown) {
         apiLatency.value = Math.round(performance.now() - start);
         apiStatus.value = false;
+        apiError.value = e instanceof Error ? e.message : String(e);
     }
     checking.value = false;
-    refreshLogs(); // Refresh after checks add their own log entries
+    refreshLogs();
 };
 
 const copyInfo = () => {
     refreshAuth();
     refreshLogs();
     const info = {
-        app: {
-            version: appVersion,
-            build: buildTime,
-            platform,
-        },
+        app: { version: appVersion, build: buildTime, platform },
         auth: {
             loggedIn: authState.hasToken,
             user: authState.userEmail || null,
@@ -240,6 +234,7 @@ const copyInfo = () => {
         connection: {
             api: apiStatus.value ? 'OK' : 'FAIL',
             apiLatency: apiLatency.value ? `${apiLatency.value}ms` : 'N/A',
+            apiError: apiError.value || null,
             reverb: reverbStatus.value === null ? 'N/A' : reverbStatus.value ? 'OK' : 'FAIL',
             network: isOnline.value ? 'Online' : 'Offline',
         },
@@ -260,77 +255,73 @@ const copyInfo = () => {
         timestamp: new Date().toISOString(),
     };
     navigator.clipboard.writeText(JSON.stringify(info, null, 2));
-    f7.toast.show({ text: 'Debug info copied!', closeTimeout: 2000 });
+    f7.toast.show({ text: '✅ Debug info copied!', closeTimeout: 2000 });
 };
 </script>
 
 <style scoped>
-.debug-log-container {
-    max-height: 250px;
+.dbg-section {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
+}
+.dbg-section:last-of-type {
+    border-bottom: none;
+}
+.dbg-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2196f3;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+.dbg-value {
+    font-size: 16px;
+    font-weight: 600;
+}
+.dbg-sub {
+    font-size: 11px;
+    color: #999;
+    margin-top: 2px;
+}
+.dbg-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 14px;
+}
+.dbg-mono {
+    font-family: monospace;
+    font-size: 12px;
+    color: #666;
+}
+
+/* Log viewer */
+.dbg-log-box {
+    max-height: 200px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     background: #1a1a2e;
     border-radius: 8px;
     padding: 8px;
-    margin-bottom: 16px;
     font-family: 'Courier New', monospace;
     font-size: 11px;
 }
-
-.debug-log-entry {
-    padding: 4px 6px;
+.dbg-log-entry {
+    padding: 4px 4px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
 }
+.dbg-log-time { color: #888; font-size: 10px; margin-right: 4px; }
+.dbg-log-level { font-weight: bold; font-size: 10px; margin-right: 4px; padding: 1px 3px; border-radius: 3px; }
+.dbg-log-ctx { color: #8be9fd; font-size: 10px; }
+.dbg-log-msg { color: #f8f8f2; margin-top: 2px; word-break: break-word; }
+.dbg-log-data { color: #6272a4; font-size: 10px; word-break: break-all; margin-top: 1px; }
 
-.debug-log-entry:last-child {
-    border-bottom: none;
-}
-
-.log-header {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-}
-
-.log-time {
-    color: #888;
-    font-size: 10px;
-}
-
-.log-level {
-    font-weight: bold;
-    font-size: 10px;
-    padding: 1px 4px;
-    border-radius: 3px;
-}
-
-.log-context {
-    color: #8be9fd;
-    font-size: 10px;
-}
-
-.log-message {
-    color: #f8f8f2;
-    margin-top: 2px;
-    word-break: break-word;
-}
-
-.log-data {
-    color: #6272a4;
-    font-size: 10px;
-    word-break: break-all;
-    margin-top: 2px;
-}
-
-/* Level colors */
-.log-debug .log-level { color: #6272a4; background: rgba(98,114,164,0.2); }
-.log-info .log-level { color: #50fa7b; background: rgba(80,250,123,0.2); }
-.log-warn .log-level { color: #f1fa8c; background: rgba(241,250,140,0.2); }
-.log-error .log-level { color: #ff5555; background: rgba(255,85,85,0.2); }
-.log-error .log-message { color: #ff5555; }
-
-.debug-ua :deep(.item-subtitle) {
-    font-size: 10px;
-    word-break: break-all;
-    line-height: 1.3;
-}
+.dbg-log-debug .dbg-log-level { color: #6272a4; background: rgba(98,114,164,0.2); }
+.dbg-log-info .dbg-log-level { color: #50fa7b; background: rgba(80,250,123,0.2); }
+.dbg-log-warn .dbg-log-level { color: #f1fa8c; background: rgba(241,250,140,0.2); }
+.dbg-log-error .dbg-log-level { color: #ff5555; background: rgba(255,85,85,0.2); }
+.dbg-log-error .dbg-log-msg { color: #ff5555; }
 </style>
