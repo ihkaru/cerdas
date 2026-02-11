@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.6...cerdas-v0.1.7) (2026-02-11)
+
+
+### Bug Fixes
+
+* **ci:** fail build if signing missing and verify keystore file ([a95952a](https://github.com/ihkaru/cerdas/commit/a95952a0cf668a32b68926cb51ac024fffd30cae))
+
 ## [0.1.6](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.5...cerdas-v0.1.6) (2026-02-11)
 
 
