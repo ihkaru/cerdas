@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.8...cerdas-v0.1.9) (2026-02-11)
+
+
+### Features
+
+* **client:** comprehensive 4-layer network diagnostics in HealthCheckService ([2a5232b](https://github.com/ihkaru/cerdas/commit/2a5232b7cbb07ea86d1d5553e7edc8d726b1c38f))
+
 ## [0.1.8](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.7...cerdas-v0.1.8) (2026-02-11)
 
 
