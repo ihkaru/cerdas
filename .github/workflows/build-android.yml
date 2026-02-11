@@ -99,6 +99,8 @@ jobs:
           cp apps/client/android/app/build/outputs/apk/release/app-release.apk cerdas-v${VERSION}.apk
           gh release upload "$TAG_NAME" cerdas-v${VERSION}.apk --clobber
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Notify Discord
         if: always() && secrets.DISCORD_WEBHOOK != ''
         uses: sarisia/actions-status-discord@v1
