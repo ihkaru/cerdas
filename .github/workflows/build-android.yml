@@ -110,7 +110,7 @@ jobs:
           echo "✅ Copy the SHA-256 fingerprint from the output above to your assetlinks.json file"
 
       - name: Upload APK to Release
-        if: github.event_name == 'release' || inputs.tag_name != ''
+        if: github.event_name == 'release' || github.event_name == 'workflow_call'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           TAG_NAME="${{ inputs.tag_name || github.event.release.tag_name }}"
