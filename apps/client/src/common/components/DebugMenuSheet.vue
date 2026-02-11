@@ -6,7 +6,7 @@
     swipe-to-close
     backdrop
   >
-    <div style="max-height: 85vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+    <div style="height: 80vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 50px; display: flex; flex-direction: column;">
       <f7-block-title medium style="margin-top: 16px;">🔧 Debug Console</f7-block-title>
       <f7-block strong inset>
 
