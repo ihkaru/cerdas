@@ -1,0 +1,67 @@
+# Changelog
+
+## [0.1.1](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.0...cerdas-v0.1.1) (2026-02-11)
+
+
+### Features
+
+* Add Android production build automation workflow ([f34bed8](https://github.com/ihkaru/cerdas/commit/f34bed858f53e3dbe1f3f81b41a87e411226b68c))
+* Add Docker production setup and Coolify deployment guide ([a506f8d](https://github.com/ihkaru/cerdas/commit/a506f8d010eabfc782d4eeab66c836d071ac9754))
+* add GitHub Actions workflow for automated APK builds and releases ([d3f1527](https://github.com/ihkaru/cerdas/commit/d3f15278980a8e3262a80e0b14ae488b2e12e064))
+* add Octane safety audit workflow and script ([fa2915c](https://github.com/ihkaru/cerdas/commit/fa2915c9c6f36fb6b68472147f356f87f7aabf1d))
+* Android production build config and guide ([de2d1a4](https://github.com/ihkaru/cerdas/commit/de2d1a4037d46efbed7f1c4b154e6bc48272e6b4))
+* automated code quality CI — ESLint (Vue/TS) + Laravel Pint + PHPMD on every push ([278ac4d](https://github.com/ihkaru/cerdas/commit/278ac4d7cc8c09e9a7933ccf8577596505a46f06))
+* automated versioning with release-please + commitlint ([a09725c](https://github.com/ihkaru/cerdas/commit/a09725ce1026ab14014b8f425102a7fb33b14035))
+* **ci:** add pre-push build verification hook ([8954cb0](https://github.com/ihkaru/cerdas/commit/8954cb0fb1db45209d660ac98e8d91dcc5d3eb55))
+* **ci:** upgrade pre-push hook to full Android build verification ([12615ac](https://github.com/ihkaru/cerdas/commit/12615ac15018489ee4014b772d280bea6776f4a2))
+* enhanced debug menu with runtime log viewer and auth state ([44b33c0](https://github.com/ihkaru/cerdas/commit/44b33c0fc3378ce57daa22f1d845563e56d957ba))
+* Fix invitation logic, shared assignment access, and instant sync ([6feb1f4](https://github.com/ihkaru/cerdas/commit/6feb1f4ef626f3e2f3f8b3bcb78d4c2400dbae43))
+* implement resizable panels for editor UI (views, actions, fields, data) ([b902607](https://github.com/ihkaru/cerdas/commit/b902607c13b3ab16406d0f925e1a74649f49299e))
+* Integrate GOOGLE_CLIENT_ID and VITE_GOOGLE_CLIENT_ID into production build ([bcd5c38](https://github.com/ihkaru/cerdas/commit/bcd5c38da0a5b632df9f1f9bf03d8860aef12425))
+* **lint:** add TypeScript anti-pattern rules — eqeqeq, no-explicit-any, no-non-null-assertion ([17b8957](https://github.com/ihkaru/cerdas/commit/17b895758269391d581b0c560e91098fc280edc8))
+* migrate backend to Laravel Octane + FrankenPHP worker mode ([92c2e2c](https://github.com/ihkaru/cerdas/commit/92c2e2cf608fd51c8fea29792e37719ebc1e007a))
+* professional README + secret leak detection CI + git history cleanup tool ([70a4f8a](https://github.com/ihkaru/cerdas/commit/70a4f8a0c54987b23637063e6d8f27a710136c4c))
+* unified versioning, production health check, smart pre-push hook ([2afcd0a](https://github.com/ihkaru/cerdas/commit/2afcd0a2fb4bc773616d168c2ffed2ae86448bbd))
+
+
+### Bug Fixes
+
+* Add coolify network to docker-compose for database connection ([64b84d3](https://github.com/ihkaru/cerdas/commit/64b84d3557ac60ede01315d8d6d35c59caa83a4f))
+* Add missing GOOGLE_CLIENT_ID to scheduler service (correction) ([4c34a68](https://github.com/ihkaru/cerdas/commit/4c34a68cdc11f100f3364340de08b69d7890594a))
+* **android:** robust signing config loading to prevent local build failures ([5b9e658](https://github.com/ihkaru/cerdas/commit/5b9e6584ce8094f985506ae923ad2b76c6df8fb0))
+* Backend Dockerfile extensions and composer flags to fix build ([1ca1d1a](https://github.com/ihkaru/cerdas/commit/1ca1d1ad414463c0cec341744e2a52a7e3fe72aa))
+* **backend:** add trim to CORS allowed origins explode logic ([86a2065](https://github.com/ihkaru/cerdas/commit/86a206545119bb07e8f7ef7a6532078b6932545d))
+* **backend:** allow CORS on all paths ([69a8507](https://github.com/ihkaru/cerdas/commit/69a8507ebd71fb8e85992de05768b05aa8be1907))
+* **backend:** run package discovery and optimization at runtime in docker entrypoint ([865b4a2](https://github.com/ihkaru/cerdas/commit/865b4a259fe6eeac2b747094b4dd3383840113d1))
+* **backend:** skip scripts in composer dump-autoload during docker build ([da6b4ff](https://github.com/ihkaru/cerdas/commit/da6b4ff73bb40ad6ee1186384840d8892543816c))
+* **backend:** use environment variable for CORS allowed origins to resolve production connectivity issues ([4a9d18e](https://github.com/ihkaru/cerdas/commit/4a9d18e0899ed461668b1181ad50953e6f542ced))
+* **ci:** add cap add android before sync (android/ is gitignored) ([3f20bd7](https://github.com/ihkaru/cerdas/commit/3f20bd7175782e811a941523e8b8534ad8613960))
+* **ci:** add contents: write permission for GitHub release ([9bf92ca](https://github.com/ihkaru/cerdas/commit/9bf92caa19e01c9a404b167836360fc51e092f35))
+* **ci:** add pnpm caching, fix heredoc quoting, add PR paths filter ([fade3e0](https://github.com/ihkaru/cerdas/commit/fade3e023645e5e463e5b37ddc163c1495c466d7))
+* **ci:** bump Java 17-&gt;21 for Capacitor Android source release compatibility ([6c233f8](https://github.com/ihkaru/cerdas/commit/6c233f8fcd724b4b9bd546fa37b303f8f324763a))
+* **ci:** bump Node.js from 20 to 22 for Capacitor CLI compatibility ([befb948](https://github.com/ihkaru/cerdas/commit/befb948d668142ea0b412c302ea41562a7bac36a))
+* **ci:** disable composer scripts in code quality workflow to prevent env errors ([734526d](https://github.com/ihkaru/cerdas/commit/734526daef0a9c2ead346c64e92c8e16e44cce71))
+* **ci:** enable android native build in CI ([c038dd5](https://github.com/ihkaru/cerdas/commit/c038dd563471ab41bf4a7c31e07f0da08ed2cacc))
+* **ci:** remove explicit pnpm version to avoid conflict with packageManager ([65c00f2](https://github.com/ihkaru/cerdas/commit/65c00f249a674f5c21e135efc09fa1e27b5f15b0))
+* **client:** resolve lint warnings in AppGallery.vue ([ae5e0d2](https://github.com/ihkaru/cerdas/commit/ae5e0d225495fbbe96fbe48ffba25ec3d0ac7800))
+* debug menu rendering on Android - use plain HTML instead of F7 slots ([fc5737a](https://github.com/ihkaru/cerdas/commit/fc5737ace060596dee73183f3ac21f8ee5bf5e3f))
+* **docker:** add Composer to FrankenPHP image (exit code 127 = command not found) ([e7e4033](https://github.com/ihkaru/cerdas/commit/e7e40335efc8a2443c9a392f21668c884865ca37))
+* **docker:** add missing APP_KEY and APP_URL to worker and scheduler services ([08bc5d8](https://github.com/ihkaru/cerdas/commit/08bc5d8095bad485d80dae003c8a12358872c221))
+* **docker:** change backend expose port from 80 to 8080 to match serversideup image ([f2fad8a](https://github.com/ihkaru/cerdas/commit/f2fad8ae4ca07f995c5105bc0e7a8e63f93b28ba))
+* **editor:** normalize api base url to prevent double path in echo config ([29e0028](https://github.com/ihkaru/cerdas/commit/29e0028facd0d18a1879c8a1045409760cc14181))
+* Frontend Dockerfile COPY dist path for monorepo context ([00ddaa4](https://github.com/ihkaru/cerdas/commit/00ddaa454c762132481086f534bab1b9716ca981))
+* Frontend Dockerfile COPY nginx.conf path for monorepo context ([beab238](https://github.com/ihkaru/cerdas/commit/beab23826d6d11e9b467e9a40283210049f7f8ea))
+* Frontend Dockerfile monorepo build context and pnpm support ([37c9a12](https://github.com/ihkaru/cerdas/commit/37c9a12990ed8ba5361090c67019c3116cae3b16))
+* Frontend Dockerfile skip vue-tsc typecheck for production build reliability ([e41cb05](https://github.com/ihkaru/cerdas/commit/e41cb05439b21f267143b1a5b39acc766704df2c))
+* **lint:** replace == with === using String() coercion for ID comparisons ([da35a04](https://github.com/ihkaru/cerdas/commit/da35a045bf12a3e0010d878bcb45047fbcb53a71))
+* LivePreview URL client-&gt;app, enable FrankenPHP worker mode with --workers=auto ([184f392](https://github.com/ihkaru/cerdas/commit/184f3928ac73f5e6b5fb05f064470d383e66bc6b))
+* regenerate pnpm-lock.yaml after turbo removal ([f2cacf8](https://github.com/ihkaru/cerdas/commit/f2cacf86fb7d22ce139cd0e3ba44b301167718a8))
+* Replace hardcoded API and Client URLs with environment variables to resolve production CORS issues ([34b1638](https://github.com/ihkaru/cerdas/commit/34b1638b5b6246c41488f158e3d1669006180e0c))
+* Resolve Broadcast Auth 500/401 errors & Editor Versioning redundant drafts ([2c04279](https://github.com/ihkaru/cerdas/commit/2c042799daafa1c5c557cdbec46c30d5cb1a090c))
+* resolve vue v-if/v-for conflict and enable pre-commit hooks ([0cab18e](https://github.com/ihkaru/cerdas/commit/0cab18e27566166f7d5b359d3f333c362437c712))
+* **sync:** resolve rollback versioning issue and add comprehensive debug logs ([5573a98](https://github.com/ihkaru/cerdas/commit/5573a98e6203273421d3b7fa1adecf9018feee68))
+
+
+### Performance Improvements
+
+* enable OPcache, fix healthcheck, optimize Dockerfile for production ([158530f](https://github.com/ihkaru/cerdas/commit/158530fc8c4a3a41609b2d706dba71bd826c03d5))
