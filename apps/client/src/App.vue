@@ -4,12 +4,14 @@
     <!-- Main View - browserHistory disabled for mobile app -->
     <f7-view main url="/">
     </f7-view>
+    <DebugMenuSheet />
   </f7-app>
 </template>
 
 <script setup lang="ts">
 import type { Framework7Parameters } from 'framework7/types';
 import { ref } from 'vue';
+import DebugMenuSheet from './common/components/DebugMenuSheet.vue';
 import { useLogger } from './common/utils/logger';
 import routes from './routes';
 

@@ -39,6 +39,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Read version from package.json
+        id: version
+        run: echo "version=$(node -p "require('./apps/client/package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Sync version to Android
+        run: node scripts/sync-version.mjs
+
       - name: Create production env
         run: |
           cat > apps/client/.env.production << 'EOF'
@@ -73,7 +80,7 @@ jobs:
 
       - name: Rename APK
         run: |
-          cp apps/client/android/app/build/outputs/apk/release/app-release.apk cerdas-production.apk
+          cp apps/client/android/app/build/outputs/apk/release/app-release.apk cerdas-v${{ steps.version.outputs.version }}.apk
 
       - name: Get short SHA
         id: sha
@@ -82,17 +89,17 @@ jobs:
       - name: Create/Update Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: "🚀 Latest Build (${{ steps.sha.outputs.short }})"
+          tag_name: v${{ steps.version.outputs.version }}
+          name: "🚀 Cerdas v${{ steps.version.outputs.version }}"
           body: |
-            **Automated build from commit `${{ steps.sha.outputs.short }}`**
+            **Cerdas v${{ steps.version.outputs.version }}** — build `${{ steps.sha.outputs.short }}`
 
             Built on: ${{ github.event.head_commit.timestamp }}
             Commit: ${{ github.event.head_commit.message }}
 
             ---
-            📱 Download `cerdas-production.apk` below and install on your Android device.
-          files: cerdas-production.apk
+            📱 Download `cerdas-v${{ steps.version.outputs.version }}.apk` below and install on your Android device.
+          files: cerdas-v${{ steps.version.outputs.version }}.apk
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

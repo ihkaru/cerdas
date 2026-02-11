@@ -11,7 +11,11 @@
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "prepare": "husky"
+    "prepare": "husky",
+    "sync-version": "node scripts/sync-version.mjs",
+    "version:patch": "cd apps/client && npm version patch --no-git-tag-version && cd ../.. && node scripts/sync-version.mjs",
+    "version:minor": "cd apps/client && npm version minor --no-git-tag-version && cd ../.. && node scripts/sync-version.mjs",
+    "version:major": "cd apps/client && npm version major --no-git-tag-version && cd ../.. && node scripts/sync-version.mjs"
   },
   "devDependencies": {
     "husky": "^9.1.7",

@@ -185,9 +185,10 @@ import { f7 } from 'framework7-vue';
 import { computed, onMounted, ref, watch } from 'vue';
 
 // Version
+const appClientVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 // @ts-ignore
 const buildTimestamp = typeof __BUILD_TIMESTAMP__ !== 'undefined' ? __BUILD_TIMESTAMP__ : 'Dev';
-console.log(`[AppShell] Build: ${buildTimestamp}`);
+console.log(`[AppShell] v${appClientVersion} Build: ${buildTimestamp}`);
 
 // Components
 import { getIcon } from '@/app/dashboard/utils/iconHelpers';

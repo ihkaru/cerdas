@@ -14,6 +14,7 @@ import 'material-icons/iconfont/material-icons.css';
 
 // Import App Component
 import App from './App.vue';
+// Note: DebugMenuSheet is imported directly in App.vue
 
 // Import App Styles
 import './style.css';
@@ -213,6 +214,14 @@ async function startApp() {
         await databaseService.init();
         logger.info('[MAIN 5] databaseService.init() completed');
 
+        // Runtime Health Check (Production)
+        if (import.meta.env.PROD) {
+            import('./common/services/HealthCheckService').then(({ healthCheck }) => {
+                // Delay slightly to allow UI to render first
+                setTimeout(() => healthCheck.runStartupChecks(), 2000);
+            });
+        }
+
         // Create Vue App
         const app = createApp(App);
 
@@ -227,6 +236,7 @@ async function startApp() {
 
         // Register all Framework7 Vue components
         registerComponents(app);
+
 
         // =============================================================================
         // EDITOR BRIDGE (for Live Preview)

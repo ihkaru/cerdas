@@ -58,7 +58,7 @@
         </f7-list>
 
         <!-- Version Footer -->
-        <f7-block-footer style="text-align: center; margin-top: 20px; padding-bottom: 20px;">
+        <f7-block-footer style="text-align: center; margin-top: 20px; padding-bottom: 20px;" @click="handleVersionClick">
             <small style="opacity: 0.6;">
                 App v{{ appVersion }}<br>
                 Build {{ buildTimestamp }}
@@ -161,6 +161,31 @@ function handleTableClick(table: any) {
     f7.view.main.router.navigate(url, {
         reloadCurrent: true // Replace current form
     });
+}
+
+let debugClickCount = 0;
+let debugClickTimer: any = null;
+
+function handleVersionClick() {
+    debugClickCount++;
+    
+    // Reset after 2 seconds of inactivity
+    if (debugClickTimer) clearTimeout(debugClickTimer);
+    debugClickTimer = setTimeout(() => {
+        debugClickCount = 0;
+    }, 2000);
+
+    if (debugClickCount >= 5) {
+        // Trigger Debug Menu
+        window.dispatchEvent(new CustomEvent('open-debug-menu'));
+        
+        // Reset
+        debugClickCount = 0;
+        clearTimeout(debugClickTimer);
+        
+        // Close panel so they can see the sheet
+        f7.panel.close('left');
+    }
 }
 </script>
 

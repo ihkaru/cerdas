@@ -3,7 +3,7 @@
     <div class="login-container display-flex justify-content-center align-items-center height-100">
       <div class="login-card card card-outline margin-horizontal">
         <div class="card-content card-content-padding">
-          <div class="text-align-center margin-bottom">
+          <div class="text-align-center margin-bottom" @click="handleLogoTap">
             <f7-icon f7="layers_alt_fill" size="64" color="primary"></f7-icon>
             <h1 class="margin-top-half no-margin-bottom text-color-primary">Cerdas</h1>
             <p class="text-color-gray no-margin-top">Field Data Collection</p>
@@ -51,6 +51,11 @@
           <div class="margin-top text-align-center">
             <f7-link small href="#" class="text-color-gray">Forgot Password?</f7-link>
           </div>
+
+          <!-- Version (also debug trigger) -->
+          <div class="margin-top text-align-center" @click="handleLogoTap" style="cursor: default;">
+            <small style="opacity: 0.35; font-size: 10px;">v{{ clientVersion }}</small>
+          </div>
         </div>
       </div>
     </div>
@@ -93,6 +98,7 @@ const authStore = useAuthStore();
 const isLoading = ref(false);
 
 const isNative = Capacitor.isNativePlatform();
+const clientVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 
 const signIn = async () => {
   if (!email.value || !password.value) {
@@ -158,6 +164,22 @@ const signInWithGoogleNative = async () => {
     // f7.dialog.alert('Google Sign-In Cancelled or Failed', 'Error');
   } finally {
     isLoading.value = false;
+  }
+};
+
+// Debug menu trigger (5 taps on logo/version)
+let debugTapCount = 0;
+let debugTapTimer: ReturnType<typeof setTimeout> | null = null;
+
+const handleLogoTap = () => {
+  debugTapCount++;
+  if (debugTapTimer) clearTimeout(debugTapTimer);
+  debugTapTimer = setTimeout(() => { debugTapCount = 0; }, 2000);
+
+  if (debugTapCount >= 5) {
+    window.dispatchEvent(new CustomEvent('open-debug-menu'));
+    debugTapCount = 0;
+    if (debugTapTimer) clearTimeout(debugTapTimer);
   }
 };
 

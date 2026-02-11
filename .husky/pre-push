@@ -1,7 +1,12 @@
 #!/bin/sh
 
-# Pre-push hook: verify Android build before pushing
+# Pre-push hook: Smart tiered build verification
 # Bypass with: git push --no-verify
+#
+# Strategy:
+#   - No client/packages changes → skip entirely
+#   - Only web files (.vue, .ts, .css, .js) → web build only (~30s)
+#   - Native Android files changed → full build (web + cap sync + gradle ~5-10m)
 
 # Get list of files being pushed
 CHANGED_FILES=$(git diff --name-only HEAD@{1}..HEAD 2>/dev/null || git diff --name-only HEAD~1..HEAD 2>/dev/null || echo "")
@@ -14,7 +19,32 @@ if [ -z "$CLIENT_CHANGED" ]; then
     exit 0
 fi
 
-echo "🔍 Client changes detected, running full Android build verification..."
+# Detect if NATIVE Android files changed (requires full Gradle build)
+NATIVE_CHANGED=$(echo "$CHANGED_FILES" | grep -E "^(apps/client/android/|apps/client/capacitor\.config)" || true)
+
+if [ -z "$NATIVE_CHANGED" ]; then
+    # ===== FAST PATH: Web-only verification (~30s) =====
+    echo "🔍 Web-only changes detected. Running fast verification..."
+    echo ""
+
+    echo "🏗️  Building web assets (vue-tsc + vite)..."
+    pnpm --filter client build
+    if [ $? -ne 0 ]; then
+        echo ""
+        echo "❌ WEB BUILD FAILED! Push blocked."
+        echo "   Fix TypeScript/Vite errors above."
+        echo "   To bypass: git push --no-verify"
+        exit 1
+    fi
+
+    echo ""
+    echo "✅ Web build passed. Push allowed."
+    echo "   ℹ️  Skipped Gradle (no native changes). GitHub Actions will do the full APK build."
+    exit 0
+fi
+
+# ===== FULL PATH: Web + Cap Sync + Gradle (~5-10 min) =====
+echo "🔍 Native Android changes detected. Running FULL build verification..."
 echo ""
 
 # Step 1: Build web assets

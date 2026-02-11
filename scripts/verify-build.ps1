@@ -1,7 +1,10 @@
 # verify-build.ps1
-# Full local Android production build verification
-# Runs: web build -> cap sync -> gradle assembleDebug
-# This mirrors what GitHub Actions does, catching failures locally
+# Local build verification for Cerdas Client
+#
+# Usage:
+#   ./scripts/verify-build.ps1            → Full (web + cap sync + gradle)
+#   ./scripts/verify-build.ps1 -WebOnly   → Fast web-only (~30s)
+#   ./scripts/verify-build.ps1 -SkipInstall → Skip pnpm install
 
 param(
     [switch]$SkipInstall,
