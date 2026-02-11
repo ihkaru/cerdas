@@ -9,6 +9,11 @@ on:
         required: true
         type: string
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag name to upload release to (e.g. cerdas-v0.1.0)"
+        required: true
+        type: string
 
 permissions:
   contents: write
