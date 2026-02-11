@@ -87,9 +87,9 @@ jobs:
       - name: Print Code Signing SHA-256
         run: |
           echo "::group::🔐 App Signing Fingerprints"
-          keytool -printcert -jarfile apps/client/android/app/build/outputs/apk/release/app-release.apk | grep "SHA256: "
+          keytool -printcert -jarfile apps/client/android/app/build/outputs/apk/release/app-release.apk
           echo "::endgroup::"
-          echo "✅ Copy the SHA256 above to your assetlinks.json file"
+          echo "✅ Copy the SHA-256 fingerprint from the output above to your assetlinks.json file"
 
       - name: Upload APK to Release
         if: github.event_name == 'release' || inputs.tag_name != ''
