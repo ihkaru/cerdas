@@ -18,6 +18,8 @@
     "version:major": "cd apps/client && npm version major --no-git-tag-version && cd ../.. && node scripts/sync-version.mjs"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.4.1",
+    "@commitlint/config-conventional": "^20.4.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "typescript": "^5.4.0"
