@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.2...cerdas-v0.1.3) (2026-02-11)
+
+
+### Bug Fixes
+
+* **ci:** show full keytool output to avoid grep exit code failure ([f891c18](https://github.com/ihkaru/cerdas/commit/f891c18fcff87b67db6556f26f025bdc6bb88835))
+
 ## [0.1.2](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.1...cerdas-v0.1.2) (2026-02-11)
 
 
