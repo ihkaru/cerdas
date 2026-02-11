@@ -25,7 +25,10 @@ export class HealthCheckService {
         const baseUrl = this.apiClient.baseUrl;
         const pingUrl = `${baseUrl}/ping`;
         
-        logger.info('[HealthCheck] Starting comprehensive API check', { pingUrl });
+        logger.info('[HealthCheck] Starting comprehensive API check', { 
+            pingUrl,
+            origin: window.location.origin // CRITICAL: Log the actual origin
+        });
 
         // ── Layer 1: Standard fetch (what the app uses) ──
         try {
