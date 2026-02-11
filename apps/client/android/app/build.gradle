@@ -49,6 +49,7 @@ android {
             if (!_keyAlias && project.hasProperty('android.injected.signing.key.alias')) {
                 _keyAlias = project.property('android.injected.signing.key.alias')
             }
+            if (!_keyPassword && project.hasProperty('android.injected.signing.key.password')) {
                 _keyPassword = project.property('android.injected.signing.key.password')
             }
 
