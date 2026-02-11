@@ -95,7 +95,6 @@ jobs:
       - name: Build signed APK
         working-directory: apps/client/android
         run: |
-          ls -la
           chmod +x gradlew
           ./gradlew assembleRelease \
             -Pandroid.injected.signing.store.file=${{ github.workspace }}/apps/client/android/release-key.jks \

@@ -53,8 +53,6 @@ android {
                 _keyPassword = project.property('android.injected.signing.key.password')
             }
 
-            println "DEBUG: Signing Config - Keystore Path: " + _keystorePath
-            println "DEBUG: Signing Config - Alias: " + _keyAlias
             if (_keystorePath) {
                 storeFile project.file(_keystorePath)
                 storePassword _keystorePassword
@@ -62,9 +60,6 @@ android {
                 keyPassword _keyPassword
                 v1SigningEnabled true
                 v2SigningEnabled true
-            } else {
-                println "WARNING: No keystore path found. Build will be unsigned."
-                throw new GradleException("KEYSTORE NOT FOUND! Keystore path is: '" + _keystorePath + "'. Cannot sign release build.")
             }
         }
     }
