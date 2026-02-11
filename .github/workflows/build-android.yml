@@ -23,8 +23,6 @@ on:
         required: true
       DISCORD_WEBHOOK:
         required: false
-      GITHUB_TOKEN:
-        required: false
 
   workflow_dispatch:
     inputs:
