@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import type { Table } from '../types';
 
-const props = defineProps<{
+defineProps<{
     apps: Table[]; // "apps" represents tables/forms here
 }>();
 
@@ -38,21 +38,19 @@ const emit = defineEmits<{
 }>();
 
 const handleAppClick = (id: string) => {
-    console.log('AppGallery: Clicked App', id);
     emit('open-app', id);
 };
 
 const getAppIcon = (app: Table) => {
-    let settings = app.settings;
+    let settings: any = app.settings;
     if (typeof settings === 'string') {
         try {
             settings = JSON.parse(settings);
-        } catch (e) {
+        } catch {
             settings = {};
         }
     }
-    // settings is any type in AppSchema interface usually, but if it is mapped correctly
-    return (settings as any)?.icon || 'square_stack_3d_up_fill';
+    return settings?.icon || 'square_stack_3d_up_fill';
 };
 </script>
 
