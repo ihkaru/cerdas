@@ -8,8 +8,23 @@ on:
       tag_name:
         required: true
         type: string
-  workflow_dispatch:
-    inputs:
+    secrets:
+      VITE_API_BASE_URL:
+        required: true
+      VITE_GOOGLE_CLIENT_ID:
+        required: true
+      KEYSTORE_BASE64:
+        required: true
+      KEYSTORE_PASSWORD:
+        required: true
+      KEY_ALIAS:
+        required: true
+      KEY_PASSWORD:
+        required: true
+      DISCORD_WEBHOOK:
+        required: false
+      GITHUB_TOKEN:
+        required: false
       tag_name:
         description: "Tag name to upload release to (e.g. cerdas-v0.1.0)"
         required: true
