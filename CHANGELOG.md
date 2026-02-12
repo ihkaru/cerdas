@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.13](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.12...cerdas-v0.1.13) (2026-02-12)
+
+
+### Bug Fixes
+
+* **prod:** exclude bootstrap/cache to prevent dev dependency crash ([685734e](https://github.com/ihkaru/cerdas/commit/685734e2ffa74a7a812d4198be80b2a3d3b0a14a))
+* **prod:** set ownership to 1000:1000 to match coolify user ([38dfcc6](https://github.com/ihkaru/cerdas/commit/38dfcc62fa37bf52c767c9b214c05471450f8942))
+
 ## [0.1.12](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.11...cerdas-v0.1.12) (2026-02-12)
 
 
