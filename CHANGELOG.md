@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.11](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.10...cerdas-v0.1.11) (2026-02-12)
+
+
+### Features
+
+* **ci:** add release link to discord notification ([aac2134](https://github.com/ihkaru/cerdas/commit/aac21340aaad10ac6cb800f4050d7805839b24ac))
+* **dev:** dual android dev modes, cors fix, and healthcheck fix ([af4ed4d](https://github.com/ihkaru/cerdas/commit/af4ed4d8ee8282d441e3e58ef76340a4db49de59))
+
+
+### Bug Fixes
+
+* convert debug menu to popup for Android scroll + fix CORS for capacitor ([49eb1e5](https://github.com/ihkaru/cerdas/commit/49eb1e59645c4dc2792f4c452613bf6e2584c46a))
+
 ## [0.1.10](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.9...cerdas-v0.1.10) (2026-02-11)
 
 
