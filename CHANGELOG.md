@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.17](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.16...cerdas-v0.1.17) (2026-02-12)
+
+
+### Bug Fixes
+
+* **prod:** correct frankenphp binary permissions and path ([7f5ca0b](https://github.com/ihkaru/cerdas/commit/7f5ca0b2919469c6c15ba3a4feb9b09aa52beae5))
+
 ## [0.1.16](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.15...cerdas-v0.1.16) (2026-02-12)
 
 
