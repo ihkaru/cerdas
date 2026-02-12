@@ -231,15 +231,18 @@ Our current workflow uses scripts to *modify* `.env` files (e.g., swapping `.env
 *   **Danger:** If you run `start-android-local.ps1` (setting API to `localhost`), and then immediately run a manual build (`pnpm build`), you might accidentally build a "Production" APK that points to `localhost`.
 *   **Mitigation:** Always use the dedicated GitHub Action for Production builds (which guarantees a clean state).
 
-**Advanced Solution: Build Variants (Recommended Future Upgrade)**
-To solve this permanently, we can implement **Android Product Flavors**:
-1.  **Dev Flavor (`com.cerdas.client.dev`):**
-    *   Can perform Live Reload.
-    *   Connects to Dev API.
-    *   Can be installed *alongside* the Prod app.
-2.  **Prod Flavor (`com.cerdas.client`):**
-    *   Strict security settings.
-    *   Connects to Prod API.
-    *   No Live Reload code.
+## 5. Environment Management & Build Variants (Implemented)
 
-*Reference: [Android Build Variants](https://developer.android.com/studio/build/build-variants)*
+We use **Android Product Flavors** to strictly separate environments:
+
+| Flavor | Package ID | Config | Use Case |
+| :--- | :--- | :--- | :--- |
+| **Dev** | `com.cerdas.client.dev` | Live Reload + Dev API | Local Development |
+| **Prod** | `com.cerdas.client` | Bundled Assets + Prod API | Google Play Release |
+
+### How to Build
+*   **Local Dev:** `npx cap run android --flavor dev` (runs `assembleDevDebug`)
+*   **Production:** Handled by GitHub Actions (`assembleProdRelease`)
+
+**Safety Guarantee:**
+It is now Impossible to accidentally overwrite the Production app with a Dev build because they have different Package IDs (`.dev` suffix).
