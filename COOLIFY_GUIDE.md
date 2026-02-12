@@ -37,7 +37,7 @@ DB_PASSWORD=your_password
 # Auth Domains (Important for Sanctum)
 SANCTUM_STATEFUL_DOMAINS=app.dvlpid.my.id,editor.dvlpid.my.id
 SESSION_DOMAIN=.dvlpid.my.id
-CORS_ALLOWED_ORIGINS=https://app.dvlpid.my.id,https://editor.dvlpid.my.id
+CORS_ALLOWED_ORIGINS=https://app.dvlpid.my.id,https://editor.dvlpid.my.id,capacitor://localhost,https://localhost
 ```
 
 ### Frontend (Build Args)

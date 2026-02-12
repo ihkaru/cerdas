@@ -667,3 +667,8 @@ Dashboard (/) → Apps (/apps) → App Detail (/apps/:id) → Form Editor (/form
   - Added JSON Preview placeholder area effectively splitting the view.
   - Added CSS styles for `.code-content`, `.code-editor-panel`, and `.code-preview-placeholder` in `app-editor.css`.
 
+### 2026-02-12: CORS Fix & Debug Menu Popup
+
+- **CORS Fix**: Updated `COOLIFY_GUIDE.md` to include `capacitor://localhost,https://localhost` in `CORS_ALLOWED_ORIGINS` example. **User must update Coolify env var** on server for Android login to work.
+- **Debug Menu Scroll Fix**: Converted `DebugMenuSheet.vue` from `f7-sheet` (80vh, manual overflow hack) to `f7-popup` with `f7-page`/`f7-navbar` for native scrolling on Android.
+

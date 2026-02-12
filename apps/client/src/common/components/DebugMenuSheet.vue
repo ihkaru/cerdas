@@ -1,13 +1,15 @@
 <template>
-  <f7-sheet
+  <f7-popup
     v-model:opened="isOpened"
-    class="debug-sheet"
-    style="height: auto; --f7-sheet-bg-color: #fff;"
-    swipe-to-close
-    backdrop
+    class="debug-popup"
   >
-    <div style="height: 80vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 50px; display: flex; flex-direction: column;">
-      <f7-block-title medium style="margin-top: 16px;">🔧 Debug Console</f7-block-title>
+    <f7-page>
+      <f7-navbar title="🔧 Debug Console">
+        <template #right>
+          <f7-link popup-close>Close</f7-link>
+        </template>
+      </f7-navbar>
+
       <f7-block strong inset>
 
         <!-- App Info -->
@@ -117,8 +119,8 @@
           <f7-button outline color="blue" @click="runChecks" style="flex: 1;">🔄 Re-check</f7-button>
         </div>
       </f7-block>
-    </div>
-  </f7-sheet>
+    </f7-page>
+  </f7-popup>
 </template>
 
 <script setup lang="ts">
