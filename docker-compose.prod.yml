@@ -113,10 +113,10 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - PHP_OPCACHE_ENABLE=1
+    healthcheck:
+      disable: true
     depends_on:
       - backend
-    labels:
-      - "coolify.exclude_from_hc=true"
     networks:
       - coolify
       - default
@@ -143,10 +143,10 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - PHP_OPCACHE_ENABLE=1
+    healthcheck:
+      disable: true
     depends_on:
       - backend
-    labels:
-      - "coolify.exclude_from_hc=true"
     networks:
       - coolify
       - default
