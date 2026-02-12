@@ -672,3 +672,20 @@ Dashboard (/) → Apps (/apps) → App Detail (/apps/:id) → Form Editor (/form
 - **CORS Fix**: Updated `COOLIFY_GUIDE.md` to include `capacitor://localhost,https://localhost` in `CORS_ALLOWED_ORIGINS` example. **User must update Coolify env var** on server for Android login to work.
 - **Debug Menu Scroll Fix**: Converted `DebugMenuSheet.vue` from `f7-sheet` (80vh, manual overflow hack) to `f7-popup` with `f7-page`/`f7-navbar` for native scrolling on Android.
 
+## Push to GitHub Workflow (Best Practice)
+
+**ALWAYS follow this sequence when pushing code:**
+
+1. **Scan for secrets** — Check diffs for passwords/keys before staging
+2. **`git add`** — Stage files
+3. **`git commit`** — Lint-staged hook runs ESLint auto-fix on staged `.js/.ts/.vue/.json` files
+4. **`git pull --rebase`** — Sync with remote, rebase local commits on top
+5. **`git push`** — Pre-push hook runs `verify-build.ps1` with smart tiering:
+   - `.vue/.ts/.css` only → Web build only (~30s)
+   - `android/` or `capacitor.config` → Full build (~5-10m)
+   - `apps/backend/` only → Skipped (instant)
+
+**⚠️ NEVER use `--no-verify` unless explicitly instructed by user.**
+
+Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md`
+
