@@ -125,7 +125,7 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           title: "Android Build: ${{ job.status }}"
-          description: "Build triggered by ${{ github.event_name }}. Check Actions tab for details."
+          description: "Build triggered by ${{ github.event_name }}. [View Release](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ inputs.tag_name || github.event.release.tag_name }})"
           image: ${{ job.status == 'success' && 'https://media.giphy.com/media/nXxOjZrbnbRxS/giphy.gif' || 'https://media.giphy.com/media/26n6qnmrJaYBymBxnC/giphy.gif' }}
           color: ${{ job.status == 'success' && '0x00ff00' || '0xff0000' }}
           url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
