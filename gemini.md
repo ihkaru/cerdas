@@ -159,6 +159,35 @@ Key imports:
 4. Edit code → Auto-refresh in emulator!
 5. Save logs: `.\save-android-log.bat` → logs saved to `logs/android.log`
 
+### Dual Android Dev Modus (New 2026-02-12)
+
+**Mode 1: Local Backend** (Standard)
+```powershell
+./scripts/start-android-local.ps1
+```
+- Backend: `http://10.0.2.2:8080/api` (Localhost)
+- Database: Local MySQL
+- Use for: Full-stack features, backend changes.
+
+**Mode 2: Remote Backend** (UI Only)
+```powershell
+./scripts/start-android-remote.ps1
+```
+- Backend: `https://api.dvlpid.my.id/api` (Production)
+- Database: Production DB
+- Use for: UI/UX tweaks, verifying prod data.
+
+> [!TIP]
+> Both scripts automatically start `Pixel_5_API_30` emulator if no device is found! 🚀
+
+> [!IMPORTANT]
+> **Production Fix**: `Dockerfile.prod` updated to install `curl`. This is required for `docker-compose.prod.yml` healthchecks. Without it, Coolify/Docker reports `502 Bad Gateway` (Unhealthy).
+
+> [!NOTE]
+> **CORS Bypass**: `CapacitorHttp` is enabled in `capacitor.config.ts`. This forces all API calls to go through the native layer, bypassing WebView CORS restrictions. This is critical for Mode 2 (Remote Backend).
+
+See `.agent/workflows/android-local.md` and `android-remote.md`.
+
 ### Important IPs (Android Emulator)
 - `10.0.2.2` → Host machine (your PC)
 - `127.0.0.1` → Emulator itself (NOT your PC!)

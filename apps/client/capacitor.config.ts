@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 // Set to true for development with Live Reload, false for production build
-const useLiveReload = false; // CHANGE THIS TO FALSE FOR PRODUCTION APK
+const useLiveReload = true; // CHANGE THIS TO FALSE FOR PRODUCTION APK
 
 const config: CapacitorConfig = {
   appId: 'com.cerdas.client',
@@ -35,6 +35,9 @@ const config: CapacitorConfig = {
       scopes: ['profile', 'email'],
       serverClientId: '133588067257-0huo4ja0kaavpg704si2htphl0kvgobt.apps.googleusercontent.com',
       forceCodeForRefreshToken: true,
+    },
+    CapacitorHttp: {
+      enabled: true,
     },
   },
 };
