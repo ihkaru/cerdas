@@ -36,6 +36,9 @@ services:
       timeout: 10s
       retries: 5
       start_period: 120s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.backend.loadbalancer.server.port=80"
     networks:
       - coolify
       - default
