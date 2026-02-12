@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.26](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.25...cerdas-v0.1.26) (2026-02-12)
+
+
+### Bug Fixes
+
+* **prod:** switch backend to port 80 to match coolify default ([aed36ee](https://github.com/ihkaru/cerdas/commit/aed36ee901acd1efeac2026e30727ce7dcece699))
+
 ## [0.1.25](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.24...cerdas-v0.1.25) (2026-02-12)
 
 
