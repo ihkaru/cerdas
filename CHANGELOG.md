@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.25](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.24...cerdas-v0.1.25) (2026-02-12)
+
+
+### Bug Fixes
+
+* **prod:** force 127.0.0.1 for frontend healthchecks to bypass DNS-IPv6 issue ([7f8726f](https://github.com/ihkaru/cerdas/commit/7f8726fc61dc137f4d1b3173e186b45dd334d5d0))
+
 ## [0.1.24](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.23...cerdas-v0.1.24) (2026-02-12)
 
 
