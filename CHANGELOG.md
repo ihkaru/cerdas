@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.21](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.20...cerdas-v0.1.21) (2026-02-12)
+
+
+### Features
+
+* **tools:** add script to generate consolidated docker context ([0d9fb9a](https://github.com/ihkaru/cerdas/commit/0d9fb9a5a748a676a014f4806622db7debc7c38a))
+
 ## [0.1.20](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.19...cerdas-v0.1.20) (2026-02-12)
 
 
