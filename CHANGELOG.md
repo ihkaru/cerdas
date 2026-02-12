@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.20](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.19...cerdas-v0.1.20) (2026-02-12)
+
+
+### Bug Fixes
+
+* **prod:** use start-container.sh script for robust startup ([5902ffe](https://github.com/ihkaru/cerdas/commit/5902ffe077dba568427aeae20d6f17ccd4ae35e6))
+
 ## [0.1.19](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.18...cerdas-v0.1.19) (2026-02-12)
 
 
