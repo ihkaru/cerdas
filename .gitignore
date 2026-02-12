@@ -49,3 +49,4 @@ coverage/
 *.log
 npm-debug.log*
 pnpm-debug.log*
+DOCKER_CONTEXT.md
