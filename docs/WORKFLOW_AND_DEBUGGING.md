@@ -221,3 +221,25 @@ sequenceDiagram
 | **APK connects to localhost** | Production | Ensure `capacitor.config.ts` uses `process.env.CAPACITOR_LIVE_RELOAD`. |
 | **Migration Failed** | Coolify | SSH/Console into container: `php artisan migrate --force`. |
 | **Push Rejected** | Git | Fix lint errors (`npm run lint`) or build errors (`pnpm build`). |
+
+---
+
+## 5. Environment Management & Build Risks
+
+**Current Risk:**
+Our current workflow uses scripts to *modify* `.env` files (e.g., swapping `.env.local-dev` to `.env`).
+*   **Danger:** If you run `start-android-local.ps1` (setting API to `localhost`), and then immediately run a manual build (`pnpm build`), you might accidentally build a "Production" APK that points to `localhost`.
+*   **Mitigation:** Always use the dedicated GitHub Action for Production builds (which guarantees a clean state).
+
+**Advanced Solution: Build Variants (Recommended Future Upgrade)**
+To solve this permanently, we can implement **Android Product Flavors**:
+1.  **Dev Flavor (`com.cerdas.client.dev`):**
+    *   Can perform Live Reload.
+    *   Connects to Dev API.
+    *   Can be installed *alongside* the Prod app.
+2.  **Prod Flavor (`com.cerdas.client`):**
+    *   Strict security settings.
+    *   Connects to Prod API.
+    *   No Live Reload code.
+
+*Reference: [Android Build Variants](https://developer.android.com/studio/build/build-variants)*
