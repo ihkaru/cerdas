@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.18](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.17...cerdas-v0.1.18) (2026-02-12)
+
+
+### Bug Fixes
+
+* **prod:** update healthcheck endpoint to /up ([bf6ccee](https://github.com/ihkaru/cerdas/commit/bf6ccee7cc0f31f7516d434ce654142c8ff421c9))
+
 ## [0.1.17](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.16...cerdas-v0.1.17) (2026-02-12)
 
 
