@@ -28,12 +28,13 @@ services:
       # Performance optimizations
       - PHP_OPCACHE_ENABLE=1
       - OCTANE_SERVER=frankenphp
+      - CADDY_GLOBAL_OPTIONS=auto_https off
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 90s
+      start_period: 120s
     networks:
       - coolify
       - default
