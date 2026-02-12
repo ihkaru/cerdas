@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.15](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.14...cerdas-v0.1.15) (2026-02-12)
+
+
+### Bug Fixes
+
+* **android:** production build uses static assets, dev scripts enbable live reload ([3221316](https://github.com/ihkaru/cerdas/commit/3221316bd63d0c871501433bc459553baa338198))
+
 ## [0.1.14](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.13...cerdas-v0.1.14) (2026-02-12)
 
 
