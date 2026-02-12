@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile.prod
     restart: always
     expose:
-      - "8080"
+      - "80"
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
@@ -30,7 +30,7 @@ services:
       - OCTANE_SERVER=frankenphp
       - CADDY_GLOBAL_OPTIONS=auto_https off
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
+      test: ["CMD", "curl", "-f", "http://localhost:80/up"]
       interval: 30s
       timeout: 10s
       retries: 5
