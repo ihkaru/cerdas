@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 // Set to true for development with Live Reload, false for production build
-const useLiveReload = true; // CHANGE THIS TO FALSE FOR PRODUCTION APK
+const useLiveReload = process.env.CAPACITOR_LIVE_RELOAD === 'true';
 
 const config: CapacitorConfig = {
   appId: 'com.cerdas.client',

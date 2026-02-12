@@ -32,10 +32,8 @@ Write-Host "  -> VITE_API_BASE_URL=https://api.dvlpid.my.id/api" -ForegroundColo
 
 # 3. Ensure useLiveReload = true
 Write-Host "[3/7] Enabling Live Reload..." -ForegroundColor Yellow
-$capConfig = Get-Content "$ClientDir\capacitor.config.ts" -Raw
-$capConfig = $capConfig -replace 'const useLiveReload = false;', 'const useLiveReload = true;'
-Set-Content -Path "$ClientDir\capacitor.config.ts" -Value $capConfig -NoNewline
-Write-Host "  -> useLiveReload = true" -ForegroundColor Gray
+$env:CAPACITOR_LIVE_RELOAD = "true"
+Write-Host "  -> CAPACITOR_LIVE_RELOAD = true" -ForegroundColor Gray
 
 # 4. Clean Android app (optional)
 if (-not $SkipClean) {
@@ -44,7 +42,8 @@ if (-not $SkipClean) {
     adb uninstall com.cerdas.client 2>$null
     Remove-Item -Recurse -Force "$ClientDir\android\app\src\main\assets\public" -ErrorAction SilentlyContinue
     Write-Host "  -> App cleaned from device" -ForegroundColor Gray
-} else {
+}
+else {
     Write-Host "[4/7] Skipping clean (--SkipClean)" -ForegroundColor DarkGray
 }
 
@@ -70,7 +69,8 @@ if (-not $deviceList) {
     $EmulatorExe = "emulator"
     if (Test-Path "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe") {
         $EmulatorExe = "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe"
-    } elseif (Test-Path "$env:ANDROID_HOME\emulator\emulator.exe") {
+    }
+    elseif (Test-Path "$env:ANDROID_HOME\emulator\emulator.exe") {
         $EmulatorExe = "$env:ANDROID_HOME\emulator\emulator.exe"
     }
 
@@ -78,11 +78,13 @@ if (-not $deviceList) {
         Start-Process -FilePath $EmulatorExe -ArgumentList "-avd Pixel_5_API_30" -NoNewWindow
         Write-Host "  -> Waiting for emulator to boot (10s)..." -ForegroundColor Gray
         Start-Sleep -Seconds 10
-    } catch {
+    }
+    catch {
         Write-Host "  -> Failed to start emulator: $_" -ForegroundColor Red
         Write-Host "  -> Please start emulator manually via Android Studio." -ForegroundColor Yellow
     }
-} else {
+}
+else {
     Write-Host "  -> Emulator already running." -ForegroundColor Gray
 }
 
