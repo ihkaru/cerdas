@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.14](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.13...cerdas-v0.1.14) (2026-02-12)
+
+
+### Features
+
+* **backend:** auto-run migrations on production startup ([a39af5c](https://github.com/ihkaru/cerdas/commit/a39af5c54f871ec6c13e97ceee0a0dc798927755))
+
+
+### Bug Fixes
+
+* **docker:** enable local dev with database and proper build context ([ae3502f](https://github.com/ihkaru/cerdas/commit/ae3502f12eb119c67d49e267e25003d8056ae11c))
+* **prod:** chown frankenphp binary to fix permission denied crash ([1b8fb90](https://github.com/ihkaru/cerdas/commit/1b8fb9044e67b611dd3d5b41a86ea65c4dc716ee))
+
 ## [0.1.13](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.12...cerdas-v0.1.13) (2026-02-12)
 
 
