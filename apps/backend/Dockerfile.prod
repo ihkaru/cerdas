@@ -45,7 +45,7 @@ COPY start-container.sh /usr/local/bin/start-container
 RUN chmod +x /usr/local/bin/start-container
 
 # Expose FrankenPHP port
-EXPOSE 80
+EXPOSE 8080
 
 # Start Octane via script
 ENTRYPOINT ["/usr/local/bin/start-container"]

@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile.prod
     restart: always
     expose:
-      - "80"
+      - "8080"
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
@@ -28,17 +28,17 @@ services:
       # Performance optimizations
       - PHP_OPCACHE_ENABLE=1
       - OCTANE_SERVER=frankenphp
-      - OCTANE_SERVER_NAME=:80
+      - OCTANE_SERVER_NAME=:8080
       - CADDY_GLOBAL_OPTIONS=auto_https off
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/up"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 120s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.backend.loadbalancer.server.port=80"
+      - "traefik.http.services.backend.loadbalancer.server.port=8080"
     networks:
       - coolify
       - default
