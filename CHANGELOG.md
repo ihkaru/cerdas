@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.22](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.21...cerdas-v0.1.22) (2026-02-12)
+
+
+### Bug Fixes
+
+* **prod:** final tuning - pin frankenphp 1.10, disable auto_https, clean startup ([4f25f06](https://github.com/ihkaru/cerdas/commit/4f25f06755181c0901c61fd82fc946925c0b4f1a))
+* **prod:** upgrade frankenphp v2, force binary path, tune healthcheck ([f30039c](https://github.com/ihkaru/cerdas/commit/f30039c2da95e90b5b3a091a92b4a01ab279c43e))
+
 ## [0.1.21](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.20...cerdas-v0.1.21) (2026-02-12)
 
 
