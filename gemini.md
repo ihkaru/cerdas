@@ -705,6 +705,10 @@ Dashboard (/) → Apps (/apps) → App Detail (/apps/:id) → Form Editor (/form
 - **CORS Fix**: Updated `COOLIFY_GUIDE.md` to include `capacitor://localhost,https://localhost` in `CORS_ALLOWED_ORIGINS` example. **User must update Coolify env var** on server for Android login to work.
 - **Debug Menu Scroll Fix**: Converted `DebugMenuSheet.vue` from `f7-sheet` (80vh, manual overflow hack) to `f7-popup` with `f7-page`/`f7-navbar` for native scrolling on Android.
 
+### 2026-02-12: Production Crash Fix (PailServiceProvider)
+- **Issue**: Local `bootstrap/cache` files containing `PailServiceProvider` (dev tool) leaked into production image, causing crash.
+- **Fix**: Added `bootstrap/cache/*.php` to `.dockerignore` and `.gitignore` to prevent infected cache from leaking to prod.
+
 ## Push to GitHub Workflow (Best Practice)
 
 **ALWAYS follow this sequence when pushing code:**
