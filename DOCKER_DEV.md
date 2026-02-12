@@ -37,3 +37,23 @@ We have added a `docker-compose.dev.yml` file to support a full-stack local Dock
 ## Troubleshooting
 - If `client` or `editor` build fails with "unknown file mode" or "symlink" errors, ensure your `.dockerignore` is correctly excluding `node_modules`.
 - If backend lacks permissions, `chown` in Dockerfile handles it, but it might take time on first build.
+
+## Android Development
+
+To run the Android app using the local Docker backend:
+
+1.  **Start Scripts**:
+    Run the following batch script:
+    ```cmd
+    start-android-docker.bat
+    ```
+    This script will:
+    -   Stop existing servers.
+    -   Start `docker-compose.dev.yml` (Backend + DB).
+    -   Configure the client to use `http://10.0.2.2:8080/api`.
+    -   Start the client dev server with Live Reload.
+    -   Launch the Android Emulator and Android Studio.
+
+2.  **Verify**:
+    -   The app should launch in the emulator.
+    -   API requests should hit the Docker backend (check Docker logs).
