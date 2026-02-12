@@ -55,6 +55,12 @@ services:
     environment:
       - VITE_API_BASE_URL=${VITE_API_BASE_URL}
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - coolify
       - default
@@ -75,6 +81,12 @@ services:
     environment:
       - VITE_API_BASE_URL=${VITE_API_BASE_URL}
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - coolify
       - default
@@ -103,6 +115,8 @@ services:
       - PHP_OPCACHE_ENABLE=1
     depends_on:
       - backend
+    labels:
+      - "coolify.exclude_from_hc=true"
     networks:
       - coolify
       - default
@@ -131,6 +145,8 @@ services:
       - PHP_OPCACHE_ENABLE=1
     depends_on:
       - backend
+    labels:
+      - "coolify.exclude_from_hc=true"
     networks:
       - coolify
       - default
