@@ -40,10 +40,12 @@ RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions sto
 RUN chown -R 1000:1000 /var/www/html
 
 # Explicitly set binary path for Octane
-ENV OCTANE_FRANKENPHP_BINARY=/usr/local/bin/frankenphp
+# Copy startup script
+COPY start-container.sh /usr/local/bin/start-container
+RUN chmod +x /usr/local/bin/start-container
 
 # Expose FrankenPHP port
 EXPOSE 8080
 
-# Start Octane with FrankenPHP worker mode
-ENTRYPOINT ["sh", "-c", "php artisan migrate --force && php artisan package:discover --ansi && php artisan optimize && php artisan octane:frankenphp --host=0.0.0.0 --port=8080 --workers=auto --max-requests=500"]
+# Start Octane via script
+ENTRYPOINT ["/usr/local/bin/start-container"]
