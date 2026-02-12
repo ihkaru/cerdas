@@ -38,6 +38,7 @@ RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions sto
 # Set permissions
 # Set permissions to UID 1000 (standard for Coolify/Docker non-root)
 RUN chown -R 1000:1000 /var/www/html
+RUN chown -R 1000:1000 /usr/local/bin/frankenphp
 
 # Expose FrankenPHP port
 EXPOSE 8080
