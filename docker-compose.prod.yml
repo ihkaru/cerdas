@@ -28,6 +28,7 @@ services:
       # Performance optimizations
       - PHP_OPCACHE_ENABLE=1
       - OCTANE_SERVER=frankenphp
+      - OCTANE_SERVER_NAME=:80
       - CADDY_GLOBAL_OPTIONS=auto_https off
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/up"]
