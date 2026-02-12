@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.27](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.26...cerdas-v0.1.27) (2026-02-12)
+
+
+### Bug Fixes
+
+* **prod:** set OCTANE_SERVER_NAME=:80 to accept all host headers ([259eaa8](https://github.com/ihkaru/cerdas/commit/259eaa81defb2f8a543c08cdf660aaefc3afbada))
+
 ## [0.1.26](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.25...cerdas-v0.1.26) (2026-02-12)
 
 
