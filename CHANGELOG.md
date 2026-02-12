@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.24](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.23...cerdas-v0.1.24) (2026-02-12)
+
+
+### Bug Fixes
+
+* **prod:** disable healthcheck for worker/scheduler properly ([07b8edb](https://github.com/ihkaru/cerdas/commit/07b8edbac3860411b7a3e22aace83dc718430ce5))
+
 ## [0.1.23](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.22...cerdas-v0.1.23) (2026-02-12)
 
 
