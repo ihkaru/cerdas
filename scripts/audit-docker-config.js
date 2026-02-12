@@ -37,6 +37,34 @@ try {
         }
     }
 
+    // Rule 3: APP_DEBUG must be false
+    if (backendSection.includes('APP_DEBUG=true')) {
+        errors.push("❌ APP_DEBUG is set to 'true'! It MUST be 'false' for production.");
+    } else {
+        console.log(`${GREEN}✅ APP_DEBUG is safe (false)${RESET}`);
+    }
+
+    // Rule 4: APP_ENV must be production
+    if (!backendSection.includes('APP_ENV=production')) {
+        errors.push("❌ APP_ENV is failing (should be 'production').");
+    } else {
+        console.log(`${GREEN}✅ APP_ENV is correct (production)${RESET}`);
+    }
+
+    // Rule 5: DB_HOST sanity check
+    if (backendSection.includes('DB_HOST=localhost') || backendSection.includes('DB_HOST=127.0.0.1')) {
+        errors.push("❌ DB_HOST is set to localhost! In Docker, this refers to the container itself, not the host.");
+    } else {
+         console.log(`${GREEN}✅ DB_HOST looks valid (not localhost)${RESET}`);
+    }
+
+    // Rule 6: Opcache check
+    if (!backendSection.includes('PHP_OPCACHE_ENABLE=1')) {
+        warnings.push("⚠️ PHP_OPCACHE_ENABLE is not enabled. Recommended for performance.");
+    } else {
+        console.log(`${GREEN}✅ Opcache is enabled${RESET}`);
+    }
+
     // Report
     console.log("\n--- Audit Results ---");
     if (errors.length > 0) {

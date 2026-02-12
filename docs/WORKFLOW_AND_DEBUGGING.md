@@ -8,7 +8,14 @@ How to handle issues reported in production.
 
 ### Scenario A: Bug in Production APK (Mobile App)
 
+### Scenario A: Bug in Production APK (Mobile App)
+
 **Symptom:** User reports "App crashes when I click X" or "Data doesn't load".
+
+**🛡️ PRE-FLIGHT CHECK:**
+Before deployment, always run:
+`audit-deployment.bat`
+*   Checks `docker-compose.prod.yml` for common errors (incorrect healthcheck, missing env vars, debug mode).*
 
 **🛡️ PRE-FLIGHT CHECK:**
 Before deployment, always run:
@@ -226,6 +233,7 @@ sequenceDiagram
 | **APK connects to localhost** | Production | Ensure `capacitor.config.ts` uses `process.env.CAPACITOR_LIVE_RELOAD`. |
 | **Migration Failed** | Coolify | SSH/Console into container: `php artisan migrate --force`. |
 | **Push Rejected** | Git | Fix lint errors (`npm run lint`) or build errors (`pnpm build`). |
+| **502 / Deployment Error** | Prod | **Run `audit-deployment.bat`**. Check for misconfigured Env/Healthcheck. |
 
 ---
 
