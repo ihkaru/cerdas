@@ -28,6 +28,7 @@ services:
       # Performance optimizations
       - PHP_OPCACHE_ENABLE=1
       - OCTANE_SERVER=frankenphp
+      - OCTANE_FRANKENPHP_BINARY=/usr/local/bin/frankenphp
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
       interval: 30s
