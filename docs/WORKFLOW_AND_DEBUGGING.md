@@ -10,6 +10,11 @@ How to handle issues reported in production.
 
 **Symptom:** User reports "App crashes when I click X" or "Data doesn't load".
 
+**🛡️ PRE-FLIGHT CHECK:**
+Before deployment, always run:
+`audit-deployment.bat`
+*   Checks `docker-compose.prod.yml` for common errors (incorrect healthcheck, missing env vars).*
+
 ```mermaid
 sequenceDiagram
     participant User as End User
