@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.12](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.11...cerdas-v0.1.12) (2026-02-12)
+
+
+### Bug Fixes
+
+* **prod:** rename Caddyfile to avoid windows path in docker ([93e43bd](https://github.com/ihkaru/cerdas/commit/93e43bd08d11e24d74dc5528959b00e625058761))
+
 ## [0.1.11](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.10...cerdas-v0.1.11) (2026-02-12)
 
 
