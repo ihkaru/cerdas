@@ -180,6 +180,9 @@ Key imports:
 > [!TIP]
 > Both scripts automatically start `Pixel_5_API_30` emulator if no device is found! 🚀
 
+> [!NOTE]
+> **Caddyfile Conflict**: `apps/backend/Caddyfile` contained absolute Windows paths, causing 404s in Docker. Renamed to `Caddyfile.local` to let Octane use default config.
+
 > [!IMPORTANT]
 > **Production Fix**: `Dockerfile.prod` updated to install `curl`. This is required for `docker-compose.prod.yml` healthchecks. Without it, Coolify/Docker reports `502 Bad Gateway` (Unhealthy).
 
@@ -359,6 +362,7 @@ Use these to login during development:
   - **AppShell Status Counts**: Filter buttons now show counts (e.g. "Pending (5)").
   - **AppShell UI Upgrade**: Elevated Search Bar to `f7-subnavbar`. Chips sticky on scroll. Optimized spacing. Used Primary Color for 'All' filter.
   - **AppShell Refactor**: Extracted logic into `useAppShellLogic.ts` (Data, Sync, Filters) for scalability.
+  - **Version Verification**: If encountering issues with a library/tool, ALWAYS verify documentation online for the specific version in use, especially if it's newer than your training data (e.g., Capacitor 8, Laravel 11). Do not rely solely on memory.
   - **Navigation Final**: Resolved navigation lock and animation issues by using `router.navigate('/', { clearPreviousHistory: true, transition: 'f7-fade' })` and handling props correctly in AppShell.
   - **Dashboard Fix**: Corrected `f7.view.main` to `f7.views.main` in DashboardPage to prevent navigation lock after returning from AppShell.
   - **Infinite Scroll**: Implemented client-side pagination to safe-render large Lists (10,000+ items) while maintaining full offline search capability.
