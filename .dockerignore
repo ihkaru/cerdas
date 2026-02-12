@@ -1,0 +1,12 @@
+**/node_modules
+.git
+.vscode
+.idea
+**/dist
+**/coverage
+**/storage
+**/*.log
+.env
+.env.*
+!.env.example
+!.env.docker

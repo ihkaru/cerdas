@@ -1,0 +1,98 @@
+services:
+  # ==========================================
+  # BACKEND (Laravel API)
+  # ==========================================
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.prod
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.docker
+    depends_on:
+      - mariadb
+
+  # ==========================================
+  # DATABASE (MariaDB)
+  # ==========================================
+  mariadb:
+    image: mariadb:10.11
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: cerdas
+      MYSQL_USER: cerdas
+      MYSQL_PASSWORD: secret
+    ports:
+      - "33066:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+  # ==========================================
+  # CLIENT (Mobile PWA)
+  # ==========================================
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile.prod
+      args:
+        VITE_API_BASE_URL: http://localhost:8080/api
+        VITE_GOOGLE_CLIENT_ID: 133588067257-0huo4ja0kaavpg704si2htphl0kvgobt.apps.googleusercontent.com
+    restart: always
+    ports:
+      - "8000:80"
+    depends_on:
+      - backend
+
+  # ==========================================
+  # EDITOR (Web Dashboard)
+  # ==========================================
+  editor:
+    build:
+      context: .
+      dockerfile: apps/editor/Dockerfile.prod
+      args:
+        VITE_API_BASE_URL: http://localhost:8080/api
+        VITE_GOOGLE_CLIENT_ID: 133588067257-0huo4ja0kaavpg704si2htphl0kvgobt.apps.googleusercontent.com
+    restart: always
+    ports:
+      - "8001:80"
+    depends_on:
+      - backend
+
+  # ==========================================
+  # WORKER (Queue)
+  # ==========================================
+  worker:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.prod
+    restart: always
+    entrypoint: ["php"]
+    command: ["artisan", "queue:work", "--tries=3", "--timeout=90"]
+    env_file:
+      - .env.docker
+    depends_on:
+      - backend
+      - mariadb
+
+  # ==========================================
+  # SCHEDULER (Cron)
+  # ==========================================
+  scheduler:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.prod
+    restart: always
+    entrypoint: ["php"]
+    command: ["artisan", "schedule:work"]
+    env_file:
+      - .env.docker
+    depends_on:
+      - backend
+      - mariadb
+
+volumes:
+  mariadb_data:
