@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.19](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.18...cerdas-v0.1.19) (2026-02-12)
+
+
+### Features
+
+* **ci:** add audit-deployment script to prevent config errors ([2e02c96](https://github.com/ihkaru/cerdas/commit/2e02c96600a7dcbb99447bfb6c4180013e826f20))
+* **ci:** expand audit checks for app_debug, env, and db_host ([add4cfb](https://github.com/ihkaru/cerdas/commit/add4cfb4e06efda2ce9782f7c2211e9ecd374da9))
+
 ## [0.1.18](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.17...cerdas-v0.1.18) (2026-02-12)
 
 
