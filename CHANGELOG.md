@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.23](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.22...cerdas-v0.1.23) (2026-02-12)
+
+
+### Bug Fixes
+
+* **prod:** tune healthchecks per coolify specs (exclude worker/scheduler) ([df78bbd](https://github.com/ihkaru/cerdas/commit/df78bbd45c3213aa34bc87f9063dfd934d889dc1))
+
 ## [0.1.22](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.21...cerdas-v0.1.22) (2026-02-12)
 
 
