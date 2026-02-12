@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.28](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.27...cerdas-v0.1.28) (2026-02-12)
+
+
+### Bug Fixes
+
+* **prod:** add traefik label to force port 80 to prevent 2019 misrouting ([800358e](https://github.com/ihkaru/cerdas/commit/800358e889c31251a1f13c6561b8197acf5e4792))
+* **prod:** sync EVERYTHING to port 8080 (app, traefik, healthcheck) to resolve 502 ([c1d4988](https://github.com/ihkaru/cerdas/commit/c1d4988ea04e31dd8a421be812b8256af0551b05))
+
 ## [0.1.27](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.26...cerdas-v0.1.27) (2026-02-12)
 
 
