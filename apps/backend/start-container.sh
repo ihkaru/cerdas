@@ -3,6 +3,18 @@ set -e
 
 echo "🚀 Starting deployment tasks..."
 
+echo "🔍 Debugging FrankenPHP..."
+if [ -f "/usr/local/bin/frankenphp" ]; then
+    echo "✅ Found at /usr/local/bin/frankenphp"
+    ls -la /usr/local/bin/frankenphp
+else
+    echo "❌ NOT FOUND at /usr/local/bin/frankenphp"
+    echo "🔍 Seaching in /usr/local/bin:"
+    ls -la /usr/local/bin
+    echo "🔍 Checking PATH..."
+    which frankenphp || echo "frankenphp not in PATH"
+fi
+
 # Run migrations
 echo "📦 Running migrations..."
 php artisan migrate --force
