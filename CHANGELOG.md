@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.16](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.15...cerdas-v0.1.16) (2026-02-12)
+
+
+### Features
+
+* **android:** implement dev/prod build variants ([6d130b7](https://github.com/ihkaru/cerdas/commit/6d130b7b831dda9c1d1a11bb3524c0ff9a5e36be))
+
 ## [0.1.15](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.14...cerdas-v0.1.15) (2026-02-12)
 
 
