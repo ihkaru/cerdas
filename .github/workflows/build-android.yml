@@ -96,7 +96,7 @@ jobs:
         working-directory: apps/client/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease \
+          ./gradlew assembleProdRelease \
             -Pandroid.injected.signing.store.file=${{ github.workspace }}/apps/client/android/release-key.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
@@ -105,7 +105,7 @@ jobs:
       - name: Print Code Signing SHA-256
         run: |
           echo "::group::🔐 App Signing Fingerprints"
-          keytool -printcert -jarfile apps/client/android/app/build/outputs/apk/release/app-release.apk
+          keytool -printcert -jarfile apps/client/android/app/build/outputs/apk/prod/release/app-prod-release.apk
           echo "::endgroup::"
           echo "✅ Copy the SHA-256 fingerprint from the output above to your assetlinks.json file"
 
@@ -114,7 +114,7 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           TAG_NAME="${{ inputs.tag_name || github.event.release.tag_name }}"
-          cp apps/client/android/app/build/outputs/apk/release/app-release.apk cerdas-v${VERSION}.apk
+          cp apps/client/android/app/build/outputs/apk/prod/release/app-prod-release.apk cerdas-v${VERSION}.apk
           gh release upload "$TAG_NAME" cerdas-v${VERSION}.apk --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -137,4 +137,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cerdas-v${{ steps.version.outputs.version }}.apk
-          path: apps/client/android/app/build/outputs/apk/release/app-release.apk
+          path: apps/client/android/app/build/outputs/apk/prod/release/app-prod-release.apk
