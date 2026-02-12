@@ -27,6 +27,13 @@ php artisan package:discover --ansi
 echo "🔥 Optimizing..."
 php artisan optimize
 
+# Prevent Octane from trying to download FrankenPHP
+export OCTANE_DONT_CHECK_FRANKENPHP=true
+
 # Start Octane
 echo "🚀 Starting FrankenPHP..."
-exec php artisan octane:frankenphp --host=0.0.0.0 --port=8080 --workers=auto --max-requests=500
+exec php artisan octane:frankenphp \
+    --host=0.0.0.0 \
+    --port=8080 \
+    --workers=auto \
+    --max-requests=500
