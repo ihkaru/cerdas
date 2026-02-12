@@ -3,6 +3,6 @@
     "eslint --fix"
   ],
   "apps/backend/**/*.php": [
-    "apps/backend/vendor/bin/pint"
+    "php apps/backend/vendor/bin/pint"
   ]
 }
