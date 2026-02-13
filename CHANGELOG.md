@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.30](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.29...cerdas-v0.1.30) (2026-02-13)
+
+
+### Bug Fixes
+
+* **client:** enhance google login error logging and alert ([5079898](https://github.com/ihkaru/cerdas/commit/50798982aeeda7a6eb7434011610c6b9bc4623c1))
+
 ## [0.1.29](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.28...cerdas-v0.1.29) (2026-02-13)
 
 
