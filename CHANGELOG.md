@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.31](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.30...cerdas-v0.1.31) (2026-02-13)
+
+
+### Features
+
+* **editor:** implement schema reference, copy fallback, and validation for logic editors ([3f216ca](https://github.com/ihkaru/cerdas/commit/3f216ca1536590f9ec017e66a60e713b93be57ac))
+
 ## [0.1.30](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.29...cerdas-v0.1.30) (2026-02-13)
 
 
