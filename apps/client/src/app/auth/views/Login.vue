@@ -161,7 +161,8 @@ const signInWithGoogleNative = async () => {
     }
   } catch (e: any) {
     console.error(e);
-    // f7.dialog.alert('Google Sign-In Cancelled or Failed', 'Error');
+    const errorMsg = e.message || JSON.stringify(e);
+    f7.dialog.alert(`Google Sign-In Failed: ${errorMsg}`, 'Error');
   } finally {
     isLoading.value = false;
   }

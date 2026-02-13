@@ -60,6 +60,11 @@ export const useAuthStore = defineStore('auth', {
             try {
                 // client_type: 'android' or 'web' - but backend handles token verification similarly
                 // We can send 'android' if we want backend to know source
+                log.info('Google ID Token received', { 
+                    tokenLength: idToken?.length,
+                    tokenPrefix: idToken?.substring(0, 10) + '...'
+                });
+
                 const res = await apiClient.post('/auth/google', { id_token: idToken, client_type: 'web' });
                 
                 if (res && res.token && res.user) {
@@ -72,6 +77,8 @@ export const useAuthStore = defineStore('auth', {
                 }
             } catch (e: any) {
                 log.error('Google Login Error', e);
+                // Log detailed error for Android debugging
+                console.error('GOOGLE_LOGIN_FAILURE_DETAILS:', JSON.stringify(e, null, 2));
                 throw e;
             }
         },
