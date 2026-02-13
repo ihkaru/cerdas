@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.29](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.28...cerdas-v0.1.29) (2026-02-13)
+
+
+### Bug Fixes
+
+* **auth:** add debug logging to Google Login to diagnose failure ([d669f2d](https://github.com/ihkaru/cerdas/commit/d669f2d88b06dfa24bfaf0051e8ae08b7b1a6ae0))
+* **prod:** harden config (reverb port, env vars, health conditions, traefik labels) ([b162cc3](https://github.com/ihkaru/cerdas/commit/b162cc3ce8b1b46c0317f442efe3c57ddfcb1968))
+* **prod:** remove unsupported --frankenphp-binary flag from octane command ([7c9c095](https://github.com/ihkaru/cerdas/commit/7c9c0950f31a8316f5b04d419246ebc6b8eb68dd))
+
 ## [0.1.28](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.27...cerdas-v0.1.28) (2026-02-12)
 
 
