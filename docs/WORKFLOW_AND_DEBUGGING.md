@@ -257,5 +257,18 @@ We use **Android Product Flavors** to strictly separate environments:
 *   **Local Dev:** `npx cap run android --flavor dev` (runs `assembleDevDebug`)
 *   **Production:** Handled by GitHub Actions (`assembleProdRelease`)
 
-**Safety Guarantee:**
 It is now Impossible to accidentally overwrite the Production app with a Dev build because they have different Package IDs (`.dev` suffix).
+
+## 6. Google Signing & SHA-1 Keys (Critical)
+
+Google Login requires the app's **SHA-1 Fingerprint** to be registered in Google Cloud Console. Since Debug and Release builds use different keys, you need **TWO** entries in the console.
+
+| Environment | Keystore | SHA-1 Source | Console Action |
+| :--- | :--- | :--- | :--- |
+| **Local Debug** | `debug.keystore` | `keytool -list ... debug.keystore` | Create new Android Client ID with Debug SHA-1. |
+| **Production** | Release Keystore | Google Play Console (App Signing) | Create new Android Client ID with Release SHA-1. |
+
+> [!IMPORTANT]
+> **DO NOT** change `VITE_GOOGLE_CLIENT_ID` in your `.env` files.
+> The code always uses the **Web Client ID** (`1335...apps.googleusercontent.com`).
+> The Android Client IDs in the console exist *only* to authorize the specific APK signature to talk to Google APIs.
