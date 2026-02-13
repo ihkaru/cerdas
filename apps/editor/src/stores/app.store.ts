@@ -101,7 +101,10 @@ export const useAppStore = defineStore('app', () => {
         if (cached) {
             currentApp.value = cached;
         } else {
-            currentApp.value = null;
+            // Only reset if we are switching apps
+            if (currentApp.value && (String(currentApp.value.id) !== String(idOrSlug) && currentApp.value.slug !== idOrSlug)) {
+                 currentApp.value = null;
+            }
         }
 
         try {

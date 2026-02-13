@@ -13,6 +13,8 @@ import { addEditorIds, stripEditorProps } from './useSchemaTransform';
 
 const defaultSettings: TableSettings = {
   icon: 'doc_text_search',
+  public_access: false,
+  allow_comments: false,
   actions: {
     header: [
       { id: 'create', label: 'Tambah Baru', icon: 'plus', type: 'create' },
@@ -115,21 +117,11 @@ export function useEditorState() {
 
   /** Update Layout Config */
   function updateLayout(updates: Partial<LayoutConfig>): void {
-    console.log('[DEBUG] useEditorState.updateLayout called with updates:', JSON.stringify(updates));
-    // Deep merge to ensure nested reactivity (views, deck configs, etc.)
-    // We need to replace the entire layout to trigger Vue reactivity for computed properties
-    const merged = {
-      ...editorState.layout,
-      ...updates,
-      // Deep merge views if both exist
-      views: updates.views 
-        ? { ...editorState.layout.views, ...updates.views }
-        : editorState.layout.views
-    };
-    editorState.layout = JSON.parse(JSON.stringify(merged));
+    // Use Object.assign for in-place mutation (like field operations do).
+    // This correctly handles view deletions — if updates.views is provided,
+    // it fully replaces editorState.layout.views (no merge with old keys).
+    Object.assign(editorState.layout, updates);
     editorState.isDirty = true;
-    console.log('[DEBUG] Layout updated, isDirty:', editorState.isDirty);
-    console.log('[DEBUG] New layout.views:', JSON.stringify(editorState.layout.views));
   }
 
   /** Replace all fields (for Code Editor mode) */
@@ -148,6 +140,19 @@ export function useEditorState() {
   function replaceSettings(newSettings: TableSettings): void {
     editorState.settings = JSON.parse(JSON.stringify(newSettings));
     editorState.isDirty = true;
+  }
+
+  /** Helper to guess icon from name */
+  function guessIcon(name: string): string {
+      const lower = name.toLowerCase();
+      if (lower.includes('user') || lower.includes('pegawai') || lower.includes('staff') || lower.includes('member')) return 'person_2';
+      if (lower.includes('product') || lower.includes('item') || lower.includes('barang') || lower.includes('stok')) return 'cart';
+      if (lower.includes('order') || lower.includes('pesanan') || lower.includes('transaksi')) return 'doc_text';
+      if (lower.includes('event') || lower.includes('calendar') || lower.includes('jadwal') || lower.includes('agenda')) return 'calendar';
+      if (lower.includes('location') || lower.includes('place') || lower.includes('lokasi') || lower.includes('tempat')) return 'map';
+      if (lower.includes('image') || lower.includes('photo') || lower.includes('foto') || lower.includes('gallery')) return 'photo';
+      if (lower.includes('setting') || lower.includes('config') || lower.includes('pengaturan')) return 'gear';
+      return 'doc_text_search'; // Default
   }
 
   /** Initialize editor with new table */
@@ -200,7 +205,40 @@ export function useEditorState() {
       if (layout) {
           editorState.layout = JSON.parse(JSON.stringify(layout));
       } else {
-          editorState.layout = JSON.parse(JSON.stringify(defaultLayout));
+          // Generate smart defaults based on fields
+          const smartLayout = JSON.parse(JSON.stringify(defaultLayout));
+
+          // Also guess the icon based on table name
+          if (editorState.settings) {
+              editorState.settings.icon = guessIcon(name);
+          }
+          
+          if (editableFields.length > 0) {
+              // Find suitable fields for headers
+              // 1. Primary: First text field that isn't ID or UUID
+              const primaryField = editableFields.find(f => 
+                  f.type === 'text' && !['id', 'uuid', 'guid'].includes(f.name.toLowerCase())
+              ) || editableFields[0];
+
+              // 2. Secondary: Second text field or date, different from primary
+              const secondaryField = editableFields.find(f => 
+                  f.id !== primaryField.id && 
+                  (f.type === 'text' || f.type === 'date' || f.type === 'number')
+              );
+
+              if (smartLayout.views.default && smartLayout.views.default.deck) {
+                  smartLayout.views.default.deck.primaryHeaderField = primaryField ? primaryField.name : '';
+                  smartLayout.views.default.deck.secondaryHeaderField = secondaryField ? secondaryField.name : '';
+                  
+                  // Try to find an image field
+                  const imageField = editableFields.find(f => f.type === 'image' || f.type === 'file');
+                  if (imageField) {
+                      smartLayout.views.default.deck.imageField = imageField.name;
+                  }
+              }
+          }
+          
+          editorState.layout = smartLayout;
       }
 
       editorState.selectedFieldPath = null;

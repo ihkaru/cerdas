@@ -36,6 +36,7 @@ export function useTableEditor() {
 
   const {
     selectedField,
+    selectedOriginalField,
     isInNestedForm,
     currentFields,
     breadcrumbs,
@@ -67,6 +68,7 @@ export function useTableEditor() {
     
     // Computed
     selectedField,
+    selectedOriginalField,
     tableForPreview, // Renamed from schemaForPreview
     hasChanges,
     isInNestedForm,

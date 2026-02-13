@@ -1,9 +1,9 @@
 <template>
     <EditorShell>
         <template #header>
-            <EditorHeader :title="tableName" :is-dirty="isDirty" :is-published="isPublished" :version="currentVersion"
-                :can-publish="isDirty && hasTableSelected" @rename="handleRename" @save="handleSave"
-                @publish="handlePublish" @back="handleBack" @export="exportTable" />
+            <EditorHeader :title="tableName" :is-dirty="isGlobalDirty" :is-published="isPublished"
+                :version="currentVersion" :can-publish="isGlobalDirty && hasTableSelected" @rename="handleRename"
+                @save="handleSave" @publish="handlePublish" @back="handleBack" @export="exportTable" />
         </template>
 
         <template #sidebar>
@@ -77,7 +77,9 @@
                     <ResizableDivider v-if="showConfigPanel" @resize-start="fieldListBaseWidth = fieldListWidth"
                         @resize="(delta) => fieldListWidth = Math.max(250, Math.min(600, fieldListBaseWidth + delta))" />
                     <div v-if="showConfigPanel" class="field-config-panel">
-                        <FieldConfigPanel :field="selectedField" @close="clearSelection" @update="handleFieldUpdate" />
+                        <FieldConfigPanel :field="selectedField" :original-field="selectedOriginalField"
+                            :all-fields="currentFields" @close="clearSelection" @reset="handleFieldReset"
+                            @update="handleFieldUpdate" />
                     </div>
                 </template>
             </div>
@@ -96,7 +98,10 @@
                     action-label="Go to Data Sources" @action="activeTab = 'data'">
                     Select a data source from the <strong>Data</strong> tab to configure views.
                 </EditorEmptyState>
-                <ViewsPanel v-else />
+                <ViewsPanel v-else :navigation="navigation" :selected-nav-key="selectedNavKey"
+                    :selected-nav="selectedNav" @update:selected-nav-key="(k: string) => selectNavItem(k)"
+                    @create-nav="createNavItem" @delete-nav="deleteNavItem" @update-nav="updateNavItem"
+                    @nav-sorted="onNavSort" />
             </div>
 
             <!-- Actions Tab -->
@@ -207,6 +212,7 @@ const {
     tableForPreview,
     state: editorState,
     currentFields,
+    selectedOriginalField,
     breadcrumbs,
     initNewTable,
     loadTable,
@@ -226,6 +232,32 @@ const {
     replaceLayout,
     replaceSettings
 } = useTableEditor();
+
+// ============================================================================
+// Navigation Management (Lifted Up)
+// ============================================================================
+
+import { useNavigationManagement } from './composables/useNavigationManagement';
+
+const {
+    navigation,
+    selectedNavKey,
+    selectedNav,
+    isNavDirty,
+    fetchNavigation,
+    saveNavigation,
+    createNavItem,
+    deleteNavItem,
+    selectNavItem,
+    updateNavItem,
+    onNavSort
+    // [x] Unify Navigation Save Logic
+    // [x] Refactor `useNavigationManagement.ts` (Remove auto-save)
+    // [x] Update `ViewsPanel.vue` (Make stateless)
+    // [x] Update `AppEditorPage.vue` (Integrate manual save)
+    // [x] Fix Client App Slug Resolution (Added slug lookup to AppMetadataService)
+    // [x] Explain App Naming vs Slug Uniqueness to User
+} = useNavigationManagement(() => appStore.currentApp?.id || null);
 
 // ============================================================================
 // Local State
@@ -362,15 +394,25 @@ function createBlankTable() {
 
 /** Handles successful import: reloads app tables and selects the new table */
 async function handleExcelImported(payload?: { table_id?: string }) {
+    console.log('[AppEditor] handleExcelImported called', payload);
     if (appStore.currentApp?.id) {
-        f7.preloader.show();
+        // f7.preloader.show(); // Removed to prevent double backdrop/stuck UI with SelectTable
         try {
+            console.log('[AppEditor] Refetching app data...');
             await appStore.fetchApp(appStore.currentApp.id);
             if (payload?.table_id) {
-                await selectTable(payload.table_id);
+                console.log('[AppEditor] Selecting new table ID:', payload.table_id);
+                // Delay slightly to allow upload popup to close completely before showing preloader
+                // This prevents the "dark screen" backdrop from getting stuck
+                setTimeout(() => {
+                    console.log('[AppEditor] Executing delayed selectTable...');
+                    selectTable(payload!.table_id!);
+                }, 500);
             }
+        } catch (e) {
+            console.error('[AppEditor] Import handling error:', e);
         } finally {
-            f7.preloader.hide();
+            // f7.preloader.hide(); 
         }
     }
 }
@@ -410,49 +452,72 @@ function handleFieldUpdate(updates: Partial<EditableFieldDefinition>) {
     }
 }
 
+function handleFieldReset() {
+    if (selectedFieldPath.value && selectedOriginalField.value) {
+        // Overwrite current field with original properties
+        // We clone to ensure we don't accidentally link references
+        updateField(selectedFieldPath.value, JSON.parse(JSON.stringify(selectedOriginalField.value)));
+        f7.toast.show({
+            text: 'Field reset to original',
+            position: 'center',
+            closeTimeout: 1000,
+            icon: '<i class="f7-icons">arrow_uturn_left</i>'
+        });
+    }
+}
+
+
+const isGlobalDirty = computed(() => isDirty.value || isNavDirty.value);
+
 async function handleSave() {
-    if (!tableStore.currentVersion) return;
+    // 1. Save Navigation if dirty
+    if (isNavDirty.value) {
+        await saveNavigation();
+    }
 
-    try {
-        const tableId = props.f7route.params.id || currentTableId.value;
-        if (!tableId) throw new Error('No table selected');
+    // 2. Save Table if dirty
+    if (isDirty.value && tableStore.currentVersion) {
+        try {
+            const tableId = props.f7route.params.id || currentTableId.value;
+            if (!tableId) throw new Error('No table selected');
 
-        let version = tableStore.currentVersion.version;
-        let createdNewDraft = false;
+            let version = tableStore.currentVersion.version;
+            let createdNewDraft = false;
 
-        // If current version is published, we need to create a new draft first
-        if (isPublished.value || tableStore.currentVersion.published_at) {
-            console.log('[handleSave] Current version is published, creating new draft...');
-            f7.toast.show({ text: 'Creating new draft...', position: 'center', closeTimeout: 1000 });
+            // If current version is published, we need to create a new draft first
+            if (isPublished.value || tableStore.currentVersion.published_at) {
+                console.log('[handleSave] Current version is published, creating new draft...');
+                f7.toast.show({ text: 'Creating new draft...', position: 'center', closeTimeout: 1000 });
 
-            const draft = await tableStore.createDraft(tableId);
-            version = draft.version;
-            isPublished.value = false;
-            createdNewDraft = true;
+                const draft = await tableStore.createDraft(tableId);
+                version = draft.version;
+                isPublished.value = false;
+                createdNewDraft = true;
 
-            console.log('[handleSave] Draft created, version:', version);
-            f7.toast.show({ text: `Draft v${version} created`, position: 'center', closeTimeout: 1000 });
+                console.log('[handleSave] Draft created, version:', version);
+                f7.toast.show({ text: `Draft v${version} created`, position: 'center', closeTimeout: 1000 });
+            }
+
+            // Ensure settings are in layout
+            const layoutPayload = {
+                ...editorState.layout,
+                settings: editorState.settings
+            };
+
+            const fieldsPayload = tableForPreview.value.fields;
+
+            await tableStore.updateVersion(tableId, version, fieldsPayload, layoutPayload);
+
+            // If we created a new draft, reload the table to sync currentVersion in store
+            if (createdNewDraft) {
+                console.log('[handleSave] Reloading table to sync currentVersion...');
+                await tableStore.fetchTable(tableId);
+            }
+
+            f7.toast.show({ text: 'Table saved', position: 'center', closeTimeout: 2000 });
+        } catch (e: any) {
+            f7.dialog.alert(e.message || 'Failed to save table');
         }
-
-        // Ensure settings are in layout
-        const layoutPayload = {
-            ...editorState.layout,
-            settings: editorState.settings
-        };
-
-        const fieldsPayload = tableForPreview.value.fields;
-
-        await tableStore.updateVersion(tableId, version, fieldsPayload, layoutPayload);
-
-        // If we created a new draft, reload the table to update currentVersion in store
-        if (createdNewDraft) {
-            console.log('[handleSave] Reloading table to sync currentVersion...');
-            await tableStore.fetchTable(tableId);
-        }
-
-        f7.toast.show({ text: 'Table saved', position: 'center', closeTimeout: 2000 });
-    } catch (e: any) {
-        f7.dialog.alert(e.message || 'Failed to save');
     }
 }
 
@@ -468,12 +533,24 @@ async function handlePublish() {
             'Tambahkan catatan perubahan (opsional):',
             'Publish Version',
             async (changelog: string) => {
-                await handleSave(); // Save first
+                await handleSave(); // Save first (may create new draft if current is published)
                 const pubId = props.f7route.params.id || currentTableId.value;
                 if (!pubId) return;
-                await tableStore.publishVersion(pubId, tableStore.currentVersion!.version, changelog || undefined);
-                f7.toast.show({ text: `Version ${currentVersion.value} published!`, position: 'center', closeTimeout: 2000 });
-                isPublished.value = true; // Mark as published (read-only)
+                // Re-read version AFTER save — handleSave may have created a new draft
+                const currentVer = tableStore.currentVersion;
+                if (!currentVer?.version) {
+                    f7.dialog.alert('No version to publish');
+                    return;
+                }
+                // Guard: if version is still published (no table changes made), nothing to publish
+                if (currentVer.published_at) {
+                    f7.toast.show({ text: 'Already published. No table changes to publish.', position: 'center', closeTimeout: 2000 });
+                    return;
+                }
+                await tableStore.publishVersion(pubId, currentVer.version, changelog || undefined);
+                f7.toast.show({ text: `Version ${currentVer.version} published!`, position: 'center', closeTimeout: 2000 });
+                isPublished.value = true;
+                currentVersion.value = currentVer.version;
 
                 // Reload table to refresh version list/status
                 if (pubId) {
@@ -551,7 +628,7 @@ onMounted(() => {
     f7ready(async (f7Instance) => {
         f7Instance.preloader.show();
         try {
-            let targetTableId = tableId;
+            const targetTableId = tableId;
 
             // Scenario 1: Accessed via App Slug (e.g., /editor/housing-survey)
             if (slug && !targetTableId) {
@@ -565,6 +642,7 @@ onMounted(() => {
                 if (tables.length === 1) {
                     const singleTable = tables[0];
                     await selectTable(singleTable.id);
+                    await fetchNavigation(); // Must fetch nav even with single table!
                     activeTab.value = 'fields'; // Go directly to Fields
                     f7Instance.preloader.hide();
                     return;
@@ -575,6 +653,10 @@ onMounted(() => {
                     // No tables: Reset editor state to lock dependent tabs
                     initNewTable();
                 }
+
+                // Fetch Navigation
+                await fetchNavigation();
+
                 activeTab.value = 'data';
                 f7Instance.preloader.hide();
                 return;
@@ -600,6 +682,13 @@ onMounted(() => {
 
                 isPublished.value = !!draft.published_at;
                 currentVersion.value = draft.version || 1;
+
+                // Fetch App Context & Navigation if not already present
+                if (tableStore.currentTable?.app_id) {
+                    await appStore.fetchApp(tableStore.currentTable.app_id);
+                    await fetchNavigation();
+                }
+
             } else {
                 initNewTable();
             }

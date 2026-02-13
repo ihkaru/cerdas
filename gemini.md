@@ -84,6 +84,7 @@ packages/types  - @cerdas/types (shared strict TS types)
 - User gives standing permission for necessary actions
 - User wants strict TypeScript to catch errors early
 - Update gemini.md with important changes/progress
+- **BROWSER TOOL USAGE**: DO NOT use browser tool for verification. User prefers to verify manually.
 - **CRITICAL VERSION RULE**: Always update the project version (currently 0.1.0) in `README.md`, `package.json`, and `composer.json` whenever significant progress is made (equivalent to a "push").
 
 ## ClosureContext (App-Wide Context) - Updated 2026-01-20
@@ -725,4 +726,17 @@ Dashboard (/) → Apps (/apps) → App Detail (/apps/:id) → Form Editor (/form
 **⚠️ NEVER use `--no-verify` unless explicitly instructed by user.**
 
 Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md`
+
+### 2026-02-13: View Draft Save Fix (Editor)
+- **Problem**: Views created/modified in the Views tab disappeared after saving draft and reloading.
+- **Root Cause**: 3 bugs in view save flow:
+  1. `updateLayout()` merged views with `{ ...old, ...new }` — deletions re-added from spread.
+  2. Circular deep watcher in `useViewConfigSync` re-synced `localLayout` after every commit.
+  3. Unlike fields (direct mutation), views went through unnecessary indirection.
+- **Fix**:
+  - `useEditorState.ts`: Changed `updateLayout()` to use `Object.assign` (in-place mutation, like fields).
+  - `useViewConfigSync.ts`: Removed circular deep watcher. Added identity-tracking for table-switch detection only.
+  - `useViewManagement.ts`: Cleaned up debug console.log statements.
+- **Verified**: `vue-tsc --noEmit` passed (exit code 0).
+
 

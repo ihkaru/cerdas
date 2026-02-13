@@ -18,12 +18,14 @@
             <f7-list-item group-title>Configuration</f7-list-item>
             <f7-list-item title="Public Access">
                 <template #after>
-                    <f7-toggle color="green" />
+                    <f7-toggle :checked="!!settings.public_access" color="green"
+                        @toggle:change="updateSettings({ public_access: $event })" />
                 </template>
             </f7-list-item>
             <f7-list-item title="Allow Comments">
                 <template #after>
-                    <f7-toggle />
+                    <f7-toggle :checked="!!settings.allow_comments"
+                        @toggle:change="updateSettings({ allow_comments: $event })" />
                 </template>
             </f7-list-item>
         </f7-list>

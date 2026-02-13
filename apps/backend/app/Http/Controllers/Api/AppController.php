@@ -11,11 +11,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-class AppController extends Controller {
+class AppController extends Controller
+{
     /**
      * List all apps user has access to
      */
-    public function index(Request $request): JsonResponse {
+    public function index(Request $request): JsonResponse
+    {
         $user = $request->user();
 
         if ($user->isSuperAdmin()) {
@@ -33,7 +35,8 @@ class AppController extends Controller {
     /**
      * Create a new app
      */
-    public function store(Request $request): JsonResponse {
+    public function store(Request $request): JsonResponse
+    {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -48,7 +51,7 @@ class AppController extends Controller {
         $counter = 1;
 
         while (App::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $counter++;
+            $slug = $baseSlug.'-'.$counter++;
         }
 
         $app = App::create([
@@ -81,7 +84,8 @@ class AppController extends Controller {
     /**
      * Create demo users (Enumerator & Supervisor) for a specific app
      */
-    private function createDemoUsers(App $app): array {
+    private function createDemoUsers(App $app): array
+    {
         $password = 'password';
         $credentials = [];
 
@@ -106,7 +110,7 @@ class AppController extends Controller {
         $credentials[] = [
             'role' => 'Enumerator',
             'email' => $enumEmail,
-            'password' => $password
+            'password' => $password,
         ];
 
         // 2. Create App Supervisor
@@ -130,7 +134,7 @@ class AppController extends Controller {
         $credentials[] = [
             'role' => 'Supervisor',
             'email' => $spvEmail,
-            'password' => $password
+            'password' => $password,
         ];
 
         return $credentials;
@@ -139,10 +143,11 @@ class AppController extends Controller {
     /**
      * Get specific app details (with stats/tables if needed)
      */
-    public function show(Request $request, App $app): JsonResponse {
+    public function show(Request $request, App $app): JsonResponse
+    {
         $user = $request->user();
 
-        if (!$user->hasAppAccess($app->id)) {
+        if (! $user->hasAppAccess($app->id)) {
             return response()->json(['success' => false, 'message' => 'Access denied'], 403);
         }
 
@@ -158,15 +163,26 @@ class AppController extends Controller {
     /**
      * Update app
      */
-    public function update(Request $request, App $app): JsonResponse {
+    public function update(Request $request, App $app): JsonResponse
+    {
+        \Illuminate\Support\Facades\Log::info('App Update Request RAW', [
+            'app_id' => $app->id,
+            'app_name' => $app->name,
+            'user_id' => $request->user()->id,
+            'request_all' => $request->all(),
+            'method' => $request->method(),
+            'url' => $request->url(),
+            'has_navigation' => $request->has('navigation'),
+        ]);
+
         $user = $request->user();
 
-        // Check if user is app_admin logic? 
+        // Check if user is app_admin logic?
         // For now just check access. Ideally check role 'app_admin'.
         $membership = $user->getMembershipForApp($app->id);
-        if (!$membership || $membership->role !== 'app_admin') {
+        if (! $membership || $membership->role !== 'app_admin') {
             // Allow super admin?
-            if (!$user->isSuperAdmin()) {
+            if (! $user->isSuperAdmin()) {
                 return response()->json(['success' => false, 'message' => 'Access denied. Generic Admin role required.'], 403);
             }
         }
@@ -174,13 +190,23 @@ class AppController extends Controller {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
+            'mode' => 'nullable|string|in:simple,complex',
+            'navigation' => 'nullable|array', // Allow saving navigation JSON
+            'is_active' => 'boolean',
+        ]);
+
+        \Illuminate\Support\Facades\Log::info('App Update Validated', [
+            'app_id' => $app->id,
+            'validated_keys' => array_keys($validated),
+            'validated_data' => $validated,
         ]);
 
         $app->update($validated);
 
+        // Return fresh model to ensure response reflects persisted state
         return response()->json([
             'success' => true,
-            'data' => $app,
+            'data' => $app->fresh(),
             'message' => 'App updated successfully',
         ]);
     }
@@ -188,7 +214,8 @@ class AppController extends Controller {
     /**
      * Get user's context for this app (role, organization)
      */
-    public function context(Request $request, App $app): JsonResponse {
+    public function context(Request $request, App $app): JsonResponse
+    {
         $user = $request->user();
 
         // Super admin always has access with app_admin role
@@ -216,7 +243,7 @@ class AppController extends Controller {
         // Get user's membership for this app
         $membership = $user->getMembershipForApp($app->id);
 
-        if (!$membership || !$membership->is_active) {
+        if (! $membership || ! $membership->is_active) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied. You are not a member of this app.',
@@ -249,9 +276,11 @@ class AppController extends Controller {
     /**
      * Get participating organizations for this app
      */
-    public function organizations(Request $request, App $app): JsonResponse {
+    public function organizations(Request $request, App $app): JsonResponse
+    {
         // Access check?
         $app->load('organizations');
+
         return response()->json([
             'success' => true,
             'data' => $app->organizations,
@@ -261,7 +290,8 @@ class AppController extends Controller {
     /**
      * Attach organization to app
      */
-    public function attachOrganization(Request $request, App $app): JsonResponse {
+    public function attachOrganization(Request $request, App $app): JsonResponse
+    {
         $validated = $request->validate([
             'organization_id' => 'required|exists:organizations,id',
         ]);
@@ -278,7 +308,8 @@ class AppController extends Controller {
     /**
      * Detach organization from app
      */
-    public function detachOrganization(Request $request, App $app, $organizationId): JsonResponse {
+    public function detachOrganization(Request $request, App $app, $organizationId): JsonResponse
+    {
         $app->organizations()->detach($organizationId);
 
         return response()->json([
@@ -287,16 +318,18 @@ class AppController extends Controller {
             'data' => $app->load('organizations')->organizations,
         ]);
     }
+
     /**
      * Add member to app (Simple Mode)
      */
-    public function addMember(Request $request, App $app): JsonResponse {
+    public function addMember(Request $request, App $app): JsonResponse
+    {
         $user = $request->user();
 
         // 1. Authorization: Only App Admin or Super Admin can add members
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             $membership = $user->getMembershipForApp($app->id);
-            if (!$membership || $membership->role !== 'app_admin') {
+            if (! $membership || $membership->role !== 'app_admin') {
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
         }
@@ -309,7 +342,7 @@ class AppController extends Controller {
         // 2. Find User
         $targetUser = User::where('email', $validated['email'])->first();
 
-        if (!$targetUser) {
+        if (! $targetUser) {
             // Create Invitation for non-existing user
             // Check if already invited
             $existingInvite = \App\Models\AppInvitation::where('app_id', $app->id)
@@ -331,7 +364,7 @@ class AppController extends Controller {
 
             return response()->json([
                 'success' => true,
-                'message' => 'Invitation sent to ' . $validated['email'],
+                'message' => 'Invitation sent to '.$validated['email'],
                 'data' => [
                     'members' => $app->load('memberships.user')->memberships->map(function ($m) {
                         return [
@@ -340,8 +373,8 @@ class AppController extends Controller {
                             'role' => $m->role,
                         ];
                     }),
-                    'invitations' => $app->load('invitations')->invitations
-                ]
+                    'invitations' => $app->load('invitations')->invitations,
+                ],
             ]);
         }
 
@@ -378,21 +411,22 @@ class AppController extends Controller {
                         'role' => $m->role,
                     ];
                 }),
-                'invitations' => $app->invitations
-            ]
+                'invitations' => $app->invitations,
+            ],
         ]);
     }
 
     /**
      * Remove member from app
      */
-    public function removeMember(Request $request, App $app, User $targetUser): JsonResponse {
+    public function removeMember(Request $request, App $app, User $targetUser): JsonResponse
+    {
         $user = $request->user();
 
         // 1. Authorization
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             $membership = $user->getMembershipForApp($app->id);
-            if (!$membership || $membership->role !== 'app_admin') {
+            if (! $membership || $membership->role !== 'app_admin') {
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
         }
@@ -414,13 +448,14 @@ class AppController extends Controller {
     /**
      * Cancel invitation
      */
-    public function cancelInvitation(Request $request, App $app, $invitationId): JsonResponse {
+    public function cancelInvitation(Request $request, App $app, $invitationId): JsonResponse
+    {
         $user = $request->user();
 
         // 1. Authorization
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             $membership = $user->getMembershipForApp($app->id);
-            if (!$membership || $membership->role !== 'app_admin') {
+            if (! $membership || $membership->role !== 'app_admin') {
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
         }

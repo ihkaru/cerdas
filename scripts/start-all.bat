@@ -8,6 +8,8 @@ REM ============================================================================
 REM Load configuration
 call "%~dp0config.bat"
 
+title Cerdas Launcher
+
 echo ========================================
 echo   CERDAS - Starting All Applications
 echo ========================================

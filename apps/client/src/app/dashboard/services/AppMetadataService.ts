@@ -42,6 +42,17 @@ export const AppMetadataService = {
              if (aRes.values && aRes.values.length > 0) {
                  return aRes.values[0].id;
              }
+
+             // Try assuming it's an App Slug
+             const sRes = await db.query('SELECT id FROM apps WHERE slug = ?', [id]);
+             console.log('[AppMetadata] Apps slug query result:', {
+                 searchSlug: id,
+                 found: sRes.values?.length ?? 0
+             });
+
+             if (sRes.values && sRes.values.length > 0) {
+                 return sRes.values[0].id;
+             }
          } catch (e) {
              console.warn('[AppMetadata] Failed to resolve app_id', e);
          }

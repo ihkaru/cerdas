@@ -37,30 +37,7 @@
             </div>
         </template>
 
-        <!-- If schema has layout with navigation, show tabs -->
-        <template v-else-if="layout && layout.navigation">
-            <!-- TAB BAR (Primary Navigation) - BEFORE tabs per F7 docs -->
-            <f7-toolbar position="bottom" :tabbar="true" :scrollable="true" icons labels>
-                <f7-link v-for="viewKey in layout.navigation.primary" :key="viewKey" :tab-link="`#${viewKey}`"
-                    :tab-link-active="activeView === viewKey" @click="activeView = viewKey"
-                    :text="layout.views[viewKey]?.title + 'ha' || viewKey"
-                    :icon-f7="getIcon(layout.views[viewKey]?.type)"></f7-link>
-            </f7-toolbar>
-
-            <!-- VIEW CONTENT - AFTER toolbar per F7 docs -->
-            <f7-tabs animated>
-                <f7-tab v-for="viewKey in (layout?.navigation?.primary || [])" :key="viewKey" :id="viewKey"
-                    :tab-active="activeView === viewKey" class="page-content">
-                    <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
-                    <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
-                        :counts="statusCounts" />
-                    <ViewRenderer v-if="layout.views[viewKey]" :config="layout.views[viewKey]"
-                        :data="getViewData(layout.views[viewKey]?.source)" :contextId="contextId" />
-                </f7-tab>
-            </f7-tabs>
-        </template>
-
-        <!-- CASE 0.5: App Level Tabs (Fallback if no Layout Navigation) -->
+        <!-- CASE 1: App Level Tabs (Primary Navigation) -->
         <template v-else-if="appNavigation && appNavigation.length > 0">
             <!-- TAB BAR (App Navigation) - BEFORE tabs per F7 docs -->
             <f7-toolbar position="bottom" :tabbar="true" icons labels>
@@ -105,6 +82,29 @@
                             </div>
                         </transition>
                     </template>
+                </f7-tab>
+            </f7-tabs>
+        </template>
+
+        <!-- CASE 2: Legacy Layout Navigation (Fallback) -->
+        <template v-else-if="layout && layout.navigation">
+            <!-- TAB BAR (Primary Navigation) - BEFORE tabs per F7 docs -->
+            <f7-toolbar position="bottom" :tabbar="true" :scrollable="true" icons labels>
+                <f7-link v-for="viewKey in layout.navigation.primary" :key="viewKey" :tab-link="`#${viewKey}`"
+                    :tab-link-active="activeView === viewKey" @click="activeView = viewKey"
+                    :text="layout.views[viewKey]?.title + 'ha' || viewKey"
+                    :icon-f7="getIcon(layout.views[viewKey]?.type)"></f7-link>
+            </f7-toolbar>
+
+            <!-- VIEW CONTENT - AFTER toolbar per F7 docs -->
+            <f7-tabs animated>
+                <f7-tab v-for="viewKey in (layout?.navigation?.primary || [])" :key="viewKey" :id="viewKey"
+                    :tab-active="activeView === viewKey" class="page-content">
+                    <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
+                    <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
+                        :counts="statusCounts" />
+                    <ViewRenderer v-if="layout.views[viewKey]" :config="layout.views[viewKey]"
+                        :data="getViewData(layout.views[viewKey]?.source)" :contextId="contextId" />
                 </f7-tab>
             </f7-tabs>
         </template>
@@ -223,6 +223,20 @@ const {
     enterGroup, navigateUp, forceShowItems,
     isSyncing, syncProgress, syncMessage, pendingUploadCount, currentUserRole, appVersion
 } = useAppShellLogic(props.contextId);
+// Debugging Navigation State
+watch(() => [appNavigation.value, layout.value], ([nav, lay]) => {
+    console.log('[AppShell] Navigation Debug:', {
+        appNavigationLength: nav?.length,
+        appNavigationItems: nav,
+        hasLayoutNavigation: !!lay?.navigation,
+        activeView: activeView.value,
+        mode: (nav && nav.length > 0) ? 'APP_NAV' : (lay?.navigation ? 'LAYOUT_NAV' : 'FALLBACK')
+    });
+}, { immediate: true });
+
+// ============================================================================
+// Computed
+// ============================================================================
 const routeViewId = computed(() => props.f7route?.query?.view);
 const currentViewConfig = computed(() => {
     if (routeViewId.value && appViews.value.length) {
@@ -391,7 +405,21 @@ const onPageAfterIn = () => {
 };
 
 const getAppViewConfig = (viewId: string) => {
-    return appViews.value.find((v: any) => v.id === viewId);
+    // 1. Try finding in new AppViews (DB)
+    const dbView = appViews.value.find((v: any) => v.id === viewId);
+    if (dbView) return dbView;
+
+    // 2. Fallback to Legacy Layout Views (JSON)
+    // This supports the 'default' view often found in legacy schema
+    if (layout.value?.views?.[viewId]) {
+        return {
+            id: viewId,
+            type: layout.value.views[viewId].type,
+            config: layout.value.views[viewId]
+        };
+    }
+
+    return null;
 };
 
 const handleAppNavClick = (item: any) => {

@@ -279,7 +279,12 @@ async function startApp() {
                 }
 
                 if (type === 'SET_SCHEMA_OVERRIDE') {
-                    const { tableId, fields, layout, settings } = payload;
+                    const { tableId, fields, layout } = payload;
+                    let { settings } = payload;
+                    // Fallback: extract from schema if not at top level
+                    if (!settings && payload.schema?.settings) {
+                        settings = payload.schema.settings;
+                    }
                     // Legacy support for formId
                     const targetId = tableId || payload.formId;
                     

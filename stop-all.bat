@@ -6,7 +6,9 @@ echo Stopping all Cerdas apps...
 taskkill /F /FI "WINDOWTITLE eq Cerdas Backend" 2>nul
 taskkill /F /FI "WINDOWTITLE eq Cerdas Client" 2>nul
 taskkill /F /FI "WINDOWTITLE eq Cerdas Editor" 2>nul
+taskkill /F /FI "WINDOWTITLE eq Cerdas Editor" 2>nul
 taskkill /F /FI "WINDOWTITLE eq Cerdas Reverb" 2>nul
+taskkill /F /FI "WINDOWTITLE eq Cerdas Launcher" 2>nul
 
 :: Kill PHP processes (Backend)
 taskkill /f /im php.exe 2>nul

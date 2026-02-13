@@ -16,7 +16,7 @@ REM Wait for PHP-CGI to start
 timeout /t 2 /nobreak > nul
 
 REM Start Caddy in new window
-start "Caddy Server" cmd /k "cd /d %~dp0..\..\apps\backend && %CADDY_PATH%\caddy.exe run"
+start "Caddy Server" cmd /k "cd /d %~dp0..\..\apps\backend && %CADDY_PATH%\caddy.exe run --config Caddyfile.local"
 
 echo.
 echo Backend servers starting in separate windows...

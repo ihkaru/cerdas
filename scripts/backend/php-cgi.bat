@@ -22,7 +22,7 @@ if not exist "%PHP_PATH%\php-cgi.exe" (
 )
 
 REM Check if port is already in use
-netstat -ano | findstr :%PHP_CGI_PORT% > nul
+netstat -ano | findstr :%PHP_CGI_PORT% | findstr LISTENING > nul
 if %errorlevel% equ 0 (
     echo WARNING: Port %PHP_CGI_PORT% is already in use!
     echo Please stop the other process first.

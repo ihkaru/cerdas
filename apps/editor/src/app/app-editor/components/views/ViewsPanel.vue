@@ -3,7 +3,8 @@
         <!-- Sidebar: List of Views & Navigation -->
         <ViewsSidebar :views="localLayout.views" :navigation="navigation" :selected-key="selectedItemKey"
             :config-mode="configMode" :style="{ width: sidebarWidth + 'px' }" @select-view="selectView"
-            @create-view="createView" @select-nav="selectNavItem" @create-nav="createNavItem" @nav-sorted="onNavSort" />
+            @create-view="createView" @select-nav="selectNavItem" @create-nav="handleCreateNav"
+            @nav-sorted="handleNavSorted" />
 
         <!-- Resizable Divider -->
         <ResizableDivider class="sidebar-divider" @resize-start="sidebarBaseWidth = sidebarWidth"
@@ -19,8 +20,8 @@
                 <ViewConfigPanel v-if="configMode === 'view' && selectedView" :view="selectedView" :fields="fields"
                     :actions="availableActions" @update:viewProp="handleViewUpdate"
                     @update:deckConfig="handleDeckUpdate" @update:mapConfig="handleMapUpdate"
-                    @update:groupBy="handleGroupByUpdate"
-                    @toggle-action="handleActionToggle" @delete-view="handleDeleteView" />
+                    @update:groupBy="handleGroupByUpdate" @toggle-action="handleActionToggle"
+                    @delete-view="handleDeleteView" />
 
                 <!-- Navigation Configuration Mode -->
                 <NavigationConfigPanel v-else-if="configMode === 'nav' && selectedNav" :nav-item="selectedNav"
@@ -47,19 +48,36 @@
     </div>
 </template>
 
+
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useNavigationManagement } from '../../composables/useNavigationManagement';
 import { useTableEditor } from '../../composables/useTableEditor';
 import { useViewConfigSync } from '../../composables/useViewConfigSync';
 import { useViewManagement } from '../../composables/useViewManagement';
 
 // Sub-components
 import type { ViewDefinition } from '../../types/editor.types';
+import type { NavigationItem } from '../../types/view-config.types';
 import ResizableDivider from '../shared/ResizableDivider.vue';
 import NavigationConfigPanel from './config/NavigationConfigPanel.vue';
 import ViewConfigPanel from './config/ViewConfigPanel.vue';
 import ViewsSidebar from './sidebar/ViewsSidebar.vue';
+
+// Props
+const props = defineProps<{
+    navigation: NavigationItem[];
+    selectedNavKey: string;
+    selectedNav: NavigationItem | undefined;
+}>();
+
+// Emits
+const emit = defineEmits<{
+    (e: 'update:selectedNavKey', key: string): void;
+    (e: 'create-nav'): void;
+    (e: 'delete-nav', id: string): void;
+    (e: 'update-nav', id: string, updates: any): void;
+    (e: 'nav-sorted', event: { from: number; to: number }): void;
+}>();
 
 // ============================================================================
 // 1. Core State & Sync
@@ -91,19 +109,6 @@ const {
     updateGroupBy
 } = useViewManagement(localLayout, commitLocalChanges);
 
-// Navigation Management (Tab bar)
-const {
-    navigation,
-    selectedNavKey,
-    selectedNav,
-    fetchNavigation,
-    createNavItem,
-    deleteNavItem: _deleteNavItem,
-    selectNavItem: _selectNavItem,
-    updateNavItem,
-    onNavSort
-} = useNavigationManagement(() => state.appId);
-
 // ============================================================================
 // 3. Orchestration
 // ============================================================================
@@ -119,7 +124,7 @@ const configPanelWidth = ref(700);
 const configPanelBaseWidth = ref(100);
 
 const selectedItemKey = computed(() => {
-    return configMode.value === 'view' ? selectedViewKey.value : selectedNavKey.value;
+    return configMode.value === 'view' ? selectedViewKey.value : props.selectedNavKey;
 });
 
 const availableActions = computed(() => {
@@ -129,13 +134,16 @@ const availableActions = computed(() => {
 // Mode Switching & Selection Handlers
 function selectView(key: string) {
     configMode.value = 'view';
-    // Clear nav selection to avoid confusion? No need handled by configMode
+    // Clear nav selection (notify parent)
+    emit('update:selectedNavKey', '');
     _selectView(key);
 }
 
 function selectNavItem(id: string) {
     configMode.value = 'nav';
-    _selectNavItem(id);
+    // Clear view selection
+    _selectView('');
+    emit('update:selectedNavKey', id);
 }
 
 // Update Handlers (Bridge Component Events -> Composable Methods)
@@ -178,23 +186,29 @@ function handleDeleteView() {
 }
 
 function handleNavUpdate(updates: any) {
-    if (selectedNavKey.value) {
-        updateNavItem(selectedNavKey.value, updates);
+    if (props.selectedNavKey) {
+        emit('update-nav', props.selectedNavKey, updates);
     }
 }
 
 function handleDeleteNav() {
-    if (selectedNavKey.value) {
-        _deleteNavItem(selectedNavKey.value);
+    if (props.selectedNavKey) {
+        emit('delete-nav', props.selectedNavKey);
     }
+}
+
+function handleCreateNav() {
+    emit('create-nav');
+}
+
+function handleNavSorted(event: { from: number; to: number }) {
+    emit('nav-sorted', event);
 }
 
 // Lifecycle
 onMounted(() => {
-    fetchNavigation();
-
     // Auto-select first view if nothing selected
-    if (!selectedViewKey.value && localLayout.views) {
+    if (!selectedViewKey.value && !props.selectedNavKey && localLayout.views) {
         const firstKey = Object.keys(localLayout.views)[0];
         if (firstKey) {
             selectView(firstKey);
@@ -207,7 +221,7 @@ watch(selectedViewKey, (newVal) => {
     if (newVal) configMode.value = 'view';
 });
 
-watch(selectedNavKey, (newVal) => {
+watch(() => props.selectedNavKey, (newVal) => {
     if (newVal) configMode.value = 'nav';
 });
 

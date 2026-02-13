@@ -226,6 +226,8 @@ export interface ActionDefinition {
 /** Table-level Settings stored in TableVersion.layout or separate */
 export interface TableSettings { // Renamed from AppSettings
   icon: string;
+  public_access?: boolean;
+  allow_comments?: boolean;
   actions: {
     header: ActionDefinition[];
     row: ActionDefinition[];
@@ -253,8 +255,7 @@ export interface ViewDefinition {
   };
   map?: {
     mapbox_style: string;
-    lat: string;
-    long: string;
+    gps_column: string;
     label: string;
   };
   actions: string[];

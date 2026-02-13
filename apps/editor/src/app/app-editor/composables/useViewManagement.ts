@@ -52,28 +52,39 @@ export function useViewManagement(
 
     function updateViewProp(key: string, prop: keyof ViewDefinition, value: any) {
         if (!layout.views[key]) return;
-        (layout.views[key] as any)[prop] = value;
+        const view = layout.views[key];
+        (view as any)[prop] = value;
+
+        // Initialize config objects when type changes
+        if (prop === 'type') {
+            if (value === 'deck' && !view.deck) {
+                view.deck = { primaryHeaderField: '', secondaryHeaderField: '', imageField: null, imageShape: 'square' };
+            }
+            if (value === 'map' && !view.map) {
+                view.map = { mapbox_style: 'satellite', gps_column: '', label: '' };
+                // Disable inherited grouping for maps by default
+                if (view.groupBy === undefined) {
+                    view.groupBy = [];
+                }
+            }
+            // Add calendar init if needed
+        }
+
         commitChanges();
     }
 
    function updateDeckConfigProp(viewKey: string, key: string, value: any) {
-        console.log('[DEBUG] useViewManagement.updateDeckConfigProp called', { viewKey, key, value });
         const view = layout.views[viewKey];
-        if (!view) {
-            console.warn('[DEBUG] View not found for key:', viewKey);
-            return;
-        }
+        if (!view) return;
         if (!view.deck) view.deck = { primaryHeaderField: '', secondaryHeaderField: '', imageField: null, imageShape: 'square' };
         (view.deck as any)[key] = value;
-        console.log('[DEBUG] Updated view.deck:', JSON.stringify(view.deck));
-        console.log('[DEBUG] Calling commitChanges...');
         commitChanges();
     }
 
     function updateMapConfigProp(viewKey: string, key: string, value: any) {
         const view = layout.views[viewKey];
         if (!view) return;
-        if (!view.map) view.map = { mapbox_style: 'satellite', lat: '', long: '', label: '' };
+        if (!view.map) view.map = { mapbox_style: 'satellite', gps_column: '', label: '' };
         (view.map as any)[key] = value;
         commitChanges();
     }

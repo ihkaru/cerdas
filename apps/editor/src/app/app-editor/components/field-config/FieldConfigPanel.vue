@@ -6,7 +6,13 @@
                 <f7-icon :f7="fieldMeta.icon" class="title-icon" />
                 {{ field?.label || 'Field Settings' }}
             </h4>
-            <f7-link icon-f7="xmark_circle" class="close-btn" @click="emit('close')" />
+            <div class="header-actions">
+                <f7-button v-if="isModified" small round outline color="orange" class="reset-btn"
+                    @click="emit('reset')">
+                    Reset
+                </f7-button>
+                <f7-link icon-f7="xmark_circle" class="close-btn" @click="emit('close')" />
+            </div>
         </div>
 
         <!-- No Selection State -->
@@ -28,10 +34,18 @@
                 <f7-list-input label="Label" type="text" :value="field.label" placeholder="Display Label"
                     @input="updateField('label', ($event.target as HTMLInputElement).value)" />
 
-                <f7-list-item>
-                    <span>Field Type</span>
+                <f7-list-item title="Field Type" smart-select :smart-select-params="{ openIn: 'popover' }">
+                    <select :value="field.type"
+                        @change="updateField('type', ($event.target as HTMLSelectElement).value)">
+                        <optgroup v-for="category in ['basic', 'choice', 'media', 'advanced']" :key="category"
+                            :label="category.charAt(0).toUpperCase() + category.slice(1)">
+                            <option v-for="(meta, type) in getFieldsByCategory(category)" :key="type" :value="type">
+                                {{ meta.label }}
+                            </option>
+                        </optgroup>
+                    </select>
                     <f7-icon slot="media" :f7="fieldMeta.icon" />
-                    <span class="field-type-badge">{{ fieldMeta.label }}</span>
+                    <div slot="after">{{ fieldMeta.label }}</div>
                 </f7-list-item>
             </f7-list>
 
@@ -120,14 +134,60 @@
                     <f7-icon slot="media" f7="bolt" />
                     <f7-accordion-content>
                         <f7-list>
-                            <!-- Note: F7 List Input structures are good for simple inputs. 
-                                 For CodeEditor, we might want to wrap it in a custom list item or just a div padding.
-                            -->
+                            <!-- Note: F7 List Input structures are good for simple interactions. -->
+
+                            <!-- Schema Reference -->
+                            <div class="padding-horizontal padding-vertical-half bg-color-white">
+                                <f7-accordion-item>
+                                    <div slot="title" class="size-12 text-color-gray flex-row align-items-center">
+                                        <f7-icon f7="briefcase" size="14" class="margin-right-half" />
+                                        <strong>Available Data (Click to Copy)</strong>
+                                    </div>
+                                    <f7-accordion-content>
+                                        <div class="schema-list margin-top-half">
+                                            <div class="schema-hint size-10 text-color-gray margin-bottom-half">
+                                                Context: <code>ctx.row</code> (Current Form), <code>ctx.user</code>
+                                            </div>
+                                            <!-- Field List -->
+                                            <div v-for="f in (allFields || [])" :key="f.id"
+                                                class="schema-item display-flex align-items-center padding-vertical-half cursor-pointer"
+                                                @click="copyToClipboard(`ctx.row.${f.name}`)">
+                                                <f7-icon :f7="getFieldIcon(f.type)" size="14"
+                                                    class="text-color-blue margin-right-half" />
+                                                <div class="flex-grow-1">
+                                                    <div class="text-color-black size-12 font-weight-bold">{{ f.name }}
+                                                    </div>
+                                                    <div class="text-color-gray size-10">{{ f.label }}</div>
+                                                </div>
+                                                <f7-icon f7="doc_on_doc" size="12" class="text-color-gray opacity-50" />
+                                            </div>
+                                            <!-- System Contexts -->
+                                            <div class="schema-item display-flex align-items-center padding-vertical-half cursor-pointer"
+                                                @click="copyToClipboard('ctx.user.email')">
+                                                <f7-icon f7="person_circle" size="14"
+                                                    class="text-color-purple margin-right-half" />
+                                                <div class="flex-grow-1">
+                                                    <div class="text-color-black size-12 font-weight-bold">ctx.user
+                                                    </div>
+                                                    <div class="text-color-gray size-10">User Info</div>
+                                                </div>
+                                                <f7-icon f7="doc_on_doc" size="12" class="text-color-gray opacity-50" />
+                                            </div>
+                                        </div>
+                                    </f7-accordion-content>
+                                </f7-accordion-item>
+                            </div>
+
                             <div class="logic-editor-group">
                                 <div class="logic-label">Show If (JS)</div>
                                 <CodeEditor :model-value="field.show_if_fn || ''" language="javascript" height="100px"
                                     placeholder="return ctx.row.other_field === 'value';"
                                     @update:model-value="updateField('show_if_fn', $event)" />
+                                <div v-if="getSyntaxError(field.show_if_fn)"
+                                    class="text-color-red size-10 margin-top-half">
+                                    <f7-icon f7="exclamationmark_triangle_fill" size="10" /> {{
+                                        getSyntaxError(field.show_if_fn) }}
+                                </div>
                             </div>
 
                             <div class="logic-editor-group">
@@ -135,6 +195,12 @@
                                 <CodeEditor :model-value="field.required_if_fn || ''" language="javascript"
                                     height="100px" placeholder="return ctx.row.other_field !== '';"
                                     @update:model-value="updateField('required_if_fn', $event)" />
+                                <div v-if="getSyntaxError(field.required_if_fn)"
+                                    class="text-color-red size-10 margin-top-half">
+                                    <f7-icon f7="exclamationmark_triangle_fill" size="10" /> {{
+                                        getSyntaxError(field.required_if_fn)
+                                    }}
+                                </div>
                             </div>
 
                             <div class="logic-editor-group">
@@ -142,6 +208,12 @@
                                 <CodeEditor :model-value="field.editable_if_fn || ''" language="javascript"
                                     height="100px" placeholder="return ctx.user.role === 'admin';"
                                     @update:model-value="updateField('editable_if_fn', $event)" />
+                                <div v-if="getSyntaxError(field.editable_if_fn)"
+                                    class="text-color-red size-10 margin-top-half">
+                                    <f7-icon f7="exclamationmark_triangle_fill" size="10" /> {{
+                                        getSyntaxError(field.editable_if_fn)
+                                    }}
+                                </div>
                             </div>
 
                             <div class="logic-editor-group">
@@ -149,6 +221,11 @@
                                 <CodeEditor :model-value="field.formula_fn || ''" language="javascript" height="100px"
                                     placeholder="return ctx.row.a + ctx.row.b;"
                                     @update:model-value="updateField('formula_fn', $event)" />
+                                <div v-if="getSyntaxError(field.formula_fn)"
+                                    class="text-color-red size-10 margin-top-half">
+                                    <f7-icon f7="exclamationmark_triangle_fill" size="10" /> {{
+                                        getSyntaxError(field.formula_fn) }}
+                                </div>
                             </div>
 
                             <div class="logic-editor-group">
@@ -156,6 +233,11 @@
                                 <CodeEditor :model-value="field.warning_fn || ''" language="javascript" height="100px"
                                     placeholder="if (value < 0) return 'Value should be positive';"
                                     @update:model-value="updateField('warning_fn', $event)" />
+                                <div v-if="getSyntaxError(field.warning_fn)"
+                                    class="text-color-red size-10 margin-top-half">
+                                    <f7-icon f7="exclamationmark_triangle_fill" size="10" /> {{
+                                        getSyntaxError(field.warning_fn) }}
+                                </div>
                             </div>
 
                             <div v-if="hasOptions" class="logic-editor-group">
@@ -163,6 +245,11 @@
                                 <CodeEditor :model-value="field.options_fn || ''" language="javascript" height="100px"
                                     placeholder="return ctx.maps.cities[ctx.row.province] || [];"
                                     @update:model-value="updateField('options_fn', $event)" />
+                                <div v-if="getSyntaxError(field.options_fn)"
+                                    class="text-color-red size-10 margin-top-half">
+                                    <f7-icon f7="exclamationmark_triangle_fill" size="10" /> {{
+                                        getSyntaxError(field.options_fn) }}
+                                </div>
                             </div>
 
                             <div class="logic-editor-group">
@@ -170,6 +257,11 @@
                                 <CodeEditor :model-value="field.initial_value_fn || ''" language="javascript"
                                     height="100px" placeholder="return new Date().toISOString();"
                                     @update:model-value="updateField('initial_value_fn', $event)" />
+                                <div v-if="getSyntaxError(field.initial_value_fn)"
+                                    class="text-color-red size-10 margin-top-half">
+                                    <f7-icon f7="exclamationmark_triangle_fill" size="10" /> {{
+                                        getSyntaxError(field.initial_value_fn) }}
+                                </div>
                             </div>
                         </f7-list>
                     </f7-accordion-content>
@@ -194,14 +286,81 @@ import {
 
 interface Props {
     field: EditableFieldDefinition | null;
+    originalField?: EditableFieldDefinition | null;
+    allFields?: EditableFieldDefinition[];
 }
 
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
     close: [];
+    reset: [];
     update: [updates: Partial<EditableFieldDefinition>];
 }>();
+
+// ============================================================================
+// Logic Helpers
+// ============================================================================
+
+function getSyntaxError(code: string | undefined): string | null {
+    if (!code || !code.trim()) return null;
+    try {
+        new Function('ctx', 'value', 'data', code);
+        return null;
+    } catch (e: any) {
+        return e.message;
+    }
+}
+
+import { f7 } from 'framework7-vue';
+
+function copyToClipboard(text: string) {
+    // 1. Try Modern API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            if (f7) f7.toast.show({ text: 'Copied!', position: 'center', closeTimeout: 1000 });
+        }).catch(err => {
+            console.error('Clipboard API failed', err);
+            fallbackCopy(text);
+        });
+    } else {
+        // 2. Fallback
+        fallbackCopy(text);
+    }
+}
+
+function fallbackCopy(text: string) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // Ensure it's not visible but part of DOM
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "0";
+    document.body.appendChild(textArea);
+
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            if (f7) f7.toast.show({ text: 'Copied!', position: 'center', closeTimeout: 1000 });
+        } else {
+            console.error('Fallback copy failed.');
+            if (f7) f7.toast.show({ text: 'Copy failed', position: 'center', closeTimeout: 1000 });
+        }
+    } catch (err) {
+        console.error('Fallback copy error', err);
+        if (f7) f7.toast.show({ text: 'Copy error', position: 'center', closeTimeout: 1000 });
+    }
+
+    document.body.removeChild(textArea);
+}
+
+function getFieldIcon(type: string) {
+    return FIELD_TYPE_META[type as FieldType]?.icon || 'question';
+}
 
 // ============================================================================
 // Computed
@@ -216,6 +375,30 @@ const fieldMeta = computed(() => {
 const hasOptions = computed(() => {
     return ['select', 'radio', 'checkbox'].includes(props.field?.type || '');
 });
+
+const isModified = computed(() => {
+    if (!props.field || !props.originalField) {
+        // console.log('[FieldConfigPanel] isModified false: field or originalField missing', { field: !!props.field, original: !!props.originalField });
+        return false;
+    }
+    // Simple deep comparison
+    const current = JSON.stringify(props.field);
+    const original = JSON.stringify(props.originalField);
+    const modified = current !== original;
+
+    // console.log('[FieldConfigPanel] isModified:', modified);
+    if (modified) {
+        // console.log('Difference:', { current, original });
+    }
+    return modified;
+});
+
+// Helper to group fields for select menu
+function getFieldsByCategory(category: string) {
+    return Object.fromEntries(
+        Object.entries(FIELD_TYPE_META).filter(([_, meta]) => meta.category === category)
+    );
+}
 
 // ============================================================================
 // Handlers
@@ -304,6 +487,20 @@ function removeOption(index: number) {
 
 .close-btn:hover {
     color: var(--editor-text-secondary, #64748b);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.reset-btn {
+    height: 24px;
+    line-height: 22px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0 10px;
 }
 
 /* No Selection */
@@ -427,5 +624,20 @@ function removeOption(index: number) {
     padding: 4px 8px;
     border-radius: 4px;
     display: inline-block;
+}
+
+.schema-item {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 6px 8px;
+    border-radius: 4px;
+    transition: background 0.1s;
+}
+
+.schema-item:hover {
+    background: #f8fafc;
+}
+
+.schema-item:last-child {
+    border-bottom: none;
 }
 </style>

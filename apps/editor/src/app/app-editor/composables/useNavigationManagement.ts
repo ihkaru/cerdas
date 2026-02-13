@@ -19,6 +19,7 @@ export function useNavigationManagement(appId: () => string | null) {
         try {
             const res = await ApiClient.get(`/apps/${id}`);
             navigation.value = res.data.data.navigation || [];
+            isNavDirty.value = false; // Reset dirty state on fetch
         } catch (e) {
             console.error('Failed to fetch navigation', e);
         }
@@ -26,17 +27,32 @@ export function useNavigationManagement(appId: () => string | null) {
 
     async function saveNavigation() {
         const id = appId();
-        if (!id) return;
+        console.log('[useNavigationManagement] saveNavigation called for App ID:', id);
+        
+        if (!id) {
+            console.warn('[useNavigationManagement] No App ID provided, aborting save.');
+            return;
+        }
+
         try {
-            await ApiClient.put(`/apps/${id}`, {
+            console.log('[useNavigationManagement] Sending PUT request to:', `/apps/${id}`);
+            console.log('[useNavigationManagement] Payload:', { navigation: navigation.value });
+            
+            const res = await ApiClient.put(`/apps/${id}`, {
                 navigation: navigation.value
             });
+            
+            console.log('[useNavigationManagement] Save success, response:', res);
             isNavDirty.value = false;
-            f7.toast.show({ text: 'Navigation updated', position: 'center', closeTimeout: 1500 });
+            f7.toast.show({ text: 'Navigation saved', position: 'center', closeTimeout: 1500 });
         } catch (e) {
-            console.error('Failed to save navigation', e);
+            console.error('[useNavigationManagement] Failed to save navigation', e);
             f7.dialog.alert('Failed to save navigation changes');
         }
+    }
+
+    function markDirty() {
+        isNavDirty.value = true;
     }
 
     function createNavItem() {
@@ -53,7 +69,7 @@ export function useNavigationManagement(appId: () => string | null) {
 
             navigation.value.push(newItem);
             selectedNavKey.value = newItem.id;
-            saveNavigation();
+            markDirty();
         });
     }
 
@@ -64,7 +80,7 @@ export function useNavigationManagement(appId: () => string | null) {
             if (selectedNavKey.value === id) {
                  selectedNavKey.value = '';
             }
-            saveNavigation();
+            markDirty();
         });
     }
 
@@ -77,7 +93,7 @@ export function useNavigationManagement(appId: () => string | null) {
         if (!item) return;
         
         Object.assign(item, updates);
-        saveNavigation();
+        markDirty();
     }
 
     function onNavSort(event: { from: number; to: number }) {
@@ -87,7 +103,7 @@ export function useNavigationManagement(appId: () => string | null) {
         const movedItem = navigation.value.splice(from, 1)[0];
         if (movedItem) {
             navigation.value.splice(to, 0, movedItem);
-            saveNavigation();
+            markDirty();
         }
     }
 

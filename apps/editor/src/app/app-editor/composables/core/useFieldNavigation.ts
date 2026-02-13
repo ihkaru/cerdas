@@ -16,6 +16,12 @@ export function useFieldNavigation() {
     return getFieldByPath(editorState.fields, editorState.selectedFieldPath);
   });
 
+  /** Get original version of currently selected field (for reset comparison) */
+  const selectedOriginalField = computed<EditableFieldDefinition | null>(() => {
+    if (!editorState.selectedFieldPath) return null;
+    return getFieldByPath(editorState.originalFields, editorState.selectedFieldPath);
+  });
+
   /** Check if we're currently editing inside a nested form */
   const isInNestedForm = computed(() => editorState.nestedPath.length > 0);
 
@@ -105,6 +111,7 @@ export function useFieldNavigation() {
 
   return {
     selectedField,
+    selectedOriginalField,
     isInNestedForm,
     currentFields,
     breadcrumbs,

@@ -225,6 +225,7 @@ async function doImport() {
     }
 
     isImporting.value = true;
+    console.log('[ExcelImportModal] Starting import...');
     try {
         const result = await ExcelImportService.import(
             props.appId,
@@ -233,8 +234,10 @@ async function doImport() {
             columns.value,
             selectedSheet.value
         );
+        console.log('[ExcelImportModal] Import successful, result:', result);
 
         // Close modal first to prevent UI freeze
+        console.log('[ExcelImportModal] Closing modal (isOpen = false)');
         isOpen.value = false;
 
         f7.toast.create({
@@ -244,8 +247,10 @@ async function doImport() {
         }).open();
 
         // Pass result to parent for auto-selection
+        console.log('[ExcelImportModal] Emitting imported event');
         emit('imported', { table_id: result.table_id });
     } catch (e: any) {
+        console.error('[ExcelImportModal] Import failed:', e);
         f7.dialog.alert(e.message || 'Import failed');
     } finally {
         isImporting.value = false;
