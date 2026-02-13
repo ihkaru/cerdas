@@ -10,8 +10,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-class GoogleAuthController extends Controller {
-    public function login(Request $request): JsonResponse {
+class GoogleAuthController extends Controller
+{
+    public function login(Request $request): JsonResponse
+    {
         $request->validate([
             'id_token' => 'required|string',
             'client_type' => 'nullable|string|in:web,android,ios', // Optional for logging/logic
@@ -29,10 +31,10 @@ class GoogleAuthController extends Controller {
                 ]));
             }
 
-            // For Android, we might have multiple client IDs (Web & Android). 
+            // For Android, we might have multiple client IDs (Web & Android).
             // The library allows passing an array of audience.
             // But verifyIdToken usually checks against the configured client_id.
-            // If the token comes from Android, the audience might be the Web Client ID (if using web sign-in) 
+            // If the token comes from Android, the audience might be the Web Client ID (if using web sign-in)
             // or the Android Client ID.
 
             // We'll let the library verify the signature and expiration first.
@@ -40,7 +42,7 @@ class GoogleAuthController extends Controller {
 
             $payload = $client->verifyIdToken($idToken);
 
-            if (!$payload) {
+            if (! $payload) {
                 // If verifyIdToken returns false, it failed.
                 // Sometimes it throws exception, sometimes false.
                 return response()->json(['message' => 'Invalid Google Token'], 401);
@@ -83,7 +85,7 @@ class GoogleAuthController extends Controller {
             $user->acceptPendingInvitations();
 
             // Create Sanctum Token
-            $token = $user->createToken('google-login-' . ($request->client_type ?? 'web'))->plainTextToken;
+            $token = $user->createToken('google-login-'.($request->client_type ?? 'web'))->plainTextToken;
 
             return response()->json([
                 'success' => true,
@@ -91,7 +93,13 @@ class GoogleAuthController extends Controller {
                 'user' => $user,
             ]);
         } catch (\Exception $e) {
-            Log::error('Google Login Failed: ' . $e->getMessage());
+            Log::error('Google Login Check Failed', [
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+                'backend_client_id' => substr(config('services.google.client_id'), 0, 10).'...',
+            ]);
+
             return response()->json(['message' => 'Authentication failed', 'error' => $e->getMessage()], 401);
         }
     }
