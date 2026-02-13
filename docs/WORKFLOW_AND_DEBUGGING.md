@@ -263,10 +263,19 @@ It is now Impossible to accidentally overwrite the Production app with a Dev bui
 
 Google Login requires the app's **SHA-1 Fingerprint** to be registered in Google Cloud Console. Since Debug and Release builds use different keys, you need **TWO** entries in the console.
 
+
 | Environment | Keystore | SHA-1 Source | Console Action |
 | :--- | :--- | :--- | :--- |
 | **Local Debug** | `debug.keystore` | `keytool -list ... debug.keystore` | Create new Android Client ID with Debug SHA-1. |
-| **Production** | Release Keystore | Google Play Console (App Signing) | Create new Android Client ID with Release SHA-1. |
+| **Production** | Release Keystore (GitHub Secret) | **GitHub Actions Logs** > "Print Code Signing SHA-256" step | Create new Android Client ID with Release SHA-1. |
+
+> [!TIP]
+> **How to get Production SHA-1:**
+> 1. Go to GitHub Actions tab.
+> 2. Click on the latest "Build Android APK" run.
+> 3. Expand the **"Print Code Signing SHA-256"** step.
+> 4. Copy the `SHA1: ...` fingerprint.
+> 5. Add it to Google Cloud Console as a **new** Android Client ID.
 
 > [!IMPORTANT]
 > **DO NOT** change `VITE_GOOGLE_CLIENT_ID` in your `.env` files.
