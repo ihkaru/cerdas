@@ -257,6 +257,7 @@ export interface ViewDefinition {
     mapbox_style: string;
     gps_column: string;
     label: string;
+    marker_style_fn?: string;
   };
   actions: string[];
 }
