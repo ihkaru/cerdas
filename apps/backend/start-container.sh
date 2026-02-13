@@ -17,5 +17,4 @@ exec php artisan octane:frankenphp \
     --host=0.0.0.0 \
     --port=8080 \
     --workers=auto \
-    --max-requests=500 \
-    --frankenphp-binary=/usr/local/bin/frankenphp
+    --max-requests=500
