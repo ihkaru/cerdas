@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.36](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.35...cerdas-v0.1.36) (2026-02-14)
+
+
+### Features
+
+* complete excel import robustness and cleanup backend styles ([7be6944](https://github.com/ihkaru/cerdas/commit/7be69446d1b74ecc4ff25d8a138608af8a1bbf0d))
+* complete excel import robustness with batch splitting and job logging ([0cb12b7](https://github.com/ihkaru/cerdas/commit/0cb12b7148ca4f8a99c316c6db6bfc32305c4dfc))
+
+
+### Bug Fixes
+
+* correctly type and disable lint warnings for GpsField ([32c2f52](https://github.com/ihkaru/cerdas/commit/32c2f527d91bae34e24c46c984cdbdf6770f186f))
+* **editor:** fix broken relative import paths in store tests ([4aaae56](https://github.com/ihkaru/cerdas/commit/4aaae5668f17854a893de965afab63b2dd1e477c))
+* **form-engine:** fix unknown type error in geoUtils ([b11997e](https://github.com/ihkaru/cerdas/commit/b11997eb45f77f285bac2a2d94179a3f2a707633))
+* resolve map navigation error, fix geoUtils type break, and enhance excel import ([256a6d3](https://github.com/ihkaru/cerdas/commit/256a6d3ca6a611e19cd7f54c4ffba50a137d117a))
+* resolve MapView build break ([cb2827d](https://github.com/ihkaru/cerdas/commit/cb2827d88ca44c6b85bc23488346b8ee8420a97f))
+
 ## [0.1.35](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.34...cerdas-v0.1.35) (2026-02-14)
 
 
