@@ -3,7 +3,7 @@
         <template #header>
             <EditorHeader :title="tableName" :is-dirty="isGlobalDirty" :is-published="isPublished"
                 :version="currentVersion" :can-publish="isGlobalDirty && hasTableSelected" @rename="handleRename"
-                @save="handleSave" @publish="handlePublish" @back="handleBack" @export="exportTable" />
+                @save="handleSave" @publish="onPublish" @back="handleBack" @export="exportTable" />
         </template>
 
         <template #sidebar>
@@ -25,6 +25,8 @@
                 @select="tableSelection.handleSourceSelect" />
             <ExcelImportModal v-if="appStore.currentApp" v-model:opened="panels.showExcelImportModal.value"
                 :app-id="appStore.currentApp.id" @imported="tableSelection.handleExcelImported" />
+            <PublishDialog :visible="showPublishDialog" @confirm="onPublishConfirm"
+                @cancel="showPublishDialog = false" />
         </template>
     </EditorShell>
 </template>
@@ -32,7 +34,7 @@
 <script setup lang="ts">
 import { useAppStore, useTableStore } from '@/stores';
 import { f7 } from 'framework7-vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 // Styles
 import './styles/app-editor.css';
@@ -47,6 +49,7 @@ import EditorTabContent from './components/layout/EditorTabContent.vue';
 // Data Source Modals
 import ExcelImportModal from './components/data/ExcelImportModal.vue';
 import NewSourceModal from './components/data/NewSourceModal.vue';
+import PublishDialog from './components/PublishDialog.vue';
 
 // Composables & Types
 import type { F7PageProps } from '@/types/framework7.types';
@@ -87,7 +90,20 @@ const { hasTableSelected, selectTable, currentVersion, isPublished } = tableSele
 
 // 5. Handlers
 const handlers = useEditorHandlers(props, { tableStore, navManagement, tableEditor, tableSelection });
-const { handleSave, handlePublish, handleRename, handleBack, exportTable, handleCodeApply } = handlers;
+const { handleSave, handlePublish, confirmPublish, handleRename, handleBack, exportTable, handleCodeApply } = handlers;
+
+// Publish Dialog State
+const showPublishDialog = ref(false);
+async function onPublish() {
+    const result = await handlePublish();
+    if (result?.action === 'show-publish-dialog') {
+        showPublishDialog.value = true;
+    }
+}
+async function onPublishConfirm(payload: { changelog: string; versionPolicy: string }) {
+    showPublishDialog.value = false;
+    await confirmPublish(payload);
+}
 
 // 6. UI Helpers
 const isGlobalDirty = computed(() => isDirty.value || isNavDirty.value);

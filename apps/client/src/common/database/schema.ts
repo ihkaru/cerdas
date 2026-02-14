@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS tables (
     settings TEXT, -- JSON (icon, color, etc)
     icon TEXT,
     version INTEGER,
+    version_policy TEXT DEFAULT 'accept_all', -- accept_all | warn | require_update
     synced_at TEXT
 );
 `;
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS responses (
     assignment_id TEXT,
     parent_response_id TEXT,
     data TEXT, -- JSON
+    schema_version INTEGER, -- Form version when this response was first created
     is_synced INTEGER DEFAULT 0,
     synced_at TEXT,
     created_at TEXT,
@@ -69,4 +71,15 @@ CREATE TABLE IF NOT EXISTS apps (
 );
 `;
 
-export const SCHEMA_VERSION = 11; // Force schema recreation after query fix
+export const TABLE_VERSIONS_TABLE = `
+CREATE TABLE IF NOT EXISTS table_versions (
+    table_id TEXT,
+    version INTEGER,
+    fields TEXT,    -- JSON cached schema fields
+    layout TEXT,    -- JSON cached layout
+    cached_at TEXT,
+    PRIMARY KEY (table_id, version)
+);
+`;
+
+export const SCHEMA_VERSION = 13; // Added table_versions cache + schema_version on responses

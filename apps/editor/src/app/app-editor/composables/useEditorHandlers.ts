@@ -84,37 +84,35 @@ export function useEditorHandlers(
             console.warn('[DEBUG] handlePublish aborted: currentVersion is null');
             return;
         }
-        try {
-            f7.dialog.prompt(
-                'Tambahkan catatan perubahan (opsional):',
-                'Publish Version',
-                async (changelog: string) => {
-                    await handleSave(); 
-                    const pubId = props.f7route.params.id || currentTableId.value;
-                    if (!pubId) return;
-                    
-                    const currentVer = tableStore.currentVersion;
-                    if (!currentVer?.version) {
-                        f7.dialog.alert('No version to publish');
-                        return;
-                    }
-                    
-                    if (currentVer.published_at) {
-                        f7.toast.show({ text: 'Already published. No table changes to publish.', position: 'center', closeTimeout: 2000 });
-                        return;
-                    }
-                    await tableStore.publishVersion(pubId, currentVer.version, changelog || undefined);
-                    f7.toast.show({ text: `Version ${currentVer.version} published!`, position: 'center', closeTimeout: 2000 });
-                    isPublished.value = true;
-                    currentVersion.value = currentVer.version;
+        // Instead of inline dialog, we emit 'show-publish-dialog'.
+        // The actual publish happens in confirmPublish().
+        return { action: 'show-publish-dialog' };
+    }
 
-                    if (pubId) {
-                        await tableStore.fetchTable(pubId);
-                    }
-                },
-                () => { },
-                ''
-            );
+    async function confirmPublish(payload: { changelog: string; versionPolicy: string }) {
+        try {
+            await handleSave();
+            const pubId = props.f7route.params.id || currentTableId.value;
+            if (!pubId) return;
+
+            const currentVer = tableStore.currentVersion;
+            if (!currentVer?.version) {
+                f7.dialog.alert('No version to publish');
+                return;
+            }
+
+            if (currentVer.published_at) {
+                f7.toast.show({ text: 'Already published. No table changes to publish.', position: 'center', closeTimeout: 2000 });
+                return;
+            }
+            await tableStore.publishVersion(pubId, currentVer.version, payload.changelog || undefined, payload.versionPolicy);
+            f7.toast.show({ text: `Version ${currentVer.version} published!`, position: 'center', closeTimeout: 2000 });
+            isPublished.value = true;
+            currentVersion.value = currentVer.version;
+
+            if (pubId) {
+                await tableStore.fetchTable(pubId);
+            }
         } catch (e: any) {
             f7.dialog.alert(e.message);
         }
@@ -164,6 +162,7 @@ export function useEditorHandlers(
     return {
         handleSave,
         handlePublish,
+        confirmPublish,
         handleRename,
         exportTable,
         handleCodeApply,

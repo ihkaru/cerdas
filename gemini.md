@@ -84,7 +84,7 @@ packages/types  - @cerdas/types (shared strict TS types)
 - User gives standing permission for necessary actions
 - User wants strict TypeScript to catch errors early
 - Update gemini.md with important changes/progress
-- **BROWSER TOOL USAGE**: DO NOT use browser tool for verification. User prefers to verify manually.
+- **BROWSER TOOL USAGE**: NEVER use browser tool for ANY reason. User will verify manually.
 - **CRITICAL VERSION RULE**: Always update the project version (currently 0.1.0) in `README.md`, `package.json`, and `composer.json` whenever significant progress is made (equivalent to a "push").
 
 ## ClosureContext (App-Wide Context) - Updated 2026-01-20
@@ -738,5 +738,19 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
   - `useViewConfigSync.ts`: Removed circular deep watcher. Added identity-tracking for table-switch detection only.
   - `useViewManagement.ts`: Cleaned up debug console.log statements.
 - **Verified**: `vue-tsc --noEmit` passed (exit code 0).
+
+### 2026-02-14: Response Version Pinning + Schema-Aware Export
+
+- **Problem**: When form schema changes, existing drafts lose field data and exports contain ghost data.
+- **Client-Side Version Pinning** (6 files):
+  - `schema.ts`: Added `table_versions` cache table + `schema_version` column on `responses`.
+  - `DatabaseService.ts`: Registered `table_versions` in CREATE/DROP flows.
+  - `SyncService.ts`: `pullTable` caches current + new schema versions before UPDATE.
+  - `DashboardRepository.ts`: `getResponse` returns `schemaVersion`, `saveResponse` pins on INSERT, `getSchemaForVersion` added.
+  - `AssignmentDetail.vue`: Loads pinned schema for drafts, shows info banner.
+- **Backend Schema-Aware Export** (2 files):
+  - `ExportController.php` (NEW): Filters response JSON via `array_intersect_key`.
+  - `api.php`: Added `GET /api/tables/{table}/export?version=N` route.
+
 
 

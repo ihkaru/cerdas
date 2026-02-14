@@ -32,7 +32,7 @@
                     <div v-else key="leaf">
                         <ViewRenderer :config="currentViewConfig.config"
                             :data="getViewData(currentViewConfig.config.source)" :contextId="contextId"
-                            @action="handleRowAction" />
+                            :actions="rowActions" :swipe-config="swipeConfig" @action="handleRowAction" />
                     </div>
                 </transition>
             </div>
@@ -77,7 +77,7 @@
                                 <ViewRenderer v-if="getAppViewConfig(item.view_id)"
                                     :config="getAppViewConfig(item.view_id)"
                                     :data="getViewData(getAppViewConfig(item.view_id).source)" :contextId="contextId"
-                                    @action="handleRowAction" />
+                                    :actions="rowActions" :swipe-config="swipeConfig" @action="handleRowAction" />
                                 <div v-else class="padding text-align-center">
                                     <p>View configuration not found: {{ item.view_id }}</p>
                                 </div>
@@ -107,7 +107,8 @@
                         :counts="statusCounts" :active-filter-count="activeFilters.length"
                         @open-sort="sortSheetOpen = true" @open-filter="filterSheetOpen = true" />
                     <ViewRenderer v-if="layout.views[viewKey]" :config="layout.views[viewKey]"
-                        :data="getViewData(layout.views[viewKey]?.source)" :contextId="contextId" />
+                        :data="getViewData(layout.views[viewKey]?.source)" :contextId="contextId" :actions="rowActions"
+                        :swipe-config="swipeConfig" />
                 </f7-tab>
             </f7-tabs>
         </template>
@@ -147,7 +148,8 @@
                     <div v-else key="leaf-standard">
                         <!-- Use ViewRenderer if layout has a default view -->
                         <ViewRenderer v-if="layout?.views?.default" :config="layout.views.default"
-                            :data="displayedAssignments" :contextId="contextId" @action="handleRowAction" />
+                            :data="displayedAssignments" :contextId="contextId" :actions="rowActions"
+                            :swipe-config="swipeConfig" @action="handleRowAction" />
                         <!-- Fallback to AssignmentList if no layout view defined -->
                         <AssignmentList v-else :assignments="displayedAssignments" :total-count="totalAssignments"
                             :loading="false" :row-actions="rowActions" :swipe-config="swipeConfig"
@@ -378,6 +380,7 @@ const executeAction = (action: any) => {
 const handleRowAction = async ({ actionId, assignmentId }: { actionId: string, assignmentId: string }) => {
     switch (actionId) {
         case 'open': openAssignment(assignmentId); break;
+        case 'edit': openAssignment(assignmentId); break;
         case 'delete':
             f7.dialog.confirm('Hapus?', 'Konfirmasi', () => deleteAssignment(assignmentId));
             break;

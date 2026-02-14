@@ -22,6 +22,7 @@ class Response extends Model {
         'local_id',
         'device_id',
         'synced_at',
+        'submitted_version',
     ];
 
     protected $casts = [

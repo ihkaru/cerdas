@@ -76,6 +76,7 @@ class DashboardController extends Controller {
                     'name' => $table->name,
                     'description' => $table->description,
                     'version' => $table->current_version,
+                    'version_policy' => $table->settings['version_policy'] ?? 'accept_all',
                     'updated_at' => $table->updated_at,
                 ];
             });

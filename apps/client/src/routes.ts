@@ -26,7 +26,7 @@ const routes: Router.RouteParameters[] = [
     path: '/assignments/:assignmentId',
     async({ resolve }) {
       // Use async import to catch loading errors
-      import('./pages/AssignmentDetail.vue')
+      import('./pages/assignment-detail/AssignmentDetail.vue')
         .then((module) => {
           console.log('AssignmentDetail loaded successfully');
           resolve({ component: module.default });

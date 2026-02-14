@@ -125,10 +125,13 @@ export const useTableStore = defineStore('table', () => {
         }
     }
 
-    async function publishVersion(tableId: string | number, version: number, changelog?: string) {
+    async function publishVersion(tableId: string | number, version: number, changelog?: string, versionPolicy?: string) {
         saving.value = true;
         try {
-             const response = await ApiClient.post(`/tables/${tableId}/versions/${version}/publish`, { changelog });
+             const payload: Record<string, any> = { changelog };
+             if (versionPolicy) payload.version_policy = versionPolicy;
+             
+             const response = await ApiClient.post(`/tables/${tableId}/versions/${version}/publish`, payload);
              // Refresh table to get update status
              await fetchTable(tableId);
              

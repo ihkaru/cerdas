@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AppController;
 use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\TableController;
 use App\Http\Controllers\Api\ResponseController;
 use App\Http\Controllers\Api\OrganizationController;
@@ -195,6 +196,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Update Version Content (Fields & Layout)
         Route::put('/{table}/versions/{version}', [TableController::class, 'updateVersion']);
+
+        // Schema-Aware Export
+        Route::get('/{table}/export', [ExportController::class, 'export']);
     });
 
     // ========================================================================

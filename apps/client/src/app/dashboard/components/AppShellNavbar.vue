@@ -6,7 +6,7 @@
         </f7-nav-left>
         <f7-nav-title sliding>{{ title }}</f7-nav-title>
         <f7-nav-right>
-            <f7-link v-for="action in actions" :key="action.id" :icon-f7="action.icon || 'square'"
+            <f7-link v-for="action in actions" :key="action.id" :icon-f7="action.icon || 'square'" :color="action.color"
                 @click="$emit('action', action)"></f7-link>
             <f7-link icon-f7="bars" @click="console.log('Navbar Menu Clicked'); $emit('menu')"></f7-link>
         </f7-nav-right>

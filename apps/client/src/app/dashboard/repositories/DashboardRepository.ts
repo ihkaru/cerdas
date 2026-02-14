@@ -144,11 +144,12 @@ export const DashboardRepository = {
         };
     },
 
-    async getResponse(db: SQLiteDBConnection, assignmentId: string): Promise<any | null> {
-        const res = await db.query(`SELECT * FROM responses WHERE assignment_id = ?`, [assignmentId]);
+    async getResponse(db: SQLiteDBConnection, assignmentId: string): Promise<{ data: Record<string, unknown>; schemaVersion: number | null } | null> {
+        const res = await db.query(`SELECT data, schema_version FROM responses WHERE assignment_id = ?`, [assignmentId]);
         if (!res.values || res.values.length === 0) return null;
         const row = res.values[0];
-        return typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+        const data = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+        return { data, schemaVersion: row.schema_version || null };
     },
 
     async saveResponse(db: SQLiteDBConnection, assignmentId: string, data: any, isDraft: boolean) {
@@ -162,9 +163,14 @@ export const DashboardRepository = {
             await db.run(`UPDATE responses SET data = ?, updated_at = ?, is_synced = 0 WHERE assignment_id = ?`, 
                 [dataStr, now, assignmentId]);
         } else {
+            // Pin schema_version on first creation
+            const assignRow = await db.query(`SELECT a.table_id, t.version FROM assignments a JOIN tables t ON t.id = a.table_id WHERE a.id = ?`, [assignmentId]);
+            const schemaVer = assignRow.values?.[0]?.version || null;
+
             const localId = generateUUID();
-            await db.run(`INSERT INTO responses (local_id, assignment_id, data, is_synced, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)`, 
-                [localId, assignmentId, dataStr, now, now]);
+            await db.run(`INSERT INTO responses (local_id, assignment_id, data, schema_version, is_synced, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)`, 
+                [localId, assignmentId, dataStr, schemaVer, now, now]);
+            log.info('Created response with schema_version:', { assignmentId, schemaVer });
         }
         
         if (!isDraft) {
@@ -196,5 +202,83 @@ export const DashboardRepository = {
             [id, tableId, now, now]
         );
         return id;
+    },
+
+    /**
+     * Load cached schema for a specific table version from table_versions.
+     * Used to render drafts with the schema they were originally created with.
+     */
+    async getSchemaForVersion(db: SQLiteDBConnection, tableId: string, version: number): Promise<{ fields: unknown; layout: unknown } | null> {
+        const res = await db.query(
+            `SELECT fields, layout FROM table_versions WHERE table_id = ? AND version = ?`,
+            [tableId, version]
+        );
+        if (!res.values || res.values.length === 0) return null;
+        const row = res.values[0];
+        return {
+            fields: typeof row.fields === 'string' ? JSON.parse(row.fields) : row.fields,
+            layout: typeof row.layout === 'string' ? JSON.parse(row.layout) : row.layout,
+        };
+    },
+
+    /**
+     * Migrate a draft response from its pinned schema version to the current (latest) table version.
+     * - Keeps data for fields that exist in the new schema
+     * - Discards data for fields removed in the new schema
+     * - Updates schema_version to the new version
+     * 
+     * Returns the new schema fields for re-rendering.
+     */
+    async migrateToLatestVersion(
+        db: SQLiteDBConnection,
+        assignmentId: string,
+        tableId: string
+    ): Promise<{ newVersion: number; newFields: unknown[]; newLayout: unknown; migratedData: Record<string, unknown> } | null> {
+        // 1. Get current table schema (latest)
+        const table = await this.getTable(db, tableId);
+        if (!table || !table.version || !table.fields) return null;
+
+        const newVersion = table.version;
+        const newFields = Array.isArray(table.fields) ? table.fields : (table.fields as Record<string, unknown>).fields as unknown[] || [];
+
+        // 2. Extract field names from the new schema
+        const newFieldNames = new Set(
+            newFields.map((f: unknown) => (f as Record<string, string>).name).filter(Boolean)
+        );
+
+        // 3. Get existing response data
+        const response = await this.getResponse(db, assignmentId);
+        if (!response) return null;
+
+        // 4. Filter data: keep only fields that exist in the new schema
+        const oldData = response.data || {};
+        const migratedData: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(oldData)) {
+            if (newFieldNames.has(key)) {
+                migratedData[key] = value;
+            }
+        }
+
+        // 5. Update response: set new schema_version and filtered data
+        const now = new Date().toISOString();
+        await db.run(
+            `UPDATE responses SET data = ?, schema_version = ?, updated_at = ?, is_synced = 0 WHERE assignment_id = ?`,
+            [JSON.stringify(migratedData), newVersion, now, assignmentId]
+        );
+
+        log.info('[migrateToLatestVersion] Migration complete', {
+            assignmentId,
+            fromVersion: response.schemaVersion,
+            toVersion: newVersion,
+            keptFields: Object.keys(migratedData).length,
+            droppedFields: Object.keys(oldData).length - Object.keys(migratedData).length
+        });
+
+        return {
+            newVersion,
+            newFields,
+            newLayout: table.layout || {},
+            migratedData
+        };
     }
 };

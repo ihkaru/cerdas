@@ -83,14 +83,14 @@ export class SyncService {
                 if (existing.values && existing.values.length > 0) {
                     // Update meta only
                     await db.run(
-                        `UPDATE tables SET name = ?, description = ?, version = ?, synced_at = ? WHERE id = ?`, 
-                        [table.name, table.description, table.version, new Date().toISOString(), table.id]
+                        `UPDATE tables SET name = ?, description = ?, version = ?, version_policy = ?, synced_at = ? WHERE id = ?`, 
+                        [table.name, table.description, table.version, table.version_policy || 'accept_all', new Date().toISOString(), table.id]
                     );
                 } else {
                     // Insert new (fields is null initially)
                     await db.run(
-                        `INSERT INTO tables (id, app_id, name, description, version, synced_at) VALUES (?, ?, ?, ?, ?, ?)`,
-                        [table.id, table.app_id || table.id, table.name, table.description, table.version, new Date().toISOString()]
+                        `INSERT INTO tables (id, app_id, name, description, version, version_policy, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        [table.id, table.app_id || table.id, table.name, table.description, table.version, table.version_policy || 'accept_all', new Date().toISOString()]
                     );
                 }
             }
@@ -148,10 +148,13 @@ export class SyncService {
             // Use current_version_model from 'show' endpoint
             const version = table.current_version_model || table.latest_published_version || (table.versions?.[0]);
 
+            let versionSource = 'versions[0] (fallback)';
+            if (table.current_version_model) versionSource = 'current_version_model';
+            else if (table.latest_published_version) versionSource = 'latest_published_version';
+
             logger.info(`[SyncService] 🧐 Version Selection logic for ${tableId}:`, {
                 selectedVersion: version?.version,
-                source: table.current_version_model ? 'current_version_model' : 
-                        (table.latest_published_version ? 'latest_published_version' : 'versions[0] (fallback)')
+                source: versionSource
             });
             
             if (version) {
@@ -172,6 +175,33 @@ export class SyncService {
                      grouping: (layoutData as any).grouping ? 'YES' : 'NO'
                  });
 
+                // Cache current schema version before overwriting (for version pinning)
+                try {
+                    const currentRow = await db.query(
+                        'SELECT version, fields, layout FROM tables WHERE id = ?', [tableId]
+                    );
+                    const cur = currentRow.values?.[0];
+                    if (cur?.version && cur?.fields) {
+                        await db.run(
+                            `INSERT OR IGNORE INTO table_versions (table_id, version, fields, layout, cached_at) VALUES (?, ?, ?, ?, ?)`,
+                            [tableId, cur.version, cur.fields, cur.layout || '{}', new Date().toISOString()]
+                        );
+                        logger.info(`[SyncService] Cached schema v${cur.version} for table ${tableId}`);
+                    }
+                } catch (cacheErr) {
+                    logger.warn('[SyncService] Failed to cache schema version', cacheErr);
+                }
+
+                // Also cache the NEW version being pulled
+                try {
+                    await db.run(
+                        `INSERT OR IGNORE INTO table_versions (table_id, version, fields, layout, cached_at) VALUES (?, ?, ?, ?, ?)`,
+                        [tableId, version.version, JSON.stringify(fieldsData), JSON.stringify(layoutData), new Date().toISOString()]
+                    );
+                } catch (cacheErr) {
+                    logger.warn('[SyncService] Failed to cache new schema version', cacheErr);
+                }
+
                 await db.run(
                     `UPDATE tables SET fields = ?, layout = ?, settings = ?, version = ?, synced_at = ? WHERE id = ?`,
                     [
@@ -187,99 +217,159 @@ export class SyncService {
         }
     }
 
-    // 3. ASSIGNMENTS PULL
+    // --- Assignment Sync Helpers ---
+
+    /** Build batch statements for UPSERT into local SQLite */
+    private buildAssignmentBatch(items: any[], stmtAssign: string, syncTimestamp: string) {
+        return items.map((assign: any) => ({
+            statement: stmtAssign,
+            values: [
+                assign.id,
+                assign.table_id || assign.form_id || assign.app_schema_id,
+                assign.organization_id,
+                assign.supervisor_id,
+                assign.enumerator_id,
+                JSON.stringify(assign.prelist_data),
+                assign.status,
+                syncTimestamp,
+                assign.external_id || null
+            ]
+        }));
+    }
+
+    /** Delete locally any assignments that were soft-deleted on server */
+    private async handleTombstones(db: any, deletedIds: string[]) {
+        if (!deletedIds || deletedIds.length === 0) return;
+        logger.info(`[Sync] Deleting ${deletedIds.length} tombstoned assignments locally`);
+        for (const id of deletedIds) {
+            await db.run(`DELETE FROM assignments WHERE id = ?`, [id]);
+            await db.run(`DELETE FROM responses WHERE assignment_id = ?`, [id]);
+        }
+    }
+
+    /** Remove local assignments not present on server (initial sync only) */
+    private async cleanupOrphanAssignments(db: any, tableId: string, fetchedIds: string[]) {
+        if (fetchedIds.length === 0) {
+            await db.run(`DELETE FROM assignments WHERE table_id = ?`, [tableId]);
+            logger.warn(`[Sync] No assignments from server for table ${tableId}, cleared local`);
+            return;
+        }
+
+        // FIX: The previous chunked NOT IN approach was destructive!
+        // Each chunk's DELETE would remove records from other chunks.
+        // Instead, query existing local IDs and compute the diff using a Set.
+        const localResult = await db.query(
+            'SELECT id FROM assignments WHERE table_id = ?', [tableId]
+        );
+        const localIds: string[] = (localResult.values || []).map((r: { id: string }) => r.id);
+
+        const fetchedSet = new Set(fetchedIds);
+        const orphanIds = localIds.filter((id: string) => !fetchedSet.has(id));
+
+        if (orphanIds.length > 0) {
+            logger.info(`[Sync] Removing ${orphanIds.length} orphan assignments for table ${tableId}`);
+            for (const id of orphanIds) {
+                await db.run('DELETE FROM assignments WHERE id = ?', [id]);
+            }
+        } else {
+            logger.info(`[Sync] No orphan assignments found for table ${tableId}`);
+        }
+    }
+
+    // 3. ASSIGNMENTS PULL (Delta-Sync Aware)
+    //
+    // Clock Safety: We NEVER use `new Date()` for sync timestamps.
+    // Instead, we use `server_time` from the API response. This protects against
+    // devices with incorrect date/time settings (e.g., auto-update disabled).
+    //
+
+    /** Process a single page: insert batch + handle tombstones. Returns count of items inserted. */
+    private async processAssignmentPage(
+        db: any, res: any, stmtAssign: string, syncTimestamp: string, trackIds: boolean, fetchedIds: string[]
+    ): Promise<number> {
+        const items = res.data?.data || [];
+        const batchSet = this.buildAssignmentBatch(items, stmtAssign, syncTimestamp);
+
+        if (trackIds) {
+            for (const a of items) fetchedIds.push(a.id);
+        }
+
+        let inserted = 0;
+        if (batchSet.length > 0) {
+            try { await db.executeSet(batchSet); inserted = batchSet.length; }
+            catch (e) { logger.error('[Sync] Assignment batch insert failed', e); }
+        }
+
+        await this.handleTombstones(db, res.deleted_ids);
+        return inserted;
+    }
+
+    /** Fetch all assignment pages via cursor pagination */
+    private async fetchAssignmentPages(
+        db: any, baseUrl: string, stmtAssign: string, trackIds: boolean,
+        onProgress?: (phase: string, progress?: number) => void
+    ) {
+        let cursor: string | null = null;
+        let totalItems = 0;
+        let serverTime = '';
+        const fetchedIds: string[] = [];
+        let pageNum = 0;
+
+        do {
+            pageNum++;
+            const cursorParam = cursor ? `&cursor=${encodeURIComponent(cursor)}` : '';
+            const res = await apiClient.get(`${baseUrl}${cursorParam}`);
+
+            if (!res.success) { logger.warn('[Sync] API failure, stopping'); break; }
+            if (!serverTime && res.server_time) serverTime = res.server_time;
+
+            const hasNext = !!res.data?.next_cursor;
+            const progress = hasNext ? 30 + Math.min(pageNum * 10, 55) : 85;
+            onProgress?.(hasNext ? `Downloading assignments (page ${pageNum})...` : 'Downloading assignments (final page)...', progress);
+
+            const syncTimestamp = serverTime || new Date().toISOString();
+            totalItems += await this.processAssignmentPage(db, res, stmtAssign, syncTimestamp, trackIds, fetchedIds);
+
+            cursor = res.data?.next_cursor || null;
+            await new Promise(resolve => setTimeout(resolve, 10));
+        } while (cursor);
+
+        return { totalItems, serverTime, fetchedIds };
+    }
+
     private async pullAssignments(tableId: string, onProgress?: (phase: string, progress?: number) => void) {
         const db = await databaseService.getDB();
-        let page = 1;
-        let lastPage = 1;
-        let totalItems = 0;
-        const fetchedAssignmentIds: string[] = []; // Track all IDs fetched
+        const syncKey = `sync_assignments_${tableId}`;
+        const lastSync = localStorage.getItem(syncKey);
+        const isInitialSync = !lastSync;
 
-        console.log('[SyncService] pullAssignments START:', { tableId });
+        logger.info('[Sync] pullAssignments START:', {
+            tableId, mode: isInitialSync ? 'INITIAL' : 'DELTA', lastSync: lastSync || 'never'
+        });
 
         const stmtAssign = `INSERT OR REPLACE INTO assignments (id, table_id, organization_id, supervisor_id, enumerator_id, prelist_data, status, synced_at, external_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-        do {
-            const url = `/assignments?table_id=${tableId}&page=${page}&per_page=1000`;
-            console.log('[SyncService] Fetching:', url);
-            
-            const res = await apiClient.get(url); 
-            
-            console.log('[SyncService] API Response:', { 
-                success: res.success, 
-                lastPage: res.data?.last_page,
-                dataCount: res.data?.data?.length || 0,
-                firstItem: res.data?.data?.[0] || null
-            });
-            
-            if (res.success) {
-                const paginated = res.data;
-                lastPage = paginated.last_page;
-                
-                // Calculate rough progress
-                const downloadProgress = Math.round((page / lastPage) * 100);
-                const overallProgress = 30 + Math.round(downloadProgress * 0.6);
-                
-                onProgress?.(`Downloading assignments (Page ${page}/${lastPage})...`, overallProgress);
+        const baseParams = `table_id=${tableId}&per_page=2000`;
+        const deltaParams = lastSync
+            ? `&updated_since=${encodeURIComponent(lastSync)}&include_deleted=1`
+            : '';
+        const baseUrl = `/assignments?${baseParams}${deltaParams}`;
 
-                const batchSet = paginated.data.map((assign: any) => ({
-                    statement: stmtAssign,
-                    values: [
-                        assign.id,
-                        assign.table_id || assign.form_id || assign.app_schema_id, 
-                        assign.organization_id,
-                        assign.supervisor_id,
-                        assign.enumerator_id,
-                        JSON.stringify(assign.prelist_data),
-                        assign.status,
-                        new Date().toISOString(),
-                        assign.external_id || null
-                    ]
-                }));
+        const { totalItems, serverTime, fetchedIds } = await this.fetchAssignmentPages(
+            db, baseUrl, stmtAssign, isInitialSync, onProgress
+        );
 
-                // Track fetched IDs for orphan cleanup
-                for (const assign of paginated.data) {
-                    fetchedAssignmentIds.push(assign.id);
-                }
-
-                console.log('[SyncService] Batch to insert:', { 
-                    count: batchSet.length, 
-                    sampleValues: batchSet[0]?.values || null 
-                });
-
-                if (batchSet.length > 0) {
-                    try {
-                        await db.executeSet(batchSet);
-                        totalItems += batchSet.length;
-                        console.log(`[SyncService] Imported batch of ${batchSet.length} assignments. Total: ${totalItems}`);
-                    } catch (e) {
-                         console.error('[SyncService] Failed to insert assignments batch', e);
-                    }
-                }
-                
-                page++;
-                await new Promise(resolve => setTimeout(resolve, 10)); // Yield to UI
-            } else {
-                console.warn('[SyncService] API returned failure, breaking loop');
-                break;
-            }
-        } while (page <= lastPage);
-        
-        // ORPHAN CLEANUP: Delete local assignments for this table NOT in server response
-        if (fetchedAssignmentIds.length > 0) {
-            const placeholders = fetchedAssignmentIds.map(() => '?').join(',');
-            await db.run(
-                `DELETE FROM assignments WHERE table_id = ? AND id NOT IN (${placeholders})`,
-                [tableId, ...fetchedAssignmentIds]
-            );
-            logger.info(`[Sync] Assignment orphan cleanup for table ${tableId}`);
-        } else {
-            // Server returned no assignments for this table - clear all local for this table
-            await db.run(`DELETE FROM assignments WHERE table_id = ?`, [tableId]);
-            logger.warn(`[Sync] No assignments from server for table ${tableId}, cleared local`);
+        if (isInitialSync) {
+            await this.cleanupOrphanAssignments(db, tableId, fetchedIds);
         }
-        
-        console.log('[SyncService] pullAssignments END:', { tableId, totalItems });
+
+        // Save server_time as checkpoint (server-authoritative, clock-safe)
+        if (serverTime) {
+            localStorage.setItem(syncKey, serverTime);
+            logger.info(`[Sync] Checkpoint saved: ${syncKey} = ${serverTime}`);
+        }
+
+        logger.info('[Sync] pullAssignments END:', { tableId, totalItems, mode: isInitialSync ? 'INITIAL' : 'DELTA' });
     }
 
     // 4. RESPONSES PULL
@@ -373,15 +463,26 @@ export class SyncService {
         
         for (let i = 0; i < unsynced.length; i += BATCH_SIZE) {
             const chunk = unsynced.slice(i, i + BATCH_SIZE);
-            const payload = chunk.map(r => ({
-                local_id: r.local_id,
-                assignment_id: r.assignment_id,
-                table_id: r.table_id,
-                data: JSON.parse(r.data),
-                created_at: r.created_at,
-                updated_at: r.updated_at,
-                device_id: 'device-1' 
-            }));
+            
+            // Build payload with submitted_version from local table
+            const payloadPromises = chunk.map(async (r: any) => {
+                let submittedVersion: number | undefined;
+                if (r.table_id) {
+                    const tbl = await db.query(`SELECT version FROM tables WHERE id = ?`, [r.table_id]);
+                    submittedVersion = tbl.values?.[0]?.version;
+                }
+                return {
+                    local_id: r.local_id,
+                    assignment_id: r.assignment_id,
+                    table_id: r.table_id,
+                    data: JSON.parse(r.data),
+                    created_at: r.created_at,
+                    updated_at: r.updated_at,
+                    device_id: 'device-1',
+                    submitted_version: submittedVersion,
+                };
+            });
+            const payload = await Promise.all(payloadPromises);
 
             try {
                 logger.info('[SyncService] Pushing Payload:', payload);
@@ -404,6 +505,13 @@ export class SyncService {
                                       await db.run(`UPDATE assignments SET id = ? WHERE id = ?`, [item.new_assignment_id, oldAssignId]);
                                  }
                             }
+                        } else if (item.status === 'version_rejected') {
+                            // Keep item unsynced — user needs to update form version first
+                            logger.warn('[SyncService] Version rejected:', item.message);
+                            // Dispatch event so UI can show version gate
+                            window.dispatchEvent(new CustomEvent('version-rejected', {
+                                detail: { localId: item.local_id, requiredVersion: item.required_version, message: item.message }
+                            }));
                         }
                     }
                 }

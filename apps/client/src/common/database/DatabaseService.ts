@@ -2,7 +2,7 @@
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { Capacitor } from '@capacitor/core';
 import { useLogger } from '../utils/logger';
-import { APPS_TABLE, ASSIGNMENTS_TABLE, RESPONSES_TABLE, SCHEMA_VERSION, SYNC_QUEUE_TABLE, TABLES_TABLE } from './schema';
+import { APPS_TABLE, ASSIGNMENTS_TABLE, RESPONSES_TABLE, SCHEMA_VERSION, SYNC_QUEUE_TABLE, TABLE_VERSIONS_TABLE, TABLES_TABLE } from './schema';
 
 const log = useLogger('DatabaseService');
 
@@ -158,7 +158,8 @@ export class DatabaseService {
                 'DROP TABLE IF EXISTS app_schemas',
                 'DROP TABLE IF EXISTS assignments', 
                 'DROP TABLE IF EXISTS responses',
-                'DROP TABLE IF EXISTS sync_queue'
+                'DROP TABLE IF EXISTS sync_queue',
+                'DROP TABLE IF EXISTS table_versions'
             ];
             
             for (const sql of dropStatements) {
@@ -180,7 +181,8 @@ export class DatabaseService {
             APPS_TABLE,
             ASSIGNMENTS_TABLE,
             RESPONSES_TABLE,
-            SYNC_QUEUE_TABLE
+            SYNC_QUEUE_TABLE,
+            TABLE_VERSIONS_TABLE
         ];
 
         for (const sql of tables) {
@@ -232,7 +234,8 @@ export class DatabaseService {
             'DROP TABLE IF EXISTS app_schemas',
             'DROP TABLE IF EXISTS assignments', 
             'DROP TABLE IF EXISTS responses',
-            'DROP TABLE IF EXISTS sync_queue'
+            'DROP TABLE IF EXISTS sync_queue',
+            'DROP TABLE IF EXISTS table_versions'
         ];
         
         if (this.db) {

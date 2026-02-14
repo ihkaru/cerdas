@@ -393,3 +393,16 @@ export const DEVICE_DIMENSIONS: Record<string, DeviceDimensions> = {
   'tablet-portrait': { width: 768, height: 1024, borderRadius: 20 },
   'tablet-landscape': { width: 1024, height: 768, borderRadius: 20 },
 };
+
+export const ACTION_COLORS: Record<string, string> = {
+  blue: '#3b82f6',
+  red: '#ef4444',
+  green: '#22c55e',
+  orange: '#f97316',
+  purple: '#a855f7',
+  pink: '#ec4899',
+  teal: '#14b8a6',
+  yellow: '#eab308',
+  gray: '#6b7280',
+  black: '#1f2937',
+};

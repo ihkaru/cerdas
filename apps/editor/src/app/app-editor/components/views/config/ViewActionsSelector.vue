@@ -4,7 +4,9 @@
         <f7-list inset strong>
             <f7-list-item v-for="action in availableActions" :key="action.id" :title="action.label" checkbox
                 :checked="selectedActions.includes(action.id)" @change="toggleAction(action.id)">
-                <f7-icon slot="media" :f7="action.icon" />
+                <div slot="media" class="action-icon-preview" :style="{ backgroundColor: getColorValue(action.color) }">
+                    <f7-icon :f7="action.icon" color="white" size="18" />
+                </div>
                 <template #footer>
                     <div class="text-xs text-gray-500">{{ action.type }}</div>
                 </template>
@@ -15,10 +17,9 @@
 </template>
 
 <script setup lang="ts">
+import { ACTION_COLORS, type ActionDefinition } from '../../../types/editor.types';
 
-import type { ActionDefinition } from '../../../types/editor.types';
-
-const props = defineProps<{
+defineProps<{
     selectedActions: string[];
     availableActions: readonly ActionDefinition[];
 }>();
@@ -30,6 +31,11 @@ const emit = defineEmits<{
 function toggleAction(id: string) {
     emit('toggle', id);
 }
+
+function getColorValue(colorName?: string): string {
+    if (!colorName) return '#94a3b8';
+    return ACTION_COLORS[colorName] || colorName;
+}
 </script>
 
 <style scoped>
@@ -39,5 +45,14 @@ function toggleAction(id: string) {
 
 .text-gray-500 {
     color: #6b7280;
+}
+
+.action-icon-preview {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 </style>

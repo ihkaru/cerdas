@@ -4,12 +4,18 @@
         <div class="actions-panel flex-col overflow-y-auto bg-white border-r border-gray-200"
             :style="{ width: panelWidth + 'px' }">
             <f7-block-title>Header Actions (App Level)</f7-block-title>
-            <f7-list inset strong sortable @sortable:sort="onSortHeaderActions">
+            <f7-list v-if="headerActions.length > 0" inset strong sortable @sortable:sort="onSortHeaderActions">
                 <f7-list-item v-for="action in headerActions" :key="action.id" :title="action.label"
                     :footer="action.type" link="#" @click="editAction('header', action)">
-                    <f7-icon slot="media" :f7="action.icon" :color="action.color" />
+                    <div slot="media" class="action-icon-preview"
+                        :style="{ backgroundColor: getColorValue(action.color) }">
+                        <f7-icon :f7="action.icon" color="white" size="18" />
+                    </div>
                     <f7-link slot="after" icon-f7="trash" color="red" @click.stop="removeAction('header', action.id)" />
                 </f7-list-item>
+            </f7-list>
+
+            <f7-list inset strong>
                 <f7-list-button @click="addAction('header')">
                     <f7-icon f7="plus" />
                     Add Header Action
@@ -17,13 +23,19 @@
             </f7-list>
 
             <f7-block-title>Row Actions (Per-Item)</f7-block-title>
-            <f7-list inset strong sortable @sortable:sort="onSortRowActions">
+            <f7-list v-if="rowActions.length > 0" inset strong sortable @sortable:sort="onSortRowActions">
                 <f7-list-item v-for="action in rowActions" :key="action.id" :title="action.label"
                     :footer="action.type + (action.primary ? ' (primary)' : '')" link="#"
                     @click="editAction('row', action)">
-                    <f7-icon slot="media" :f7="action.icon" :color="action.color" />
+                    <div slot="media" class="action-icon-preview"
+                        :style="{ backgroundColor: getColorValue(action.color) }">
+                        <f7-icon :f7="action.icon" color="white" size="18" />
+                    </div>
                     <f7-link slot="after" icon-f7="trash" color="red" @click.stop="removeAction('row', action.id)" />
                 </f7-list-item>
+            </f7-list>
+
+            <f7-list inset strong>
                 <f7-list-button @click="addAction('row')">
                     <f7-icon f7="plus" />
                     Add Row Action
@@ -90,6 +102,10 @@
 
         <!-- Spacer -->
         <div class="flex-1 bg-gray-50 flex items-center justify-center"></div>
+
+        <!-- Editor Modal -->
+        <ActionEditorModal :opened="isModalOpen" :action="editingAction" @close="isModalOpen = false"
+            @save="onSaveAction" />
     </div>
 </template>
 
@@ -97,8 +113,9 @@
 import { f7 } from 'framework7-vue';
 import { computed, ref } from 'vue';
 import { useTableEditor } from '../../composables/useTableEditor';
-import type { ActionDefinition } from '../../types/editor.types';
+import { ACTION_COLORS, type ActionDefinition } from '../../types/editor.types';
 import ResizableDivider from '../shared/ResizableDivider.vue';
+import ActionEditorModal from './ActionEditorModal.vue';
 
 // ============================================================================
 // State from Composable
@@ -114,39 +131,57 @@ const rowActions = computed(() => settings.value.actions.row);
 const swipeActions = computed(() => settings.value.actions.swipe);
 
 // ============================================================================
+// Local State
+// ============================================================================
+
+const isModalOpen = ref(false);
+const editingAction = ref<ActionDefinition | null>(null);
+const editingCategory = ref<'header' | 'row'>('header');
+
+// ============================================================================
 // Methods
 // ============================================================================
 
-function addAction(category: 'header' | 'row') {
-    f7.dialog.prompt('Enter action label', 'New Action', (label) => {
-        if (!label || !label.trim()) return;
-
-        const id = `action_${Date.now()}`;
-        const newAction: ActionDefinition = {
-            id,
-            label: label.trim(),
-            icon: 'bolt',
-            type: 'custom',
-        };
-
-        const currentActions = category === 'header' ? [...headerActions.value] : [...rowActions.value];
-        currentActions.push(newAction);
-
-        updateSettings({
-            actions: {
-                ...settings.value.actions,
-                [category]: currentActions
-            }
-        });
-    });
+function getColorValue(colorName?: string): string {
+    if (!colorName) return '#94a3b8';
+    return ACTION_COLORS[colorName] || colorName;
 }
 
-function editAction(_category: 'header' | 'row', action: ActionDefinition) {
-    f7.toast.show({
-        text: `Editing action: ${action.label} (coming soon)`,
-        position: 'center',
-        closeTimeout: 2000
+function addAction(category: 'header' | 'row') {
+    editingCategory.value = category;
+    editingAction.value = null; // Create mode
+    isModalOpen.value = true;
+}
+
+function editAction(category: 'header' | 'row', action: ActionDefinition) {
+    editingCategory.value = category;
+    editingAction.value = action; // Edit mode
+    isModalOpen.value = true;
+}
+
+function onSaveAction(action: ActionDefinition) {
+    const category = editingCategory.value;
+    const currentActions = category === 'header' ? [...headerActions.value] : [...rowActions.value];
+
+    if (editingAction.value) {
+        // Update existing
+        const index = currentActions.findIndex(a => a.id === action.id);
+        if (index !== -1) {
+            currentActions[index] = action;
+        }
+    } else {
+        // Add new
+        currentActions.push(action);
+    }
+
+    updateSettings({
+        actions: {
+            ...settings.value.actions,
+            [category]: currentActions
+        }
     });
+
+    isModalOpen.value = false;
 }
 
 function removeAction(category: 'header' | 'row', actionId: string) {
@@ -157,12 +192,24 @@ function removeAction(category: 'header' | 'row', actionId: string) {
             const currentActions = category === 'header' ? [...headerActions.value] : [...rowActions.value];
             const filtered = currentActions.filter(a => a.id !== actionId);
 
-            updateSettings({
+            // Create new settings object
+            const newSettings = {
                 actions: {
                     ...settings.value.actions,
                     [category]: filtered
                 }
-            });
+            };
+
+            // If deleting a row action, also remove from swipe config if present
+            if (category === 'row') {
+                const swipe = settings.value.actions.swipe || { left: [], right: [] };
+                const left = (swipe.left || []).filter((id: string) => id !== actionId);
+                const right = (swipe.right || []).filter((id: string) => id !== actionId);
+
+                newSettings.actions.swipe = { left, right };
+            }
+
+            updateSettings(newSettings);
         }
     );
 }
@@ -258,5 +305,14 @@ function updateSwipeRight(event: Event) {
 .action-divider:hover,
 .action-divider.dragging {
     background: #e2e8f0;
+}
+
+.action-icon-preview {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 </style>

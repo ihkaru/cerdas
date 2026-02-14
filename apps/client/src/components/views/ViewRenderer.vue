@@ -1,8 +1,10 @@
 <template>
     <div class="view-renderer">
         <!-- DECK VIEW -->
-        <DeckView v-if="config.type === 'deck'" :config="config" :data="viewData"
-            @click="(item) => handleAction(config.options?.action || config.deck?.action || 'edit', item)" />
+        <DeckView v-if="config.type === 'deck'" :config="config" :data="viewData" :actions="actions"
+            :swipe-config="swipeConfig"
+            @click="(item) => handleAction(config.options?.action || config.deck?.action || 'edit', item)"
+            @action="(action, item) => handleAction(action, item)" />
 
         <!-- MAP VIEW -->
         <MapView v-else-if="config.type === 'map'" :config="config" :data="viewData" />
@@ -34,6 +36,8 @@ const props = defineProps<{
     config: any; // The view configuration object (from layout json)
     data: any[]; // The raw data (assignments/responses)
     contextId: string; // Context
+    actions?: any[]; // Available actions definition
+    swipeConfig?: { left: string[]; right: string[] };
 }>();
 
 const viewData = computed(() => {
@@ -65,17 +69,17 @@ const viewData = computed(() => {
     return result;
 });
 
+const emit = defineEmits(['action']);
+
 const handleAction = (action: string, item: any) => {
+    // 1. Navigation Actions (Internal)
     if (action === 'view_detail') {
-        // Navigate to dynamic detail page
-        // We assume detail view is named 'view_detail' by convention for now, or we could look it up
-        // ideally the config action should say 'view_detail' -> navigate to view named 'view_detail'
-        // For now, let's hardcode the target view name as 'view_detail'
         f7.view.main.router.navigate(`/app/${props.contextId}/view/view_detail/${item.id || item.local_id}`);
-    } else if (action === 'edit') {
-        // Navigate to form for editing
-        // Assuming we route to generic assignment detail for editing or a form view
-        f7.view.main.router.navigate(`/assignments/${item.id}`);
+        return;
     }
+
+    // 2. Delegate to Parent (AppShell)
+    // AppShell expects { actionId, assignmentId }
+    emit('action', { actionId: action, assignmentId: item.id || item.local_id });
 };
 </script>

@@ -2,8 +2,8 @@
     <f7-list media-list>
         <f7-list-item v-for="(item, idx) in data" :key="item.id || item.local_id"
             :class="[`status-border-${item.status}`, 'enter-animation']" :style="{ animationDelay: `${idx * 0.03}s` }"
-            :title="resolvePath(item, options.title)" :subtitle="resolvePath(item, options.subtitle)"
-            @click="$emit('click', item)" link="#">
+            :swipeout="hasSwipe" :title="resolvePath(item, options.title)"
+            :subtitle="resolvePath(item, options.subtitle)" @click="$emit('click', item)" link="#">
             <template #media v-if="options.image">
                 <img v-if="resolvePath(item, options.image)" :src="getImageUrl(resolvePath(item, options.image))"
                     width="44" height="44" style="border-radius: 4px; object-fit: cover;" />
@@ -12,6 +12,22 @@
                     style="width: 44px; height: 44px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
             </template>
+
+            <!-- Swipe Left Actions -->
+            <f7-swipeout-actions left v-if="leftSwipeActions.length">
+                <f7-swipeout-button v-for="action in leftSwipeActions" :key="action.id" :color="action.color || 'blue'"
+                    @click="$emit('action', action.id, item)">
+                    <f7-icon :f7="action.icon" />
+                </f7-swipeout-button>
+            </f7-swipeout-actions>
+
+            <!-- Swipe Right Actions -->
+            <f7-swipeout-actions right v-if="rightSwipeActions.length">
+                <f7-swipeout-button v-for="action in rightSwipeActions" :key="action.id" :color="action.color || 'blue'"
+                    @click="$emit('action', action.id, item)">
+                    <f7-icon :f7="action.icon" />
+                </f7-swipeout-button>
+            </f7-swipeout-actions>
         </f7-list-item>
     </f7-list>
 </template>
@@ -67,9 +83,35 @@ import { computed } from 'vue';
 const props = defineProps<{
     config: any;
     data: any[];
+    actions?: any[];
+    swipeConfig?: { left: string[]; right: string[] };
 }>();
 
-defineEmits(['click']);
+defineEmits(['click', 'action']);
+
+const getActionDef = (id: string) => {
+    const action = props.actions?.find(a => a.id === id);
+    if (!action) {
+        // Only warn in development
+        if (import.meta.env.DEV) {
+            console.warn(`[DeckView] Action not found for ID: ${id}. hiding.`);
+        }
+        return null;
+    }
+    return action;
+};
+
+const leftSwipeActions = computed(() => {
+    const config = props.swipeConfig?.left || [];
+    return config.map(id => getActionDef(id)).filter(a => a !== null);
+});
+
+const rightSwipeActions = computed(() => {
+    const config = props.swipeConfig?.right || [];
+    return config.map(id => getActionDef(id)).filter(a => a !== null);
+});
+
+const hasSwipe = computed(() => leftSwipeActions.value.length > 0 || rightSwipeActions.value.length > 0);
 
 // Normalize options to support both old and new config formats
 const options = computed(() => {

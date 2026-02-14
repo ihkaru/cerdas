@@ -350,6 +350,14 @@ class TableController extends Controller {
         $changelog = $request->input('changelog', 'Published version ' . $version);
         $tableVersion->publish($changelog);
 
+        // Save version policy to table settings if provided
+        $versionPolicy = $request->input('version_policy');
+        if ($versionPolicy && in_array($versionPolicy, ['accept_all', 'warn', 'require_update'])) {
+            $settings = $table->settings ?? [];
+            $settings['version_policy'] = $versionPolicy;
+            $table->update(['settings' => $settings]);
+        }
+
         // Auto-create new draft version removed. 
         // User should explicitly create draft when they start editing again.
 

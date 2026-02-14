@@ -106,6 +106,7 @@ class ResponseController extends Controller {
             'responses.*.created_at' => 'nullable|date',
             'responses.*.updated_at' => 'nullable|date',
             'responses.*.device_id' => 'nullable|string',
+            'responses.*.submitted_version' => 'nullable|integer', // Form version used by client
         ]);
 
         $user = $request->user();
@@ -210,6 +211,67 @@ class ResponseController extends Controller {
                     Log::info('Assignment Auto-Claimed via Sync', ['id' => $assignment->id, 'user_id' => $user->id]);
                 }
 
+                // ===== VERSION ENFORCEMENT =====
+                $submittedVersion = $respData['submitted_version'] ?? null;
+                $table = $assignment->tableVersion?->table ?? $assignment->table;
+                $versionPolicy = $table?->settings['version_policy'] ?? 'accept_all';
+                $currentVersion = $table?->current_version ?? 1;
+                $isVersionMismatch = $submittedVersion && $submittedVersion < $currentVersion;
+
+                if ($isVersionMismatch && $versionPolicy === 'require_update') {
+                    Log::warning('Version Rejected', [
+                        'local_id' => $respData['local_id'],
+                        'submitted_version' => $submittedVersion,
+                        'required_version' => $currentVersion,
+                    ]);
+                    $results[] = [
+                        'local_id' => $respData['local_id'],
+                        'status' => 'version_rejected',
+                        'message' => "Version v{$submittedVersion} rejected. Minimum required: v{$currentVersion}. Please sync the latest form.",
+                        'required_version' => $currentVersion,
+                    ];
+                    continue;
+                }
+
+                // ===== STRICT SCHEMA VALIDATION =====
+                // When version_policy is 'strict', validate data against schema's required fields
+                if ($versionPolicy === 'strict' && $submittedVersion) {
+                    $schemaVersion = \App\Models\TableVersion::where('table_id', $table->id)
+                        ->where('version', $submittedVersion)
+                        ->published()
+                        ->first();
+
+                    if ($schemaVersion) {
+                        $fields = $schemaVersion->getFields();
+                        $requiredFields = collect($fields)
+                            ->filter(fn($f) => !empty($f['required']) || !empty($f['validation_rules']))
+                            ->pluck('name')
+                            ->filter()
+                            ->toArray();
+
+                        $missingFields = [];
+                        foreach ($requiredFields as $fieldName) {
+                            if (!isset($respData['data'][$fieldName]) || $respData['data'][$fieldName] === '' || $respData['data'][$fieldName] === null) {
+                                $missingFields[] = $fieldName;
+                            }
+                        }
+
+                        if (!empty($missingFields)) {
+                            Log::warning('Strict Validation Failed', [
+                                'local_id' => $respData['local_id'],
+                                'missing_fields' => $missingFields,
+                            ]);
+                            $results[] = [
+                                'local_id' => $respData['local_id'],
+                                'status' => 'validation_failed',
+                                'message' => 'Required fields are missing or empty.',
+                                'missing_fields' => $missingFields,
+                            ];
+                            continue;
+                        }
+                    }
+                }
+
                 // Process Base64 Images -> Disk
                 Log::debug('Processing Base64 Images', ['item_keys' => array_keys($respData['data'])]);
 
@@ -249,7 +311,7 @@ class ResponseController extends Controller {
                         ]);
                     }
                 } else {
-                    $response = Response::create([
+                    $responsePayload = [
                         'assignment_id' => $assignment->id,
                         'local_id' => $respData['local_id'],
                         'data' => $cleanData,
@@ -257,7 +319,14 @@ class ResponseController extends Controller {
                         'synced_at' => now(),
                         'created_at' => $respData['created_at'] ?? now(),
                         'updated_at' => $respData['updated_at'] ?? now(),
-                    ]);
+                    ];
+
+                    // Store submitted version for audit trail
+                    if (isset($respData['submitted_version'])) {
+                        $responsePayload['submitted_version'] = $respData['submitted_version'];
+                    }
+
+                    $response = Response::create($responsePayload);
                     Log::info('Response Created', [
                         'server_id' => $response->id,
                         'local_id' => $respData['local_id'],
@@ -275,6 +344,11 @@ class ResponseController extends Controller {
                     'status' => 'success',
                     'synced_at' => $response->synced_at,
                 ];
+
+                // Flag version mismatch for 'warn' policy (data accepted but flagged)
+                if ($isVersionMismatch && $versionPolicy === 'warn') {
+                    $resItem['version_warning'] = "Submitted with v{$submittedVersion}, latest is v{$currentVersion}. Please update your form.";
+                }
 
                 if ($newAssignmentId) {
                     $resItem['new_assignment_id'] = $newAssignmentId; // Tell client to map
