@@ -87,7 +87,7 @@ export const useAuthStore = defineStore('auth', {
             try {
                 await apiClient.post('/auth/logout', {});
             } catch (e) {
-                // ignore
+                log.warn('Logout callback failed', e);
             }
 
             // Google Sign Out (Native)
@@ -95,6 +95,7 @@ export const useAuthStore = defineStore('auth', {
                 await GoogleAuth.signOut();
             } catch (e) {
                 // Ignore if not signed in or not native
+                log.debug('Google SignOut skipped/failed', e);
             }
 
             this.clearAuth();

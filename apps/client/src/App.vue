@@ -34,12 +34,14 @@ const f7params = ref<Framework7Parameters>({
   },
   // Global Event Logging
   on: {
-    routeChange: (newRoute: any, previousRoute: any) => {
+    routeChange: (newRoute: unknown, previousRoute: unknown) => {
+      const to = newRoute as Record<string, any>;
+      const from = previousRoute as Record<string, any>;
       log.info('Navigating:', {
-        from: previousRoute?.path || 'initial',
-        to: newRoute?.path,
-        params: newRoute?.params,
-        query: newRoute?.query
+        from: from?.path || 'initial',
+        to: to?.path,
+        params: to?.params,
+        query: to?.query
       });
     },
     pageInit: (page: { name: string }) => {

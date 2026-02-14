@@ -58,7 +58,8 @@
         </f7-list>
 
         <!-- Version Footer -->
-        <f7-block-footer style="text-align: center; margin-top: 20px; padding-bottom: 20px;" @click="handleVersionClick">
+        <f7-block-footer style="text-align: center; margin-top: 20px; padding-bottom: 20px;"
+            @click="handleVersionClick">
             <small style="opacity: 0.6;">
                 App v{{ appVersion }}<br>
                 Build {{ buildTimestamp }}
@@ -73,15 +74,15 @@ import type { PropType } from 'vue';
 
 const props = defineProps({
     tables: {
-        type: Array as PropType<any[]>,
+        type: Array as PropType<Record<string, unknown>[]>,
         default: () => []
     },
     navigation: {
-        type: Array as PropType<any[]>,
+        type: Array as PropType<Record<string, unknown>[]>,
         default: () => []
     },
     views: {
-        type: Array as PropType<any[]>,
+        type: Array as PropType<Record<string, unknown>[]>,
         default: () => []
     },
     currentTableId: {
@@ -89,7 +90,7 @@ const props = defineProps({
         required: true
     },
     user: {
-        type: Object as PropType<any>,
+        type: Object as PropType<Record<string, unknown>>,
         default: null
     },
     role: {
@@ -106,7 +107,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['close']);
+// const emit = defineEmits(['close']); // Unused
 
 import { computed } from 'vue';
 
@@ -168,7 +169,7 @@ let debugClickTimer: any = null;
 
 function handleVersionClick() {
     debugClickCount++;
-    
+
     // Reset after 2 seconds of inactivity
     if (debugClickTimer) clearTimeout(debugClickTimer);
     debugClickTimer = setTimeout(() => {
@@ -178,11 +179,11 @@ function handleVersionClick() {
     if (debugClickCount >= 5) {
         // Trigger Debug Menu
         window.dispatchEvent(new CustomEvent('open-debug-menu'));
-        
+
         // Reset
         debugClickCount = 0;
         clearTimeout(debugClickTimer);
-        
+
         // Close panel so they can see the sheet
         f7.panel.close('left');
     }

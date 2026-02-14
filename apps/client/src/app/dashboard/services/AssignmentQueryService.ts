@@ -113,6 +113,23 @@ export const AssignmentQueryService = {
         return { where, params };
     },
 
+    // Helper to build order by clause
+    buildOrderBy(sortConfig?: SortConfig) {
+        if (!sortConfig) {
+            return `assignments.updated_at DESC, assignments.id DESC`;
+        }
+        
+        let fieldExpr: string;
+        if (['status', 'created_at', 'updated_at', 'synced_at', 'id'].includes(sortConfig.field)) {
+             fieldExpr = `assignments.${sortConfig.field}`;
+        } else {
+             const resp = `json_extract(latest_response.data, '$.${sortConfig.field}')`;
+             const pre = `json_extract(assignments.prelist_data, '$.${sortConfig.field}')`;
+             fieldExpr = `COALESCE(${resp}, ${pre})`;
+        }
+        return `${fieldExpr} ${sortConfig.order.toUpperCase()}`;
+    },
+
     async getAssignments(
         db: SQLiteDBConnection,
         whereClause: string,
@@ -129,40 +146,21 @@ export const AssignmentQueryService = {
             const { where: filterWhere, params: filterParams } = this.buildFilterWhere(filters);
             
             if (filterWhere) {
-                 // Append to existing WHERE or start new one
-                 if (dynamicWhere.trim() === '') {
-                     dynamicWhere = filterWhere;
+                 const prefix = dynamicWhere.trim() === '' ? '' : ' AND ';
+                 // If dynamicWhere has WHERE, strip it from filterWhere. If empty, use filterWhere as is.
+                 // Actually simpler: construct full clause.
+                 
+                 if (dynamicWhere.toUpperCase().includes('WHERE')) {
+                     dynamicWhere += ` AND ${filterWhere.replace(/^WHERE\s+/i, '')}`;
                  } else {
-                     // Check if dynamicWhere already has WHERE (it likely does if passed from outside)
-                     // If existing whereClause is just empty string, use filterWhere (which has WHERE)
-                     // If existing whereClause has WHERE, strip WHERE from filterWhere and append with AND
-                     if (dynamicWhere.toUpperCase().includes('WHERE')) {
-                         dynamicWhere += ` AND ${filterWhere.replace(/^WHERE\s+/i, '')}`;
-                     } else {
-                         // Should not happen if standard, but safety check
-                         dynamicWhere = `WHERE ${dynamicWhere} AND ${filterWhere.replace(/^WHERE\s+/i, '')}`;
-                     }
+                     dynamicWhere = filterWhere;
                  }
                  dynamicParams = [...dynamicParams, ...filterParams];
             }
         }
 
         // --- Dynamic Sort Logic ---
-        let orderBy = `permissions.updated_at DESC, assignments.id DESC`; // Default fallback (permissions join not here, assuming default assignments sort)
-        // Correct default:
-        orderBy = `assignments.updated_at DESC, assignments.id DESC`;
-
-        if (sortConfig) {
-             let fieldExpr: string;
-             if (['status', 'created_at', 'updated_at', 'synced_at', 'id'].includes(sortConfig.field)) {
-                 fieldExpr = `assignments.${sortConfig.field}`;
-             } else {
-                 const resp = `json_extract(latest_response.data, '$.${sortConfig.field}')`;
-                 const pre = `json_extract(assignments.prelist_data, '$.${sortConfig.field}')`;
-                 fieldExpr = `COALESCE(${resp}, ${pre})`;
-             }
-             orderBy = `${fieldExpr} ${sortConfig.order.toUpperCase()}`;
-        }
+        const orderBy = this.buildOrderBy(sortConfig);
 
         // Use subquery to get ONLY the latest response per assignment
         // This prevents duplicate rows when an assignment has multiple responses

@@ -139,7 +139,11 @@ function formatData(data: unknown): string {
     }
     
     if (data instanceof Error) {
-        return `\n  Error: ${data.message}${config.enableStackTrace && data.stack ? `\n  Stack: ${data.stack}` : ''}`;
+        let msg = `\n  Error: ${data.message}`;
+        if (config.enableStackTrace && data.stack) {
+            msg += `\n  Stack: ${data.stack}`;
+        }
+        return msg;
     }
     
     if (typeof data === 'object') {

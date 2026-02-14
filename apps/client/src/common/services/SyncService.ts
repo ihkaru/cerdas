@@ -125,96 +125,100 @@ export class SyncService {
     }
 
     // 2. TABLE PULL (Full JSON)
+    // 2. TABLE PULL (Full JSON) - Refactored
     private async pullTable(tableId: string) {
         const db = await databaseService.getDB();
         
         const res = await apiClient.get(`/tables/${tableId}`);
         if (res.success && res.data) {
             const table = res.data;
-            
-            // --- DEBUG LOGGING START ---
-            logger.info(`[SyncService] 📥 Pulled Table ${tableId}`, {
-                serverTableId: table.id,
-                serverVersion: table.version,
-                updatedAt: table.updated_at,
-                versionsCount: table.versions?.length || 0,
-                hasCurrentModel: !!table.current_version_model,
-                currentModelVer: table.current_version_model?.version,
-                latestPubVer: table.latest_published_version?.version,
-                firstFallbackVer: table.versions?.[0]?.version
-            });
-            // --- DEBUG LOGGING END ---
+            this.logPullTableDebug(table);
 
-            // Use current_version_model from 'show' endpoint
-            const version = table.current_version_model || table.latest_published_version || (table.versions?.[0]);
-
-            let versionSource = 'versions[0] (fallback)';
-            if (table.current_version_model) versionSource = 'current_version_model';
-            else if (table.latest_published_version) versionSource = 'latest_published_version';
-
-            logger.info(`[SyncService] 🧐 Version Selection logic for ${tableId}:`, {
-                selectedVersion: version?.version,
-                source: versionSource
-            });
+            const version = this.determineVersion(table);
             
             if (version) {
-                 // Check if 'schema' or 'fields' exists in version. Legacy support.
-                 const fieldsData = version.fields || version.schema;
-                 const layoutData = version.layout || {};
-                 
-                 logger.info(`[SyncService] Saving Table ${tableId}. Version Check:`, {
-                     tableVersion: table.version,
-                     currentModelVer: table.current_version_model?.version,
-                     latestPubVer: table.latest_published_version?.version,
-                     chosenVer: version.version
-                 });
-
-                 logger.info(`[SyncService] Saving Table ${tableId}. Layout:`, {
-                     hasLayout: !!version.layout,
-                     layoutKeys: Object.keys(layoutData),
-                     grouping: (layoutData as any).grouping ? 'YES' : 'NO'
-                 });
-
-                // Cache current schema version before overwriting (for version pinning)
-                try {
-                    const currentRow = await db.query(
-                        'SELECT version, fields, layout FROM tables WHERE id = ?', [tableId]
-                    );
-                    const cur = currentRow.values?.[0];
-                    if (cur?.version && cur?.fields) {
-                        await db.run(
-                            `INSERT OR IGNORE INTO table_versions (table_id, version, fields, layout, cached_at) VALUES (?, ?, ?, ?, ?)`,
-                            [tableId, cur.version, cur.fields, cur.layout || '{}', new Date().toISOString()]
-                        );
-                        logger.info(`[SyncService] Cached schema v${cur.version} for table ${tableId}`);
-                    }
-                } catch (cacheErr) {
-                    logger.warn('[SyncService] Failed to cache schema version', cacheErr);
-                }
-
-                // Also cache the NEW version being pulled
-                try {
-                    await db.run(
-                        `INSERT OR IGNORE INTO table_versions (table_id, version, fields, layout, cached_at) VALUES (?, ?, ?, ?, ?)`,
-                        [tableId, version.version, JSON.stringify(fieldsData), JSON.stringify(layoutData), new Date().toISOString()]
-                    );
-                } catch (cacheErr) {
-                    logger.warn('[SyncService] Failed to cache new schema version', cacheErr);
-                }
-
-                await db.run(
-                    `UPDATE tables SET fields = ?, layout = ?, settings = ?, version = ?, synced_at = ? WHERE id = ?`,
-                    [
-                        JSON.stringify(fieldsData), 
-                        JSON.stringify(layoutData),
-                        JSON.stringify(table.settings || {}),
-                        version.version,
-                        new Date().toISOString(),
-                        tableId
-                    ]
-                );
+                 await this.cacheAndSaveTable(db, tableId, version, table);
             }
         }
+    }
+
+    private logPullTableDebug(table: any) {
+        logger.info(`[SyncService] 📥 Pulled Table ${table.id}`, {
+            serverTableId: table.id,
+            serverVersion: table.version,
+            updatedAt: table.updated_at,
+            versionsCount: table.versions?.length || 0,
+            hasCurrentModel: !!table.current_version_model,
+            currentModelVer: table.current_version_model?.version,
+            latestPubVer: table.latest_published_version?.version,
+            firstFallbackVer: table.versions?.[0]?.version
+        });
+    }
+
+    private determineVersion(table: any) {
+        // Use current_version_model from 'show' endpoint
+        const version = table.current_version_model || table.latest_published_version || (table.versions?.[0]);
+
+        let versionSource = 'versions[0] (fallback)';
+        if (table.current_version_model) versionSource = 'current_version_model';
+        else if (table.latest_published_version) versionSource = 'latest_published_version';
+
+        logger.info(`[SyncService] 🧐 Version Selection logic for ${table.id}:`, {
+            selectedVersion: version?.version,
+            source: versionSource
+        });
+        return version;
+    }
+
+    private async cacheAndSaveTable(db: any, tableId: string, version: any, table: any) {
+         // Check if 'schema' or 'fields' exists in version. Legacy support.
+         const fieldsData = version.fields || version.schema;
+         const layoutData = version.layout || {};
+         
+         logger.info(`[SyncService] Saving Table ${tableId}. Layout:`, {
+             hasLayout: !!version.layout,
+             layoutKeys: Object.keys(layoutData),
+             grouping: (layoutData as any).grouping ? 'YES' : 'NO'
+         });
+
+        // Cache current schema version before overwriting (for version pinning)
+        try {
+            const currentRow = await db.query(
+                'SELECT version, fields, layout FROM tables WHERE id = ?', [tableId]
+            );
+            const cur = currentRow.values?.[0];
+            if (cur?.version && cur?.fields) {
+                await db.run(
+                    `INSERT OR IGNORE INTO table_versions (table_id, version, fields, layout, cached_at) VALUES (?, ?, ?, ?, ?)`,
+                    [tableId, cur.version, cur.fields, cur.layout || '{}', new Date().toISOString()]
+                );
+                logger.info(`[SyncService] Cached schema v${cur.version} for table ${tableId}`);
+            }
+        } catch (cacheErr) {
+            logger.warn('[SyncService] Failed to cache schema version', cacheErr);
+        }
+
+        // Also cache the NEW version being pulled
+        try {
+            await db.run(
+                `INSERT OR IGNORE INTO table_versions (table_id, version, fields, layout, cached_at) VALUES (?, ?, ?, ?, ?)`,
+                [tableId, version.version, JSON.stringify(fieldsData), JSON.stringify(layoutData), new Date().toISOString()]
+            );
+        } catch (cacheErr) {
+            logger.warn('[SyncService] Failed to cache new schema version', cacheErr);
+        }
+
+        await db.run(
+            `UPDATE tables SET fields = ?, layout = ?, settings = ?, version = ?, synced_at = ? WHERE id = ?`,
+            [
+                JSON.stringify(fieldsData), 
+                JSON.stringify(layoutData),
+                JSON.stringify(table.settings || {}),
+                version.version,
+                new Date().toISOString(),
+                tableId
+            ]
+        );
     }
 
     // --- Assignment Sync Helpers ---
@@ -463,61 +467,68 @@ export class SyncService {
         
         for (let i = 0; i < unsynced.length; i += BATCH_SIZE) {
             const chunk = unsynced.slice(i, i + BATCH_SIZE);
-            
-            // Build payload with submitted_version from local table
-            const payloadPromises = chunk.map(async (r: any) => {
-                let submittedVersion: number | undefined;
-                if (r.table_id) {
-                    const tbl = await db.query(`SELECT version FROM tables WHERE id = ?`, [r.table_id]);
-                    submittedVersion = tbl.values?.[0]?.version;
+            await this.processPushBatch(db, chunk);
+        }
+    }
+
+    private async processPushBatch(db: any, chunk: any[]) {
+        // Build payload with submitted_version from local table
+        const payloadPromises = chunk.map(async (r: any) => {
+            let submittedVersion: number | undefined;
+            if (r.table_id) {
+                const tbl = await db.query(`SELECT version FROM tables WHERE id = ?`, [r.table_id]);
+                submittedVersion = tbl.values?.[0]?.version;
+            }
+            return {
+                local_id: r.local_id,
+                assignment_id: r.assignment_id,
+                table_id: r.table_id,
+                data: JSON.parse(r.data),
+                created_at: r.created_at,
+                updated_at: r.updated_at,
+                device_id: 'device-1',
+                submitted_version: submittedVersion,
+            };
+        });
+        const payload = await Promise.all(payloadPromises);
+
+        try {
+            logger.info('[SyncService] Pushing Payload:', payload);
+            const response = await apiClient.post('/responses/sync', { responses: payload });
+            logger.info('[SyncService] Push Result:', response);
+
+            if (response.success) {
+                await this.handlePushResponse(db, response.data);
+            }
+        } catch (e) {
+            logger.error('Push batch failed', e);
+            throw e; 
+        }
+    }
+
+    private async handlePushResponse(db: any, items: any[]) {
+         for (const item of items) {
+            if (item.status === 'success') {
+                await db.run(`UPDATE responses SET is_synced = 1, server_id = ? WHERE local_id = ?`, [item.server_id, item.local_id]);
+
+                // Handle Ad-hoc Assignment Mapping (Swap UUID for Server ID)
+                if (item.new_assignment_id) {
+                     const respRow = await db.query(`SELECT assignment_id FROM responses WHERE local_id = ?`, [item.local_id]);
+                     const oldAssignId = respRow.values?.[0]?.assignment_id;
+
+                     await db.run(`UPDATE responses SET assignment_id = ? WHERE local_id = ?`, [item.new_assignment_id, item.local_id]);
+                     
+                     if (oldAssignId && oldAssignId.length > 20) {
+                          await db.run(`UPDATE assignments SET id = ? WHERE id = ?`, [item.new_assignment_id, oldAssignId]);
+                     }
                 }
-                return {
-                    local_id: r.local_id,
-                    assignment_id: r.assignment_id,
-                    table_id: r.table_id,
-                    data: JSON.parse(r.data),
-                    created_at: r.created_at,
-                    updated_at: r.updated_at,
-                    device_id: 'device-1',
-                    submitted_version: submittedVersion,
-                };
-            });
-            const payload = await Promise.all(payloadPromises);
-
-            try {
-                logger.info('[SyncService] Pushing Payload:', payload);
-                const response = await apiClient.post('/responses/sync', { responses: payload });
-                logger.info('[SyncService] Push Result:', response);
-
-                if (response.success) {
-                    for (const item of response.data) {
-                        if (item.status === 'success') {
-                            await db.run(`UPDATE responses SET is_synced = 1, server_id = ? WHERE local_id = ?`, [item.server_id, item.local_id]);
-
-                            // Handle Ad-hoc Assignment Mapping (Swap UUID for Server ID)
-                            if (item.new_assignment_id) {
-                                 const respRow = await db.query(`SELECT assignment_id FROM responses WHERE local_id = ?`, [item.local_id]);
-                                 const oldAssignId = respRow.values?.[0]?.assignment_id;
-
-                                 await db.run(`UPDATE responses SET assignment_id = ? WHERE local_id = ?`, [item.new_assignment_id, item.local_id]);
-                                 
-                                 if (oldAssignId && oldAssignId.length > 20) {
-                                      await db.run(`UPDATE assignments SET id = ? WHERE id = ?`, [item.new_assignment_id, oldAssignId]);
-                                 }
-                            }
-                        } else if (item.status === 'version_rejected') {
-                            // Keep item unsynced — user needs to update form version first
-                            logger.warn('[SyncService] Version rejected:', item.message);
-                            // Dispatch event so UI can show version gate
-                            window.dispatchEvent(new CustomEvent('version-rejected', {
-                                detail: { localId: item.local_id, requiredVersion: item.required_version, message: item.message }
-                            }));
-                        }
-                    }
-                }
-            } catch (e) {
-                logger.error('Push batch failed', e);
-                throw e; 
+            } else if (item.status === 'version_rejected') {
+                // Keep item unsynced — user needs to update form version first
+                logger.warn('[SyncService] Version rejected:', item.message);
+                // Dispatch event so UI can show version gate
+                window.dispatchEvent(new CustomEvent('version-rejected', {
+                    detail: { localId: item.local_id, requiredVersion: item.required_version, message: item.message }
+                }));
             }
         }
     }
