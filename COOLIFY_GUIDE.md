@@ -77,3 +77,4 @@ For the first run, you need to migrate the database yourself.
 - **Images not loading?** Run `php artisan storage:link` in the backend terminal.
 - **CORS Errors?** Check `SANCTUM_STATEFUL_DOMAINS` and `SESSION_DOMAIN`.
 - **Vite connection error?** Check `VITE_API_BASE_URL` - must match the backend domain.
+- **File Upload Errors?** Ensure `docker-compose.prod.yml` defines the `app_storage` volume and mounts it to `backend`, `worker`, and `scheduler`. This is required for background processing of files.
