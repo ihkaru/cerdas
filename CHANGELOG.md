@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.34](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.33...cerdas-v0.1.34) (2026-02-14)
+
+
+### Bug Fixes
+
+* **ci:** remove unused interfaces and resolve type mismatch ([b736abe](https://github.com/ihkaru/cerdas/commit/b736abef7223bbafd82a4f6ac6dcf50127f487aa))
+* **lint:** resolve remaining 20 lint errors and warnings ([be0b8d9](https://github.com/ihkaru/cerdas/commit/be0b8d969d10d60ab6edf858257ed94a2a547c42))
+* resolve lint errors and add local verify scripts ([64ce003](https://github.com/ihkaru/cerdas/commit/64ce0037661f1df049ac80f4da37e4f80e7803f9))
+
 ## [0.1.33](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.32...cerdas-v0.1.33) (2026-02-14)
 
 
