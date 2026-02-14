@@ -1,15 +1,15 @@
 <?php
 
 use App\Http\Controllers\Api\AppController;
+use App\Http\Controllers\Api\AppSchemaController;
 use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ExportController;
-use App\Http\Controllers\Api\TableController;
-use App\Http\Controllers\Api\ResponseController;
-use App\Http\Controllers\Api\OrganizationController;
-use App\Http\Controllers\Api\AppSchemaController;
 use App\Http\Controllers\Api\GoogleAuthController;
+use App\Http\Controllers\Api\OrganizationController;
+use App\Http\Controllers\Api\ResponseController;
+use App\Http\Controllers\Api\TableController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
@@ -28,8 +28,8 @@ use Illuminate\Support\Facades\Route;
 
 // Broadcasting Auth Route (manual implementation for API-only setup)
 Route::post('/broadcasting/auth', function (Request $request) {
-    // Return 401 for unauthenticated requests 
-    if (!$request->user()) {
+    // Return 401 for unauthenticated requests
+    if (! $request->user()) {
         return response()->json(['error' => 'Unauthenticated'], 401);
     }
 
@@ -40,8 +40,9 @@ Route::post('/broadcasting/auth', function (Request $request) {
             'error' => $e->getMessage(),
             'file' => $e->getFile(),
             'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString()
+            'trace' => $e->getTraceAsString(),
         ]);
+
         return response()->json(['error' => 'Internal Server Error', 'message' => $e->getMessage()], 500);
     }
 })->middleware('auth:sanctum');
@@ -88,7 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Impersonation for Editor Preview (Super Admin Only)
     Route::post('/auth/impersonate', function (Request $request) {
         $user = $request->user();
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -107,7 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 break;
         }
 
-        if (!$targetUser) {
+        if (! $targetUser) {
             return response()->json(['message' => 'Target user not found for this role'], 404);
         }
 
@@ -116,7 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         return response()->json([
             'token' => $token,
-            'user' => $targetUser
+            'user' => $targetUser,
         ]);
     });
 
@@ -227,4 +228,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/excel/upload', [App\Http\Controllers\Api\ExcelImportController::class, 'upload']);
     Route::post('/excel/preview', [App\Http\Controllers\Api\ExcelImportController::class, 'preview']);
     Route::post('/excel/import', [App\Http\Controllers\Api\ExcelImportController::class, 'import']);
+    Route::get('/excel/status/{jobId}', [App\Http\Controllers\Api\ExcelImportController::class, 'checkStatus']);
 });

@@ -7,7 +7,7 @@
             @action="(action, item) => handleAction(action, item)" />
 
         <!-- MAP VIEW -->
-        <MapView v-else-if="config.type === 'map'" :config="config" :data="viewData" />
+        <MapView v-else-if="config.type === 'map'" :config="config" :data="viewData" :contextId="contextId" />
 
         <!-- DETAIL VIEW -->
         <DetailView v-else-if="config.type === 'detail'" :config="config" :data="viewData"

@@ -1,14 +1,23 @@
 <template>
     <div class="map-view-container display-flex flex-direction-column height-100">
-        <div :id="mapId" class="map-container flex-shrink-0" style="height: 60vh; width: 100%; z-index: 1;"></div>
+        <div class="map-wrapper flex-shrink-0" style="height: 60vh; width: 100%; position: relative;">
+            <div :id="mapId" class="map-container" style="height: 100%; width: 100%; z-index: 1;"></div>
+
+            <!-- Locate Me FAB -->
+            <div class="map-fab-container">
+                <f7-button fab color="white" class="map-locate-btn" @click="locateUser" :loading="locating">
+                    <f7-icon f7="location" size="22" color="blue"></f7-icon>
+                </f7-button>
+            </div>
+        </div>
 
         <div class="list-container flex-grow-1 overflow-auto bg-color-white">
             <f7-block-title>Locations ({{ validLocations.length }})</f7-block-title>
             <f7-list media-list>
                 <f7-list-item v-for="item in validLocations" :key="item.id || item.local_id"
-                    :title="resolvePath(item, normalizedConfig.label || normalizedConfig.popup_title || 'name')"
-                    :subtitle="resolvePath(item, normalizedConfig.popup_subtitle || 'address')" @click="focusMap(item)"
-                    link="#">
+                    :title="resolvePath(item, normalizedConfig.label) || resolvePath(item, normalizedConfig.popup_title) || 'Untitled'"
+                    :subtitle="resolvePath(item, normalizedConfig.subtitle) || resolvePath(item, normalizedConfig.popup_subtitle) || ''"
+                    @click="focusMap(item)" link="#">
                 </f7-list-item>
             </f7-list>
         </div>
@@ -16,9 +25,11 @@
 </template>
 
 <script setup lang="ts">
+import { getCurrentPosition, getGoogleMapsUrl } from '@cerdas/form-engine';
+import { f7 } from 'framework7-vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { computed, onMounted, onUnmounted, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 // Fix Leaflet icon issue in Webpack/Vite
 // @ts-ignore
@@ -31,12 +42,15 @@ import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 const props = defineProps<{
     config: any;
     data: any[];
+    contextId?: string;
 }>();
 
 // eslint-disable-next-line sonarjs/pseudo-random
 const mapId = `map-${Math.random().toString(36).substr(2, 9)}`;
 let map: L.Map | null = null;
 let markers: L.LayerGroup | null = null;
+let userMarker: L.CircleMarker | null = null;
+const locating = ref(false);
 
 const normalizedConfig = computed(() => {
     return props.config.map || props.config.config?.map || props.config.options || {};
@@ -48,11 +62,19 @@ const toNum = (v: any): number => {
 };
 
 const parseLatLongString = (val: any): [number, number] | null => {
-    if (typeof val === 'string' && val.includes(',')) {
-        const [a, b] = val.split(',');
-        const lat = toNum(a), lng = toNum(b);
-        if (!isNaN(lat) && !isNaN(lng)) return [lat, lng];
-    }
+    if (typeof val !== 'string') return null;
+
+    // Support both comma and space separation
+    const parts = val.includes(',') ? val.split(',') : val.trim().split(/\s+/);
+
+    // Explicitly destructure and check for existence to satisfy TypeScript
+    const [latStr, lngStr] = parts;
+    if (!latStr || !lngStr) return null;
+
+    const lat = toNum(latStr.trim());
+    const lng = toNum(lngStr.trim());
+
+    if (!isNaN(lat) && !isNaN(lng)) return [lat, lng];
     return null;
 };
 
@@ -95,11 +117,6 @@ const validLocations = computed(() => {
     const mapConfig = normalizedConfig.value;
     const gpsCol = mapConfig.gps_column;
 
-    // Log config to debug
-    console.log('Map Config Source:', props.config);
-    console.log('Resolved Map Config:', mapConfig);
-    console.log('Target GPS Col:', gpsCol);
-
     if (!gpsCol) return [];
 
     return props.data.filter(item => {
@@ -129,9 +146,11 @@ const resolvePath = (obj: any, path: string) => {
     }
 
     // Try multiple sources in order
+    // Added prelist_data fallback as most imported data lives there
     const val = getDeep(obj, path) ||
         getDeep(obj.response_data, path) ||
-        getDeep(obj.data, path);
+        getDeep(obj.data, path) ||
+        getDeep(obj.prelist_data, path);
 
     if (val !== undefined && val !== null && val !== '') return val;
     return '';
@@ -140,7 +159,11 @@ const resolvePath = (obj: any, path: string) => {
 const initMap = () => {
     if (map) return;
 
-    map = L.map(mapId).setView([-6.2088, 106.8456], 13);
+    map = L.map(mapId, {
+        zoomControl: false // Move zoom control to custom position or hide for cleaner mobile UI
+    }).setView([-6.2088, 106.8456], 13);
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
@@ -162,6 +185,33 @@ const initMap = () => {
         shadowSize: [41, 41]
     });
     L.Marker.prototype.options.icon = DefaultIcon;
+};
+
+const locateUser = async () => {
+    if (!map) return;
+    locating.value = true;
+    try {
+        const pos = await getCurrentPosition({ enableHighAccuracy: true });
+        const { latitude, longitude } = pos.coords;
+
+        if (userMarker) {
+            userMarker.setLatLng([latitude, longitude]);
+        } else {
+            userMarker = L.circleMarker([latitude, longitude], {
+                radius: 8,
+                fillColor: '#2196F3',
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map);
+        }
+        map.setView([latitude, longitude], 16);
+    } catch (e) {
+        console.error('Failed to locate user:', e);
+    } finally {
+        locating.value = false;
+    }
 };
 
 const markerStyleFn = computed(() => {
@@ -202,7 +252,6 @@ const updateMarkers = () => {
 
     const mapConfig = normalizedConfig.value;
     const gpsCol = mapConfig.gps_column;
-    const titleCol = mapConfig.label || mapConfig.popup_title || 'name';
 
     // Explicitly type as tuple array for fitBounds
     const bounds: [number, number][] = [];
@@ -212,8 +261,10 @@ const updateMarkers = () => {
         if (!coords) return;
 
         const [lat, lng] = coords;
-        const title = resolvePath(item, titleCol);
+        const title = resolvePath(item, mapConfig.label) || resolvePath(item, mapConfig.popup_title) || 'Untitled';
+        const subtitle = resolvePath(item, mapConfig.subtitle) || resolvePath(item, mapConfig.popup_subtitle) || '';
         const style = getMarkerStyle(item);
+        const itemId = item.id || item.local_id;
 
         // Create Custom Icon (DivIcon with F7 Icon)
         const customIcon = L.divIcon({
@@ -226,8 +277,23 @@ const updateMarkers = () => {
             popupAnchor: [0, -32]
         });
 
+        const popupHtml = `
+            <div class="map-popup-content">
+                <div class="popup-title">${title}</div>
+                <div class="popup-subtitle">${subtitle}</div>
+                <div class="popup-actions display-flex margin-top-half">
+                    <a href="/assignments/${itemId}" data-item-id="${itemId}" class="button button-small button-fill color-blue margin-right-half flex-grow-1">
+                        <span class="text-color-white">Buka Detail</span>
+                    </a>
+                    <a href="${getGoogleMapsUrl(lat, lng)}" target="_blank" class="button button-small button-fill color-green flex-shrink-0 external">
+                        <i class="f7-icons size-14 text-color-white">map_fill</i>
+                    </a>
+                </div>
+            </div>
+        `;
+
         const marker = L.marker([lat, lng], { icon: customIcon })
-            .bindPopup(title)
+            .bindPopup(popupHtml, { minWidth: 200 })
             .on('click', () => { });
 
         markers?.addLayer(marker);
@@ -253,10 +319,28 @@ watch(() => props.data, () => {
     updateMarkers();
 }, { deep: true });
 
+/**
+ * Delegated click listener for Leaflet popups.
+ * Leaflet popups are raw HTML in the DOM, so Framework7's router doesn't automatically capture their links.
+ */
+const handlePopupClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const link = target.closest('a[data-item-id]');
+    if (link) {
+        const href = link.getAttribute('href');
+        if (href) {
+            e.preventDefault();
+            // Use Framework7 router for internal navigation
+            f7.view.main.router.navigate(href);
+        }
+    }
+};
+
 onMounted(() => {
     setTimeout(() => {
         initMap();
     }, 500);
+    document.addEventListener('click', handlePopupClick);
 });
 
 onUnmounted(() => {
@@ -264,6 +348,7 @@ onUnmounted(() => {
         map.remove();
         map = null;
     }
+    document.removeEventListener('click', handlePopupClick);
 });
 </script>
 
@@ -296,5 +381,51 @@ onUnmounted(() => {
     /* Counter rotate icon */
     margin-top: 2px;
     margin-left: 2px;
+}
+
+.map-fab-container {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1000;
+}
+
+.map-locate-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+:global(.map-popup-content) {
+    font-family: var(--f7-font-family);
+}
+
+:global(.map-popup-content .popup-title) {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 2px;
+    color: #000;
+}
+
+:global(.map-popup-content .popup-subtitle) {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.3;
+}
+
+/* Force white text/icons for filled buttons in popups */
+:global(.map-popup-content .button-fill) {
+    --f7-button-text-color: #fff !important;
+    color: #fff !important;
+}
+
+:global(.map-popup-content .button-fill i),
+:global(.map-popup-content .button-fill span) {
+    color: #fff !important;
 }
 </style>

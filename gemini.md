@@ -2,19 +2,28 @@
 
 > **CRITICAL**: Always read `docs/architecture_principles.md` before any implementation work.
 
+
 ## Project Overview
+
 Cerdas adalah AppSheet clone - self-hosted, offline-first, no-code app builder untuk data collection.
 
+
+
 ## Core Technical Stack
+
 - **Backend**: Laravel 12 (PURE API only - no Blade, no Filament)
+
 - **Client App**: Framework7 v9 + Vue 3 + TypeScript (script setup)
 - **Editor App**: Framework7 v9 + Vue 3 + TypeScript (script setup)  
 - **Offline Storage**: capacitor-community/sqlite
 - **Database**: MySQL (multi-tenant, shared DB)
 - **Auth**: Laravel Sanctum
 
+
 ## Critical Architecture Decisions
+
 1. **TypeScript Strict Mode**: MANDATORY - never disable, fix errors instead
+
 2. **Context Object Pattern**: Use `AppContext` for DI in service layer
 3. **UI per-app**: No shared UI package - client and editor have own components
 4. **Schema Versioning**: Published versions are IMMUTABLE, responses tied to schema_version_id
@@ -43,16 +52,22 @@ Organization (Global) ←→ App (via app_organizations pivot)
 
 Users can have DIFFERENT roles in different App+Org combinations.
 
+
 ## Monorepo Structure
-```
+
+```bash
+
 apps/backend    - Laravel 12 + Sanctum
 apps/client     - Framework7 + Vue 3 (data collection)
 apps/editor     - Framework7 + Vue 3 (form builder)
 packages/types  - @cerdas/types (shared strict TS types)
 ```
 
+
 ## Key Principles to Remember
+
 1. **Boundaries are King**: Strict props/emits typing
+
 2. **Avoid `any`**: Use `unknown` + narrowing
 3. **Discriminated Unions**: For request state (idle/loading/success/error)
 4. **Type API Responses**: Always define interfaces
@@ -74,7 +89,18 @@ packages/types  - @cerdas/types (shared strict TS types)
 - `restart-android.bat`: Restarts Android App & captures logs.
 - `save-android-log.bat`: Captures current Android logs to `logs/`.
 
-- **Version**: 0.1.0 (Current Stable Draft)
+- **Map View Fixes (2026-02-15)**:
+  - **Dynamic Popups**: Fixed "Buka Detail" button to use canonical `/assignments/:id` route, resolving the "View not found" error.
+  - **Styling**: Enforced white text/icons on popup buttons to override default blue link styles.
+  - **UX**: Aligned "Get Directions" icon/color with `GpsField.vue` standards.
+  - **Navigation**: Implemented delegated click handling for F7 router compatibility in map popups.
+- **Stability & Build Quality**:
+  - **Local Verification**: Integrated `verify-local.sh` (build + lint) into the workflow.
+  - **Shared Package Fix**: Resolved build-breaking TypeScript error in `packages/form-engine/src/utils/geoUtils.ts`.
+- **Excel Import (Recent)**:
+  - Enhanced `ExcelImportModal` and backend `ExcelImportController` for more robust data handling (matching modified files).
+
+- **Version**: 0.1.1 (Updated due to significant bug fixes)
 
 **⚠️ CRITICAL**: Always use `.\stop-all.bat` to stop servers. NEVER use `taskkill` directly - it may close IDE!
 
@@ -84,7 +110,7 @@ packages/types  - @cerdas/types (shared strict TS types)
 - User gives standing permission for necessary actions
 - User wants strict TypeScript to catch errors early
 - Update gemini.md with important changes/progress
-- **BROWSER TOOL USAGE**: NEVER use browser tool for ANY reason. User will verify manually.
+- **BROWSER TOOL USAGE**: NEVER use browser tool for ANY reason. User will verify manually. I am an agent for writing logic and code, not for clicking.
 - **CRITICAL VERSION RULE**: Always update the project version (currently 0.1.0) in `README.md`, `package.json`, and `composer.json` whenever significant progress is made (equivalent to a "push").
 
 ## ClosureContext (App-Wide Context) - Updated 2026-01-20

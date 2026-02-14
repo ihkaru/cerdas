@@ -69,6 +69,7 @@ export interface ViewConfig {
     long?: string;
     gps_column?: string;
     label?: string;
+    subtitle?: string;
   };
 }
 
@@ -260,6 +261,7 @@ export interface ViewDefinition {
     lat?: string;
     long?: string;
     label?: string;
+    subtitle?: string;
     marker_style_fn?: string;
   };
   actions: string[];

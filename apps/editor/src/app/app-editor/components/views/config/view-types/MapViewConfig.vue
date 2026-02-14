@@ -17,6 +17,14 @@
                         placeholder="Field for pin label..." @update:model-value="$emit('update', 'label', $event)" />
                 </template>
             </f7-list-item>
+            <f7-list-item>
+                <template #title>Subtitle Field</template>
+                <template #after>
+                    <FieldPicker :model-value="mapConfig.subtitle || null" :fields="fields" :allow-none="true"
+                        placeholder="Field for pin subtitle..."
+                        @update:model-value="$emit('update', 'subtitle', $event)" />
+                </template>
+            </f7-list-item>
 
 
 

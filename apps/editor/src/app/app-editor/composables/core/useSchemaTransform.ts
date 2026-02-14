@@ -70,8 +70,21 @@ export function createDefaultField(type: FieldType): EditableFieldDefinition {
 }
 
 /** Add editor IDs to fields recursively */
-export function addEditorIds(fields: EditableFieldDefinition[]): EditableFieldDefinition[] {
-  return fields.map(field => {
+export function addEditorIds(fields: EditableFieldDefinition[] | Record<string, any>): EditableFieldDefinition[] {
+  if (!fields) return [];
+
+  let fieldsArray: any[] = [];
+  if (Array.isArray(fields)) {
+    fieldsArray = fields;
+  } else if (typeof fields === 'object') {
+     // Handle legacy object format (key = field name)
+     fieldsArray = Object.entries(fields).map(([key, value]) => ({
+        name: key,
+        ...(value as any)
+     }));
+  }
+
+  return fieldsArray.map(field => {
     const editableField: EditableFieldDefinition = {
       ...field,
       _editorId: field._editorId || generateEditorId(),

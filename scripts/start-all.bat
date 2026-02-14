@@ -34,8 +34,14 @@ start "Cerdas Editor" cmd /k "cd /d %~dp0..\apps\editor && pnpm dev --port %EDIT
 timeout /t 1 /nobreak > nul
 
 REM Start Reverb WebSocket Server
-echo [4/4] Starting Reverb WebSocket on port 6001...
+echo [4/5] Starting Reverb WebSocket on port 6001...
 start "Cerdas Reverb" cmd /k "cd /d %~dp0..\apps\backend && php artisan reverb:start --port=6001"
+
+timeout /t 1 /nobreak > nul
+
+REM Start Queue Worker
+echo [5/5] Starting Queue Worker...
+start "Cerdas Queue" cmd /k "cd /d %~dp0..\apps\backend && php artisan queue:work"
 
 echo.
 echo ========================================

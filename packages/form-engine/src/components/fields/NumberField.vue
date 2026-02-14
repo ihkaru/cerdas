@@ -20,7 +20,7 @@ import type { FieldDefinition } from '../../types/schema';
 
 const props = withDefaults(defineProps<{
   field: FieldDefinition;
-  value?: number | null;
+  value?: number | string | null;
   error?: string | null;
 }>(), {
   value: null,
@@ -35,7 +35,7 @@ let emitTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Set initial value after mount (direct DOM access)
 onMounted(() => {
-  if (inputRef.value && props.value != null) {
+  if (inputRef.value && props.value !== null && props.value !== undefined) {
     inputRef.value.value = String(props.value);
   }
 });

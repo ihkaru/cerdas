@@ -25,21 +25,21 @@
           <div class="stat-row">
             <div class="stat-item">
               <span class="label">Lat</span>
-              <span class="val">{{ formatCoordinate(value.coords.latitude) }}</span>
+              <span class="val">{{ formatCoordinate(normalizedCoords.latitude) }}</span>
             </div>
             <div class="stat-item">
               <span class="label">Lng</span>
-              <span class="val">{{ formatCoordinate(value.coords.longitude) }}</span>
+              <span class="val">{{ formatCoordinate(normalizedCoords.longitude) }}</span>
             </div>
           </div>
           <div class="stat-row margin-top-limit">
-            <div class="stat-item" v-if="value.coords.accuracy">
+            <div class="stat-item" v-if="normalizedCoords?.accuracy">
               <span class="label">Acc</span>
-              <span class="val text-color-blue">±{{ Math.round(value.coords.accuracy) }}m</span>
+              <span class="val text-color-blue">±{{ Math.round(normalizedCoords.accuracy) }}m</span>
             </div>
-            <div class="stat-item" v-if="value.timestamp">
+            <div class="stat-item" v-if="normalizedValue?.timestamp">
               <span class="label">Time</span>
-              <span class="val">{{ formatTime(value.timestamp) }}</span>
+              <span class="val">{{ formatTime(normalizedValue.timestamp) }}</span>
             </div>
           </div>
         </div>
@@ -233,7 +233,8 @@ import {
   formatCoordinate,
   getCurrentPosition,
   getGeoErrorMessage,
-  getGoogleMapsUrl
+  getGoogleMapsUrl,
+  parseCoordsString
 } from '../../utils/geoUtils';
 
 // ============================================================================
@@ -242,7 +243,7 @@ import {
 
 const props = defineProps<{
   field: FieldDefinition;
-  value: any;
+  value: unknown;
   error?: string | null;
 }>();
 
@@ -254,6 +255,7 @@ const emit = defineEmits(['update:value']);
 
 const loading = ref(false);
 const systemError = ref<string | null>(null);
+// eslint-disable-next-line sonarjs/pseudo-random
 const uniqueId = Math.random().toString(36).substring(2, 9);
 const isOffline = ref(!navigator.onLine);
 
@@ -265,8 +267,31 @@ let marker: L.Marker | null = null;
 // ============================================================================
 
 const hasLocation = computed(() => {
-  return props.value && props.value.coords &&
-    typeof props.value.coords.latitude === 'number';
+  if (!props.value) return false;
+
+  // Structured object check
+  if (props.value.coords && typeof props.value.coords.latitude === 'number') {
+    return true;
+  }
+
+  // String check (prelist data)
+  if (typeof props.value === 'string' && parseCoordsString(props.value)) {
+    return true;
+  }
+
+  return false;
+});
+
+const normalizedValue = computed(() => {
+  if (!props.value) return null;
+  if (typeof props.value === 'string') {
+    return parseCoordsString(props.value);
+  }
+  return props.value;
+});
+
+const normalizedCoords = computed(() => {
+  return normalizedValue.value?.coords || null;
 });
 
 // ============================================================================
@@ -278,7 +303,16 @@ onMounted(() => {
   window.addEventListener('offline', updateOnlineStatus);
 
   if (hasLocation.value) {
-    nextTick(() => initMap(props.value.coords.latitude, props.value.coords.longitude));
+    const coords = normalizedCoords.value;
+    if (coords) {
+      nextTick(() => initMap(coords.latitude, coords.longitude));
+
+      // If it's a string, normalize the value in the parent form data
+      if (typeof props.value === 'string') {
+        const parsed = parseCoordsString(props.value);
+        if (parsed) emit('update:value', parsed);
+      }
+    }
   }
 });
 
@@ -289,10 +323,19 @@ onBeforeUnmount(() => {
 });
 
 watch(() => props.value, (newVal) => {
-  if (newVal && newVal.coords) {
-    nextTick(() => {
-      initMap(newVal.coords.latitude, newVal.coords.longitude);
-    });
+  if (hasLocation.value) {
+    const coords = normalizedCoords.value;
+    if (coords) {
+      nextTick(() => {
+        initMap(coords.latitude, coords.longitude);
+      });
+
+      // Auto-normalize if it's a string
+      if (typeof newVal === 'string') {
+        const parsed = parseCoordsString(newVal);
+        if (parsed) emit('update:value', parsed);
+      }
+    }
   } else {
     destroyMap();
   }
@@ -304,9 +347,10 @@ watch(() => props.value, (newVal) => {
 
 const updateOnlineStatus = () => {
   isOffline.value = !navigator.onLine;
-  if (!isOffline.value && hasLocation.value) {
+  const coords = normalizedCoords.value;
+  if (!isOffline.value && coords) {
     // Re-init map if coming back online
-    nextTick(() => initMap(props.value.coords.latitude, props.value.coords.longitude));
+    nextTick(() => initMap(coords.latitude, coords.longitude));
   }
 };
 
@@ -330,7 +374,7 @@ const handleCapture = async () => {
       icon: '<i class="f7-icons">checkmark_alt</i>'
     });
 
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[GpsField] Capture failed:', e);
     systemError.value = getGeoErrorMessage(e);
     f7.toast.show({
@@ -349,9 +393,9 @@ const clearLocation = () => {
 };
 
 const openDirections = () => {
-  if (hasLocation.value) {
-    const { latitude, longitude } = props.value.coords;
-    window.open(getGoogleMapsUrl(latitude, longitude), '_blank');
+  const coords = normalizedCoords.value;
+  if (coords) {
+    window.open(getGoogleMapsUrl(coords.latitude, coords.longitude), '_blank');
   }
 };
 
