@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.33](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.32...cerdas-v0.1.33) (2026-02-14)
+
+
+### Bug Fixes
+
+* critical bug in SyncService orphan cleanup destroying all synced assignments ([61cdc47](https://github.com/ihkaru/cerdas/commit/61cdc4797ca509b41180354851e4703932f39317))
+* resolve final type errors in useAppMetadata.ts ([cbcd723](https://github.com/ihkaru/cerdas/commit/cbcd7239d160eb849c1b30a5803a4696a1819909))
+* resolve remaining vue-tsc errors in useAppMetadata.ts ([aaaec1c](https://github.com/ihkaru/cerdas/commit/aaaec1c8a4c7073f4e0e9b1c37da53e5952d00ff))
+* resolve vue-tsc build errors ([545a799](https://github.com/ihkaru/cerdas/commit/545a799016c2c1e5ead7324793bc1953bc52b4e6))
+
 ## [0.1.32](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.31...cerdas-v0.1.32) (2026-02-14)
 
 
