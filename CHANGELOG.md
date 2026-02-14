@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.39](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.38...cerdas-v0.1.39) (2026-02-14)
+
+
+### Bug Fixes
+
+* **backend:** prevent calling total() on cursor paginator log ([5770e4b](https://github.com/ihkaru/cerdas/commit/5770e4b69e0aab1f996a5da6d3548140cae14e7b))
+* **client:** ensure sync updates correct local table record ([c675019](https://github.com/ihkaru/cerdas/commit/c6750197bc1a6d0bfed3b8eacefe9f6caecdffec))
+
 ## [0.1.38](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.37...cerdas-v0.1.38) (2026-02-14)
 
 
