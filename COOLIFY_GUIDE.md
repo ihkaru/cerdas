@@ -8,6 +8,7 @@ Since you are using a seamless Monorepo setup, the best way to deploy to Coolify
 - Domains pointed to your server (e.g., `api.dvlpid.my.id`, `app.dvlpid.my.id`, `editor.dvlpid.my.id`).
 
 ## Step 1: Add New Resource
+
 1. Go to your Coolify Project/Environment.
 2. Click **+ New Resource**.
 3. Select **Docker Compose**.
@@ -20,6 +21,7 @@ Since you are using a seamless Monorepo setup, the best way to deploy to Coolify
 You need to set these variables in the **Environment Variables** tab of your Coolify resource.
 
 ### Backend & General
+
 ```bash
 APP_ENV=production
 APP_DEBUG=false
@@ -41,12 +43,15 @@ CORS_ALLOWED_ORIGINS=https://app.dvlpid.my.id,https://editor.dvlpid.my.id,capaci
 ```
 
 ### Frontend (Build Args)
+
 Coolify works by injecting env vars at runtime, but Vite needs them at **Build Time**. We configured `docker-compose.prod.yml` to pass this.
+
 ```bash
 VITE_API_BASE_URL=https://api.dvlpid.my.id
 ```
 
 ## Step 3: Domain Configuration
+
 In the Coolify UI for the Docker Compose resource, you will see individual services (`backend`, `client`, `editor`). You can configure domains for each:
 
 1.  **backend**:
@@ -60,12 +65,14 @@ In the Coolify UI for the Docker Compose resource, you will see individual servi
     -   Port: `80`
 
 ## Step 4: Database Migration
+
 For the first run, you need to migrate the database yourself.
 1.  Open the **Terminal** of the `backend` container (in Coolify).
 2.  Run: `php artisan migrate --force`.
 3.  Run: `php artisan db:seed --force` (if needed).
 
 ## Step 5: Webhooks
+
 1.  In Coolify Resource settings, enable **"Sse Git Webhooks"**.
 2.  Copy the Webhook URL.
 3.  Go to your GitHub Repo -> Settings -> Webhooks -> Add Webhook.
