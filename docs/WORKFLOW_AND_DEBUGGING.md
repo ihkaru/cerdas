@@ -59,6 +59,9 @@ sequenceDiagram
     Dev->>Client: Edit Code (Fix Bug)
     Client->>Emu: Hot Module Reload (HMR)
     Emu->>Dev: Bug Fixed!
+
+    Note over Dev: Step 3: Quality Check
+    Dev->>Docker: Run scan-quality.bat (Local Qodana)
     
     Dev->>Dev: Commit & Push
 ```
@@ -107,6 +110,10 @@ sequenceDiagram
     end
 
     Test-->>Dev: PASS
+    
+    Note over Dev: Quality Check
+    Dev->>Local: scan-quality.bat (Verify no new issues)
+
     Dev->>Dev: Git Push
     
     Note over Dev: Step 4: Deploy
@@ -210,8 +217,9 @@ sequenceDiagram
 
     Git->>GH: Push Commits
     GH->>GH: Run Tests & Lint
+    GH->>GH: Run Qodana Scan (Static Analysis)
 
-    alt Tests Fail (Unhappy Path)
+    alt Tests or Qodana Fail (Unhappy Path)
         GH--xDev: Action Failed (Email Alert)
     end
 
@@ -372,5 +380,38 @@ php artisan route:list --path=<route-path>
 
 # Check if code is running (add temporary debug in controller)
 # Then check laravel.log after making a request
+# Check if code is running (add temporary debug in controller)
+# Then check laravel.log after making a request
 Get-Content apps\backend\storage\logs\laravel.log -Tail 20
 ```
+
+---
+
+## 9. Local Code Quality (Qodana)
+
+You can run the same quality checks locally that run in CI/CD. This is useful for catching issues **before** you push.
+
+### Prerequisites
+- Docker Desktop must be running.
+
+### How to Run
+1.  Run the `scan-quality.bat` script in the root directory.
+    ```powershell
+    .\scan-quality.bat
+    ```
+2.  Wait for the scan to complete (first time will download the ~2GB image).
+3.  Once finished, it will host a report at `http://localhost:8085`.
+4.  Open the link to see:
+    -   **Bugs:** Potential null pointers, infinite loops.
+    -   **Vulnerabilities:** Security flaws in dependencies.
+    -   **Maintainability:** Complex functions, unused code.
+
+### 🛡️ Environment Isolation (Safety)
+-   **No Port Conflicts:** We use port **8085** to avoid clashing with your Backend (8080) or Frontend (8000).
+-   **Read-Only:** The scan mounts your code as read-only (mostly) and uses a separate `qodana-cache` volume.
+-   **Production Safe:** This runs in a verified "Clean Room" container. It **DOES NOT** connect to your local database or production API. It only analyzes the *source text*.
+
+> [!TIP]
+> **Faster Scans:** The script uses a Docker volume (`qodana-cache`) to cache results. Subsequent runs will be much faster.
+
+
