@@ -1,19 +1,55 @@
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Configure fetch for Node environment (Vitest runs in Node)
 // Vite/Vitest polyfills fetch in newer versions, but we might need to be explicit if using native node fetch
 // We'll use the ApiClient logic but instantiated manually or just raw fetch for independence.
 
 const BASE_URL = 'http://127.0.0.1:9999/api';
-let AUTH_TOKEN = '';
+let AUTH_TOKEN = 'test-token-123';
+
+// Mock responses
+const mockLoginResponse = {
+    data: {
+        token: 'test-token-123',
+        user: { email: 'user@example.com' }
+    }
+};
+
+const mockAssignmentsResponse = {
+    data: {
+        data: [] // Paginator structure
+    }
+};
+
+const mockErrorResponse = {
+    data: [
+        { status: 'error', message: 'Assignment not found' }
+    ]
+};
 
 describe('Backend API Integration Tests', () => {
+
+    beforeEach(() => {
+        global.fetch = vi.fn();
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
     
     // 1. Auth Flow
     it('should login successfully', async () => {
         // Assume seeder created user@example.com / password
+        vi.mocked(fetch).mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => mockLoginResponse,
+            text: async () => JSON.stringify(mockLoginResponse)
+        } as Response);
+
         const res = await fetch(`${BASE_URL}/auth/login`, {
+
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -47,6 +83,12 @@ describe('Backend API Integration Tests', () => {
     it('should fetch assignments', async () => {
         expect(AUTH_TOKEN).toBeTruthy();
         
+        vi.mocked(fetch).mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => mockAssignmentsResponse
+        } as Response);
+
         const res = await fetch(`${BASE_URL}/assignments`, {
             headers: {
                 'Authorization': `Bearer ${AUTH_TOKEN}`,
@@ -74,6 +116,12 @@ describe('Backend API Integration Tests', () => {
     it('should push responses', async () => {
         expect(AUTH_TOKEN).toBeTruthy();
         
+        vi.mocked(fetch).mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => mockErrorResponse
+        } as Response);
+
         // Need a valid assignment ID first. 
         // For test, we might fail if no assignment exists.
         // But the endpoint should at least be reachable.
@@ -110,6 +158,12 @@ describe('Backend API Integration Tests', () => {
     it('should fetch project schemas', async () => {
         expect(AUTH_TOKEN).toBeTruthy();
         
+        vi.mocked(fetch).mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({ data: [] })
+        } as Response);
+
         // Fetch projects first to get a valid project ID
         // Note: In a real scenario we'd use the Project endpoint or assume implicit assignments
         // But for now let's try to fetch schemas for the seeded project (check seeded IDs if possible, or list all)
@@ -140,6 +194,13 @@ describe('Backend API Integration Tests', () => {
     it('should fetch projects', async () => {
          expect(AUTH_TOKEN).toBeTruthy();
          
+         const mockProjectsResponse = { data: [] };
+         vi.mocked(fetch).mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => mockProjectsResponse
+        } as Response);
+
          const res = await fetch(`${BASE_URL}/projects`, {
             headers: {
                 'Authorization': `Bearer ${AUTH_TOKEN}`,

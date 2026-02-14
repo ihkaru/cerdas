@@ -1,10 +1,10 @@
-import { ApiClient } from '@/common/api/ApiClient';
-import { useTableStore } from '@/stores/table.store';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiClient } from '../../../../src/common/api/ApiClient';
+import { useTableStore } from '../../../../src/stores/table.store';
 
 // Mock ApiClient
-vi.mock('@/common/api/ApiClient', () => ({
+vi.mock('../../../../src/common/api/ApiClient', () => ({
     ApiClient: {
         get: vi.fn(),
         post: vi.fn(),

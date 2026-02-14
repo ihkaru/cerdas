@@ -36,8 +36,21 @@ jobs:
       - name: Lint Client App
         run: pnpm --filter client lint
 
+      - name: Test Client App
+        run: pnpm --filter client test
+
       - name: Lint Editor App
         run: pnpm --filter editor lint
+
+      - name: Test Editor App
+        run: pnpm --filter editor test
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        continue-on-error: true # Non-blocking until configured
 
   backend-lint:
     name: Backend (Laravel Pint)
