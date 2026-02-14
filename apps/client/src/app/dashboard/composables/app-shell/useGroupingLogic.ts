@@ -25,8 +25,7 @@ export function useGroupingLogic(
     const groupByConfig = computed(() => {
         const viewId = activeView.value;
         
-        // UNIQUE MARKER - Direct console.log to verify execution
-        console.log('[GROUPBY-DEBUG-XYZ]', 'groupByConfig computing...', { viewId, hasLayout: !!layout.value, layoutViews: layout.value?.views });
+
         
         log.debug('[groupByConfig] Evaluating...', { viewId, hasLayout: !!layout.value });
         
@@ -66,11 +65,7 @@ export function useGroupingLogic(
             config = layout.value.views.default.groupBy;
         }
         
-        console.log('[GROUPBY-FIX]', 'Fallback result:', { 
-            layoutGroupBy: layout.value?.groupBy, 
-            viewsDefaultGroupBy: layout.value?.views?.default?.groupBy,
-            finalConfig: config 
-        });
+
         
         log.debug('[groupByConfig] Fallback check:', {
             'layout.grouping': layout.value?.grouping || 'undefined',
@@ -109,12 +104,10 @@ export function useGroupingLogic(
 
     // Helper for Query Construction (Drill-down)
     const buildGroupWhere = (statusFilterValue: string) => {
-        // VERIFY HMR AND LOG groupByConfig value - STRINGIFIED FOR FULL VISIBILITY
-        console.log('[BUILDGROUPWHERE-ABC]', 'groupByConfig FULL VALUE:', JSON.stringify(groupByConfig.value));
-        console.log('[BUILDGROUPWHERE-ABC]', 'isGroupingActive:', isGroupingActive.value, 'currentGroupField:', currentGroupField.value);
+
         
-        let conditions: string[] = [`table_id = ?`];
-        let params: any[] = [getContextId()];
+        const conditions: string[] = [`table_id = ?`];
+        const params: any[] = [getContextId()];
 
         // Add group path filters
         // IMPORTANT: Must match AssignmentQueryService.getGroupedAssignments COALESCE logic

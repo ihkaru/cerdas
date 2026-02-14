@@ -13,7 +13,7 @@ const routes: Router.RouteParameters[] = [
     path: '/',
     async({ resolve }) {
       const authStore = useAuthStore();
-      console.log('[RouteResolver] Resolving "/" - isAuthenticated:', authStore.isAuthenticated);
+
       
       if (authStore.isAuthenticated) {
         resolve({ component: DashboardPage });
@@ -28,7 +28,7 @@ const routes: Router.RouteParameters[] = [
       // Use async import to catch loading errors
       import('./pages/assignment-detail/AssignmentDetail.vue')
         .then((module) => {
-          console.log('AssignmentDetail loaded successfully');
+
           resolve({ component: module.default });
         })
         .catch((err) => {
