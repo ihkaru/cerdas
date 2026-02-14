@@ -8,8 +8,10 @@ use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
-class AppSeeder extends Seeder {
-    public function run(): void {
+class AppSeeder extends Seeder
+{
+    public function run(): void
+    {
         $admin = User::where('email', 'admin@cerdas.com')->first();
         $supervisor = User::where('email', 'supervisor@cerdas.com')->first();
         $enumerator1 = User::where('email', 'user@example.com')->first();
@@ -17,7 +19,7 @@ class AppSeeder extends Seeder {
 
         // 1. Create App
         $app = App::firstOrCreate([
-            'slug' => 'housing-survey-2026'
+            'slug' => 'housing-survey-2026',
         ], [
             'name' => 'Housing Survey 2026',
             'description' => 'Pendataan Rumah Tidak Layak Huni (RTLH) Kabupaten Mempawah',
@@ -36,7 +38,7 @@ class AppSeeder extends Seeder {
 
         // 2. Organization (Global)
         $org = Organization::firstOrCreate([
-            'code' => 'DPR-MPW'
+            'code' => 'DPR-MPW',
         ], [
             'name' => 'Dinas Perumahan Rakyat',
             'creator_id' => $admin->id,
@@ -47,7 +49,7 @@ class AppSeeder extends Seeder {
 
         // 2b. Organization (Testing Source) - Not attached initially
         Organization::firstOrCreate([
-            'code' => 'BPS-BDG'
+            'code' => 'BPS-BDG',
         ], [
             'name' => 'BPS Kabupaten Bandung',
             'creator_id' => $admin->id,

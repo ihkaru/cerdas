@@ -1,26 +1,25 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Http\Request;
 
-require __DIR__ . '/../vendor/autoload.php';
-$app = require_once __DIR__ . '/../bootstrap/app.php';
+require __DIR__.'/../vendor/autoload.php';
+$app = require_once __DIR__.'/../bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-use App\Models\User;
+use App\Http\Controllers\Api\AuthController;
 use App\Models\Organization;
 use App\Models\OrganizationInvitation;
-use App\Http\Controllers\Api\OrganizationController;
-use App\Http\Controllers\Api\AuthController;
+use App\Models\User;
 
 echo "Bootstrapped Laravel.\n";
 
 // Clean up
 
 // Clean up
-$email = 'invite_test_' . time() . '@example.com';
+$email = 'invite_test_'.time().'@example.com';
 User::where('email', $email)->forceDelete();
 OrganizationInvitation::where('email', $email)->delete();
 
@@ -30,24 +29,24 @@ Auth::login($owner);
 
 $org = Organization::create([
     'name' => 'Invitation Test Org',
-    'code' => 'INV-' . time(),
-    'creator_id' => $owner->id
+    'code' => 'INV-'.time(),
+    'creator_id' => $owner->id,
 ]);
 
-echo "Created Org: " . $org->name . " (" . $org->id . ")\n";
+echo 'Created Org: '.$org->name.' ('.$org->id.")\n";
 
 // 2. Invite User
-$controller = new \App\Http\Controllers\Api\OrganizationController();
+$controller = new \App\Http\Controllers\Api\OrganizationController;
 $request = new \Illuminate\Http\Request([
     'email' => $email,
-    'role' => 'editor'
+    'role' => 'editor',
 ]);
 $request->setUserResolver(function () use ($owner) {
     return $owner;
 });
 
 $response = $controller->addMember($request, $org);
-echo "Invite Response: " . json_encode($response->getData()) . "\n";
+echo 'Invite Response: '.json_encode($response->getData())."\n";
 
 // 3. Verify Invitation
 $invitation = OrganizationInvitation::where('email', $email)->first();
@@ -59,12 +58,12 @@ if ($invitation && $invitation->organization_id == $org->id) {
 }
 
 // 4. Register User
-$authController = new \App\Http\Controllers\Api\AuthController();
+$authController = new \App\Http\Controllers\Api\AuthController;
 $regRequest = new \Illuminate\Http\Request([
     'name' => 'Invited User',
     'email' => $email,
     'password' => 'password',
-    'password_confirmation' => 'password'
+    'password_confirmation' => 'password',
 ]);
 
 // We need to mock request validation or plain call logic
@@ -76,7 +75,7 @@ echo "Simulating Registration...\n";
 $newUser = User::create([
     'name' => 'Invited User',
     'email' => $email,
-    'password' => Hash::make('password')
+    'password' => Hash::make('password'),
 ]);
 
 // Hook logic (copy-paste from AuthController for verification or call the actual code if accessible)
@@ -90,14 +89,14 @@ $newUser = User::create([
 // So I should recreate the logic here to verify it works "like" the controller.
 
 $invitations = OrganizationInvitation::where('email', $newUser->email)->get();
-echo "Found " . $invitations->count() . " pending invitations.\n";
+echo 'Found '.$invitations->count()." pending invitations.\n";
 
 foreach ($invitations as $invitation) {
     $invitation->organization->members()->syncWithoutDetaching([
-        $newUser->id => ['role' => $invitation->role]
+        $newUser->id => ['role' => $invitation->role],
     ]);
     $invitation->delete();
-    echo "Processed invitation for Org: " . $invitation->organization->name . "\n";
+    echo 'Processed invitation for Org: '.$invitation->organization->name."\n";
 }
 
 // 5. Verify Membership
@@ -110,7 +109,7 @@ if ($isMember) {
 
 // 6. Verify Invitation Deleted
 $invitationStillExists = OrganizationInvitation::where('email', $email)->exists();
-if (!$invitationStillExists) {
+if (! $invitationStillExists) {
     echo "SUCCESS: Invitation record deleted.\n";
 } else {
     echo "FAILURE: Invitation record still exists.\n";

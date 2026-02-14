@@ -7,13 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-class View extends Model {
+class View extends Model
+{
     use HasFactory;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
-    protected static function booted() {
+    protected static function booted()
+    {
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) Str::uuid();
@@ -34,11 +37,13 @@ class View extends Model {
         'config' => 'array',
     ];
 
-    public function app(): BelongsTo {
+    public function app(): BelongsTo
+    {
         return $this->belongsTo(App::class);
     }
 
-    public function table(): BelongsTo {
+    public function table(): BelongsTo
+    {
         return $this->belongsTo(Table::class);
     }
 }

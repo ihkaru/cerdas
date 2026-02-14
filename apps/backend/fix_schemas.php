@@ -3,8 +3,8 @@
 use App\Models\AppSchemaVersion;
 use Illuminate\Contracts\Console\Kernel;
 
-require __DIR__ . '/vendor/autoload.php';
-$app = require_once __DIR__ . '/bootstrap/app.php';
+require __DIR__.'/vendor/autoload.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
 echo "Fixing Double Encoded Schemas...\n";
@@ -32,9 +32,9 @@ foreach ($versions as $v) {
         }
     } else {
         // It's already an array/object.
-        // Check if it's triple encoded? 
+        // Check if it's triple encoded?
         // No, if it's array, it's good.
-        echo "ID {$v->id} is OK (" . gettype($schema) . ")\n";
+        echo "ID {$v->id} is OK (".gettype($schema).")\n";
     }
 }
 

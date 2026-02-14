@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class AppRecord extends Model {
+class AppRecord extends Model
+{
     use HasFactory, SoftDeletes;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -24,7 +26,8 @@ class AppRecord extends Model {
         'data' => 'array',
     ];
 
-    protected static function boot() {
+    protected static function boot()
+    {
         parent::boot();
 
         static::creating(function ($model) {
@@ -34,11 +37,13 @@ class AppRecord extends Model {
         });
     }
 
-    public function app(): BelongsTo {
+    public function app(): BelongsTo
+    {
         return $this->belongsTo(App::class);
     }
 
-    public function table(): BelongsTo {
+    public function table(): BelongsTo
+    {
         return $this->belongsTo(Table::class);
     }
 }

@@ -12,17 +12,20 @@ use Illuminate\Support\Str;
 
 /**
  * Table Model
- * 
+ *
  * A Table is a data source with field definitions.
  * Previously known as "Form" or "AppSchema".
  */
-class Table extends Model {
+class Table extends Model
+{
     use HasFactory, SoftDeletes;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
-    protected static function booted() {
+    protected static function booted()
+    {
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) Str::uuid();
@@ -51,51 +54,58 @@ class Table extends Model {
         'current_version' => 'integer',
     ];
 
-
-
     /**
      * Resolve the route binding for ID or UUID.
      */
-    public function resolveRouteBinding($value, $field = null) {
+    public function resolveRouteBinding($value, $field = null)
+    {
         return $this->where('id', $value)
             ->firstOrFail();
     }
 
     // ========== Relationships ==========
 
-    public function app(): BelongsTo {
+    public function app(): BelongsTo
+    {
         return $this->belongsTo(App::class);
     }
 
-    public function versions(): HasMany {
+    public function versions(): HasMany
+    {
         return $this->hasMany(TableVersion::class);
     }
 
-    public function assignments(): HasMany {
+    public function assignments(): HasMany
+    {
         return $this->hasMany(Assignment::class);
     }
 
-    public function views(): HasMany {
+    public function views(): HasMany
+    {
         return $this->hasMany(View::class);
     }
 
-    public function currentVersionModel(): HasOne {
+    public function currentVersionModel(): HasOne
+    {
         return $this->hasOne(TableVersion::class)
             ->where('version', $this->current_version);
     }
 
-    public function latestVersion(): HasOne {
+    public function latestVersion(): HasOne
+    {
         return $this->hasOne(TableVersion::class)
             ->orderByDesc('version');
     }
 
-    public function latestPublishedVersion(): HasOne {
+    public function latestPublishedVersion(): HasOne
+    {
         return $this->hasOne(TableVersion::class)
             ->whereNotNull('published_at')
             ->orderByDesc('version');
     }
 
-    public function latestDraftVersion(): HasOne {
+    public function latestDraftVersion(): HasOne
+    {
         return $this->hasOne(TableVersion::class)
             ->whereNull('published_at')
             ->orderByDesc('version');
@@ -103,28 +113,33 @@ class Table extends Model {
 
     // ========== Scopes ==========
 
-    public function scopePublished($query) {
+    public function scopePublished($query)
+    {
         return $query->whereNotNull('published_at');
     }
 
-    public function scopeDraft($query) {
+    public function scopeDraft($query)
+    {
         return $query->whereNull('published_at');
     }
 
     // ========== Helpers ==========
 
-    public function isPublished(): bool {
+    public function isPublished(): bool
+    {
         return $this->published_at !== null;
     }
 
-    public function isDraft(): bool {
+    public function isDraft(): bool
+    {
         return $this->published_at === null;
     }
 
     /**
      * Create a new draft version based on latest version
      */
-    public function createDraftVersion(): TableVersion {
+    public function createDraftVersion(): TableVersion
+    {
         $latest = $this->latestVersion;
         $newVersion = ($latest ? $latest->version : 0) + 1;
 
@@ -139,7 +154,8 @@ class Table extends Model {
     /**
      * Get the working version (draft if exists, else latest)
      */
-    public function getWorkingVersion(): ?TableVersion {
+    public function getWorkingVersion(): ?TableVersion
+    {
         return $this->latestDraftVersion ?? $this->latestVersion;
     }
 }

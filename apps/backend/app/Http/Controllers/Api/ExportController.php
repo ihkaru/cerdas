@@ -16,13 +16,15 @@ use Illuminate\Http\Request;
  * schema version, ensuring ghost data (from removed fields) is excluded
  * and only fields defined in the requested version are exported.
  */
-class ExportController extends Controller {
+class ExportController extends Controller
+{
     /**
      * Export responses for a table, filtered through a specific schema version.
      *
      * GET /api/tables/{table}/export?version={version}
      */
-    public function export(Request $request, Table $table): JsonResponse {
+    public function export(Request $request, Table $table): JsonResponse
+    {
 
         // Determine which version to filter by
         $requestedVersion = $request->input('version', $table->current_version);
@@ -50,7 +52,7 @@ class ExportController extends Controller {
         })->get();
 
         // Filter each response's data through the schema fields
-        $exportData = $responses->map(function ($response) use ($fieldNames, $requestedVersion) {
+        $exportData = $responses->map(function ($response) use ($fieldNames) {
             $rawData = is_string($response->data) ? json_decode($response->data, true) : ($response->data ?? []);
 
             // Only include keys that exist in the requested schema version

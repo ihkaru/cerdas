@@ -4,21 +4,24 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
 
-class User extends Authenticatable {
+class User extends Authenticatable
+{
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, HasRoles, SoftDeletes;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
-    protected static function booted() {
+    protected static function booted()
+    {
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) Str::uuid();
@@ -54,7 +57,8 @@ class User extends Authenticatable {
      *
      * @return array<string, string>
      */
-    protected function casts(): array {
+    protected function casts(): array
+    {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
@@ -65,24 +69,28 @@ class User extends Authenticatable {
     /**
      * Check if user is a super admin
      */
-    public function isSuperAdmin(): bool {
+    public function isSuperAdmin(): bool
+    {
         return (bool) $this->is_super_admin;
     }
 
     // ========== Relationships ==========
 
-    public function createdApps(): \Illuminate\Database\Eloquent\Relations\HasMany {
+    public function createdApps(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
         return $this->hasMany(App::class, 'created_by');
     }
 
-    public function appMemberships(): \Illuminate\Database\Eloquent\Relations\HasMany {
+    public function appMemberships(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
         return $this->hasMany(AppMembership::class);
     }
 
     /**
      * Get all apps the user is a member of.
      */
-    public function apps(): \Illuminate\Database\Eloquent\Relations\BelongsToMany {
+    public function apps(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
         // Use pivot model AppMembership
         return $this->belongsToMany(App::class, 'app_memberships')
             ->using(AppMembership::class)
@@ -90,15 +98,18 @@ class User extends Authenticatable {
             ->withTimestamps();
     }
 
-    public function supervisedAppMemberships(): \Illuminate\Database\Eloquent\Relations\HasMany {
+    public function supervisedAppMemberships(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
         return $this->hasMany(AppMembership::class, 'supervisor_id');
     }
 
-    public function assignments(): \Illuminate\Database\Eloquent\Relations\HasMany {
+    public function assignments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
         return $this->hasMany(Assignment::class, 'enumerator_id');
     }
 
-    public function supervisedAssignments(): \Illuminate\Database\Eloquent\Relations\HasMany {
+    public function supervisedAssignments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
         return $this->hasMany(Assignment::class, 'supervisor_id');
     }
 
@@ -106,7 +117,8 @@ class User extends Authenticatable {
      * Get all organizations the user is a member of.
      * New: Reusable Teams logic.
      */
-    public function organizations(): \Illuminate\Database\Eloquent\Relations\BelongsToMany {
+    public function organizations(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
         return $this->belongsToMany(Organization::class, 'organization_members')
             ->withPivot('role')
             ->withTimestamps();
@@ -117,7 +129,8 @@ class User extends Authenticatable {
     /**
      * Get membership for a specific app
      */
-    public function getMembershipForApp(string $appId): ?AppMembership {
+    public function getMembershipForApp(string $appId): ?AppMembership
+    {
         return $this->appMemberships()
             ->where('app_id', $appId)
             ->first();
@@ -126,7 +139,8 @@ class User extends Authenticatable {
     /**
      * Check if user has access to an app
      */
-    public function hasAppAccess(string $appId): bool {
+    public function hasAppAccess(string $appId): bool
+    {
         if ($this->isSuperAdmin()) {
             return true;
         }
@@ -153,7 +167,8 @@ class User extends Authenticatable {
     /**
      * Helper: Accept all pending App Invitations for this user
      */
-    public function acceptPendingInvitations() {
+    public function acceptPendingInvitations()
+    {
         // Process App Invitations (Auto-Accept)
         $appInvitations = \App\Models\AppInvitation::where('email', $this->email)->get();
         foreach ($appInvitations as $invite) {
@@ -162,7 +177,7 @@ class User extends Authenticatable {
                 ->where('user_id', $this->id)
                 ->exists();
 
-            if (!$existing) {
+            if (! $existing) {
                 \App\Models\AppMembership::create([
                     'app_id' => $invite->app_id,
                     'user_id' => $this->id,

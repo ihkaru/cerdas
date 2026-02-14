@@ -9,19 +9,22 @@ use Illuminate\Support\Str;
 
 /**
  * TableVersion Model
- * 
+ *
  * A version of a Table's fields and layout.
  * Previously known as "FormVersion" or "AppSchemaVersion".
  */
-class TableVersion extends Model {
+class TableVersion extends Model
+{
     use HasFactory;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $table = 'table_versions';
 
-    protected static function booted() {
+    protected static function booted()
+    {
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) Str::uuid();
@@ -47,7 +50,8 @@ class TableVersion extends Model {
 
     // ========== Relationships ==========
 
-    public function table(): BelongsTo {
+    public function table(): BelongsTo
+    {
         return $this->belongsTo(Table::class);
     }
 
@@ -55,28 +59,33 @@ class TableVersion extends Model {
 
     // ========== Scopes ==========
 
-    public function scopePublished($query) {
+    public function scopePublished($query)
+    {
         return $query->whereNotNull('published_at');
     }
 
-    public function scopeDraft($query) {
+    public function scopeDraft($query)
+    {
         return $query->whereNull('published_at');
     }
 
     // ========== Helpers ==========
 
-    public function isPublished(): bool {
+    public function isPublished(): bool
+    {
         return $this->published_at !== null;
     }
 
-    public function isDraft(): bool {
+    public function isDraft(): bool
+    {
         return $this->published_at === null;
     }
 
     /**
      * Publish this version (makes it immutable)
      */
-    public function publish(?string $changelog = null): bool {
+    public function publish(?string $changelog = null): bool
+    {
         if ($this->isPublished()) {
             return false; // Already published, immutable
         }
@@ -102,14 +111,16 @@ class TableVersion extends Model {
     /**
      * Get field definitions
      */
-    public function getFields(): array {
+    public function getFields(): array
+    {
         return $this->fields ?? [];
     }
 
     /**
      * Update field definitions
      */
-    public function setFields(array $fields): void {
+    public function setFields(array $fields): void
+    {
         $this->fields = $fields;
     }
 }

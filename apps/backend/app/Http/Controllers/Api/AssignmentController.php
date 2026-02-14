@@ -4,21 +4,23 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Imports\PrelistImport;
-use App\Models\TableVersion;
 use App\Models\Assignment;
+use App\Models\TableVersion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
 
-class AssignmentController extends Controller {
+class AssignmentController extends Controller
+{
     /**
      * List assignments for the current user
      */
     /**
      * List assignments for the current user
      */
-    public function index(Request $request): JsonResponse {
+    public function index(Request $request): JsonResponse
+    {
         $user = $request->user();
 
         $query = Assignment::query()
@@ -28,13 +30,13 @@ class AssignmentController extends Controller {
             });
 
         // Filter based on role
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             // Determine which apps allow unassigned access
             // Logic: App Mode = 'simple' AND restrict_unassigned != true
             $allowedAppIds = $user->apps()
                 ->where('mode', 'simple')
                 ->get()
-                ->filter(fn($app) => ($app->settings['restrict_unassigned'] ?? false) === false)
+                ->filter(fn ($app) => ($app->settings['restrict_unassigned'] ?? false) === false)
                 ->pluck('id');
 
             $query->where(function ($q) use ($user, $allowedAppIds) {
@@ -64,19 +66,21 @@ class AssignmentController extends Controller {
         }
 
         $perPage = (int) $request->input('per_page', 50);
-        if ($perPage > 5000) $perPage = 5000; // Increased limit for faster sync
+        if ($perPage > 5000) {
+            $perPage = 5000;
+        } // Increased limit for faster sync
 
-        Log::info("Fetching Assignments", [
+        Log::info('Fetching Assignments', [
             'user_id' => $user->id,
             'page' => $request->page,
-            'per_page' => $perPage
+            'per_page' => $perPage,
         ]);
 
         $assignments = $query->with('tableVersion')->orderBy('id')->paginate($perPage);
 
-        Log::info("Assignments Fetched", [
+        Log::info('Assignments Fetched', [
             'count' => $assignments->count(),
-            'total' => $assignments->total()
+            'total' => $assignments->total(),
         ]);
 
         return response()->json([
@@ -88,7 +92,8 @@ class AssignmentController extends Controller {
     /**
      * Import assignments from Excel/CSV
      */
-    public function import(Request $request): JsonResponse {
+    public function import(Request $request): JsonResponse
+    {
         $request->validate([
             'file' => 'required|file|mimes:xlsx,csv,xls',
             'table_version_id' => 'required|exists:table_versions,id',
@@ -97,14 +102,14 @@ class AssignmentController extends Controller {
         $tableVersion = TableVersion::with('table')->find($request->table_version_id);
         $user = $request->user();
 
-        if (!$user->hasAppAccess($tableVersion->table->app_id)) {
+        if (! $user->hasAppAccess($tableVersion->table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
             ], 403);
         }
 
-        if (!$tableVersion->isPublished()) {
+        if (! $tableVersion->isPublished()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Can only assign to published versions',
@@ -121,7 +126,7 @@ class AssignmentController extends Controller {
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Import failed: ' . $e->getMessage(),
+                'message' => 'Import failed: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -129,13 +134,14 @@ class AssignmentController extends Controller {
     /**
      * Get a specific assignment
      */
-    public function show(Request $request, Assignment $assignment): JsonResponse {
+    public function show(Request $request, Assignment $assignment): JsonResponse
+    {
         $user = $request->user();
 
         // Check explicit assignment
         $isAssigned = $assignment->enumerator_id === $user->id || $assignment->supervisor_id === $user->id;
 
-        if (!$isAssigned && !$user->isSuperAdmin()) {
+        if (! $isAssigned && ! $user->isSuperAdmin()) {
             // Check if unassigned and allowed
             $isUnassigned = is_null($assignment->enumerator_id);
             $accessGranted = false;
@@ -150,7 +156,7 @@ class AssignmentController extends Controller {
                 }
             }
 
-            if (!$accessGranted) {
+            if (! $accessGranted) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Access denied',

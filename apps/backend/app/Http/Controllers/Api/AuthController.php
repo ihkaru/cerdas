@@ -9,11 +9,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
-class AuthController extends Controller {
+class AuthController extends Controller
+{
     /**
      * Register a new user
      */
-    public function register(Request $request): JsonResponse {
+    public function register(Request $request): JsonResponse
+    {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
@@ -30,7 +32,7 @@ class AuthController extends Controller {
         $invitations = \App\Models\OrganizationInvitation::where('email', $user->email)->get();
         foreach ($invitations as $invitation) {
             $invitation->organization->members()->syncWithoutDetaching([
-                $user->id => ['role' => $invitation->role]
+                $user->id => ['role' => $invitation->role],
             ]);
 
             // Notify User
@@ -50,7 +52,7 @@ class AuthController extends Controller {
                 ->where('user_id', $user->id)
                 ->exists();
 
-            if (!$existing) {
+            if (! $existing) {
                 \App\Models\AppMembership::create([
                     'app_id' => $invite->app_id,
                     'user_id' => $user->id,
@@ -77,7 +79,8 @@ class AuthController extends Controller {
     /**
      * Login with email and password
      */
-    public function login(Request $request): JsonResponse {
+    public function login(Request $request): JsonResponse
+    {
         \Illuminate\Support\Facades\Log::info('Login attempt', ['email' => $request->input('email'), 'ip' => $request->ip()]);
 
         $validated = $request->validate([
@@ -87,7 +90,7 @@ class AuthController extends Controller {
 
         $user = User::where('email', $validated['email'])->first();
 
-        if (!$user || !Hash::check($validated['password'], $user->password)) {
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
             \Illuminate\Support\Facades\Log::warning('Login failed: invalid credentials', ['email' => $validated['email']]);
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
@@ -117,7 +120,8 @@ class AuthController extends Controller {
     /**
      * Logout (revoke current token)
      */
-    public function logout(Request $request): JsonResponse {
+    public function logout(Request $request): JsonResponse
+    {
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
@@ -129,7 +133,8 @@ class AuthController extends Controller {
     /**
      * Get current authenticated user
      */
-    public function me(Request $request): JsonResponse {
+    public function me(Request $request): JsonResponse
+    {
         \Illuminate\Support\Facades\Log::info('AuthController::me hit', ['user_id' => $request->user()->id]);
         $user = $request->user();
 

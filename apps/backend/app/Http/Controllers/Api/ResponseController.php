@@ -5,31 +5,33 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Assignment;
 use App\Models\Response;
+use App\Models\Table;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use App\Models\Table;
 
-class ResponseController extends Controller {
+class ResponseController extends Controller
+{
     /**
      * Get responses for the current user's assignments (Sync Pull)
      */
-    public function index(Request $request): JsonResponse {
+    public function index(Request $request): JsonResponse
+    {
         $user = $request->user();
 
         // Log request params for debugging
         Log::info('Fetching Responses', [
             'user_id' => $user->id,
-            'params' => $request->all()
+            'params' => $request->all(),
         ]);
 
         $query = Response::query();
 
         // If NOT Super Admin, restrict to own assignments
         // If NOT Super Admin, restrict to own assignments OR Simple Mode Apps
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             $query->whereHas('assignment', function ($q) use ($user) {
                 $q->where('enumerator_id', $user->id)
                     ->orWhere('supervisor_id', $user->id)
@@ -60,7 +62,8 @@ class ResponseController extends Controller {
     /**
      * Store new responses (Sync Push)
      */
-    private function handleBase64Images(array $data, string $assignmentId, string $userId): array {
+    private function handleBase64Images(array $data, string $assignmentId, string $userId): array
+    {
         foreach ($data as $key => $value) {
             if (is_array($value)) {
                 $data[$key] = $this->handleBase64Images($value, $assignmentId, $userId);
@@ -75,7 +78,7 @@ class ResponseController extends Controller {
                 }
 
                 // Generate Path: responses/{assignment_id}/{user_id}/{timestamp}_{random}.ext
-                $fileName = time() . '_' . Str::random(10) . '.' . $extension;
+                $fileName = time().'_'.Str::random(10).'.'.$extension;
                 $path = "responses/{$assignmentId}/{$userId}/{$fileName}";
 
                 // Store to Disk (Public)
@@ -87,13 +90,15 @@ class ResponseController extends Controller {
                 $data[$key] = $url;
             }
         }
+
         return $data;
     }
 
     /**
      * Store new responses (Sync Push)
      */
-    public function store(Request $request): JsonResponse {
+    public function store(Request $request): JsonResponse
+    {
         // Increase memory limit for this request to handle parsing
         ini_set('memory_limit', '512M');
 
@@ -114,7 +119,7 @@ class ResponseController extends Controller {
 
         Log::info('Sync Push Started', [
             'user_id' => $user->id,
-            'count' => count($validated['responses'])
+            'count' => count($validated['responses']),
         ]);
 
         Log::info('Sync Push Payload JSON', ['payload' => $validated['responses']]);
@@ -135,13 +140,13 @@ class ResponseController extends Controller {
                     $assignment = Assignment::find($assignmentInput);
 
                     // If not found, try by external_id (for ad-hoc assignments created earlier)
-                    if (!$assignment) {
+                    if (! $assignment) {
                         $assignment = Assignment::where('external_id', $assignmentInput)->first();
                     }
                 }
                 // 2. Create if not found and is UUID (Self-Assignment)
                 $newAssignmentId = null;
-                if (!$assignment && Str::isUuid($assignmentInput) && !empty($respData['table_id'])) {
+                if (! $assignment && Str::isUuid($assignmentInput) && ! empty($respData['table_id'])) {
                     // Get latest version for this table
                     $table = Table::with('app')->find($respData['table_id']);
 
@@ -162,7 +167,7 @@ class ResponseController extends Controller {
                             'enumerator_id' => $user->id,
                             'external_id' => $assignmentInput,
                             'status' => 'in_progress',
-                            'prelist_data' => ['name' => 'Self Assignment ' . now()->format('H:i')],
+                            'prelist_data' => ['name' => 'Self Assignment '.now()->format('H:i')],
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
@@ -171,13 +176,14 @@ class ResponseController extends Controller {
                     }
                 }
 
-                if (!$assignment) {
+                if (! $assignment) {
                     Log::warning('Assignment Not Found', ['input' => $assignmentInput]);
                     $results[] = [
                         'local_id' => $respData['local_id'],
                         'status' => 'error',
-                        'message' => 'Assignment not found and could not be created'
+                        'message' => 'Assignment not found and could not be created',
                     ];
+
                     continue;
                 }
 
@@ -195,13 +201,14 @@ class ResponseController extends Controller {
                     $isSimpleShared = true;
                 }
 
-                if (!$isSimpleShared && !$isOwner && !$isSupervisor && !$user->isSuperAdmin() && !$isUnassigned) {
+                if (! $isSimpleShared && ! $isOwner && ! $isSupervisor && ! $user->isSuperAdmin() && ! $isUnassigned) {
                     Log::warning('Access Denied', ['user_id' => $user->id, 'assignment_id' => $assignment->id]);
                     $results[] = [
                         'local_id' => $respData['local_id'],
                         'status' => 'error',
-                        'message' => 'Access denied'
+                        'message' => 'Access denied',
                     ];
+
                     continue;
                 }
 
@@ -230,6 +237,7 @@ class ResponseController extends Controller {
                         'message' => "Version v{$submittedVersion} rejected. Minimum required: v{$currentVersion}. Please sync the latest form.",
                         'required_version' => $currentVersion,
                     ];
+
                     continue;
                 }
 
@@ -244,19 +252,19 @@ class ResponseController extends Controller {
                     if ($schemaVersion) {
                         $fields = $schemaVersion->getFields();
                         $requiredFields = collect($fields)
-                            ->filter(fn($f) => !empty($f['required']) || !empty($f['validation_rules']))
+                            ->filter(fn ($f) => ! empty($f['required']) || ! empty($f['validation_rules']))
                             ->pluck('name')
                             ->filter()
                             ->toArray();
 
                         $missingFields = [];
                         foreach ($requiredFields as $fieldName) {
-                            if (!isset($respData['data'][$fieldName]) || $respData['data'][$fieldName] === '' || $respData['data'][$fieldName] === null) {
+                            if (! isset($respData['data'][$fieldName]) || $respData['data'][$fieldName] === '' || $respData['data'][$fieldName] === null) {
                                 $missingFields[] = $fieldName;
                             }
                         }
 
-                        if (!empty($missingFields)) {
+                        if (! empty($missingFields)) {
                             Log::warning('Strict Validation Failed', [
                                 'local_id' => $respData['local_id'],
                                 'missing_fields' => $missingFields,
@@ -267,6 +275,7 @@ class ResponseController extends Controller {
                                 'message' => 'Required fields are missing or empty.',
                                 'missing_fields' => $missingFields,
                             ];
+
                             continue;
                         }
                     }
@@ -277,8 +286,8 @@ class ResponseController extends Controller {
 
                 $cleanData = $this->handleBase64Images(
                     $respData['data'],
-                    (string)$assignment->id,
-                    (string)$user->id
+                    (string) $assignment->id,
+                    (string) $user->id
                 );
 
                 // Check if response already exists (idempotency by local_id)
@@ -299,7 +308,7 @@ class ResponseController extends Controller {
                         Log::info('Response Updated', [
                             'server_id' => $response->id,
                             'local_id' => $respData['local_id'],
-                            'data_keys' => array_keys($cleanData)
+                            'data_keys' => array_keys($cleanData),
                         ]);
                     } else {
                         // Client data is older or same, skip update but confirm sync
@@ -307,7 +316,7 @@ class ResponseController extends Controller {
                         Log::info('Response Update Skipped (Older)', [
                             'server_id' => $response->id,
                             'client_time' => $clientTime,
-                            'server_time' => $serverTime
+                            'server_time' => $serverTime,
                         ]);
                     }
                 } else {
@@ -330,7 +339,7 @@ class ResponseController extends Controller {
                     Log::info('Response Created', [
                         'server_id' => $response->id,
                         'local_id' => $respData['local_id'],
-                        'data_keys' => array_keys($cleanData)
+                        'data_keys' => array_keys($cleanData),
                     ]);
 
                     if ($assignment->status === 'assigned') {

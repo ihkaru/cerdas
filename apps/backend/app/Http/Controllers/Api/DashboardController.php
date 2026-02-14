@@ -6,14 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\App;
 use App\Models\Assignment;
 use App\Models\Table;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
-class DashboardController extends Controller {
+class DashboardController extends Controller
+{
     /**
      * Get global dashboard stats, app list, and recent tables
      */
-    public function index(Request $request): JsonResponse {
+    public function index(Request $request): JsonResponse
+    {
         $user = $request->user();
 
         // 1. Global Stats (All Apps)
@@ -37,7 +39,7 @@ class DashboardController extends Controller {
             $appsQuery = $user->apps();
         }
 
-        $apps = $appsQuery->get()->map(function ($app) use ($user) {
+        $apps = $appsQuery->get()->map(function ($app) {
             // In future, calculate stats per app here
             return [
                 'id' => $app->id,
@@ -87,8 +89,8 @@ class DashboardController extends Controller {
                 'stats' => $stats,
                 'apps' => $apps,
                 'recent_tables' => $recentTables, // Renamed from recent_forms
-                'tables' => $allTables // Renamed from forms
-            ]
+                'tables' => $allTables, // Renamed from forms
+            ],
         ]);
     }
 }

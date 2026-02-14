@@ -2,18 +2,20 @@
 
 namespace Database\Seeders;
 
-use App\Models\Table;
-use App\Models\TableVersion;
 use App\Models\App;
 use App\Models\Organization;
+use App\Models\Table;
+use App\Models\TableVersion;
 use App\Models\View;
 use Illuminate\Database\Seeder;
 
-class LayoutDemoSeeder extends Seeder {
+class LayoutDemoSeeder extends Seeder
+{
     /**
      * Run the database seeds.
      */
-    public function run(): void {
+    public function run(): void
+    {
         // Ensure we have a project
         $app = App::firstOrCreate(['slug' => 'demo-project'], ['name' => 'Demo Form', 'mode' => 'complex']);
 
@@ -56,7 +58,7 @@ class LayoutDemoSeeder extends Seeder {
                 'name' => 'photo',
                 'label' => 'Foto Rumah',
                 'type' => 'image',
-            ]
+            ],
         ];
 
         // Create Views
@@ -69,8 +71,8 @@ class LayoutDemoSeeder extends Seeder {
                     'mapbox_style' => 'satellite',
                     'lat' => 'location.lat',
                     'long' => 'location.long',
-                    'label' => 'name'
-                ]
+                    'label' => 'name',
+                ],
             ]
         );
 
@@ -85,8 +87,8 @@ class LayoutDemoSeeder extends Seeder {
                         'secondaryHeaderField' => 'address',
                         'imageField' => 'photo',
                     ],
-                    'actions' => ['open', 'edit']
-                ]
+                    'actions' => ['open', 'edit'],
+                ],
             ]
         );
 
@@ -97,8 +99,8 @@ class LayoutDemoSeeder extends Seeder {
                 'type' => 'view',
                 'view_id' => $listView->id,
                 'label' => 'Keluarga',
-                'icon' => 'users'
-            ]
+                'icon' => 'users',
+            ],
         ];
         $app->save();
 

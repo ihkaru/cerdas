@@ -12,20 +12,24 @@ use Tests\TestCase;
 
 /**
  * Sync Idempotency Tests
- * 
+ *
  * These tests verify correct behavior of the response sync endpoint,
  * particularly around idempotency (preventing duplicates).
- * 
+ *
  * Uses REAL production database with DatabaseTransactions for auto-rollback.
  */
-class SyncIdempotencyTest extends TestCase {
+class SyncIdempotencyTest extends TestCase
+{
     use DatabaseTransactions; // Uses real DB, auto-rollback after each test
 
     private User $enumerator;
+
     private Assignment $existingAssignment;
+
     private string $tableId;
 
-    protected function setUp(): void {
+    protected function setUp(): void
+    {
         parent::setUp();
 
         // Use existing data from production database
@@ -40,7 +44,8 @@ class SyncIdempotencyTest extends TestCase {
     }
 
     /** @test */
-    public function sync_finds_existing_assignment_by_id() {
+    public function sync_finds_existing_assignment_by_id()
+    {
         $localId = Str::uuid()->toString();
 
         Sanctum::actingAs($this->enumerator);
@@ -54,8 +59,8 @@ class SyncIdempotencyTest extends TestCase {
                     'device_id' => 'test-device-1',
                     'created_at' => now()->toISOString(),
                     'updated_at' => now()->toISOString(),
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $response->assertStatus(200);
@@ -71,7 +76,8 @@ class SyncIdempotencyTest extends TestCase {
     }
 
     /** @test */
-    public function sync_finds_existing_assignment_by_external_id() {
+    public function sync_finds_existing_assignment_by_external_id()
+    {
         // Skip: This test modifies external_id which may cause issues with transaction rollback
         $this->markTestSkipped('Requires isolated setup - uses update() which may persist beyond transaction.');
 
@@ -90,8 +96,8 @@ class SyncIdempotencyTest extends TestCase {
                     'data' => ['name' => 'Test Response'],
                     'created_at' => now()->toISOString(),
                     'updated_at' => now()->toISOString(),
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $response->assertStatus(200);
@@ -102,7 +108,8 @@ class SyncIdempotencyTest extends TestCase {
     }
 
     /** @test */
-    public function sync_creates_adhoc_assignment_when_not_found() {
+    public function sync_creates_adhoc_assignment_when_not_found()
+    {
         // Skip: Requires latestPublishedVersion on table + proper app membership setup
         $this->markTestSkipped('Requires specific seeder setup for ad-hoc assignment creation.');
 
@@ -120,8 +127,8 @@ class SyncIdempotencyTest extends TestCase {
                     'data' => ['name' => 'Ad-hoc Response'],
                     'created_at' => now()->toISOString(),
                     'updated_at' => now()->toISOString(),
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $response->assertStatus(200);
@@ -133,7 +140,8 @@ class SyncIdempotencyTest extends TestCase {
     }
 
     /** @test */
-    public function sync_response_idempotency_by_local_id() {
+    public function sync_response_idempotency_by_local_id()
+    {
         $localId = Str::uuid()->toString();
         $responseCountBefore = Response::count();
 
@@ -149,8 +157,8 @@ class SyncIdempotencyTest extends TestCase {
                     'device_id' => 'test-device-1',
                     'created_at' => now()->subHour()->toISOString(),
                     'updated_at' => now()->subHour()->toISOString(),
-                ]
-            ]
+                ],
+            ],
         ]);
         $response1->assertStatus(200);
         $this->assertEquals($responseCountBefore + 1, Response::count());
@@ -167,8 +175,8 @@ class SyncIdempotencyTest extends TestCase {
                     'device_id' => 'test-device-1',
                     'created_at' => now()->subHour()->toISOString(),
                     'updated_at' => now()->toISOString(), // Newer timestamp
-                ]
-            ]
+                ],
+            ],
         ]);
         $response2->assertStatus(200);
 
@@ -181,7 +189,8 @@ class SyncIdempotencyTest extends TestCase {
     }
 
     /** @test */
-    public function sync_skips_update_if_client_data_is_older() {
+    public function sync_skips_update_if_client_data_is_older()
+    {
         // Skip: This test requires first sync to succeed, which depends on response storage working
         $this->markTestSkipped('Requires successful first sync - testing timestamp comparison logic.');
 
@@ -198,8 +207,8 @@ class SyncIdempotencyTest extends TestCase {
                     'data' => ['name' => 'Newer Data'],
                     'created_at' => now()->toISOString(),
                     'updated_at' => now()->toISOString(),
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $this->assertEquals('Newer Data', Response::where('local_id', $localId)->first()->data['name']);
@@ -215,8 +224,8 @@ class SyncIdempotencyTest extends TestCase {
                     'data' => ['name' => 'Older Data'],
                     'created_at' => now()->subDays(2)->toISOString(),
                     'updated_at' => now()->subDays(2)->toISOString(), // Older!
-                ]
-            ]
+                ],
+            ],
         ]);
 
         // Data should NOT be overwritten with older data
@@ -224,7 +233,8 @@ class SyncIdempotencyTest extends TestCase {
     }
 
     /** @test */
-    public function sync_does_not_create_duplicate_assignments_on_retry() {
+    public function sync_does_not_create_duplicate_assignments_on_retry()
+    {
         // Skip: This test requires a table with latestPublishedVersion AND user membership
         // to allow ad-hoc assignment creation. Current seeder data may not satisfy this.
         $this->markTestSkipped('Requires specific seeder setup for ad-hoc assignment creation.');
@@ -243,8 +253,8 @@ class SyncIdempotencyTest extends TestCase {
                     'data' => ['name' => 'First'],
                     'created_at' => now()->toISOString(),
                     'updated_at' => now()->toISOString(),
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $this->assertNotNull($response1->json('data.0.new_assignment_id'));
@@ -262,8 +272,8 @@ class SyncIdempotencyTest extends TestCase {
                     'data' => ['name' => 'Second'],
                     'created_at' => now()->toISOString(),
                     'updated_at' => now()->toISOString(),
-                ]
-            ]
+                ],
+            ],
         ]);
 
         // Should NOT create another assignment

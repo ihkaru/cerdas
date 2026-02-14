@@ -7,13 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-class AppInvitation extends Model {
+class AppInvitation extends Model
+{
     use HasFactory;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
-    protected static function booted() {
+    protected static function booted()
+    {
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) Str::uuid();
@@ -34,11 +37,13 @@ class AppInvitation extends Model {
 
     // ========== Relationships ==========
 
-    public function app(): BelongsTo {
+    public function app(): BelongsTo
+    {
         return $this->belongsTo(App::class);
     }
 
-    public function creator(): BelongsTo {
+    public function creator(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'created_by');
     }
 }

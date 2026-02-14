@@ -4,11 +4,13 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
-    public function up(): void {
+    public function up(): void
+    {
         Schema::table('responses', function (Blueprint $table) {
             // local_id is used for idempotent sync - client generates UUID, server uses it to prevent duplicates
             $table->uuid('local_id')->nullable()->unique()->after('id');
@@ -18,7 +20,8 @@ return new class extends Migration {
     /**
      * Reverse the migrations.
      */
-    public function down(): void {
+    public function down(): void
+    {
         Schema::table('responses', function (Blueprint $table) {
             $table->dropColumn('local_id');
         });

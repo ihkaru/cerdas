@@ -9,11 +9,13 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class OrganizationController extends Controller {
+class OrganizationController extends Controller
+{
     /**
      * List user's organizations (and public ones).
      */
-    public function index(Request $request): JsonResponse {
+    public function index(Request $request): JsonResponse
+    {
         $user = $request->user();
         $query = Organization::query();
 
@@ -45,7 +47,8 @@ class OrganizationController extends Controller {
     /**
      * Create a new organization.
      */
-    public function store(Request $request): JsonResponse {
+    public function store(Request $request): JsonResponse
+    {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50', // Code is no longer globally unique, but we should check per user?
@@ -70,9 +73,10 @@ class OrganizationController extends Controller {
     /**
      * Update an organization.
      */
-    public function update(Request $request, Organization $organization): JsonResponse {
+    public function update(Request $request, Organization $organization): JsonResponse
+    {
         // Authorization: Only creator or Super Admin can update
-        if ($organization->creator_id !== $request->user()->id && !$request->user()->is_super_admin) {
+        if ($organization->creator_id !== $request->user()->id && ! $request->user()->is_super_admin) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -93,9 +97,10 @@ class OrganizationController extends Controller {
     /**
      * Delete an organization.
      */
-    public function destroy(Request $request, Organization $organization): JsonResponse {
+    public function destroy(Request $request, Organization $organization): JsonResponse
+    {
         // Authorization
-        if ($organization->creator_id !== $request->user()->id && !$request->user()->is_super_admin) {
+        if ($organization->creator_id !== $request->user()->id && ! $request->user()->is_super_admin) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -110,12 +115,13 @@ class OrganizationController extends Controller {
     /**
      * Get members of an organization.
      */
-    public function members(Request $request, Organization $organization): JsonResponse {
+    public function members(Request $request, Organization $organization): JsonResponse
+    {
         // Allow members or creator to view list
         $user = $request->user();
         $isMember = $organization->members()->where('user_id', $user->id)->exists();
 
-        if (!$isMember && $organization->creator_id !== $user->id && !$user->is_super_admin) {
+        if (! $isMember && $organization->creator_id !== $user->id && ! $user->is_super_admin) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -129,8 +135,9 @@ class OrganizationController extends Controller {
     /**
      * Add member to organization.
      */
-    public function addMember(Request $request, Organization $organization): JsonResponse {
-        if ($organization->creator_id !== $request->user()->id && !$request->user()->is_super_admin) {
+    public function addMember(Request $request, Organization $organization): JsonResponse
+    {
+        if ($organization->creator_id !== $request->user()->id && ! $request->user()->is_super_admin) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -143,7 +150,7 @@ class OrganizationController extends Controller {
 
         if ($user) {
             $organization->members()->syncWithoutDetaching([
-                $user->id => ['role' => $validated['role'] ?? 'member']
+                $user->id => ['role' => $validated['role'] ?? 'member'],
             ]);
 
             // Send Notification
@@ -174,8 +181,9 @@ class OrganizationController extends Controller {
     /**
      * Remove member from organization.
      */
-    public function removeMember(Request $request, Organization $organization, User $user): JsonResponse {
-        if ($organization->creator_id !== $request->user()->id && !$request->user()->is_super_admin) {
+    public function removeMember(Request $request, Organization $organization, User $user): JsonResponse
+    {
+        if ($organization->creator_id !== $request->user()->id && ! $request->user()->is_super_admin) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -187,8 +195,9 @@ class OrganizationController extends Controller {
     /**
      * Cancel an invitation.
      */
-    public function cancelInvitation(Request $request, Organization $organization, OrganizationInvitation $invitation): JsonResponse {
-        if ($organization->creator_id !== $request->user()->id && !$request->user()->is_super_admin) {
+    public function cancelInvitation(Request $request, Organization $organization, OrganizationInvitation $invitation): JsonResponse
+    {
+        if ($organization->creator_id !== $request->user()->id && ! $request->user()->is_super_admin) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 

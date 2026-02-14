@@ -9,13 +9,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class Assignment extends Model {
+class Assignment extends Model
+{
     use HasFactory, SoftDeletes;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
-    protected static function booted() {
+    protected static function booted()
+    {
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) Str::uuid();
@@ -43,69 +46,82 @@ class Assignment extends Model {
     /**
      * The Table this assignment belongs to.
      */
-    public function table(): BelongsTo {
+    public function table(): BelongsTo
+    {
         return $this->belongsTo(Table::class);
     }
 
     /**
      * The specific TableVersion this assignment was created with.
      */
-    public function tableVersion(): BelongsTo {
+    public function tableVersion(): BelongsTo
+    {
         return $this->belongsTo(TableVersion::class);
     }
 
-    public function organization(): BelongsTo {
+    public function organization(): BelongsTo
+    {
         return $this->belongsTo(Organization::class);
     }
 
-    public function supervisor(): BelongsTo {
+    public function supervisor(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'supervisor_id');
     }
 
-    public function enumerator(): BelongsTo {
+    public function enumerator(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'enumerator_id');
     }
 
-    public function responses(): HasMany {
+    public function responses(): HasMany
+    {
         return $this->hasMany(Response::class);
     }
 
     // ========== Scopes ==========
 
-    public function scopeStatus($query, string $status) {
+    public function scopeStatus($query, string $status)
+    {
         return $query->where('status', $status);
     }
 
-    public function scopeForEnumerator($query, string $userId) {
+    public function scopeForEnumerator($query, string $userId)
+    {
         return $query->where('enumerator_id', $userId);
     }
 
-    public function scopeForSupervisor($query, string $userId) {
+    public function scopeForSupervisor($query, string $userId)
+    {
         return $query->where('supervisor_id', $userId);
     }
 
     // ========== Helpers ==========
 
-    public function markInProgress(): void {
+    public function markInProgress(): void
+    {
         if ($this->status === 'assigned') {
             $this->update(['status' => 'in_progress']);
         }
     }
 
-    public function markCompleted(): void {
+    public function markCompleted(): void
+    {
         if ($this->status !== 'synced') {
             $this->update(['status' => 'completed']);
         }
     }
 
-    public function markSynced(): void {
+    public function markSynced(): void
+    {
         $this->update(['status' => 'synced']);
     }
 
     /**
      * Get the active TableVersion for this assignment's Table.
      */
-    public function getActiveTableVersion(): ?TableVersion {
+    public function getActiveTableVersion(): ?TableVersion
+    {
         return $this->table?->latestPublishedVersion;
     }
 }

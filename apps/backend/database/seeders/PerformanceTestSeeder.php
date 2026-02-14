@@ -2,19 +2,21 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use App\Models\User;
-use App\Models\Organization;
 use App\Models\App;
+use App\Models\AppMembership;
+use App\Models\Organization;
 use App\Models\Table;
 use App\Models\TableVersion;
-use App\Models\AppMembership;
+use App\Models\User;
 use Faker\Factory as Faker;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class PerformanceTestSeeder extends Seeder {
-    public function run(): void {
+class PerformanceTestSeeder extends Seeder
+{
+    public function run(): void
+    {
         $faker = Faker::create('id_ID');
         $faker->seed(1234); // CONSTANT SEED for deterministic data
 
@@ -32,7 +34,7 @@ class PerformanceTestSeeder extends Seeder {
                 'name' => 'Performance Stress Test App',
                 'description' => 'Tested with 10k assignments',
                 'created_by' => $admin->id,
-                'mode' => 'complex'
+                'mode' => 'complex',
             ]
         );
 
@@ -68,7 +70,9 @@ class PerformanceTestSeeder extends Seeder {
                     4 => 'image'
                 };
                 $field = ['name' => "q_{$idx}_{$type}", 'label' => "Q{$idx}", 'type' => $type];
-                if ($type === 'select') $field['options'] = [['value' => 'A', 'label' => 'A'], ['value' => 'B', 'label' => 'B']];
+                if ($type === 'select') {
+                    $field['options'] = [['value' => 'A', 'label' => 'A'], ['value' => 'B', 'label' => 'B']];
+                }
                 $schemaFields[] = $field;
             }
         }
@@ -117,10 +121,10 @@ class PerformanceTestSeeder extends Seeder {
                     'name' => $row[2],
                     'name_head' => $row[2],
                     'address' => $row[3],
-                    'notes' => $row[4] ?? ''
+                    'notes' => $row[4] ?? '',
                 ]),
                 'created_at' => $now,
-                'updated_at' => $now
+                'updated_at' => $now,
             ];
 
             if (count($batch) >= 500) {
@@ -131,7 +135,7 @@ class PerformanceTestSeeder extends Seeder {
             $count++;
         }
 
-        if (!empty($batch)) {
+        if (! empty($batch)) {
             DB::table('assignments')->insert($batch);
         }
 
@@ -139,11 +143,16 @@ class PerformanceTestSeeder extends Seeder {
         $this->command->info("\nImported $count assignments from CSV.");
     }
 
-    private function ensureCsvExists($path, $faker) {
-        if (file_exists($path)) return;
+    private function ensureCsvExists($path, $faker)
+    {
+        if (file_exists($path)) {
+            return;
+        }
 
         $this->command->info('Generating static CSV file...');
-        if (!is_dir(dirname($path))) mkdir(dirname($path), 0755, true);
+        if (! is_dir(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
 
         $handle = fopen($path, 'w');
         fputcsv($handle, ['uuid', 'status', 'name', 'address', 'notes']);
@@ -154,7 +163,7 @@ class PerformanceTestSeeder extends Seeder {
                 'assigned',
                 $faker->name,
                 $faker->address,
-                'Stress Test UUID Data'
+                'Stress Test UUID Data',
             ]);
         }
         fclose($handle);

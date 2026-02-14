@@ -4,11 +4,13 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
-    public function up(): void {
+    public function up(): void
+    {
         // 1. Personal Access Tokens (Sanctum)
         Schema::create('personal_access_tokens', function (Blueprint $table) {
             $table->id(); // BigInt ID for the token itself
@@ -32,7 +34,6 @@ return new class extends Migration {
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
         });
-
 
         // 2. Permission Tables (Spatie)
         // Hardcoded standard names
@@ -114,7 +115,8 @@ return new class extends Migration {
     /**
      * Reverse the migrations.
      */
-    public function down(): void {
+    public function down(): void
+    {
         Schema::dropIfExists('role_has_permissions');
         Schema::dropIfExists('model_has_roles');
         Schema::dropIfExists('model_has_permissions');

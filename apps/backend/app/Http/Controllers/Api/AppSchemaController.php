@@ -10,23 +10,24 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 
 /**
  * App Schema Controller
- * 
+ *
  * Handles full App-level JSON schema operations for import/export and code editing.
  */
-class AppSchemaController extends Controller {
+class AppSchemaController extends Controller
+{
     /**
      * Get full App schema as JSON.
-     * 
+     *
      * Returns the comprehensive JSON representation including:
      * - App metadata (name, slug, description, mode, navigation)
      * - All Tables with their fields, settings, source config
      * - All Views with their table references and config
      */
-    public function getSchema(App $app): JsonResponse {
+    public function getSchema(App $app): JsonResponse
+    {
         // Load all relationships
         $app->load(['tables.latestVersion', 'views']);
 
@@ -57,8 +58,8 @@ class AppSchemaController extends Controller {
                     'actions' => [
                         'header' => [],
                         'row' => [],
-                        'swipe' => ['left' => [], 'right' => []]
-                    ]
+                        'swipe' => ['left' => [], 'right' => []],
+                    ],
                 ],
             ];
         }
@@ -83,14 +84,15 @@ class AppSchemaController extends Controller {
 
     /**
      * Update App from JSON schema.
-     * 
+     *
      * Accepts a full App JSON and updates:
      * - App metadata
      * - Creates/Updates/Deletes Tables
      * - Creates/Updates/Deletes Views
      * - Updates Navigation
      */
-    public function updateSchema(Request $request, App $app): JsonResponse {
+    public function updateSchema(Request $request, App $app): JsonResponse
+    {
         $data = $request->json()->all();
 
         // Validate structure (basic validation, more in frontend)
@@ -106,7 +108,7 @@ class AppSchemaController extends Controller {
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -176,7 +178,7 @@ class AppSchemaController extends Controller {
             foreach ($data['views'] ?? [] as $viewKey => $viewData) {
                 // Find table by slug
                 $table = $app->tables->firstWhere('slug', $viewData['table']);
-                if (!$table) {
+                if (! $table) {
                     continue; // Skip if table not found
                 }
 
@@ -205,13 +207,14 @@ class AppSchemaController extends Controller {
 
             return response()->json([
                 'message' => 'Schema updated successfully',
-                'app' => $app->fresh(['tables.latestVersion', 'views'])
+                'app' => $app->fresh(['tables.latestVersion', 'views']),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'message' => 'Failed to update schema',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -219,20 +222,22 @@ class AppSchemaController extends Controller {
     /**
      * Export App schema as downloadable JSON file.
      */
-    public function exportSchema(App $app): JsonResponse {
+    public function exportSchema(App $app): JsonResponse
+    {
         // Get schema using getSchema method
         $schemaResponse = $this->getSchema($app);
         $schema = json_decode($schemaResponse->getContent(), true);
 
         return response()->json($schema)
-            ->header('Content-Disposition', 'attachment; filename="' . $app->slug . '-schema.json"')
+            ->header('Content-Disposition', 'attachment; filename="'.$app->slug.'-schema.json"')
             ->header('Content-Type', 'application/json');
     }
 
     /**
      * Import/Create App from JSON schema.
      */
-    public function importSchema(Request $request): JsonResponse {
+    public function importSchema(Request $request): JsonResponse
+    {
         $data = $request->json()->all();
 
         // Validate structure
@@ -246,7 +251,7 @@ class AppSchemaController extends Controller {
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -254,8 +259,8 @@ class AppSchemaController extends Controller {
         $existingApp = App::where('slug', $data['app']['slug'])->first();
         if ($existingApp) {
             return response()->json([
-                'message' => 'App with slug "' . $data['app']['slug'] . '" already exists',
-                'existing_app_id' => $existingApp->id
+                'message' => 'App with slug "'.$data['app']['slug'].'" already exists',
+                'existing_app_id' => $existingApp->id,
             ], 409);
         }
 
@@ -301,7 +306,9 @@ class AppSchemaController extends Controller {
 
             foreach ($data['views'] ?? [] as $viewKey => $viewData) {
                 $table = $app->tables->firstWhere('slug', $viewData['table']);
-                if (!$table) continue;
+                if (! $table) {
+                    continue;
+                }
 
                 $app->views()->create([
                     'table_id' => $table->id,
@@ -316,13 +323,14 @@ class AppSchemaController extends Controller {
 
             return response()->json([
                 'message' => 'App imported successfully',
-                'app' => $app->fresh(['tables.latestVersion', 'views'])
+                'app' => $app->fresh(['tables.latestVersion', 'views']),
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'message' => 'Failed to import schema',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class OrganizationInvitation extends Model {
+class OrganizationInvitation extends Model
+{
     use HasFactory, HasUuids;
 
     protected $fillable = [
@@ -18,11 +19,13 @@ class OrganizationInvitation extends Model {
         'created_by',
     ];
 
-    public function organization(): BelongsTo {
+    public function organization(): BelongsTo
+    {
         return $this->belongsTo(Organization::class);
     }
 
-    public function creator(): BelongsTo {
+    public function creator(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'created_by');
     }
 }

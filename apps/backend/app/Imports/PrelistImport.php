@@ -9,28 +9,36 @@ use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
-class PrelistImport implements ToCollection, WithHeadingRow {
+class PrelistImport implements ToCollection, WithHeadingRow
+{
     private $tableVersionId;
+
     private $appId;
+
     private $supervisorCache = [];
+
     private $enumeratorCache = [];
+
     private $orgCache = [];
 
     private $tableId;
 
-    public function __construct(int $tableVersionId, int $appId, int $tableId) {
+    public function __construct(int $tableVersionId, int $appId, int $tableId)
+    {
         $this->tableVersionId = $tableVersionId;
         $this->appId = $appId;
         $this->tableId = $tableId;
     }
 
-    public function collection(Collection $rows) {
+    public function collection(Collection $rows)
+    {
         $rows->each(function ($row) {
             $this->createAssignment($row);
         });
     }
 
-    private function createAssignment($row) {
+    private function createAssignment($row)
+    {
         // Extract known fields
         $externalId = $row['external_id'] ?? null;
         $orgCode = $row['organization'] ?? null;
@@ -40,7 +48,7 @@ class PrelistImport implements ToCollection, WithHeadingRow {
         // Find Organization
         $orgId = null;
         if ($orgCode) {
-            if (!isset($this->orgCache[$orgCode])) {
+            if (! isset($this->orgCache[$orgCode])) {
                 // Find organization by code attached to this app
                 $org = Organization::where('code', $orgCode)
                     ->whereHas('apps', function ($q) {
@@ -54,7 +62,7 @@ class PrelistImport implements ToCollection, WithHeadingRow {
         // Find Supervisor
         $supervisorId = null;
         if ($supervisorEmail) {
-            if (!isset($this->supervisorCache[$supervisorEmail])) {
+            if (! isset($this->supervisorCache[$supervisorEmail])) {
                 $user = User::where('email', $supervisorEmail)->first();
                 $this->supervisorCache[$supervisorEmail] = $user?->id;
             }
@@ -64,7 +72,7 @@ class PrelistImport implements ToCollection, WithHeadingRow {
         // Find Enumerator
         $enumeratorId = null;
         if ($enumeratorEmail) {
-            if (!isset($this->enumeratorCache[$enumeratorEmail])) {
+            if (! isset($this->enumeratorCache[$enumeratorEmail])) {
                 $user = User::where('email', $enumeratorEmail)->first();
                 $this->enumeratorCache[$enumeratorEmail] = $user?->id;
             }

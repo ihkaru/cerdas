@@ -5,16 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\App;
 use App\Models\Table;
-use App\Models\TableVersion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-class TableController extends Controller {
+class TableController extends Controller
+{
     /**
      * List all tables for an app
      */
-    public function index(Request $request): JsonResponse {
+    public function index(Request $request): JsonResponse
+    {
         $request->validate([
             'app_id' => 'nullable|exists:apps,id',
         ]);
@@ -26,7 +27,7 @@ class TableController extends Controller {
 
         if ($appId) {
             // Check app access via AppMembership
-            if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $appId)->exists()) {
+            if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $appId)->exists()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Access denied to this app',
@@ -50,7 +51,8 @@ class TableController extends Controller {
     /**
      * Create a new table
      */
-    public function store(Request $request): JsonResponse {
+    public function store(Request $request): JsonResponse
+    {
         $validated = $request->validate([
             'app_id' => 'required|exists:apps,id',
             'name' => 'required|string|max:255',
@@ -62,7 +64,7 @@ class TableController extends Controller {
 
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $validated['app_id'])->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $validated['app_id'])->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied to this app',
@@ -78,7 +80,7 @@ class TableController extends Controller {
             ->where('slug', $slug)
             ->exists()
         ) {
-            $slug = $baseSlug . '-' . $counter++;
+            $slug = $baseSlug.'-'.$counter++;
         }
 
         $table = Table::create([
@@ -108,11 +110,12 @@ class TableController extends Controller {
     /**
      * Get a specific table with its current version
      */
-    public function show(Request $request, Table $table): JsonResponse {
+    public function show(Request $request, Table $table): JsonResponse
+    {
         $user = $request->user();
 
         // Check access (super admin bypasses)
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied to this table',
@@ -132,10 +135,11 @@ class TableController extends Controller {
     /**
      * Update table metadata (not fields)
      */
-    public function update(Request $request, Table $table): JsonResponse {
+    public function update(Request $request, Table $table): JsonResponse
+    {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -162,10 +166,11 @@ class TableController extends Controller {
     /**
      * Delete a table (soft delete)
      */
-    public function destroy(Request $request, Table $table): JsonResponse {
+    public function destroy(Request $request, Table $table): JsonResponse
+    {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -193,10 +198,11 @@ class TableController extends Controller {
     /**
      * List all versions for a table (Version History)
      */
-    public function listVersions(Request $request, Table $table): JsonResponse {
+    public function listVersions(Request $request, Table $table): JsonResponse
+    {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -205,7 +211,7 @@ class TableController extends Controller {
 
         \Illuminate\Support\Facades\Log::debug('Listing versions for table', [
             'table_id' => $table->id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         $versions = $table->versions()
@@ -232,10 +238,11 @@ class TableController extends Controller {
     /**
      * Get a specific version
      */
-    public function showVersion(Request $request, Table $table, int $version): JsonResponse {
+    public function showVersion(Request $request, Table $table, int $version): JsonResponse
+    {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -246,7 +253,7 @@ class TableController extends Controller {
             ->where('version', $version)
             ->first();
 
-        if (!$tableVersion) {
+        if (! $tableVersion) {
             return response()->json([
                 'success' => false,
                 'message' => 'Version not found',
@@ -266,10 +273,11 @@ class TableController extends Controller {
     /**
      * Update a version's fields/layout (Editor Save)
      */
-    public function updateVersion(Request $request, Table $table, int $version): JsonResponse {
+    public function updateVersion(Request $request, Table $table, int $version): JsonResponse
+    {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -278,7 +286,7 @@ class TableController extends Controller {
 
         $tableVersion = $table->versions()->where('version', $version)->first();
 
-        if (!$tableVersion) {
+        if (! $tableVersion) {
             return response()->json(['success' => false, 'message' => 'Version not found'], 404);
         }
 
@@ -290,7 +298,7 @@ class TableController extends Controller {
             'id' => $version,
             'fields_type' => gettype($request->fields),
             'layout_type' => gettype($request->layout),
-            'request_all' => $request->all()
+            'request_all' => $request->all(),
         ]);
 
         try {
@@ -315,10 +323,11 @@ class TableController extends Controller {
     /**
      * Publish a version (makes it immutable)
      */
-    public function publishVersion(Request $request, Table $table, int $version): JsonResponse {
+    public function publishVersion(Request $request, Table $table, int $version): JsonResponse
+    {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -327,7 +336,7 @@ class TableController extends Controller {
 
         $tableVersion = $table->versions()->where('version', $version)->first();
 
-        if (!$tableVersion) {
+        if (! $tableVersion) {
             return response()->json([
                 'success' => false,
                 'message' => 'Version not found',
@@ -344,10 +353,10 @@ class TableController extends Controller {
         \Illuminate\Support\Facades\Log::debug('Publishing version', [
             'id' => $version,
             'changelog' => $request->input('changelog'),
-            'request_all' => $request->all()
+            'request_all' => $request->all(),
         ]);
 
-        $changelog = $request->input('changelog', 'Published version ' . $version);
+        $changelog = $request->input('changelog', 'Published version '.$version);
         $tableVersion->publish($changelog);
 
         // Save version policy to table settings if provided
@@ -358,7 +367,7 @@ class TableController extends Controller {
             $table->update(['settings' => $settings]);
         }
 
-        // Auto-create new draft version removed. 
+        // Auto-create new draft version removed.
         // User should explicitly create draft when they start editing again.
 
         return response()->json([
@@ -371,10 +380,11 @@ class TableController extends Controller {
     /**
      * Create a new draft version based on latest published or specific version
      */
-    public function createDraftVersion(Request $request, Table $table): JsonResponse {
+    public function createDraftVersion(Request $request, Table $table): JsonResponse
+    {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -384,7 +394,7 @@ class TableController extends Controller {
         // Check if latest version is already a draft
         $latestVersionObj = $table->versions()->orderByDesc('version')->first();
 
-        if ($latestVersionObj && !$latestVersionObj->isPublished()) {
+        if ($latestVersionObj && ! $latestVersionObj->isPublished()) {
             return response()->json([
                 'success' => true,
                 'data' => $latestVersionObj,
