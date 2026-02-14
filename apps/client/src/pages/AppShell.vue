@@ -31,7 +31,7 @@
                     <!-- Leaf Views (Assignments/Map/etc) -->
                     <div v-else key="leaf">
                         <ViewRenderer :config="currentViewConfig.config"
-                            :data="getViewData(currentViewConfig.config.source)" :contextId="contextId"
+                            :data="getViewData((currentViewConfig!.config as any).source)" :contextId="contextId"
                             :actions="rowActions" :swipe-config="swipeConfig" @action="handleRowAction" />
                     </div>
                 </transition>
@@ -76,8 +76,9 @@
                             <div v-else key="leaf">
                                 <ViewRenderer v-if="getAppViewConfig(item.view_id)"
                                     :config="getAppViewConfig(item.view_id)"
-                                    :data="getViewData(getAppViewConfig(item.view_id).source)" :contextId="contextId"
-                                    :actions="rowActions" :swipe-config="swipeConfig" @action="handleRowAction" />
+                                    :data="getViewData((getAppViewConfig(item.view_id)!.config as any).source)"
+                                    :contextId="contextId" :actions="rowActions" :swipe-config="swipeConfig"
+                                    @action="handleRowAction" />
                                 <div v-else class="padding text-align-center">
                                     <p>View configuration not found: {{ item.view_id }}</p>
                                 </div>

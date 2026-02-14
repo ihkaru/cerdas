@@ -6,7 +6,7 @@ import { ref } from 'vue';
 import { AppMetadataService } from '../../services/AppMetadataService';
 
 interface AuthStore {
-    user: { role?: string } | null;
+    user: { role?: string | undefined } | null;
     updateUser: (data: { role: string }) => void;
 }
 

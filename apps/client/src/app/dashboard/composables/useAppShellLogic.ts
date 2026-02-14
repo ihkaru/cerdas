@@ -148,7 +148,7 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
                  const exactTable = metadata.appTables.value.find((t: any) => t.id === contextId);
                  if (!exactTable) {
                      // contextId is likely AppID, so pick first table as default
-                     targetTableId = metadata.appTables.value[0].id;
+                     targetTableId = (metadata.appTables.value[0] as any).id;
                      log.debug(`Context ${contextId} resolved to Default Table ${targetTableId}`);
                  }
             }
