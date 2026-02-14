@@ -54,7 +54,8 @@
             <f7-tabs animated>
                 <!-- Dynamic Tabs from App Navigation -->
                 <f7-tab v-for="item in appNavigation" :key="item.id" :id="`view-${item.view_id}`" class="page-content"
-                    :tab-active="activeView === item.view_id" @tab:show="activeView = item.view_id">
+                    :tab-active="activeView === (item.view_id as string)"
+                    @tab:show="activeView = (item.view_id as string)">
 
                     <!-- Only render content if active to save resources & prevent background map loads -->
                     <template v-if="activeView === item.view_id">

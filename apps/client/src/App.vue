@@ -15,11 +15,7 @@ import DebugMenuSheet from './common/components/DebugMenuSheet.vue';
 import { useLogger } from './common/utils/logger';
 import routes from './routes';
 
-interface Route {
-  path?: string;
-  params?: Record<string, string>;
-  query?: Record<string, string>;
-}
+
 
 const log = useLogger('App');
 

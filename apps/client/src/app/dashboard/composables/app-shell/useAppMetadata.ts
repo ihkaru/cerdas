@@ -10,16 +10,8 @@ interface AuthStore {
     updateUser: (data: any) => void;
 }
 
-interface AppMetadata {
-    navigation?: Record<string, unknown>[];
-    views?: Record<string, unknown>[];
-    version?: string;
-}
 
-interface SyncResult {
-    appData?: AppMetadata;
-    tables?: Record<string, unknown>[];
-}
+
 
 export function useAppMetadata(
     contextId: string, 
