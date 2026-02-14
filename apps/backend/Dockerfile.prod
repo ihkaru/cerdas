@@ -39,6 +39,13 @@ RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions sto
 # Set permissions to UID 1000 (standard for Coolify/Docker non-root)
 RUN chown -R 1000:1000 /var/www/html
 
+# 1. Use the official PHP production configuration as the base
+RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
+
+# 2. Add custom overrides (prefix 99- ensuring it loads last)
+COPY upload.ini $PHP_INI_DIR/conf.d/99-upload.ini
+
+
 # Explicitly set binary path for Octane
 # Copy startup script
 COPY start-container.sh /usr/local/bin/start-container

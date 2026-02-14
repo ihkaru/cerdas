@@ -94,9 +94,11 @@ packages/types  - @cerdas/types (shared strict TS types)
   - **Styling**: Enforced white text/icons on popup buttons to override default blue link styles.
   - **UX**: Aligned "Get Directions" icon/color with `GpsField.vue` standards.
   - **Navigation**: Implemented delegated click handling for F7 router compatibility in map popups.
-- **Stability & Build Quality**:
-  - **Local Verification**: Integrated `verify-local.sh` (build + lint) into the workflow.
-  - **Shared Package Fix**: Resolved build-breaking TypeScript error in `packages/form-engine/src/utils/geoUtils.ts`.
+- **Excel Import & Stability**: 
+    - Reduced batch size and implemented recursive retry splitting logic in `ImportExcelJob.php`.
+    - Added comprehensive GPS coordinate string parsing support in `geoUtils.ts` and `GpsField.vue`.
+    - Fixed several strict `pre-push` style and type blockers.
+- **Final Push**: Successfully pushed all verified code fixes to GitHub while excluding large CSV test files.
 - **Excel Import (Recent)**:
   - Enhanced `ExcelImportModal` and backend `ExcelImportController` for more robust data handling (matching modified files).
 

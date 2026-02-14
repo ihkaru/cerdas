@@ -1,0 +1,78 @@
+
+> editor@0.1.35 test:run C:\projects\cerdas\apps\editor
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.17 [39m[90mC:/projects/cerdas/apps/editor[39m
+
+[90mstdout[2m | tests/stores/app.store.spec.ts[2m > [22m[2mAppStore[2m > [22m[2mfetchApps[2m > [22m[2mshould fetch all apps
+[22m[39m[AppStore] fetchApps called, current apps: [33m0[39m
+
+[90mstdout[2m | tests/stores/app.store.spec.ts[2m > [22m[2mAppStore[2m > [22m[2mfetchApps[2m > [22m[2mshould fetch all apps
+[22m[39m[AppStore] fetchApps received: [33m2[39m apps
+
+[90mstdout[2m | tests/stores/app.store.spec.ts[2m > [22m[2mAppStore[2m > [22m[2mfetchApps[2m > [22m[2mshould handle fetch error
+[22m[39m[AppStore] fetchApps called, current apps: [33m0[39m
+
+stderr | tests/stores/app.store.spec.ts > AppStore > fetchApps > should handle fetch error
+Error: Network error
+    at C:/projects/cerdas/apps/editor/tests/stores/app.store.spec.ts:41:56
+    at file:///C:/projects/cerdas/node_modules/.pnpm/@vitest+runner@4.0.17/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///C:/projects/cerdas/node_modules/.pnpm/@vitest+runner@4.0.17/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///C:/projects/cerdas/node_modules/.pnpm/@vitest+runner@4.0.17/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///C:/projects/cerdas/node_modules/.pnpm/@vitest+runner@4.0.17/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///C:/projects/cerdas/node_modules/.pnpm/@vitest+runner@4.0.17/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///C:/projects/cerdas/node_modules/.pnpm/vitest@4.0.17_@types+node@24.10.8_happy-dom@20.5.0_jiti@2.6.1_lightningcss@1.30.2_msw@2.12.9__t73ckqt3sxrh3i4jsh5jsopqeu/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///C:/projects/cerdas/node_modules/.pnpm/vitest@4.0.17_@types+node@24.10.8_happy-dom@20.5.0_jiti@2.6.1_lightningcss@1.30.2_msw@2.12.9__t73ckqt3sxrh3i4jsh5jsopqeu/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///C:/projects/cerdas/node_modules/.pnpm/@vitest+runner@4.0.17/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+ [31mΓ¥»[39m tests/stores/table.store.spec.ts [2m([22m[2m8 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 20[2mms[22m[39m
+       [32mΓ£ô[39m should fetch tables for an app[32m 4[2mms[22m[39m
+       [32mΓ£ô[39m should handle fetch error[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should fetch a single table by ID[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should create a new table[32m 1[2mms[22m[39m
+       [32mΓ£ô[39m should throw on creation error[32m 2[2mms[22m[39m
+       [32mΓ£ô[39m should update table version fields and layout[32m 2[2mms[22m[39m
+       [32mΓ£ô[39m should create a new draft version[32m 0[2mms[22m[39m
+[31m       [31m├ù[31m should publish a version and refresh table[39m[32m 6[2mms[22m[39m
+ [32mΓ£ô[39m tests/stores/app.store.spec.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Tests 1 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  tests/stores/table.store.spec.ts > TableStore > publishVersion > should publish a version and refresh table
+AssertionError: expected "vi.fn()" to be called with arguments: [ '/tables/1/versions/1/publish' ]
+
+Received: 
+
+  1st vi.fn() call:
+
+  [
+    "/tables/1/versions/1/publish",
++   {
++     "changelog": undefined,
++   },
+  ]
+
+
+Number of calls: 1
+
+ Γ¥» tests/stores/table.store.spec.ts:146:36
+    144|             await store.publishVersion(1, 1);
+    145| 
+    146|             expect(ApiClient.post).toHaveBeenCalledWith('/tables/1/verΓÇª
+       |                                    ^
+    147|             // Should also fetchTable to refresh
+    148|             expect(ApiClient.get).toHaveBeenCalledWith('/tables/1');
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/1]ΓÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m12 passed[39m[22m[90m (13)[39m
+[2m   Start at [22m 01:50:10
+[2m   Duration [22m 1.27s[2m (transform 191ms, setup 478ms, import 286ms, tests 41ms, environment 1.23s)[22m
+
+C:\projects\cerdas\apps\editor:
+ΓÇëERR_PNPM_RECURSIVE_RUN_FIRST_FAILΓÇë editor@0.1.35 test:run: `vitest run`
+Exit status 1

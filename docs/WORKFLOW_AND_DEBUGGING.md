@@ -186,8 +186,25 @@ sequenceDiagram
         Dev->>Script: start-android-local.ps1
         Script->>Docker: Start Backend (Host PHP)
         Emu->>Docker: Connects to Host API
+    else Hybrid Web Dev (Experimental)
+        Dev->>Script: start-dev-docker.bat
+        Script->>Docker: Start Backend (Docker)
+        Script->>Client: Start Vite (Localhost)
+        Client->>Docker: Connects to Localhost:8080
     end
 ```
+
+### Scenario D: Hybrid Web Development (New)
+
+**Use Case:** You want to work on the Frontend (Client/Editor) with fast Vite HMR, but you want a stable, isolated Backend environment (Docker) without managing local PHP/MySQL versions.
+
+**How to run:**
+1.  Run `start-dev-docker.bat`.
+2.  Wait for Docker to start (Backend at `localhost:8080`).
+3.  Client will open at `localhost:3000`.
+4.  Editor will open at `localhost:3001`.
+
+**Note:** This mode uses `.env.docker-web` to configure your frontend to talk to `localhost:8080` instead of `10.0.2.2` (Android).
 
 ## 3. Deployment Pipeline (CI/CD)
 

@@ -70,3 +70,4 @@ apps/backend/migration_log.txt
 apps/client/build_error.log
 apps/editor/build_error.log
 gradle_build.log
+!**/.env.docker-web

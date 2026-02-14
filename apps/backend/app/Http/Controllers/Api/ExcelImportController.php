@@ -22,7 +22,7 @@ class ExcelImportController extends Controller
     public function upload(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv|max:65536', // 64MB max
+            'file' => 'required|file|mimes:xlsx,xls,csv,txt|max:102400', // 100MB max
         ]);
 
         $file = $request->file('file');
