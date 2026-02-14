@@ -39,9 +39,9 @@ Run the development environment:
 
 ## Code Style
 
--   We use **ESLint** and **Prettier** for JavaScript/TypeScript.
--   We use **Laravel Pint** for PHP.
--   Please run linting commands before committing.
+-   We use **ESLint** (with **SonarJS** rules) and **Prettier** for JavaScript/TypeScript.
+-   We use **Laravel Pint** and **Larastan** (Level 5) for PHP.
+-   Please run `pnpm lint` and `composer run analyse` (in `apps/backend`) before committing.
 
 ## Reporting Issues
 

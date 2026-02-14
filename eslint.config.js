@@ -1,5 +1,6 @@
 import tsEslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
+import sonarjs from 'eslint-plugin-sonarjs';
 import eslintPluginVue from 'eslint-plugin-vue';
 import vueParser from 'vue-eslint-parser';
 
@@ -7,6 +8,7 @@ export default [
   {
     ignores: ['**/dist/**', '**/node_modules/**', '**/android/**', '**/ios/**'],
   },
+  sonarjs.configs.recommended,
   // Vue + TypeScript files
   {
     files: ['**/*.vue'],

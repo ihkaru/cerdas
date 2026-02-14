@@ -20,6 +20,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
+    "eslint-plugin-sonarjs": "^3.0.7",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "typescript": "^5.4.0"
@@ -30,7 +31,10 @@
   },
   "pnpm": {
     "overrides": {
-      "sql.js": "1.11.0"
+      "sql.js": "1.11.0",
+      "braces": "3.0.3",
+      "micromatch": "4.0.8",
+      "@isaacs/brace-expansion": "5.0.1"
     }
   }
 }
