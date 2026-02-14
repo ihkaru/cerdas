@@ -17,13 +17,15 @@
                 <f7-tab id="tab-details" class="page-content" tab-active>
                     <f7-block-title>Organization Info</f7-block-title>
                     <f7-list strong-ios dividers-ios inset-ios>
-                        <f7-list-input label="Name" type="text" :value="editOrg.name" @input="editOrg.name = $event.target.value" />
-                        <f7-list-input label="Code" type="text" :value="editOrg.code" @input="editOrg.code = $event.target.value" />
+                        <f7-list-input label="Name" type="text" :value="editOrg.name"
+                            @input="editOrg.name = $event.target.value" />
+                        <f7-list-input label="Code" type="text" :value="editOrg.code"
+                            @input="editOrg.code = $event.target.value" />
                     </f7-list>
                     <f7-block>
                         <f7-button fill @click="saveDetails" :loading="saving">Save Changes</f7-button>
                     </f7-block>
-                    
+
                     <f7-block-footer>
                         Created by: {{ organization?.creator?.name || 'System' }}
                     </f7-block-footer>
@@ -33,28 +35,31 @@
                 <f7-tab id="tab-members" class="page-content">
                     <f7-block-title>Team Members</f7-block-title>
                     <f7-list strong-ios dividers-ios inset-ios>
-                        <f7-list-item v-for="member in members" :key="member.id" :title="member.name" :subtitle="member.email">
-                           <template #after>
+                        <f7-list-item v-for="member in members" :key="member.id" :title="member.name"
+                            :subtitle="member.email">
+                            <template #after>
                                 <f7-badge color="blue">{{ member.pivot?.role || 'member' }}</f7-badge>
                                 <f7-button small color="red" @click="removeMember(member)">Remove</f7-button>
-                           </template>
-                        </f7-list-item>
-                        
-                        <!-- Pending Invitations -->
-                        <f7-list-item v-for="invite in invitations" :key="invite.id" :title="invite.email" subtitle="Pending Invitation">
-                           <template #after>
-                                <f7-badge color="orange">Pending</f7-badge>
-                                <f7-button small color="red" @click="cancelInvitation(invite)">Cancel</f7-button>
-                           </template>
+                            </template>
                         </f7-list-item>
 
-                        <f7-list-item v-if="members.length === 0 && invitations.length === 0" title="No members yet"></f7-list-item>
+                        <!-- Pending Invitations -->
+                        <f7-list-item v-for="invite in invitations" :key="invite.id" :title="invite.email"
+                            subtitle="Pending Invitation">
+                            <template #after>
+                                <f7-badge color="orange">Pending</f7-badge>
+                                <f7-button small color="red" @click="cancelInvitation(invite)">Cancel</f7-button>
+                            </template>
+                        </f7-list-item>
+
+                        <f7-list-item v-if="members.length === 0 && invitations.length === 0"
+                            title="No members yet"></f7-list-item>
                     </f7-list>
 
                     <f7-block-title>Add Member</f7-block-title>
                     <f7-list strong-ios dividers-ios inset-ios>
-                        <f7-list-input label="Email" type="email" placeholder="user@example.com" 
-                            :value="newMemberEmail" @input="newMemberEmail = $event.target.value" clear-button>
+                        <f7-list-input label="Email" type="email" placeholder="user@example.com" :value="newMemberEmail"
+                            @input="newMemberEmail = $event.target.value" clear-button>
                             <template #inner-end>
                                 <f7-button small fill @click="addMember" :loading="addingMember">Add</f7-button>
                             </template>
@@ -147,6 +152,7 @@ async function removeMember(user: any) {
         await ApiClient.delete(`/organizations/${props.organization.id}/members/${user.id}`);
         fetchMembers();
     } catch (e) {
+        console.error('Remove member failed', e);
     }
 }
 

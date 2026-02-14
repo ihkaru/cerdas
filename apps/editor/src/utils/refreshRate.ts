@@ -99,11 +99,7 @@ export function applyRefreshRateCSS(info: RefreshRateInfo): void {
     root.classList.add('reduced-motion');
   }
   
-  console.log('[RefreshRate] Applied CSS properties:', {
-    rate: info.rate,
-    duration: optimalDuration,
-    reducedMotion: info.prefersReducedMotion
-  });
+
 }
 
 /**
@@ -173,7 +169,6 @@ export function startTransitionMonitor(label: string = 'transition'): void {
   };
   
   isMonitoring = true;
-  console.log(`[FPS] 🎬 Started monitoring "${label}" | Target: ${estimatedRefreshRate}Hz (${monitoringData.targetFrameTime.toFixed(2)}ms/frame)`);
   
   monitorFrames(label);
 }
@@ -188,7 +183,7 @@ function monitorFrames(label: string): void {
   
   // Detect significant frame drops (>50% longer than target)
   if (frameTime > monitoringData.targetFrameTime * 1.5) {
-    console.warn(`[FPS] ⚠️ Frame drop detected: ${frameTime.toFixed(2)}ms (target: ${monitoringData.targetFrameTime.toFixed(2)}ms)`);
+     // Frame drop detected - silent monitoring
   }
   
   requestAnimationFrame(() => monitorFrames(label));
@@ -211,7 +206,6 @@ export function stopTransitionMonitor(): FrameStats | null {
   const frameCount = frameTimes.length;
   
   if (frameCount < 2) {
-    console.log('[FPS] Not enough frames to analyze');
     monitoringData = null;
     return null;
   }
@@ -222,8 +216,8 @@ export function stopTransitionMonitor(): FrameStats | null {
   const minFps = 1000 / maxFrameTime;
   const targetFps = 1000 / monitoringData.targetFrameTime;
   
-  // Count dropped frames (frames that took >1.5x target time)
-  const droppedFrames = frameTimes.filter(t => t > monitoringData!.targetFrameTime * 1.5).length;
+  const data = monitoringData;
+  const droppedFrames = frameTimes.filter(t => t > data.targetFrameTime * 1.5).length;
   
   const stats: FrameStats = {
     frameCount,
@@ -234,28 +228,6 @@ export function stopTransitionMonitor(): FrameStats | null {
     droppedFrames,
     targetFps: Math.round(targetFps),
   };
-  
-  // Log results with color coding
-  const isGood = droppedFrames === 0 && avgFps >= targetFps * 0.9;
-  const icon = isGood ? '✅' : droppedFrames > 3 ? '❌' : '⚠️';
-  
-  console.log(`[FPS] ${icon} Transition complete:`, {
-    duration: `${totalTime.toFixed(0)}ms`,
-    frames: frameCount,
-    avgFps: `${stats.avgFps} (target: ${stats.targetFps})`,
-    minFps: stats.minFps,
-    maxFrameTime: `${maxFrameTime.toFixed(2)}ms`,
-    droppedFrames: `${droppedFrames} (${((droppedFrames / frameCount) * 100).toFixed(1)}%)`,
-  });
-  
-  if (droppedFrames > 0) {
-    console.log('[FPS] 💡 Frame drops may be caused by:', [
-      'CSS transitions on non-GPU properties',
-      'JavaScript blocking main thread',
-      'Large DOM updates during animation',
-      'Browser throttling (background tab, battery saver)',
-    ].join('\n  - '));
-  }
   
   monitoringData = null;
   return stats;
@@ -271,8 +243,6 @@ export function measureBlock(label: string, fn: () => void): void {
   
   if (duration > 16.67) { // Longer than 60fps frame
     console.warn(`[Perf] ⚠️ "${label}" took ${duration.toFixed(2)}ms (blocks main thread)`);
-  } else {
-    console.log(`[Perf] "${label}" took ${duration.toFixed(2)}ms`);
   }
 }
 

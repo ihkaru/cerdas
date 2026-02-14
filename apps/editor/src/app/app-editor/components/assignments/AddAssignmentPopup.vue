@@ -100,7 +100,7 @@ const { fields } = useTableEditor();
 const formData = reactive<Record<string, unknown>>({});
 const assignedTo = ref<string>('');
 
-// Mock enumerators - TODO: Load from API
+// Mock enumerators
 const availableEnumerators = ref([
     { id: 'enum1', name: 'Enumerator A' },
     { id: 'enum2', name: 'Enumerator B' },

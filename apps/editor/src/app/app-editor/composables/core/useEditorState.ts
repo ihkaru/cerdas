@@ -79,7 +79,7 @@ const editorState = reactive<TableEditorState>({
 /** Table definition for preview */
 const tableForPreview = computed(() => ({
   id: editorState.tableId || 'preview',
-  app_id: (editorState as any).appId,
+  app_id: editorState.appId,
   name: editorState.tableName,
   description: editorState.description,
   fields: editorState.fields.map(stripEditorProps),
@@ -170,6 +170,42 @@ export function useEditorState() {
     editorState.error = null;
   }
 
+  /** Generate smart defaults for a new table structure */
+  function applySmartDefaults(name: string, fields: EditableFieldDefinition[]): void {
+      const smartLayout = JSON.parse(JSON.stringify(defaultLayout));
+
+      // 1. Guess icon
+      if (editorState.settings) {
+          editorState.settings.icon = guessIcon(name);
+      }
+      
+      // 2. Configure Deck View
+      if (fields.length > 0 && smartLayout.views.default && smartLayout.views.default.deck) {
+          // Primary: First text field that isn't ID or UUID
+          const primaryField = fields.find(f => 
+              f.type === 'text' && !['id', 'uuid', 'guid'].includes(f.name.toLowerCase())
+          ) || fields[0];
+
+          // Secondary: Second text/date/number field
+          const secondaryField = fields.find(f => 
+              primaryField && f.id !== primaryField.id && 
+              (f.type === 'text' || f.type === 'date' || f.type === 'number')
+          );
+
+          // Image field
+          const imageField = fields.find(f => f.type === 'image' || f.type === 'file');
+
+          smartLayout.views.default.deck.primaryHeaderField = primaryField ? primaryField.name : '';
+          smartLayout.views.default.deck.secondaryHeaderField = secondaryField ? secondaryField.name : '';
+          
+          if (imageField) {
+              smartLayout.views.default.deck.imageField = imageField.name;
+          }
+      }
+      
+      editorState.layout = smartLayout;
+  }
+
   /** Load table from data */
   function loadTable(
     tableId: string, 
@@ -183,18 +219,19 @@ export function useEditorState() {
     editorState.isLoading = true;
     
     try {
-      // Add editor IDs to all fields
-      const editableFields = addEditorIds(fields as unknown as EditableFieldDefinition[]);
-      
+      // 1. Setup Basic State
       editorState.tableId = tableId;
-      (editorState as any).appId = appId || null;
+      editorState.appId = appId || null;
       editorState.tableName = name || 'Untitled Table';
       editorState.description = description || '';
+
+      // 2. Process Fields
+      const editableFields = addEditorIds(fields as unknown as EditableFieldDefinition[]);
       editorState.fields = editableFields;
       editorState.originalFields = JSON.parse(JSON.stringify(editableFields));
       
-      // Load settings (prefer from layout if available, fall back to passed settings or default)
-      if (layout && layout.settings) {
+      // 3. Load Settings
+      if (layout?.settings) {
          editorState.settings = JSON.parse(JSON.stringify(layout.settings));
       } else if (settings) {
          editorState.settings = JSON.parse(JSON.stringify(settings));
@@ -202,45 +239,14 @@ export function useEditorState() {
          editorState.settings = JSON.parse(JSON.stringify(defaultSettings));
       }
       
+      // 4. Load or Generate Layout
       if (layout) {
           editorState.layout = JSON.parse(JSON.stringify(layout));
       } else {
-          // Generate smart defaults based on fields
-          const smartLayout = JSON.parse(JSON.stringify(defaultLayout));
-
-          // Also guess the icon based on table name
-          if (editorState.settings) {
-              editorState.settings.icon = guessIcon(name);
-          }
-          
-          if (editableFields.length > 0) {
-              // Find suitable fields for headers
-              // 1. Primary: First text field that isn't ID or UUID
-              const primaryField = editableFields.find(f => 
-                  f.type === 'text' && !['id', 'uuid', 'guid'].includes(f.name.toLowerCase())
-              ) || editableFields[0];
-
-              // 2. Secondary: Second text field or date, different from primary
-              const secondaryField = editableFields.find(f => 
-                  primaryField && f.id !== primaryField.id && 
-                  (f.type === 'text' || f.type === 'date' || f.type === 'number')
-              );
-
-              if (smartLayout.views.default && smartLayout.views.default.deck) {
-                  smartLayout.views.default.deck.primaryHeaderField = primaryField ? primaryField.name : '';
-                  smartLayout.views.default.deck.secondaryHeaderField = secondaryField ? secondaryField.name : '';
-                  
-                  // Try to find an image field
-                  const imageField = editableFields.find(f => f.type === 'image' || f.type === 'file');
-                  if (imageField) {
-                      smartLayout.views.default.deck.imageField = imageField.name;
-                  }
-              }
-          }
-          
-          editorState.layout = smartLayout;
+          applySmartDefaults(name, editableFields);
       }
 
+      // 5. Reset Selection
       editorState.selectedFieldPath = null;
       editorState.nestedPath = [];
       editorState.isDirty = false;

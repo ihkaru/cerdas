@@ -87,7 +87,7 @@ function expandEditor() {
 }
 
 function onPopupOpened() {
-    console.log('[CodeEditor] Popup opened. Model value length:', code.value?.length);
+
     renderExpanded.value = true;
 }
 
@@ -168,7 +168,7 @@ async function formatCode() {
             if (lines.length > 2) {
                 formatted = lines.slice(1, -2).join('\n')
                     // Simple unindent (remove 2 spaces)
-                    .replace(/^  /gm, '');
+                    .replace(/^ {2}/gm, '');
             } else {
                 formatted = rawFormatted; // Fallback
             }

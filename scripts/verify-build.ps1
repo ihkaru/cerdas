@@ -38,11 +38,23 @@ Write-Host "[2/4] Building web assets (vue-tsc + vite)..." -ForegroundColor Yell
 Push-Location $ROOT_DIR
 pnpm --filter client build
 $BUILD_EXIT = $LASTEXITCODE
+
+if ($BUILD_EXIT -eq 0) {
+    Write-Host "      Linting Editor App..." -ForegroundColor Yellow
+    pnpm --filter editor lint
+    $EDITOR_LINT_EXIT = $LASTEXITCODE
+    
+    if ($EDITOR_LINT_EXIT -ne 0) {
+        $BUILD_EXIT = 1
+        Write-Host ">>> EDITOR LINT FAILED!" -ForegroundColor Red
+    }
+}
+
 Pop-Location
 
 if ($BUILD_EXIT -ne 0) {
     Write-Host ""
-    Write-Host ">>> WEB BUILD FAILED! Fix TypeScript/Vite errors above." -ForegroundColor Red
+    Write-Host ">>> WEB BUILD/LINT FAILED! Fix errors above." -ForegroundColor Red
     exit 1
 }
 

@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+import type Framework7 from 'framework7';
 import { f7ready } from 'framework7-vue';
 import type { Framework7Parameters } from 'framework7/types';
 import { computed, onMounted, ref } from 'vue';
@@ -26,7 +27,7 @@ import routes from './routes';
 import { useAuthStore } from './stores/auth.store';
 import { initRefreshRateDetection } from './utils/refreshRate';
 
-console.log('[12-APP] App.vue script setup executing');
+
 
 // Auth state
 const isCheckingAuth = ref(true);
@@ -41,24 +42,16 @@ const isFullscreenPage = computed(() => {
     currentPath.value.startsWith('/editor/');
 });
 
-console.log('[13-APP] Initial state: isCheckingAuth=true, initialUrl=/');
 
-// Check auth on mount BEFORE rendering the app
-onMounted(async () => {
-  console.log('[14-APP] onMounted started');
 
+/**
+ * Perform initial authentication check
+ */
+async function checkAuth(pathOnLoad: string): Promise<void> {
   const authStore = useAuthStore();
-  const pathOnLoad = window.location.pathname;
-
-  console.log('[15-APP] Checking auth...', {
-    token: !!authStore.token,
-    isAuthenticated: authStore.isAuthenticated,
-    currentPath: pathOnLoad
-  });
 
   // If on login page, no need to check
   if (pathOnLoad === '/login') {
-    console.log('[16-APP] Already on login page, showing login');
     initialUrl.value = '/login';
     isCheckingAuth.value = false;
     return;
@@ -66,63 +59,57 @@ onMounted(async () => {
 
   // If no token, redirect to login
   if (!authStore.isAuthenticated) {
-    console.log('[16-APP] No auth token, setting initialUrl to /login');
     initialUrl.value = '/login';
     isCheckingAuth.value = false;
-    console.log('[17-APP] isCheckingAuth set to false');
     return;
   }
 
   // Has token, verify it's valid by fetching user
-  console.log('[16-APP] Has token, verifying with API...');
   try {
     await authStore.fetchUser();
-    console.log('[17-APP] Auth verified, user:', authStore.user?.email);
     initialUrl.value = pathOnLoad || '/';
   } catch (e) {
-    console.error('[17-APP] Auth verification failed:', e);
+    console.error('Auth verification failed:', e);
     authStore.logout();
     initialUrl.value = '/login';
   }
 
-  console.log('[18-APP] Auth check complete. initialUrl set to:', initialUrl.value);
   isCheckingAuth.value = false;
-  console.log('[DEBUG-PERF] f7-app should render now with url:', initialUrl.value);
+}
 
-  // Listen to route changes to update currentPath reactively
-  f7ready((f7) => {
-    console.log('[19-APP] F7 Ready, attaching route listener');
-
-    // Start FPS monitoring when a route change begins
-    // Using 'routeChange' as the start event
-    f7.on('routeChange', (newRoute: { path: string }) => {
-      const fromPath = currentPath.value;
-      // Dynamically import to avoid bundling when not needed
-      import('./utils/refreshRate').then(({ startTransitionMonitor }) => {
-        startTransitionMonitor(`${fromPath} → ${newRoute.path}`);
-      });
-    });
-
-    // Stop monitoring when route change completes (after animation)
-    f7.on('routeChanged', (route: { path: string }) => {
-      console.log('[APP-ROUTE] Route changed to:', route.path);
-      currentPath.value = route.path;
-
-      // Stop FPS monitor after a small delay to capture the full transition
-      setTimeout(() => {
-        import('./utils/refreshRate').then(({ stopTransitionMonitor }) => {
-          stopTransitionMonitor();
-        });
-      }, 50); // 50ms after routeChanged to capture tail of animation
+const setupRouteMonitoring = (f7: Framework7) => {
+  // Start FPS monitoring when a route change begins
+  f7.on('routeChange', (newRoute: { path: string }) => {
+    const fromPath = currentPath.value;
+    import('./utils/refreshRate').then(({ startTransitionMonitor }) => {
+      startTransitionMonitor(`${fromPath} → ${newRoute.path}`);
     });
   });
 
-  // Initialize refresh rate detection for adaptive animations
+  // Stop monitoring when route change completes
+  f7.on('routeChanged', (route: { path: string }) => {
+    currentPath.value = route.path;
+    setTimeout(() => {
+      import('./utils/refreshRate').then(({ stopTransitionMonitor }) => {
+        stopTransitionMonitor();
+      });
+    }, 50);
+  });
+};
+
+// Check auth on mount BEFORE rendering the app
+onMounted(async () => {
+  const pathOnLoad = window.location.pathname;
+  await checkAuth(pathOnLoad);
+
+  // Listen to route changes to update currentPath reactively
+  f7ready(setupRouteMonitoring);
+
+  // Initialize refresh rate detection
   try {
-    const refreshInfo = await initRefreshRateDetection();
-    console.log('[20-APP] Refresh rate detected:', refreshInfo);
+    await initRefreshRateDetection();
   } catch (e) {
-    console.warn('[20-APP] Could not detect refresh rate:', e);
+    console.warn('Could not detect refresh rate:', e);
   }
 });
 

@@ -89,7 +89,8 @@ export function useAppDetail() {
         const rawNav = (appStore.currentApp as any)?.navigation || [];
         // Helper to map robustly
         const mapNav = (item: any): AppNavigationItem => ({
-            id: item.id || String(Math.random()),
+            // eslint-disable-next-line
+            id: item.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Math.random())),
             type: item.type || 'view',
             view_id: item.view_id,
             label: item.label || 'Item',

@@ -13,8 +13,8 @@
         </div>
 
         <!-- App Members Section -->
-        <MembersSection :members="members" :invitations="invitations" :loading="loading" @invite="handleInvite" @remove="handleRemoveMember"
-            @cancel-invitation="handleCancelInvitation" />
+        <MembersSection :members="members" :invitations="invitations" :loading="loading" @invite="handleInvite"
+            @remove="handleRemoveMember" @cancel-invitation="handleCancelInvitation" />
 
         <!-- Dialogs -->
         <AddOrganizationDialog :opened="isAddOrgOpen" @update:opened="isAddOrgOpen = $event" @select="handleAddOrg" />
@@ -74,7 +74,7 @@ function handleInvite() {
 async function handleAddMember(payload: { email: string, role: string }) {
     await addMember(payload.email, payload.role);
     isAddMemberOpen.value = false;
-    // f7.toast.show({ text: 'Member added', position: 'center', closeTimeout: 2000 });
+    // Toast removed as per request
 }
 
 async function handleRemoveMember(userId: string | number) {

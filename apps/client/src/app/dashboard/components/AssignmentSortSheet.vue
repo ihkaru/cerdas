@@ -7,30 +7,38 @@
                 <f7-link sheet-close>Done</f7-link>
             </div>
         </f7-toolbar>
-        <f7-page-content>
+
+        <f7-page-content class="sort-sheet-content">
             <f7-block-title>Sort Assignments</f7-block-title>
-            <f7-list>
-                <f7-list-item title="Sort By" smart-select
-                    :smart-select-params="{ openIn: 'sheet', closeOnSelect: true }">
+
+            <f7-list no-hairlines-md>
+                <f7-list-item title="Sort By" smart-select :smart-select-params="{
+                    openIn: 'popup',
+                    searchbar: true,
+                    searchbarPlaceholder: 'Search fields',
+                    closeOnSelect: true,
+                    cssClass: 'field-select-popup',
+                }">
                     <select :value="modelValue.field" @change="updateField($event)">
                         <option v-for="field in fields" :key="field.value" :value="field.value">
                             {{ field.label }}
                         </option>
                     </select>
                 </f7-list-item>
-                <f7-list-item>
-                    <div class="display-flex justify-content-center width-100 padding-vertical">
-                        <f7-segmented strong style="width: 100%">
-                            <f7-button :active="modelValue.order === 'asc'" @click="updateOrder('asc')">
-                                Ascending
-                            </f7-button>
-                            <f7-button :active="modelValue.order === 'desc'" @click="updateOrder('desc')">
-                                Descending
-                            </f7-button>
-                        </f7-segmented>
-                    </div>
-                </f7-list-item>
             </f7-list>
+
+            <div class="sort-order-wrapper">
+                <f7-segmented strong>
+                    <f7-button :active="modelValue.order === 'asc'" @click="updateOrder('asc')">
+                        Ascending
+                    </f7-button>
+                    <f7-button :active="modelValue.order === 'desc'" @click="updateOrder('desc')">
+                        Descending
+                    </f7-button>
+                </f7-segmented>
+            </div>
+
+            <div class="sort-sheet-bottom-safe"></div>
         </f7-page-content>
     </f7-sheet>
 </template>
@@ -41,7 +49,7 @@ import type { SortConfig } from '../types';
 const props = defineProps<{
     opened: boolean;
     modelValue: SortConfig;
-    fields: { label: string; value: string; }[];
+    fields: { label: string; value: string }[];
 }>();
 
 const emit = defineEmits<{
@@ -58,3 +66,28 @@ const updateOrder = (order: 'asc' | 'desc') => {
     emit('update:modelValue', { ...props.modelValue, order });
 };
 </script>
+
+/* Global: popup renders outside component, must not be scoped */
+<style>
+.field-select-popup.popup {
+    z-index: 15000 !important;
+}
+
+.field-select-popup.popup~.popup-backdrop {
+    z-index: 14999 !important;
+}
+</style>
+
+<style scoped>
+.sort-sheet-content {
+    padding-bottom: 0;
+}
+
+.sort-order-wrapper {
+    padding: 0 16px 16px;
+}
+
+.sort-sheet-bottom-safe {
+    height: env(safe-area-inset-bottom, 16px);
+}
+</style>

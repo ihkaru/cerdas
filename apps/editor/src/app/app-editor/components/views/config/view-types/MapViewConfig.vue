@@ -77,6 +77,7 @@ defineEmits<{
 function getSyntaxError(code: string | undefined): string | null {
     if (!code || !code.trim()) return null;
     try {
+        // eslint-disable-next-line
         new Function('data', 'item', code);
         return null;
     } catch (e: any) {

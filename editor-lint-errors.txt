@@ -1,0 +1,31 @@
+
+> editor@0.1.34 lint C:\projects\cerdas\apps\editor
+> eslint --config ../../eslint.config.js src/ "--quiet"
+
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\utils\validators\fieldValidator.ts
+  13:35  error  Refactor this function to reduce its Cognitive Complexity from 35 to the 15 allowed  sonarjs/cognitive-complexity
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\utils\validators\viewValidator.ts
+  4:17  error  Refactor this function to reduce its Cognitive Complexity from 21 to the 15 allowed  sonarjs/cognitive-complexity
+
+C:\projects\cerdas\apps\editor\src\app\pages\app-detail\composables\useAppDetail.ts
+  92:35  error  Make sure that using this pseudorandom number generator is safe here  sonarjs/pseudo-random
+
+C:\projects\cerdas\apps\editor\src\components\CodeEditor.vue
+  171:32  error  If multiple spaces are required here, use number quantifier ({2})  sonarjs/no-regex-spaces
+
+C:\projects\cerdas\apps\editor\src\pages\AppDetailPage.vue
+  77:5  error  Remove this commented out code  sonarjs/no-commented-code
+
+C:\projects\cerdas\apps\editor\src\pages\components\OrganizationDetailDialog.vue
+  149:7  error  Handle this exception or don't catch it at all  sonarjs/no-ignored-exceptions
+
+C:\projects\cerdas\apps\editor\src\utils\refreshRate.ts
+  240:31  error  Extract this nested ternary operation into an independent statement  sonarjs/no-nested-conditional
+
+Γ£û 7 problems (7 errors, 0 warnings)
+
+C:\projects\cerdas\apps\editor:
+ΓÇëERR_PNPM_RECURSIVE_RUN_FIRST_FAILΓÇë editor@0.1.34 lint: `eslint --config ../../eslint.config.js src/ "--quiet"`
+Exit status 1

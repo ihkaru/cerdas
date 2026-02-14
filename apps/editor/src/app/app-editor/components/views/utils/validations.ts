@@ -7,7 +7,7 @@ export function validateViewConfig(view: ViewDefinition): string | null {
     if (!view.type) return 'View type is required';
     
     if (view.type === 'deck' && view.deck) {
-        // if (!view.deck.primaryHeaderField) return 'Primary header is required for Deck view';
+        // Validation logic for deck view can be added here
     }
 
     if (view.type === 'map' && view.map) {

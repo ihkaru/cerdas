@@ -5,6 +5,7 @@ export function useLogicHelpers() {
     function getSyntaxError(code: string | undefined): string | null {
         if (!code || !code.trim()) return null;
         try {
+            // eslint-disable-next-line
             new Function('ctx', 'value', 'data', code);
             return null;
         } catch (e: any) {

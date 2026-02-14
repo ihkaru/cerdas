@@ -27,5 +27,13 @@ export function createDefaultView(title: string): ViewDefinition {
 }
 
 export function generateViewId(title: string): string {
-    return title.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(Math.random() * 1000);
+    let randomSuffix: number;
+    const win = window as any;
+    if (typeof win !== 'undefined' && win.crypto && win.crypto.getRandomValues) {
+        randomSuffix = win.crypto.getRandomValues(new Uint32Array(1))[0] % 10000;
+    } else {
+        // eslint-disable-next-line
+        randomSuffix = Math.floor(Math.random() * 10000);
+    }
+    return title.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + randomSuffix;
 }

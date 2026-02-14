@@ -1,0 +1,351 @@
+
+> editor@0.1.34 lint C:\projects\cerdas\apps\editor
+> eslint --config ../../eslint.config.js src/
+
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\actions\ActionsPanel.vue
+  217:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  232:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\code\CodeEditorTab.vue
+  176:23  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  193:21  warning  '_editorId' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  193:32  warning  '_collapsed' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  229:17  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  301:17  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  328:31  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\data\ExcelImportModal.vue
+  136:25  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  188:17  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  204:17  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  211:31  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  228:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  237:9   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  240:9   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  250:9   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  252:17  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\data\NewSourceModal.vue
+  57:7  warning  'props' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\field-config\composables\useLogicHelpers.ts
+  11:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\field-config\sections\FieldBasicSection.vue
+  33:63  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\field-list\FieldList.vue
+  108:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  121:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\layout\EditorTabContent.vue
+  161:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  162:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  163:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  164:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  170:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\preview\LivePreview.vue
+   43:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  133:9  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\settings\VersionHistory.vue
+  68:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  78:9  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\views\ViewsPanel.vue
+   78:44  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  151:47  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  157:47  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  158:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  164:46  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  188:35  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\views\config\GroupByConfig.vue
+  85:18  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  86:29  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  94:18  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  95:25  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\views\config\NavigationConfigPanel.vue
+  75:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  79:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\views\config\ViewConfigPanel.vue
+   94:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   95:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\views\config\view-types\DeckViewConfig.vue
+  49:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\views\config\view-types\MapViewConfig.vue
+  67:7   warning  'props' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  70:39  warning  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  83:17  warning  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\views\sidebar\ViewsSidebar.vue
+  57:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\components\views\utils\viewHelpers.ts
+  31:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\composables\core\useSchemaTransform.ts
+  90:11  warning  '_editorId' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  90:22  warning  '_collapsed' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\composables\useEditorHandlers.ts
+    5:12  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+    7:21  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+    8:24  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+    9:22  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   10:25  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   46:21  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+   54:21  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+   70:21  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+   75:25  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   82:9   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  116:21  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\composables\useEditorLifecycle.ts
+    5:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    7:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    8:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   12:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   13:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   14:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   15:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   22:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   23:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\composables\useNavigationManagement.ts
+  30:9   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  38:13  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  39:13  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  45:13  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\composables\useTableSelection.ts
+    8:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    9:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   14:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   15:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   16:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   17:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   56:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   60:69  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   60:77  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   72:28  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+   73:21  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+   75:21  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+   78:28  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+   85:28  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+   86:21  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+   88:21  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+   91:28  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+   97:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  124:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  138:37  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  138:37  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  147:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\composables\useViewConfigSync.ts
+  15:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\composables\useViewManagement.ts
+  53:77  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  76:71  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  80:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  84:71  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  88:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\services\excelImportService.ts
+  17:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\app-editor\utils\validators\viewValidator.ts
+  50:10  error  Refactor this function to reduce its Cognitive Complexity from 16 to the 15 allowed  sonarjs/cognitive-complexity
+
+C:\projects\cerdas\apps\editor\src\app\pages\app-detail\components\AddOrganizationDialog.vue
+  61:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  85:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\pages\app-detail\components\NavigationSection.vue
+  153:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  154:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\pages\app-detail\composables\useAppDetail.ts
+   28:49  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   29:32  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   38:50  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   38:90  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   40:33  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   53:52  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   55:35  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   69:52  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   70:35  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   79:50  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   80:33  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   89:48  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   91:31  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  135:9   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\projects\cerdas\apps\editor\src\app\pages\app-detail\composables\useFormDialog.ts
+  19:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\app\pages\app-detail\types\app-detail.types.ts
+  32:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\common\api\ApiClient.ts
+  17:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  52:15  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  52:42  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  53:16  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  53:41  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  53:55  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  54:15  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  54:40  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  54:54  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  55:18  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\common\echo.ts
+   6:12  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  26:27  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  26:32  warning  'options' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  26:41  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  28:35  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  28:50  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\components\AppLayout.vue
+  164:46  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  165:21  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  175:13  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  183:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  184:41  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  186:9   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  189:9   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\projects\cerdas\apps\editor\src\components\NotificationList.vue
+  51:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\main.ts
+   3:1  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  11:1  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  14:3  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  20:1  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  52:1  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  59:1  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  70:1  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  74:1  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  77:1  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  79:1  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  84:3  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  87:3  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\projects\cerdas\apps\editor\src\pages\AppDetailPage.vue
+  36:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\pages\AppsPage.vue
+  168:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  183:17  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  192:27  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  197:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  204:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  213:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  220:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\projects\cerdas\apps\editor\src\pages\HomePage.vue
+  156:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  161:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\projects\cerdas\apps\editor\src\pages\LoginPage.vue
+  84:44  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  85:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\projects\cerdas\apps\editor\src\pages\OrganizationsPage.vue
+   86:27  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   91:25  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  101:10  warning  'isOwner' is defined but never used                                                @typescript-eslint/no-unused-vars
+  101:23  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  111:13  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  112:13  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  113:13  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  115:18  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  116:18  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  132:23  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  152:31  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\pages\components\OrganizationDetailDialog.vue
+   81:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   86:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   87:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  140:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  149:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  159:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\routes.ts
+  12:39  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  15:3   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  18:6   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  22:9   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  25:13  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  30:9   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  32:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  39:32  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  40:3   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+C:\projects\cerdas\apps\editor\src\stores\app.store.ts
+   14:14  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   15:19  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   16:13  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   17:18  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   51:9   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+   55:13  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+   57:21  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   66:9   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+   73:13  warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+   86:21  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  113:21  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  126:21  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\stores\auth.store.ts
+   47:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   68:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\stores\notification.store.ts
+  13:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  62:55  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\stores\table.store.ts
+   15:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   22:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   23:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   43:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   56:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   69:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   84:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   98:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  107:85  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  107:98  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  120:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  131:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  146:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  163:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\cerdas\apps\editor\src\utils\refreshRate.ts
+  172:3   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  210:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+  222:52  warning  Forbidden non-null assertion                                                       @typescript-eslint/no-non-null-assertion
+  253:5   warning  Unexpected console statement. Only these console methods are allowed: warn, error  no-console
+
+Γ£û 243 problems (1 error, 242 warnings)
+
+C:\projects\cerdas\apps\editor:
+ΓÇëERR_PNPM_RECURSIVE_RUN_FIRST_FAILΓÇë editor@0.1.34 lint: `eslint --config ../../eslint.config.js src/`
+Exit status 1

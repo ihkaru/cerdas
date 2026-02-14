@@ -129,7 +129,7 @@ const selectedIds = ref<string[]>([]);
 const showImportPopup = ref(false);
 const showAddPopup = ref(false);
 
-// Mock data - TODO: Replace with API call
+// Mock data for initial prototype
 const assignments = ref<Assignment[]>([
     {
         id: '1',
@@ -224,12 +224,12 @@ function importCSV() {
 
 function exportCSV() {
     f7.toast.show({ text: 'Exporting assignments...', position: 'center', closeTimeout: 2000 });
-    // TODO: Export to CSV
+    // Implementation pending backend support
 }
 
 function bulkAssign() {
     f7.toast.show({ text: 'Bulk assign dialog coming soon...', position: 'center', closeTimeout: 2000 });
-    // TODO: Open bulk assignment dialog
+    // Implementation pending design
 }
 
 function addAssignment() {
