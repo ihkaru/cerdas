@@ -1,4 +1,4 @@
-$threshold = 400
+$threshold = 300
 $extensions = @('.ts', '.tsx', '.js', '.jsx', '.vue', '.php', '.css', '.scss')
 $excludeDirs = @('node_modules', 'vendor', '.git', 'dist', 'build', 'public', 'storage', 'coverage', 'android', 'ios', 'tmp', '.agent', '.idea', '.vscode')
 
@@ -16,14 +16,15 @@ function Get-ProjectFiles {
             if ($excludeDirs -notcontains $item.Name) {
                 Get-ProjectFiles -Path $item.FullName
             }
-        } else {
+        }
+        else {
             if ($extensions -contains $item.Extension) {
                 # Process file
                 $lineCount = (Get-Content $item.FullName -ErrorAction SilentlyContinue | Measure-Object -Line).Lines
                 if ($lineCount -gt $threshold) {
                     [PSCustomObject]@{
                         Lines = $lineCount
-                        File = $item.FullName.Replace((Get-Location).Path + '\', '')
+                        File  = $item.FullName.Replace((Get-Location).Path + '\', '')
                     }
                 }
             }
@@ -35,7 +36,8 @@ $largeFiles = Get-ProjectFiles -Path (Get-Location).Path
 
 if (!$largeFiles) {
     Write-Host "Great job! No files found exceeding $threshold lines." -ForegroundColor Green
-} else {
+}
+else {
     # If explicit single result, wrap in array
     if ($largeFiles -isnot [Array]) { $largeFiles = @($largeFiles) }
     

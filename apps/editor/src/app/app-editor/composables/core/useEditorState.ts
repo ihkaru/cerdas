@@ -222,7 +222,7 @@ export function useEditorState() {
 
               // 2. Secondary: Second text field or date, different from primary
               const secondaryField = editableFields.find(f => 
-                  f.id !== primaryField.id && 
+                  primaryField && f.id !== primaryField.id && 
                   (f.type === 'text' || f.type === 'date' || f.type === 'number')
               );
 

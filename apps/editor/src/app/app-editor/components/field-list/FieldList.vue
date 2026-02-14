@@ -17,7 +17,7 @@
         <!-- Header -->
         <div class="field-list-header">
             <h3 class="header-title">{{ breadcrumbs && breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length -
-                1].label : 'Fields' }}</h3>
+                1]!.label : 'Fields' }}</h3>
             <f7-button small fill round icon-f7="plus" @click="showAddFieldSheet = true">
                 Add Field
             </f7-button>

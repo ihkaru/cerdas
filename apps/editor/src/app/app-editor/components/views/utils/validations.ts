@@ -11,7 +11,9 @@ export function validateViewConfig(view: ViewDefinition): string | null {
     }
 
     if (view.type === 'map' && view.map) {
-        if (!view.map.lat || !view.map.long) return 'Latitude and Longitude fields are required for Map view';
+        const hasGps = !!view.map.gps_column;
+        const hasLatLong = !!view.map.lat && !!view.map.long;
+        if (!hasGps && !hasLatLong) return 'GPS Column OR Latitude/Longitude fields are required for Map view';
     }
 
     return null;

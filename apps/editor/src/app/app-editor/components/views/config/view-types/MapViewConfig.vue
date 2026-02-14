@@ -5,7 +5,7 @@
             <f7-list-item>
                 <template #title>GPS Field</template>
                 <template #after>
-                    <FieldPicker :model-value="mapConfig.gps_column" :fields="fields" :allow-none="false"
+                    <FieldPicker :model-value="mapConfig.gps_column || null" :fields="fields" :allow-none="false"
                         :filter-types="['gps']" placeholder="Select GPS field..."
                         @update:model-value="$emit('update', 'gps_column', $event)" />
                 </template>
@@ -13,7 +13,7 @@
             <f7-list-item>
                 <template #title>Label Field</template>
                 <template #after>
-                    <FieldPicker :model-value="mapConfig.label" :fields="fields" :allow-none="true"
+                    <FieldPicker :model-value="mapConfig.label || null" :fields="fields" :allow-none="true"
                         placeholder="Field for pin label..." @update:model-value="$emit('update', 'label', $event)" />
                 </template>
             </f7-list-item>

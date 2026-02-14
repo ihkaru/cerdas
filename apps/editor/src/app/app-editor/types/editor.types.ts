@@ -65,9 +65,10 @@ export interface ViewConfig {
   // Map-specific
   map?: {
     mapbox_style?: string;
-    lat: string;
-    long: string;
-    label: string;
+    lat?: string;
+    long?: string;
+    gps_column?: string;
+    label?: string;
   };
 }
 
@@ -254,9 +255,11 @@ export interface ViewDefinition {
     imageShape: 'square' | 'circle';
   };
   map?: {
-    mapbox_style: string;
-    gps_column: string;
-    label: string;
+    mapbox_style?: string;
+    gps_column?: string;
+    lat?: string;
+    long?: string;
+    label?: string;
     marker_style_fn?: string;
   };
   actions: string[];
