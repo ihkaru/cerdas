@@ -14,7 +14,7 @@
         <!-- CASE 0: Dynamic View Logic (from Navigation) -->
         <template v-if="currentViewConfig">
             <div class="page-content">
-                <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
+                <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
                 <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                     :counts="statusCounts" :active-filter-count="activeFilters.length" @open-sort="sortSheetOpen = true"
                     @open-filter="filterSheetOpen = true" />
@@ -59,7 +59,7 @@
 
                     <!-- Only render content if active to save resources & prevent background map loads -->
                     <template v-if="activeView === item.view_id">
-                        <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
+                        <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
                         <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                             :counts="statusCounts" :active-filter-count="activeFilters.length"
                             @open-sort="sortSheetOpen = true" @open-filter="filterSheetOpen = true" />
@@ -104,7 +104,7 @@
             <f7-tabs animated>
                 <f7-tab v-for="viewKey in (layout?.navigation?.primary || [])" :key="viewKey" :id="viewKey"
                     :tab-active="activeView === viewKey" class="page-content">
-                    <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
+                    <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
                     <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                         :counts="statusCounts" :active-filter-count="activeFilters.length"
                         @open-sort="sortSheetOpen = true" @open-filter="filterSheetOpen = true" />
@@ -129,7 +129,7 @@
                 class="app-content-area safe-area-bottom">
 
                 <!-- Sync Pending Warning -->
-                <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
+                <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
 
                 <!-- Search Bar & Filters -->
                 <div class="search-filter-container sticky-top">

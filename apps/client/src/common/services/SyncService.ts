@@ -137,9 +137,11 @@ export class SyncService {
 
             const version = this.determineVersion(table);
             
-            if (version) {
-                 await this.cacheAndSaveTable(db, tableId, version, table);
-            }
+             if (version) {
+                 // Use server-provided ID (UUID) to ensure we update the correct local record
+                 // even if we requested via slug/AppID
+                 await this.cacheAndSaveTable(db, table.id, version, table);
+             }
         }
     }
 

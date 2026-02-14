@@ -173,9 +173,14 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
 
     const { deleteAssignment, completeAssignment, createAssignment } = useAppShellActions(resolvedTableId, (full) => loadApp(full));
 
-    const { isSyncing, syncProgress, syncMessage, syncApp } = useAppShellSync(contextId, (full) => loadApp(full), () => {
+    const { isSyncing, syncProgress, syncMessage, syncApp: innerSyncApp } = useAppShellSync(contextId, (full) => loadApp(full), () => {
         grouping.groupPath.value = []; 
     });
+    
+    // Wrapper to ensure we sync the RESOLVED table ID (UUID), preventing slug mismatches
+    const syncApp = (overrideId?: string) => {
+        return innerSyncApp(overrideId || resolvedTableId.value);
+    };
 
     // Listener for real-time updates from Editor
     const onOverrideUpdate = async (e: Event) => {
