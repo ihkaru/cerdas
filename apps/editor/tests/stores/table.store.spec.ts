@@ -1,10 +1,10 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiClient } from '../../../../src/common/api/ApiClient';
-import { useTableStore } from '../../../../src/stores/table.store';
+import { ApiClient } from '../../src/common/api/ApiClient';
+import { useTableStore } from '../../src/stores/table.store';
 
 // Mock ApiClient
-vi.mock('../../../../src/common/api/ApiClient', () => ({
+vi.mock('../../src/common/api/ApiClient', () => ({
     ApiClient: {
         get: vi.fn(),
         post: vi.fn(),
@@ -28,7 +28,7 @@ describe('TableStore', () => {
             
             vi.mocked(ApiClient.get).mockResolvedValue({
                 data: { success: true, data: mockTables },
-            });
+            } as any);
 
             const store = useTableStore();
             await store.fetchTables(1);
@@ -55,7 +55,7 @@ describe('TableStore', () => {
             
             vi.mocked(ApiClient.get).mockResolvedValue({
                 data: { success: true, data: mockTable },
-            });
+            } as any);
 
             const store = useTableStore();
             await store.fetchTable('table-1');
@@ -71,7 +71,7 @@ describe('TableStore', () => {
             
             vi.mocked(ApiClient.post).mockResolvedValue({
                 data: { success: true, data: newTable },
-            });
+            } as any);
 
             const store = useTableStore();
             const result = await store.createTable(1, { name: 'New Table' });
@@ -101,7 +101,7 @@ describe('TableStore', () => {
             
             vi.mocked(ApiClient.put).mockResolvedValue({
                 data: { success: true },
-            });
+            } as any);
 
             const store = useTableStore();
             store.currentVersion = { version: 1 } as any;
@@ -122,7 +122,7 @@ describe('TableStore', () => {
             
             vi.mocked(ApiClient.post).mockResolvedValue({
                 data: { success: true, data: draftVersion },
-            });
+            } as any);
 
             const store = useTableStore();
             const result = await store.createDraft(1);
@@ -135,15 +135,15 @@ describe('TableStore', () => {
 
     describe('publishVersion', () => {
         it('should publish a version and refresh table', async () => {
-            vi.mocked(ApiClient.post).mockResolvedValue({ data: { success: true } });
+            vi.mocked(ApiClient.post).mockResolvedValue({ data: { success: true } } as any);
             vi.mocked(ApiClient.get).mockResolvedValue({
                 data: { success: true, data: { id: 'table-1' } },
-            });
+            } as any);
 
             const store = useTableStore();
             await store.publishVersion(1, 1);
 
-            expect(ApiClient.post).toHaveBeenCalledWith('/tables/1/versions/1/publish');
+            expect(ApiClient.post).toHaveBeenCalledWith('/tables/1/versions/1/publish', { changelog: undefined });
             // Should also fetchTable to refresh
             expect(ApiClient.get).toHaveBeenCalledWith('/tables/1');
         });

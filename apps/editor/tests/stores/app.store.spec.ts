@@ -1,10 +1,10 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiClient } from '../../../../src/common/api/ApiClient';
-import { useAppStore } from '../../../../src/stores/app.store';
+import { ApiClient } from '../../src/common/api/ApiClient';
+import { useAppStore } from '../../src/stores/app.store';
 
 // Mock ApiClient
-vi.mock('../../../../src/common/api/ApiClient', () => ({
+vi.mock('../../src/common/api/ApiClient', () => ({
     ApiClient: {
         get: vi.fn(),
         post: vi.fn(),
@@ -27,7 +27,7 @@ describe('AppStore', () => {
             
             vi.mocked(ApiClient.get).mockResolvedValue({
                 data: { success: true, data: mockApps },
-            });
+            } as any);
 
             const store = useAppStore();
             await store.fetchApps();
@@ -53,7 +53,7 @@ describe('AppStore', () => {
             
             vi.mocked(ApiClient.get).mockResolvedValue({
                 data: { success: true, data: mockApp },
-            });
+            } as any);
 
             const store = useAppStore();
             await store.fetchApp('test-app');
@@ -69,7 +69,7 @@ describe('AppStore', () => {
             
             vi.mocked(ApiClient.get).mockResolvedValue({
                 data: { success: true, data: mockApp },
-            });
+            } as any);
 
             const store = useAppStore();
             store.apps = [mockApp as any];
@@ -86,7 +86,7 @@ describe('AppStore', () => {
             
             vi.mocked(ApiClient.post).mockResolvedValue({
                 data: { success: true, data: newApp },
-            });
+            } as any);
 
             const store = useAppStore();
             const result = await store.createApp({ name: 'New App' });
