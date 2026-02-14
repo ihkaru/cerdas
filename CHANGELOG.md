@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.37](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.36...cerdas-v0.1.37) (2026-02-14)
+
+
+### Features
+
+* add hybrid dev workflow (local frontend + docker backend) ([4616e04](https://github.com/ihkaru/cerdas/commit/4616e04650315efaec55291d911d0daeb0c1466e))
+
+
+### Bug Fixes
+
+* add shared storage volume for production uploads ([912414d](https://github.com/ihkaru/cerdas/commit/912414dbb58099ce33d4c468298d313ac82f0542))
+* markdown formatting ([a73f850](https://github.com/ihkaru/cerdas/commit/a73f85035f0b2c6f368dccd470c457bf3083f4cc))
+* remove console.log to satisfy linter ([7e8477f](https://github.com/ihkaru/cerdas/commit/7e8477ff9070debce1968aa333d0055aca7be20c))
+
 ## [0.1.36](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.35...cerdas-v0.1.36) (2026-02-14)
 
 
