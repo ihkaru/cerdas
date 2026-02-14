@@ -1,5 +1,16 @@
 import { SQLiteDBConnection } from '@capacitor-community/sqlite';
 
+export interface SortConfig {
+    field: string;
+    order: 'asc' | 'desc';
+}
+
+export interface FilterConfig {
+    field: string;
+    operator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'starts_with' | 'ends_with';
+    value: any;
+}
+
 export const AssignmentQueryService = {
     async getGroupedAssignments(
         db: SQLiteDBConnection,
@@ -48,12 +59,111 @@ export const AssignmentQueryService = {
         }));
     },
 
+    buildFilterWhere(filters: FilterConfig[]) {
+        let where = '';
+        const params: any[] = [];
+
+        if (filters && filters.length > 0) {
+            const filterConditions: string[] = [];
+            filters.forEach(f => {
+                // Determine field expression
+                let fieldExpr: string;
+                // Standard fields
+                if (['status', 'created_at', 'updated_at', 'synced_at'].includes(f.field)) {
+                    fieldExpr = `assignments.${f.field}`;
+                } else {
+                    // JSON Fields (Check Response first, then Prelist)
+                    const resp = `json_extract(latest_response.data, '$.${f.field}')`;
+                    const pre = `json_extract(assignments.prelist_data, '$.${f.field}')`;
+                    fieldExpr = `COALESCE(${resp}, ${pre})`;
+                }
+
+                switch (f.operator) {
+                    case 'equals':
+                        filterConditions.push(`${fieldExpr} = ?`);
+                        params.push(f.value);
+                        break;
+                    case 'contains':
+                        filterConditions.push(`${fieldExpr} LIKE ?`);
+                        params.push(`%${f.value}%`);
+                        break;
+                    case 'starts_with':
+                        filterConditions.push(`${fieldExpr} LIKE ?`);
+                        params.push(`${f.value}%`);
+                        break;
+                    case 'ends_with':
+                        filterConditions.push(`${fieldExpr} LIKE ?`);
+                        params.push(`%${f.value}`);
+                        break;
+                    case 'greater_than':
+                        filterConditions.push(`${fieldExpr} > ?`);
+                        params.push(f.value);
+                        break;
+                    case 'less_than':
+                        filterConditions.push(`${fieldExpr} < ?`);
+                        params.push(f.value);
+                        break;
+                }
+            });
+            
+            if (filterConditions.length > 0) {
+                 where = `WHERE ${filterConditions.join(' AND ')}`;
+            }
+        }
+        return { where, params };
+    },
+
     async getAssignments(
         db: SQLiteDBConnection,
         whereClause: string,
         params: any[],
-        limit = 1000
+        limit = 1000,
+        sortConfig?: SortConfig,
+        filters?: FilterConfig[]
     ) {
+        // --- Dynamic Filter Logic ---
+        let dynamicWhere = whereClause;
+        let dynamicParams = [...params];
+
+        if (filters && filters.length > 0) {
+            const { where: filterWhere, params: filterParams } = this.buildFilterWhere(filters);
+            
+            if (filterWhere) {
+                 // Append to existing WHERE or start new one
+                 if (dynamicWhere.trim() === '') {
+                     dynamicWhere = filterWhere;
+                 } else {
+                     // Check if dynamicWhere already has WHERE (it likely does if passed from outside)
+                     // If existing whereClause is just empty string, use filterWhere (which has WHERE)
+                     // If existing whereClause has WHERE, strip WHERE from filterWhere and append with AND
+                     if (dynamicWhere.toUpperCase().includes('WHERE')) {
+                         dynamicWhere += ` AND ${filterWhere.replace(/^WHERE\s+/i, '')}`;
+                     } else {
+                         // Should not happen if standard, but safety check
+                         dynamicWhere = `WHERE ${dynamicWhere} AND ${filterWhere.replace(/^WHERE\s+/i, '')}`;
+                     }
+                 }
+                 dynamicParams = [...dynamicParams, ...filterParams];
+            }
+        }
+
+        // --- Dynamic Sort Logic ---
+        let orderBy = `permissions.updated_at DESC, assignments.id DESC`; // Default fallback (permissions join not here, assuming default assignments sort)
+        // Correct default:
+        orderBy = `assignments.updated_at DESC, assignments.id DESC`;
+
+        if (sortConfig) {
+             let fieldExpr: string;
+             if (['status', 'created_at', 'updated_at', 'synced_at', 'id'].includes(sortConfig.field)) {
+                 fieldExpr = `assignments.${sortConfig.field}`;
+             } else {
+                 const resp = `json_extract(latest_response.data, '$.${sortConfig.field}')`;
+                 const pre = `json_extract(assignments.prelist_data, '$.${sortConfig.field}')`;
+                 fieldExpr = `COALESCE(${resp}, ${pre})`;
+             }
+             orderBy = `${fieldExpr} ${sortConfig.order.toUpperCase()}`;
+        }
+
         // Use subquery to get ONLY the latest response per assignment
         // This prevents duplicate rows when an assignment has multiple responses
         const sqlJoin = `
@@ -71,13 +181,13 @@ export const AssignmentQueryService = {
                     WHERE r2.assignment_id = r1.assignment_id
                 )
             ) AS latest_response ON assignments.id = latest_response.assignment_id
-            ${whereClause}
-            ORDER BY assignments.id DESC LIMIT ${limit}
+            ${dynamicWhere}
+            ORDER BY ${orderBy} LIMIT ${limit}
         `;
         
-        console.log('[AssignmentQueryService] getAssignments SQL:', { whereClause, params, limit });
+        console.log('[AssignmentQueryService] getAssignments SQL:', { sqlJoin, dynamicParams, limit });
         
-        const assignRes = await db.query(sqlJoin, params);
+        const assignRes = await db.query(sqlJoin, dynamicParams);
         
         console.log('[AssignmentQueryService] getAssignments result:', { 
             count: assignRes.values?.length || 0,

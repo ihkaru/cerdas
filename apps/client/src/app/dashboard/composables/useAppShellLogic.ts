@@ -7,6 +7,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useAppContext } from './app-shell/useAppContext';
 import { useAppMetadata } from './app-shell/useAppMetadata';
 import { useAppShellState } from './app-shell/useAppShellState';
+import { useAssignmentFilters } from './app-shell/useAssignmentFilters';
 import { useAssignmentQueries } from './app-shell/useAssignmentQueries';
 import { useGroupingLogic } from './app-shell/useGroupingLogic';
 import { useSearchAndFilter } from './app-shell/useSearchAndFilter';
@@ -66,6 +67,9 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
         () => refreshDataFn()
     );
 
+    // NEW: Assignment Filters and Sorting
+    const filters = useAssignmentFilters(state.schemaData);
+
     // 6. Assignment Queries (The source of truth for refreshData)
     const queries = useAssignmentQueries(
         resolvedTableId,
@@ -77,7 +81,11 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
             groups: state.groups,
             totalAssignments: state.totalAssignments
         },
-        grouping
+        grouping,
+        {
+            sort: filters.activeSort,
+            filters: filters.activeFilters
+        }
     );
     
     // Assign real refreshData implementation
@@ -206,12 +214,13 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
     };
 
     let searchDebounce: any;
-    watch([state.searchQuery, state.statusFilter], () => {
+    // WAT-FILTER: Watch for changes in search, status, sort, OR activeFilters (deep)
+    watch([state.searchQuery, state.statusFilter, filters.activeSort, filters.activeFilters], () => {
         clearTimeout(searchDebounce);
         searchDebounce = setTimeout(() => {
             refreshDataFn();
         }, 300);
-    });
+    }, { deep: true });
 
     onMounted(() => {
          log.debug('[AppShell] Mounted - Registering override listener', { contextId, resolvedTableIdValue: resolvedTableId.value });
@@ -257,6 +266,15 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
         appName,
         previewFields,
         
+        // Sorting & Filtering
+        activeSort: filters.activeSort,
+        activeFilters: filters.activeFilters,
+        availableFields: filters.availableFields,
+        addFilter: filters.addFilter,
+        removeFilter: filters.removeFilter,
+        updateSort: filters.updateSort,
+        clearFilters: filters.clearFilters,
+
         // Methods
         loadApp,
         refreshData: refreshDataFn,

@@ -16,7 +16,8 @@
             <div class="page-content">
                 <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
                 <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
-                    :counts="statusCounts" />
+                    :counts="statusCounts" :active-filter-count="activeFilters.length" @open-sort="sortSheetOpen = true"
+                    @open-filter="filterSheetOpen = true" />
 
                 <!-- Animated Transition between Grouping and Leaf Views -->
                 <transition name="view-fade" mode="out-in">
@@ -59,7 +60,8 @@
                     <template v-if="activeView === item.view_id">
                         <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
                         <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
-                            :counts="statusCounts" />
+                            :counts="statusCounts" :active-filter-count="activeFilters.length"
+                            @open-sort="sortSheetOpen = true" @open-filter="filterSheetOpen = true" />
 
                         <!-- Animated Transition between Grouping and Leaf Views -->
                         <transition name="view-fade" mode="out-in">
@@ -102,7 +104,8 @@
                     :tab-active="activeView === viewKey" class="page-content">
                     <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp(contextId)" />
                     <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
-                        :counts="statusCounts" />
+                        :counts="statusCounts" :active-filter-count="activeFilters.length"
+                        @open-sort="sortSheetOpen = true" @open-filter="filterSheetOpen = true" />
                     <ViewRenderer v-if="layout.views[viewKey]" :config="layout.views[viewKey]"
                         :data="getViewData(layout.views[viewKey]?.source)" :contextId="contextId" />
                 </f7-tab>
@@ -128,7 +131,8 @@
                 <!-- Search Bar & Filters -->
                 <div class="search-filter-container sticky-top">
                     <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
-                        :counts="statusCounts" />
+                        :counts="statusCounts" :active-filter-count="activeFilters.length"
+                        @open-sort="sortSheetOpen = true" @open-filter="filterSheetOpen = true" />
                 </div>
 
                 <!-- Animated Transition between Grouping and Flat List -->
@@ -158,6 +162,13 @@
 
         <AppShellPreviewSheet v-model:opened="previewSheetOpen" :assignment="previewAssignment"
             :response="previewResponseData" :preview-fields="previewFields" @open-form="openAssignment" />
+
+        <AppShellSortSheet v-model:opened="sortSheetOpen" v-model:modelValue="activeSort" :fields="availableFields" />
+
+        <AppShellFilterSheet v-model:opened="filterSheetOpen" v-model:modelValue="activeFilters"
+            :fields="availableFields" />
+
+
 
         <!-- Actions Sheet -->
         <f7-actions :opened="actionsSheetOpen" @actions:closed="actionsSheetOpen = false">
@@ -199,7 +210,9 @@ import AppShellPreviewSheet from '../app/dashboard/components/AppShellPreviewShe
 import AppShellStatusFilter from '../app/dashboard/components/AppShellStatusFilter.vue';
 import AppShellSyncBanner from '../app/dashboard/components/AppShellSyncBanner.vue';
 import AppShellSyncOverlay from '../app/dashboard/components/AppShellSyncOverlay.vue';
+import AppShellFilterSheet from '../app/dashboard/components/AssignmentFilterSheet.vue';
 import AssignmentList from '../app/dashboard/components/AssignmentList.vue';
+import AppShellSortSheet from '../app/dashboard/components/AssignmentSortSheet.vue';
 import SkeletonLoader from '../app/dashboard/components/SkeletonLoader.vue';
 import { useAppShellLogic } from '../app/dashboard/composables/useAppShellLogic';
 import { useAppShellPreview } from '../app/dashboard/composables/useAppShellPreview';
@@ -221,18 +234,14 @@ const {
     filteredAssignments, filteredGroups, statusCounts, headerActions, rowActions, swipeConfig, appName, previewFields,
     loadApp, refreshData, deleteAssignment, completeAssignment, syncApp, createAssignment,
     enterGroup, navigateUp, forceShowItems,
-    isSyncing, syncProgress, syncMessage, pendingUploadCount, currentUserRole, appVersion
+    isSyncing, syncProgress, syncMessage, pendingUploadCount, currentUserRole, appVersion,
+    activeSort, activeFilters, availableFields
 } = useAppShellLogic(props.contextId);
-// Debugging Navigation State
-watch(() => [appNavigation.value, layout.value], ([nav, lay]) => {
-    console.log('[AppShell] Navigation Debug:', {
-        appNavigationLength: nav?.length,
-        appNavigationItems: nav,
-        hasLayoutNavigation: !!lay?.navigation,
-        activeView: activeView.value,
-        mode: (nav && nav.length > 0) ? 'APP_NAV' : (lay?.navigation ? 'LAYOUT_NAV' : 'FALLBACK')
-    });
-}, { immediate: true });
+
+const sortSheetOpen = ref(false);
+const filterSheetOpen = ref(false);
+
+
 
 // ============================================================================
 // Computed
@@ -435,36 +444,7 @@ const handleAppNavClick = (item: any) => {
     }
 };
 
-// [DEBUG-APPSHELL] Strategic Logging
-import { watchEffect } from 'vue';
-watchEffect(() => {
-    console.groupCollapsed('[DEBUG-APPSHELL] State Snapshot');
-    console.log('Route View ID:', routeViewId.value);
-    console.log('Active View:', activeView.value);
-    console.log('Current View Config:', currentViewConfig?.value);
 
-    console.log('Layout Present:', !!layout.value);
-    console.log('Layout Navigation:', layout.value?.navigation);
-
-    console.log('App Navigation Length:', appNavigation.value?.length);
-    if (appNavigation.value?.length) {
-        console.log('App Navigation IDs:', appNavigation.value.map((n: any) => n.view_id));
-        console.log('Active View Match Found:', appNavigation.value.some((n: any) => n.view_id === activeView.value));
-    }
-
-    console.log('Is Grouping Active:', isGroupingActive.value);
-    console.log('Group By Config:', groupByConfig.value);
-    console.log('Current Group Level:', currentGroupLevel.value);
-    console.log('Filtered Groups:', filteredGroups.value?.length);
-
-    // Logic Branch Prediction
-    if (currentViewConfig.value) console.log('Rendering: CASE 0 (Dynamic View)');
-    else if (layout.value && layout.value.navigation) console.log('Rendering: CASE 1 (Layout Tabs)');
-    else if (appNavigation.value && appNavigation.value.length > 0) console.log('Rendering: CASE 2 (App Tabs)');
-    else console.log('Rendering: CASE 3 (Default List)');
-
-    console.groupEnd();
-});
 </script>
 
 <style scoped>

@@ -30,3 +30,14 @@ export interface Assignment {
     } | null;
     response_data?: any; // Joined from responses table
 }
+
+export interface SortConfig {
+    field: string;
+    order: 'asc' | 'desc';
+}
+
+export interface FilterConfig {
+    field: string;
+    operator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'starts_with' | 'ends_with';
+    value: any;
+}

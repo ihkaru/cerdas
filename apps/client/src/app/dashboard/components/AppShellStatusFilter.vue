@@ -1,11 +1,17 @@
 <template>
     <div class="filter-sticky-container bg-color-white">
-        <!-- Search Bar -->
-        <div class="search-wrapper">
+        <!-- Search Bar with Actions -->
+        <div class="search-wrapper display-flex align-items-center">
             <f7-searchbar :disable-button="false" placeholder="Cari..." :clear-button="true" :value="searchQuery"
-                @input="updateSearch($event.target.value)" @clear="updateSearch('')" class="searchbar-compact" inline
-                custom-search style="box-shadow: none; background: #E3F2FD; border-radius: 8px;">
+                @input="updateSearch($event.target.value)" @clear="updateSearch('')"
+                class="searchbar-compact flex-shrink-1" inline custom-search
+                style="box-shadow: none; background: #E3F2FD; border-radius: 8px;">
             </f7-searchbar>
+
+            <f7-link icon-f7="arrow_up_arrow_down" class="margin-left-half" @click="$emit('open-sort')"></f7-link>
+            <f7-link icon-f7="slider_horizontal_3" class="margin-left-half" @click="$emit('open-filter')">
+                <span v-if="(activeFilterCount || 0) > 0" class="badge color-red">{{ activeFilterCount }}</span>
+            </f7-link>
         </div>
 
         <!-- Filter Chips -->
@@ -34,11 +40,14 @@ const props = defineProps<{
     searchQuery: string;
     statusFilter: string;
     counts: { all: number; assigned: number; in_progress: number; completed: number; };
+    activeFilterCount?: number;
 }>();
 
 const emit = defineEmits<{
     (e: 'update:searchQuery', value: string): void;
     (e: 'update:statusFilter', value: string): void;
+    (e: 'open-sort'): void;
+    (e: 'open-filter'): void;
 }>();
 
 const updateSearch = (val: string) => {
@@ -57,6 +66,7 @@ const updateFilter = (val: any) => {
 
 .searchbar-compact {
     --f7-searchbar-height: 36px;
+    width: 100%;
 }
 
 .filter-container {
