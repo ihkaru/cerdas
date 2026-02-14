@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.40](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.39...cerdas-v0.1.40) (2026-02-14)
+
+
+### Bug Fixes
+
+* **backend:** prepend HandleCors middleware to prevent intermittent CORS errors ([c47926c](https://github.com/ihkaru/cerdas/commit/c47926c917e07560d3a8bd048008c45c04461a9d))
+* **docker:** audit production setup, fix CORS, remove redundancies ([ede4052](https://github.com/ihkaru/cerdas/commit/ede4052f9073569812fab8888c9c574747988223))
+
 ## [0.1.39](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.38...cerdas-v0.1.39) (2026-02-14)
 
 
