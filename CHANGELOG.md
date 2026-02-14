@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.38](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.37...cerdas-v0.1.38) (2026-02-14)
+
+
+### Features
+
+* bypass 2000 record limit via cursor pagination for mobile sync ([32279f3](https://github.com/ihkaru/cerdas/commit/32279f38e8859add95a9f33fef0530396afd4fa9))
+
+
+### Bug Fixes
+
+* **sync:** logic improvements and lint fixes ([1213977](https://github.com/ihkaru/cerdas/commit/121397743ae0601028f74b817fd70a589f5102fb))
+* **sync:** resolve lint errors ([f78c3f0](https://github.com/ihkaru/cerdas/commit/f78c3f0e3dc27ea5c36a57c4b9dc21b4e0b25524))
+
 ## [0.1.37](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.36...cerdas-v0.1.37) (2026-02-14)
 
 
