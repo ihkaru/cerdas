@@ -56,8 +56,16 @@
 <script setup lang="ts">
 import { getAvatarStyle } from '../utils/avatarHelpers';
 
-const props = defineProps<{
-    groups: any[];
+interface GroupItem {
+    value: string;
+    count: number;
+    assigned: number;
+    in_progress: number;
+    completed: number;
+}
+
+defineProps<{
+    groups: GroupItem[];
 }>();
 
 

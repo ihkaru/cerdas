@@ -5,18 +5,61 @@ import { DashboardRepository } from '../../repositories/DashboardRepository';
 import { AssignmentQueryService } from '../../services/AssignmentQueryService';
 import type { FilterConfig, SortConfig } from '../../types';
 
+interface QueryClause { where: string; params: (string | number)[]; }
+
+/** Append advanced filter conditions to an existing query clause */
+function appendFilters(clause: QueryClause, filters: FilterConfig[] | undefined): QueryClause {
+    if (!filters || filters.length === 0) return clause;
+
+    const filterSql = AssignmentQueryService.buildFilterWhere(filters);
+    if (!filterSql.where) return clause;
+
+    let { where } = clause;
+    const { params } = clause;
+    if (where) {
+        where += ` AND ${filterSql.where.replace(/^WHERE\s+/i, '')}`;
+    } else {
+        where = filterSql.where;
+    }
+    return { where, params: [...params, ...filterSql.params] };
+}
+
+/** Build the search-specific query clause with table_id, search, filters, and optional status */
+function buildSearchClause(
+    contextId: string, searchQuery: string, filters: FilterConfig[] | undefined, statusFilter?: string
+): QueryClause {
+    const q = `%${searchQuery}%`;
+    const searchCond = `(COALESCE(assignments.prelist_data, '') LIKE ? OR COALESCE(latest_response.data, '') LIKE ?)`;
+
+    let where = `WHERE table_id = ? AND ${searchCond}`;
+    let params: (string | number)[] = [contextId, q, q];
+
+    // Append filters
+    const withFilters = appendFilters({ where, params }, filters);
+    where = withFilters.where;
+    params = withFilters.params;
+
+    // Append status if not 'all'
+    if (statusFilter && statusFilter !== 'all') {
+        where += ` AND assignments.status = ?`;
+        params.push(statusFilter);
+    }
+
+    return { where, params };
+}
+
 export function useAssignmentQueries(
     contextId: Ref<string> | string,
     state: {
         pendingUploadCount: Ref<number>;
         searchQuery: Ref<string>;
         statusFilter: Ref<string>;
-        assignments: Ref<any[]>;
-        groups: Ref<any[]>;
+        assignments: Ref<Record<string, unknown>[]>;
+        groups: Ref<Record<string, unknown>[]>;
         totalAssignments: Ref<number>;
     },
     grouping: {
-        buildGroupWhere: (statusFilterValue: string) => { where: string; params: any[] };
+        buildGroupWhere: (statusFilterValue: string) => { where: string; params: (string | number)[] };
         isGroupingActive: Ref<boolean>;
         currentGroupField: Ref<string | null>;
         groupPath: Ref<string[]>;
@@ -43,143 +86,35 @@ export function useAssignmentQueries(
                 // @ts-ignore
                 state.pendingUploadCount.value = await DashboardRepository.getPendingUploadCount(conn);
             } catch (e) {
-                // Ignore if table not ready or logic error
                 console.warn('Could not fetch pending uploads', e);
             }
 
-            // 1. Base Grouping Logic (where + params)
-            const groupResult = grouping.buildGroupWhere(state.statusFilter.value);
-            // groupResult.where usually starts with "WHERE table_id = ? ..."
-            let where = groupResult.where;
-            let params = groupResult.params;
+            const filters = filterSort?.filters.value;
+            let dataClause = appendFilters(grouping.buildGroupWhere(state.statusFilter.value), filters);
+            let countsClause = appendFilters(grouping.buildGroupWhere('all'), filters);
 
-            // 2. If Advanced Filters exist, append them
-            if (filterSort?.filters.value && filterSort.filters.value.length > 0) {
-                 const filterSql = AssignmentQueryService.buildFilterWhere(filterSort.filters.value);
-                 if (filterSql.where) {
-                     if (where) {
-                         // strip WHERE from filterSql and append
-                         where += ` AND ${filterSql.where.replace(/^WHERE\s+/i, '')}`;
-                     } else {
-                         where = filterSql.where;
-                     }
-                     params = [...params, ...filterSql.params];
-                 }
-            }
-
-            // 3. Status Counts Logic
-            // We need a separate WHERE clause for counts that:
-            // - Respects Group Path (if drilling down)
-            // - Respects Advanced Filters
-            // - Respects Search
-            // - BUT IGNORES status (because we want counts per status)
-            
-            // Re-build base group where WITHOUT status filter
-            const baseGroup = grouping.buildGroupWhere('all');
-            let countsWhere = baseGroup.where;
-            let countsParams = baseGroup.params;
-
-            if (filterSort?.filters.value && filterSort.filters.value.length > 0) {
-                 const filterSql = AssignmentQueryService.buildFilterWhere(filterSort.filters.value);
-                 if (filterSql.where) {
-                     if (countsWhere) {
-                         countsWhere += ` AND ${filterSql.where.replace(/^WHERE\s+/i, '')}`;
-                     } else {
-                         countsWhere = filterSql.where;
-                     }
-                     countsParams = [...countsParams, ...filterSql.params];
-                 }
-            }
-
-            // 4. Global Search Logic (Overrides everything if active)
+            // Global Search overrides both data and counts clauses
             if (state.searchQuery.value) {
-                const q = `%${state.searchQuery.value}%`;
-                // FIX: Use latest_response.data, not assignments.response_data which does not exist
-                const searchCond = `(COALESCE(assignments.prelist_data, '') LIKE ? OR COALESCE(latest_response.data, '') LIKE ?)`;
-                
-                // For Counts: Add search to the existing countsWhere
-                if (countsWhere) {
-                    countsWhere += ` AND ${searchCond}`;
-                } else {
-                    // This case implies no table_id? 
-                    // buildGroupWhere always adds table_id, so countsWhere should be set.
-                    // If somehow empty, add WHERE.
-                     countsWhere = `WHERE ${searchCond}`;
-                }
-                countsParams.push(q, q);
-
-                // For Data: The 'where' variable (used for fetching assignments/groups)
-                // If searching, we theoretically ignore grouping structure in previous logic, 
-                // but let's try to KEEP filters + search if possible?
-                // The previous logic completely replaced 'where' with search.
-                // Let's stick to the pattern:
-                // Search + TableID + Status (if not all)
-                
-                // However, user wants filters to apply?
-                // If I search "Agus", should it also respect "District = X"?
-                // Usually global search transcends structure, but "Filters" are explicit.
-                // Let's apply filters to search too.
-                
-                const baseTableId = [`table_id = ?`];
-                const baseTableParams = [getContextId()];
-                
-                let searchWhere = `WHERE ${baseTableId[0]} AND ${searchCond}`;
-                let searchParams = [...baseTableParams, q, q];
-
-                // Append Advanced Filters to Search
-                if (filterSort?.filters.value && filterSort.filters.value.length > 0) {
-                     const filterSql = AssignmentQueryService.buildFilterWhere(filterSort.filters.value);
-                     if (filterSql.where) {
-                         searchWhere += ` AND ${filterSql.where.replace(/^WHERE\s+/i, '')}`;
-                         searchParams = [...searchParams, ...filterSql.params];
-                     }
-                }
-
-                // Append Status Filter to Search (for Data only)
-                if (state.statusFilter.value && state.statusFilter.value !== 'all') {
-                    searchWhere += ` AND assignments.status = ?`;
-                    searchParams.push(state.statusFilter.value);
-                }
-
-                where = searchWhere;
-                params = searchParams;
-                
-                // countsWhere needs to be updated for global search mode too?
-                // valid countsWhere for search mode = TableID + Search + Filters (No Status)
-                
-                let searchCountsWhere = `WHERE ${baseTableId[0]} AND ${searchCond}`;
-                let searchCountsParams = [...baseTableParams, q, q];
-                 if (filterSort?.filters.value && filterSort.filters.value.length > 0) {
-                     const filterSql = AssignmentQueryService.buildFilterWhere(filterSort.filters.value);
-                     if (filterSql.where) {
-                         searchCountsWhere += ` AND ${filterSql.where.replace(/^WHERE\s+/i, '')}`;
-                         searchCountsParams = [...searchCountsParams, ...filterSql.params];
-                     }
-                }
-                
-                countsWhere = searchCountsWhere;
-                countsParams = searchCountsParams;
+                dataClause = buildSearchClause(getContextId(), state.searchQuery.value, filters, state.statusFilter.value);
+                countsClause = buildSearchClause(getContextId(), state.searchQuery.value, filters);
             }
 
             // Fetch Status Counts
-            statusCounts.value = await AssignmentQueryService.getStatusCounts(conn, countsWhere, countsParams);
+            statusCounts.value = await AssignmentQueryService.getStatusCounts(conn, countsClause.where, countsClause.params);
 
             // Fetch Data
             if (grouping.isGroupingActive.value) {
                 state.assignments.value = [];
                 const field = grouping.currentGroupField.value;
                 if (field) {
-                    // Ensure 'where' includes table_id (it does from buildGroupWhere)
-                    state.groups.value = await AssignmentQueryService.getGroupedAssignments(conn, field, where, params);
+                    state.groups.value = await AssignmentQueryService.getGroupedAssignments(conn, field, dataClause.where, dataClause.params);
                 }
             } else {
                 state.groups.value = [];
-                // Data Query: 'where' has Status + Filters + Search
-                // we pass [] as filters because we already baked them into 'where'
                 state.assignments.value = await AssignmentQueryService.getAssignments(
                     conn, 
-                    where, 
-                    params, 
+                    dataClause.where, 
+                    dataClause.params, 
                     1000, 
                     filterSort?.sort.value, 
                     []

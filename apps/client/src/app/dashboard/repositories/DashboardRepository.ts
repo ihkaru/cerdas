@@ -6,6 +6,31 @@ import type { Assignment, Table } from '../types';
 
 const log = useLogger('DashboardRepository');
 
+/** Parse and normalize the fields column from a table row */
+function normalizeFields(raw: unknown): unknown {
+    let parsed = raw;
+    if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); }
+        catch (e) { log.error('Failed to parse fields JSON', e); return { fields: [] }; }
+    }
+    if (!parsed || typeof parsed !== 'object') return { fields: [] };
+
+    // Already correct: direct array or { fields: [...] }
+    if (Array.isArray(parsed)) return parsed;
+    const obj = parsed as Record<string, unknown>;
+    if ('fields' in obj && Array.isArray(obj.fields)) return parsed;
+
+    // Nested schema — unwrap
+    if ('schema' in obj) {
+        let inner = obj.schema;
+        if (typeof inner === 'string') {
+            try { inner = JSON.parse(inner); } catch { inner = { fields: [] }; }
+        }
+        return inner;
+    }
+    return { fields: [] };
+}
+
 export const DashboardRepository = {
     async getTables(db: SQLiteDBConnection): Promise<Table[]> {
         const res = await db.query(`SELECT * FROM tables`);
@@ -107,40 +132,11 @@ export const DashboardRepository = {
         if (!res.values || res.values.length === 0) return null;
         const row = res.values[0];
         
-        let parsedFields = row.fields;
-        if (typeof parsedFields === 'string') {
-            try {
-                parsedFields = JSON.parse(parsedFields);
-            } catch (e) {
-                log.error('Failed to parse fields JSON', e);
-                parsedFields = { fields: [] };
-            }
-        }
-        
-        if (parsedFields && typeof parsedFields === 'object') {
-            if (Array.isArray(parsedFields)) {
-                // Correct structure (Direct Array of Fields)
-            } else if ('fields' in parsedFields && Array.isArray(parsedFields.fields)) {
-                // Correct structure (Object with fields array)
-            } else if ('schema' in parsedFields) {
-                // Nested schema object, extract
-                let inner = (parsedFields as any).schema;
-                if (typeof inner === 'string') {
-                    try { inner = JSON.parse(inner); } catch(e) {}
-                }
-                parsedFields = inner;
-            }
-        }
-        
-        if (!parsedFields || typeof parsedFields !== 'object' || (!Array.isArray(parsedFields) && !('fields' in parsedFields))) {
-            parsedFields = { fields: [] };
-        }
-        
         return {
             ...row,
             layout: typeof row.layout === 'string' ? JSON.parse(row.layout) : row.layout,
             settings: typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings,
-            fields: parsedFields
+            fields: normalizeFields(row.fields)
         };
     },
 
@@ -152,7 +148,7 @@ export const DashboardRepository = {
         return { data, schemaVersion: row.schema_version || null };
     },
 
-    async saveResponse(db: SQLiteDBConnection, assignmentId: string, data: any, isDraft: boolean) {
+    async saveResponse(db: SQLiteDBConnection, assignmentId: string, data: Record<string, unknown>, isDraft: boolean) {
         log.info('saveResponse call:', { assignmentId, isDraft });
         const now = new Date().toISOString();
         const dataStr = JSON.stringify(data);

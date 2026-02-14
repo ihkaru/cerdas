@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Framework7Parameters } from 'framework7/types';
+import type { Framework7Parameters, Route } from 'framework7/types';
 import { ref } from 'vue';
 import DebugMenuSheet from './common/components/DebugMenuSheet.vue';
 import { useLogger } from './common/utils/logger';
@@ -32,7 +32,7 @@ const f7params = ref<Framework7Parameters>({
   },
   // Global Event Logging
   on: {
-    routeChange: (newRoute: any, previousRoute: any) => {
+    routeChange: (newRoute: Route, previousRoute: Route) => {
       log.info('Navigating:', {
         from: previousRoute?.path || 'initial',
         to: newRoute?.path,
@@ -40,7 +40,7 @@ const f7params = ref<Framework7Parameters>({
         query: newRoute?.query
       });
     },
-    pageInit: (page: any) => {
+    pageInit: (page: { name: string }) => {
       log.debug('Page Init:', { name: page.name });
     }
   },

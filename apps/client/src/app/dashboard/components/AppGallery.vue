@@ -42,7 +42,7 @@ const handleAppClick = (id: string) => {
 };
 
 const getAppIcon = (app: Table) => {
-    let settings: any = app.settings;
+    let settings: Record<string, unknown> = app.settings as Record<string, unknown> || {};
     if (typeof settings === 'string') {
         try {
             settings = JSON.parse(settings);

@@ -116,9 +116,10 @@ const signIn = async () => {
     } else {
       f7.dialog.alert('Login failed. Please check your credentials.', 'Authentication Error');
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     isLoading.value = false;
-    f7.dialog.alert(e.message || 'Login failed. Please check your credentials.', 'Authentication Error');
+    const message = e instanceof Error ? e.message : 'Login failed. Please check your credentials.';
+    f7.dialog.alert(message, 'Authentication Error');
   }
 }
 
@@ -127,7 +128,7 @@ const handleGoogleErrorWeb = () => {
   f7.dialog.alert('Google Login Failed', 'Error');
 }
 
-const handleGoogleLoginWeb = async (response: any) => {
+const handleGoogleLoginWeb = async (response: { credential?: string }) => {
   if (response.credential) {
     try {
       isLoading.value = true;
@@ -135,7 +136,7 @@ const handleGoogleLoginWeb = async (response: any) => {
       if (success) {
         f7.view.main.router.navigate('/', { reloadCurrent: true, clearPreviousHistory: true });
       }
-    } catch (e) {
+    } catch {
       f7.dialog.alert('Google Login Failed', 'Error');
     } finally {
       isLoading.value = false;
@@ -159,9 +160,9 @@ const signInWithGoogleNative = async () => {
     } else {
       throw new Error('No ID Token from Google');
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error(e);
-    const errorMsg = e.message || JSON.stringify(e);
+    const errorMsg = e instanceof Error ? e.message : JSON.stringify(e);
     f7.dialog.alert(`Google Sign-In Failed: ${errorMsg}`, 'Error');
   } finally {
     isLoading.value = false;
