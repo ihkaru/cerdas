@@ -21,7 +21,7 @@
                 <!-- Animated Transition between Grouping and Leaf Views -->
                 <transition name="view-fade" mode="out-in">
                     <!-- Grouping UI (Folders) -->
-                    <div v-if="isGroupingActive" key="grouping">
+                    <div v-if="isGroupingActive" :key="`grouping-${currentGroupLevel}`">
                         <AppShellGroupList :key="currentGroupLevel" :groups="filteredGroups" :config="groupByConfig"
                             :current-level="currentGroupLevel" @enter-group="enterGroup"
                             @show-all="forceShowItems = true" />
@@ -64,7 +64,7 @@
                         <!-- Animated Transition between Grouping and Leaf Views -->
                         <transition name="view-fade" mode="out-in">
                             <!-- Grouping UI (Folders) -->
-                            <div v-if="isGroupingActive" key="grouping">
+                            <div v-if="isGroupingActive" :key="`grouping-${currentGroupLevel}`">
                                 <AppShellGroupList :key="currentGroupLevel" :groups="filteredGroups"
                                     :config="groupByConfig" :current-level="currentGroupLevel" @enter-group="enterGroup"
                                     @show-all="forceShowItems = true" />
@@ -134,7 +134,7 @@
                 <!-- Animated Transition between Grouping and Flat List -->
                 <transition name="view-fade" mode="out-in">
                     <!-- CASE 1: GROUPING LIST (FOLDERS) -->
-                    <div v-if="isGroupingActive" key="grouping-standard">
+                    <div v-if="isGroupingActive" :key="`grouping-${currentGroupLevel}`">
                         <AppShellGroupList :groups="filteredGroups" @enter-group="enterGroup"
                             @show-all="forceShowItems = true" />
                     </div>
