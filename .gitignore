@@ -50,3 +50,23 @@ coverage/
 npm-debug.log*
 pnpm-debug.log*
 DOCKER_CONTEXT.md
+
+# Security - Global
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+*.jks
+*.keystore
+*.pem
+*.key
+
+# Logs - General
+logs/
+*_log.txt
+migration_log.txt
+# Specific project logs found
+apps/backend/migration_log.txt
+apps/client/build_error.log
+apps/editor/build_error.log
+gradle_build.log
