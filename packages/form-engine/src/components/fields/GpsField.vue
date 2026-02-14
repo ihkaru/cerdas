@@ -270,7 +270,9 @@ const hasLocation = computed(() => {
   if (!props.value) return false;
 
   // Structured object check
-  if (props.value.coords && typeof props.value.coords.latitude === 'number') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const val = props.value as any;
+  if (val?.coords && typeof val.coords.latitude === 'number') {
     return true;
   }
 
@@ -287,7 +289,8 @@ const normalizedValue = computed(() => {
   if (typeof props.value === 'string') {
     return parseCoordsString(props.value);
   }
-  return props.value;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return props.value as any;
 });
 
 const normalizedCoords = computed(() => {
@@ -376,7 +379,8 @@ const handleCapture = async () => {
 
   } catch (e: unknown) {
     console.error('[GpsField] Capture failed:', e);
-    systemError.value = getGeoErrorMessage(e);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    systemError.value = getGeoErrorMessage(e as any);
     f7.toast.show({
       text: 'Failed to get location',
       closeTimeout: 2000,
