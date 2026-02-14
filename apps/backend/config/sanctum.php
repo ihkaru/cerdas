@@ -13,6 +13,9 @@ return [
     | authentication cookies. Typically, these should include your local
     | and production domains which access your API via a frontend SPA.
     |
+    | PRODUCTION (Coolify): Set SANCTUM_STATEFUL_DOMAINS to:
+    |   app.dvlpid.my.id,editor.dvlpid.my.id
+    |
     */
 
     'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(

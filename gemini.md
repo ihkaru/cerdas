@@ -788,5 +788,19 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
 - **Fix**: Refactored `useAssignmentLoader.ts` to collect all data (Schema, Version Info, Response Data) first, then update reactive state in a single synchronous block at the end.
 - **Result**: `FormRenderer` now mounts with fully populated `initialData`.
 
+### 2026-02-15: Docker Production Audit & CORS Cleanup
 
+- **Audit Completed**: Full analysis of Docker production request flow.
+- **Architecture**: Traefik (Coolify) → FrankenPHP/Caddy (backend :8080) + Nginx (client/editor :80).
+- **CORS Fix**: Scoped `cors.php` paths from `*` to `api/*`, `sanctum/csrf-cookie`, `broadcasting/auth`. Added production domain documentation.
+- **Sanctum Fix**: Added production `SANCTUM_STATEFUL_DOMAINS` documentation to `sanctum.php`.
+- **Redundancies Removed**:
+  - Duplicate `REVERB_HOST` in `docker-compose.prod.yml`.
+  - Unused `mariadb_data` volume in `docker-compose.prod.yml`.
+  - Deleted orphaned `apps/backend/docker-compose.yml` (legacy serversideup image).
+- **Regenerated** `DOCKER_CONTEXT.md`.
+- **CRITICAL**: Ensure Coolify env vars include:
+  - `CORS_ALLOWED_ORIGINS=https://app.dvlpid.my.id,https://editor.dvlpid.my.id,capacitor://localhost`
+  - `SANCTUM_STATEFUL_DOMAINS=app.dvlpid.my.id,editor.dvlpid.my.id`
+  - Verify Traefik is NOT adding duplicate CORS headers.
 
