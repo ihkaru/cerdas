@@ -76,7 +76,11 @@ class AssignmentController extends Controller
             'per_page' => $perPage,
         ]);
 
-        $assignments = $query->with('tableVersion')->orderBy('id')->paginate($perPage);
+        if ($request->has('cursor') || $request->boolean('use_cursor')) {
+            $assignments = $query->with('tableVersion')->orderBy('id')->cursorPaginate($perPage);
+        } else {
+            $assignments = $query->with('tableVersion')->orderBy('id')->paginate($perPage);
+        }
 
         Log::info('Assignments Fetched', [
             'count' => $assignments->count(),

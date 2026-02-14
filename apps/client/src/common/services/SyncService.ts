@@ -353,7 +353,7 @@ export class SyncService {
 
         const stmtAssign = `INSERT OR REPLACE INTO assignments (id, table_id, organization_id, supervisor_id, enumerator_id, prelist_data, status, synced_at, external_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-        const baseParams = `table_id=${tableId}&per_page=2000`;
+        const baseParams = `table_id=${tableId}&per_page=2000&use_cursor=true`;
         const deltaParams = lastSync
             ? `&updated_since=${encodeURIComponent(lastSync)}&include_deleted=1`
             : '';
