@@ -100,6 +100,20 @@ cd ../..
 ./start-all.bat
 ```
 
+
+
+### Verification (Local)
+
+Run this before pushing code to ensure everything is clean.
+
+```bash
+# Windows (PowerShell)
+./verify-local.ps1
+
+# Linux / Mac (Bash)
+./verify-local.sh
+```
+
 ### Production (Docker)
 
 ```bash

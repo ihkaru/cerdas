@@ -752,5 +752,13 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
   - `ExportController.php` (NEW): Filters response JSON via `array_intersect_key`.
   - `api.php`: Added `GET /api/tables/{table}/export?version=N` route.
 
+### 2026-02-14: Fix Assignment Detail Empty Data
+
+- **Problem**: `AssignmentDetail` form was valid but empty (no values).
+- **Root Cause**: Race condition in `useAssignmentLoader`. `schema` was set (triggering `FormRenderer` mount) *before* `formData` was populated from `DashboardRepository.getResponse`.
+- **Constraint**: `FormRenderer` uses `useFormLogic` which initializes `formData` from `initialData` prop *once* on creation (via `shallowReactive`). It does not watch for `initialData` changes for performance/architectural reasons.
+- **Fix**: Refactored `useAssignmentLoader.ts` to collect all data (Schema, Version Info, Response Data) first, then update reactive state in a single synchronous block at the end.
+- **Result**: `FormRenderer` now mounts with fully populated `initialData`.
+
 
 

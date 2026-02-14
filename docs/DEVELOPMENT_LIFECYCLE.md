@@ -228,9 +228,42 @@ Di Android Studio:
 | `Cannot read property of undefined` | Data not loaded | Check API response |
 | `CORS error` | Backend tidak allow origin | Check Laravel CORS config |
 
+
+
+## Fase 5: Verification & Push
+
+Sebelum melakukan `git push`, **WAJIB** menjalankan script verifikasi lokal untuk memastikan code quality dan build integrity.
+
+### 5.1 Run Verification Script
+
+```powershell
+# Windows
+./verify-local.ps1
+```
+
+```bash
+# Linux / Mac
+./verify-local.sh
+```
+
+Script ini akan melakukan:
+1.  **Linting**: ESLint untuk detecting code errors & stylic issues.
+2.  **Type Checking**: `vue-tsc` untuk TypeScript error check.
+3.  **Build**: `vite build` untuk memastikan production build sukses.
+
+### 5.2 Push to GitHub
+
+Jika verifikasi sukses (All Checks Passed):
+
+```bash
+git push origin main
+```
+
+> **Note:** GitHub Actions juga akan menjalankan check yang sama, tapi verifikasi lokal menghemat waktu dengan mendeteksi error lebih awal.
+
 ---
 
-## Fase 5: Shutdown
+## Fase 6: Shutdown
 
 ### 5.1 Stop All Servers
 

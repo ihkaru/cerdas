@@ -109,15 +109,18 @@ export function useAssignmentLoader(assignmentId: string) {
             // 2. Load Schema (Preview Override or DB)
             if (!assignment.value.table_id) throw new Error('Assignment has no table ID');
 
+            let schemaToUse: AppSchema | null = null;
+            let pinnedVer: number | null = null;
+            let currentVer: number | null = null;
+
             const overrideSchema = loadSchemaFromOverride(assignment.value.table_id);
             if (overrideSchema) {
-                schema.value = overrideSchema;
-                // In preview, we don't care about version pinning/warning usually, or we treat it as latest
+                schemaToUse = overrideSchema;
             } else {
                 const result = await loadSchemaFromDB(conn, assignment.value.table_id, assignmentId);
-                schema.value = result.schema;
-                pinnedSchemaVersion.value = result.pinnedVersion;
-                currentTableVersion.value = result.currentVersion;
+                schemaToUse = result.schema;
+                pinnedVer = result.pinnedVersion;
+                currentVer = result.currentVersion;
             }
 
             // 3. Merge prelist_data with existing response
@@ -130,7 +133,15 @@ export function useAssignmentLoader(assignmentId: string) {
                 ...(existingData || {})
             };
 
-            log.info('[AssignmentDetail] Form data initialized');
+            // 4. Set Schema and Version Info (Trigger Render)
+            schema.value = schemaToUse;
+            pinnedSchemaVersion.value = pinnedVer;
+            currentTableVersion.value = currentVer;
+
+            log.info('[AssignmentDetail] Form data initialized', { 
+                formKeys: Object.keys(formData.value),
+                schemaFields: schema.value?.fields?.length 
+            });
 
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : 'Unknown error';
