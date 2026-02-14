@@ -204,7 +204,7 @@ export const getGeoErrorMessage = (error: unknown): string => {
   }
   
   // Handle Capacitor-specific errors
-  const msg = error.message || String(error);
+  const msg = (error instanceof Error) ? error.message : String(error);
   if (msg.includes('permission')) return 'Permission denied. Please enable Location.';
   if (msg.includes('timeout')) return 'GPS timeout. Try moving outdoors.';
   
