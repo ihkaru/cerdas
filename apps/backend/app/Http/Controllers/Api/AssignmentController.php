@@ -84,7 +84,7 @@ class AssignmentController extends Controller
 
         Log::info('Assignments Fetched', [
             'count' => $assignments->count(),
-            'total' => $assignments->total(),
+            'total' => method_exists($assignments, 'total') ? $assignments->total() : 'cursor',
         ]);
 
         return response()->json([
