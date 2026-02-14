@@ -97,7 +97,7 @@ export class SyncService {
             }
 
             // B. ORPHAN CLEANUP: Delete local tables NOT in server response
-            const serverTableIds = tables.map((t: any) => t.id);
+            const serverTableIds = tables.map((t: { id: string }) => t.id);
             if (serverTableIds.length > 0) {
                 const placeholders = serverTableIds.map(() => '?').join(',');
                 await db.run(
@@ -507,6 +507,7 @@ export class SyncService {
         }
     }
 
+     
     private async handlePushResponse(db: any, items: any[]) {
          for (const item of items) {
             if (item.status === 'success') {
