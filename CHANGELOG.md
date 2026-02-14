@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.35](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.34...cerdas-v0.1.35) (2026-02-14)
+
+
+### Bug Fixes
+
+* **client:** resolve assignment detail empty data race condition and other improvements ([8d829eb](https://github.com/ihkaru/cerdas/commit/8d829ebfdf8e7fc8f8a541379487adb6d94dd80d))
+
 ## [0.1.34](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.33...cerdas-v0.1.34) (2026-02-14)
 
 
