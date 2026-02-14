@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { apiClient } from '../api/ApiClient';
 import { databaseService } from '../database/DatabaseService';

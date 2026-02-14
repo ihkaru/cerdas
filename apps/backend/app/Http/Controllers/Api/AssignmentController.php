@@ -104,6 +104,14 @@ class AssignmentController extends Controller
         ]);
 
         $tableVersion = TableVersion::with('table')->find($request->table_version_id);
+
+        if (! $tableVersion) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Table version not found',
+            ], 404);
+        }
+
         $user = $request->user();
 
         if (! $user->hasAppAccess($tableVersion->table->app_id)) {
