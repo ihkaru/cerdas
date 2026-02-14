@@ -191,7 +191,8 @@ const locateUser = async () => {
     if (!map) return;
     locating.value = true;
     try {
-        const pos = await getCurrentPosition({ enableHighAccuracy: true });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pos = await getCurrentPosition({ enableHighAccuracy: true }) as any;
         const { latitude, longitude } = pos.coords;
 
         if (userMarker) {
