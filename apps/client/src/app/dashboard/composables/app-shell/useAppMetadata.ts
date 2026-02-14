@@ -80,7 +80,7 @@ export function useAppMetadata(
         (async () => {
             try {
                 log.info('Fetching App Metadata from API... (background)');
-                const result: SyncResult | null = await AppMetadataService.syncAppMetadata(conn, validAppId);
+                const result: any = await AppMetadataService.syncAppMetadata(conn, validAppId);
                 await fetchAppContext(validAppId);
                 
                 if (result?.appData) {
