@@ -90,7 +90,7 @@ const props = defineProps({
         required: true
     },
     user: {
-        type: Object as PropType<Record<string, unknown>>,
+        type: Object as PropType<Record<string, unknown> | null>,
         default: null
     },
     role: {
@@ -107,7 +107,7 @@ const props = defineProps({
     }
 });
 
-// const emit = defineEmits(['close']); // Unused
+
 
 import { computed } from 'vue';
 

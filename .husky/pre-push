@@ -1,83 +1,19 @@
 #!/bin/sh
 
-# Pre-push hook: Smart tiered build verification
+# Pre-push hook: Runs strict verification (Lint + Build + Backend Checks)
 # Bypass with: git push --no-verify
-#
-# Strategy:
-#   - No client/packages changes → skip entirely
-#   - Only web files (.vue, .ts, .css, .js) → web build only (~30s)
-#   - Native Android files changed → full build (web + cap sync + gradle ~5-10m)
 
-# Get list of files being pushed
-CHANGED_FILES=$(git diff --name-only HEAD@{1}..HEAD 2>/dev/null || git diff --name-only HEAD~1..HEAD 2>/dev/null || echo "")
+echo "🛡️  Running strict pre-push verification..."
 
-# Check if any client or packages files changed
-CLIENT_CHANGED=$(echo "$CHANGED_FILES" | grep -E "^(apps/client/|packages/)" || true)
+# Execute verification script
+./verify-local.sh
 
-if [ -z "$CLIENT_CHANGED" ]; then
-    echo "⏭️  No client/packages changes detected, skipping build verification."
-    exit 0
-fi
-
-# Detect if NATIVE Android files changed (requires full Gradle build)
-NATIVE_CHANGED=$(echo "$CHANGED_FILES" | grep -E "^(apps/client/android/|apps/client/capacitor\.config)" || true)
-
-if [ -z "$NATIVE_CHANGED" ]; then
-    # ===== FAST PATH: Web-only verification (~30s) =====
-    echo "🔍 Web-only changes detected. Running fast verification..."
+if [ $? -ne 0 ]; then
     echo ""
-
-    echo "🏗️  Building web assets (vue-tsc + vite)..."
-    pnpm --filter client build
-    if [ $? -ne 0 ]; then
-        echo ""
-        echo "❌ WEB BUILD FAILED! Push blocked."
-        echo "   Fix TypeScript/Vite errors above."
-        echo "   To bypass: git push --no-verify"
-        exit 1
-    fi
-
-    echo ""
-    echo "✅ Web build passed. Push allowed."
-    echo "   ℹ️  Skipped Gradle (no native changes). GitHub Actions will do the full APK build."
-    exit 0
-fi
-
-# ===== FULL PATH: Web + Cap Sync + Gradle (~5-10 min) =====
-echo "🔍 Native Android changes detected. Running FULL build verification..."
-echo ""
-
-# Step 1: Build web assets
-echo "🏗️  [1/3] Building web assets..."
-pnpm --filter client build
-if [ $? -ne 0 ]; then
-    echo "❌ WEB BUILD FAILED! Push blocked."
-    echo "To bypass: git push --no-verify"
-    exit 1
-fi
-echo "✅ Web assets OK"
-
-# Step 2: Cap sync
-echo "🔄 [2/3] Syncing to Android..."
-cd apps/client
-npx cap sync android
-if [ $? -ne 0 ]; then
-    echo "❌ CAP SYNC FAILED! Push blocked."
-    echo "To bypass: git push --no-verify"
-    exit 1
-fi
-echo "✅ Cap sync OK"
-
-# Step 3: Gradle build (debug, no signing needed)
-echo "🤖 [3/3] Building Android native..."
-cd android
-chmod +x gradlew 2>/dev/null
-./gradlew assembleDebug
-if [ $? -ne 0 ]; then
-    echo "❌ GRADLE BUILD FAILED! Push blocked."
-    echo "To bypass: git push --no-verify"
+    echo "❌ PUSH BLOCKED: Local verification failed."
+    echo "   Please fix the errors above."
+    echo "   To bypass (NOT RECOMMENDED): git push --no-verify"
     exit 1
 fi
 
-echo ""
-echo "✅ Full Android build verification passed. Pushing..."
+exit 0

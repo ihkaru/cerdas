@@ -40,26 +40,54 @@ const recordData = ref<any>(null);
 
 const viewTitle = computed(() => viewConfig.value?.title || 'Detail');
 
+const loadSchema = async (conn: any) => {
+    const schemaRes = await conn.query(`SELECT * FROM tables WHERE id = ?`, [props.contextId]);
+    if (!schemaRes.values || schemaRes.values.length === 0) {
+        throw new Error("Table not found");
+    }
+    return schemaRes.values[0];
+};
+
+const getLayout = (schemaRow: any) => {
+    const layout = typeof schemaRow.layout === 'string' ? JSON.parse(schemaRow.layout) : schemaRow.layout;
+    if (!layout) throw new Error("Layout not found in table");
+    return layout;
+};
+
+const fetchData = async (conn: any, source: string) => {
+    if (source === 'assignments') {
+        const assignmentsRes = await conn.query(`SELECT * FROM assignments`);
+        const assignments = assignmentsRes.values || [];
+        const record = assignments.find((a: any) => String(a.id) === String(props.recordId) || String(a.local_id) === String(props.recordId));
+
+        if (record && typeof record.prelist_data === 'string') {
+            try { record.prelist_data = JSON.parse(record.prelist_data); } catch { /* ignore */ }
+        }
+        return record;
+    }
+
+    if (source === 'responses') {
+        const responsesRes = await conn.query(`SELECT * FROM responses`);
+        const responses = responsesRes.values || [];
+        const record = responses.find((r: any) => String(r.local_id) === String(props.recordId));
+
+        if (record && typeof record.data === 'string') {
+            try { record.data = JSON.parse(record.data); } catch { /* ignore */ }
+        }
+        return record;
+    }
+
+    return null;
+};
+
 onMounted(async () => {
     try {
         loading.value = true;
         const conn = await db.getDB();
 
-        // 1. Get Schema (Table)
-        const schemaRes = await conn.query(`SELECT * FROM tables WHERE id = ?`, [props.contextId]);
-        let schemaRow = null;
-        if (schemaRes.values && schemaRes.values.length > 0) {
-            schemaRow = schemaRes.values[0];
-        } else {
-            throw new Error("Table not found");
-        }
-
-        if (!schemaRow) {
-            throw new Error("Table not found");
-        }
-
-        const layout = typeof schemaRow.layout === 'string' ? JSON.parse(schemaRow.layout) : schemaRow.layout;
-        if (!layout) throw new Error("Layout not found in table");
+        // 1. Get Schema & layout
+        const schemaRow = await loadSchema(conn);
+        const layout = getLayout(schemaRow);
 
         // 2. Get View Config
         viewConfig.value = layout.views?.[props.viewName];
@@ -67,30 +95,9 @@ onMounted(async () => {
             throw new Error(`View '${props.viewName}' not found in layout`);
         }
 
-        // 3. Get Data (Generic)
+        // 3. Get Data
         const source = viewConfig.value.source;
-
-        if (source === 'assignments') {
-            // In real app, recordId might be uuid or int.
-            const assignmentsRes = await conn.query(`SELECT * FROM assignments`);
-            const assignments = assignmentsRes.values || [];
-            recordData.value = assignments.find((a: any) => String(a.id) === String(props.recordId) || String(a.local_id) === String(props.recordId));
-
-            // Parse prelist if needed
-            if (recordData.value && typeof recordData.value.prelist_data === 'string') {
-                try { recordData.value.prelist_data = JSON.parse(recordData.value.prelist_data); } catch { }
-            }
-
-        } else if (source === 'responses') {
-            // Fetch all responses for now
-            const responsesRes = await conn.query(`SELECT * FROM responses`);
-            const responses = responsesRes.values || [];
-            recordData.value = responses.find((r: any) => String(r.local_id) === String(props.recordId));
-
-            if (recordData.value && typeof recordData.value.data === 'string') {
-                try { recordData.value.data = JSON.parse(recordData.value.data); } catch { }
-            }
-        }
+        recordData.value = await fetchData(conn, source);
 
         if (!recordData.value) {
             console.warn(`Record ${props.recordId} not found in ${source}`);

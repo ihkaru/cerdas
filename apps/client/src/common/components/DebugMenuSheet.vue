@@ -108,7 +108,7 @@
         <div class="dbg-section">
           <div class="dbg-label">Device</div>
           <div class="dbg-row"><span>Screen:</span> <span>{{ screenInfo.width }}x{{ screenInfo.height }} @{{
-              screenInfo.dpr
+            screenInfo.dpr
               }}x</span></div>
           <div class="dbg-row"><span>Language:</span> <span>{{ browserLang }}</span></div>
           <div class="dbg-sub" style="word-break: break-all;">{{ userAgent }}</div>
@@ -227,6 +227,11 @@ const runChecks = async () => {
 const copyInfo = () => {
   refreshAuth();
   refreshLogs();
+  function getReverbStatusText() {
+    if (reverbStatus.value === null) return 'N/A';
+    return reverbStatus.value ? 'OK' : 'FAIL';
+  }
+
   const info = {
     app: { version: appVersion, build: buildTime, platform },
     auth: {
@@ -238,7 +243,7 @@ const copyInfo = () => {
       api: apiStatus.value ? 'OK' : 'FAIL',
       apiLatency: apiLatency.value ? `${apiLatency.value}ms` : 'N/A',
       apiError: apiError.value || null,
-      reverb: reverbStatus.value === null ? 'N/A' : (reverbStatus.value ? 'OK' : 'FAIL'),
+      reverb: getReverbStatusText(),
       network: isOnline.value ? 'Online' : 'Offline',
     },
     environment: {

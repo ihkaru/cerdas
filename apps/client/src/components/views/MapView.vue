@@ -33,6 +33,7 @@ const props = defineProps<{
     data: any[];
 }>();
 
+// eslint-disable-next-line sonarjs/pseudo-random
 const mapId = `map-${Math.random().toString(36).substr(2, 9)}`;
 let map: L.Map | null = null;
 let markers: L.LayerGroup | null = null;
@@ -41,42 +42,53 @@ const normalizedConfig = computed(() => {
     return props.config.map || props.config.config?.map || props.config.options || {};
 });
 
-const getCoordinates = (item: any, gpsCol: string): [number, number] | null => {
-    const val = resolvePath(item, gpsCol);
-    if (val === null) return null;
+const toNum = (v: any): number => {
+    const n = parseFloat(String(v));
+    return isNaN(n) ? NaN : n;
+};
 
-    const toNum = (v: any): number => {
-        const n = parseFloat(String(v));
-        return isNaN(n) ? NaN : n;
-    };
-
-    // 1. String "lat,lng"
+const parseLatLongString = (val: any): [number, number] | null => {
     if (typeof val === 'string' && val.includes(',')) {
         const [a, b] = val.split(',');
         const lat = toNum(a), lng = toNum(b);
         if (!isNaN(lat) && !isNaN(lng)) return [lat, lng];
     }
+    return null;
+};
 
-    // 2. GeolocationPosition { coords: { latitude, longitude } }
+const parseGeoCoords = (val: any): [number, number] | null => {
     if (val?.coords) {
         const lat = toNum(val.coords.latitude), lng = toNum(val.coords.longitude);
         if (!isNaN(lat) && !isNaN(lng)) return [lat, lng];
     }
+    return null;
+};
 
-    // 3. Object { lat, lng } atau { latitude, longitude }
+const parseLatLongObject = (val: any): [number, number] | null => {
     if (typeof val === 'object' && !Array.isArray(val)) {
         const lat = toNum(val.lat ?? val.latitude);
         const lng = toNum(val.lng ?? val.long ?? val.longitude);
         if (!isNaN(lat) && !isNaN(lng)) return [lat, lng];
     }
+    return null;
+};
 
-    // 4. Array [lat, lng]
+const parseLatLongArray = (val: any): [number, number] | null => {
     if (Array.isArray(val) && val.length >= 2) {
         const lat = toNum(val[0]), lng = toNum(val[1]);
         if (!isNaN(lat) && !isNaN(lng)) return [lat, lng];
     }
-
     return null;
+};
+
+const getCoordinates = (item: any, gpsCol: string): [number, number] | null => {
+    const val = resolvePath(item, gpsCol);
+    if (!val) return null;
+
+    return parseLatLongString(val) ||
+        parseGeoCoords(val) ||
+        parseLatLongObject(val) ||
+        parseLatLongArray(val);
 };
 
 const validLocations = computed(() => {
@@ -95,33 +107,33 @@ const validLocations = computed(() => {
     });
 });
 
+const getDeep = (target: any, p: string) => {
+    if (!target) return undefined;
+    return p.split('.').reduce((acc, part) => acc && acc[part], target);
+};
+
+const resolvePrelist = (obj: any, path: string) => {
+    let prelist = obj.prelist_data;
+    if (typeof prelist === 'string') {
+        try { prelist = JSON.parse(prelist); } catch { /* ignore */ }
+    }
+    const val = getDeep(typeof prelist === 'object' ? prelist : obj, path.replace('prelist_data.', ''));
+    return val || '';
+};
+
 const resolvePath = (obj: any, path: string) => {
     if (!obj || !path) return '';
 
-    // 1. Try direct path
-    const directVal = path.split('.').reduce((acc, part) => acc && acc[part], obj);
-    if (directVal !== undefined && directVal !== null && directVal !== '') return directVal;
-
-    // 2. Try inside 'response_data' (for Assignments/Responses)
-    if (obj.response_data) {
-        const responseVal = path.split('.').reduce((acc, part) => acc && acc[part], obj.response_data);
-        if (responseVal !== undefined && responseVal !== null && responseVal !== '') return responseVal;
-    }
-
-    // 3. Try inside 'data' property (Generic Records)
-    if (obj.data) {
-        const dataVal = path.split('.').reduce((acc, part) => acc && acc[part], obj.data);
-        if (dataVal !== undefined && dataVal !== null && dataVal !== '') return dataVal;
-    }
-
-    // 4. Try prelist_data (Legacy string parsing)
     if (path.startsWith('prelist_data.')) {
-        if (typeof obj.prelist_data === 'string') {
-            try { obj.prelist_data = JSON.parse(obj.prelist_data); } catch { }
-        }
-        return path.split('.').reduce((acc, part) => acc && acc[part], obj) || '';
+        return resolvePrelist(obj, path);
     }
 
+    // Try multiple sources in order
+    const val = getDeep(obj, path) ||
+        getDeep(obj.response_data, path) ||
+        getDeep(obj.data, path);
+
+    if (val !== undefined && val !== null && val !== '') return val;
     return '';
 };
 
@@ -157,6 +169,7 @@ const markerStyleFn = computed(() => {
     if (!fnBody) return null;
     try {
         // Safe-ish evaluation
+        /* eslint-disable-next-line sonarjs/code-eval */
         return new Function('data', 'item', fnBody);
     } catch (e) {
         console.error('Invalid marker logic:', e);
@@ -178,8 +191,7 @@ const getMarkerStyle = (item: any) => {
             icon: result?.icon || defaultStyle.icon,
             color: result?.color || defaultStyle.color
         };
-    } catch (e) {
-        // console.warn('Marker style eval error:', e);
+    } catch {
         return defaultStyle;
     }
 }

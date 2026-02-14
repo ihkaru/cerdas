@@ -146,7 +146,7 @@ export const AssignmentQueryService = {
             const { where: filterWhere, params: filterParams } = this.buildFilterWhere(filters);
             
             if (filterWhere) {
-                 const prefix = dynamicWhere.trim() === '' ? '' : ' AND ';
+                 // const prefix = dynamicWhere.trim() === '' ? '' : ' AND '; // Unused
                  // If dynamicWhere has WHERE, strip it from filterWhere. If empty, use filterWhere as is.
                  // Actually simpler: construct full clause.
                  

@@ -28,7 +28,9 @@ export class ApiClient {
         
         let url = import.meta.env.VITE_API_BASE_URL || envUrl || 'http://localhost:8080/api';
         
-        const ANDROID_LOOPBACK = '10.0.2.2';
+        // 10.0.2.2 is the special IP for Android emulator to access host localhost
+/* eslint-disable-next-line sonarjs/no-hardcoded-ip */
+const ANDROID_LOOPBACK = '10.0.2.2';
         if (!isActuallyWeb && url.includes('localhost')) {
             url = url.replace('localhost', ANDROID_LOOPBACK);
         }

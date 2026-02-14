@@ -37,6 +37,43 @@ import { logger } from './common/utils/logger';
 // =============================================================================
 // ANDROID BACK BUTTON HANDLER (Global Registration - before Vue mounts)
 // =============================================================================
+const closePanels = () => {
+    if (f7.panel.get('left')?.opened) {
+        logger.debug('Closing Left Panel');
+        f7.panel.close('left');
+        return true;
+    }
+    if (f7.panel.get('right')?.opened) {
+        logger.debug('Closing Right Panel');
+        f7.panel.close('right');
+        return true;
+    }
+    return false;
+};
+
+const closeModals = () => {
+    const selector = [
+        '.dialog.modal-in',
+        '.popup.modal-in',
+        '.sheet-modal.modal-in',
+        '.popover.modal-in',
+        '.actions-modal.modal-in',
+        '.login-screen.modal-in'
+    ].find(s => document.querySelector(s));
+
+    if (selector) {
+        logger.debug('Closing Modal', { selector });
+        if (selector.includes('dialog')) f7.dialog.close();
+        else if (selector.includes('popup')) f7.popup.close();
+        else if (selector.includes('sheet')) f7.sheet.close();
+        else if (selector.includes('popover')) f7.popover.close();
+        else if (selector.includes('actions')) f7.actions.close();
+        else if (selector.includes('login')) f7.loginScreen.close();
+        return true;
+    }
+    return false;
+};
+
 const setupBackButtonHandler = () => {
     logger.info('Registering Android Back Button Handler');
     
@@ -44,60 +81,22 @@ const setupBackButtonHandler = () => {
         logger.debug('Native Back Button Pressed', { canGoBack });
         
         try {
-            // Check if Framework7 is ready
-            if (!f7 || !f7.view || !f7.view.main) {
-                logger.warn('Framework7 not ready yet');
-                // Don't exit immediately - might be initializing
+            if (!f7?.view?.main?.router?.currentRoute) {
+                logger.warn('Framework7/Router not ready');
                 return;
             }
 
             const router = f7.view.main.router;
-            
-            if (!router || !router.currentRoute) {
-                logger.warn('Router not ready');
-                return;
-            }
-
             const currentUrl = router.currentRoute.url;
             const historyLength = router.history.length;
             
             logger.debug('Navigation State', { currentUrl, historyLength });
 
             // 1. Close Open Panels
-            if (f7.panel.get('left')?.opened) {
-                logger.debug('Closing Left Panel');
-                f7.panel.close('left');
-                return;
-            }
-            if (f7.panel.get('right')?.opened) {
-                logger.debug('Closing Right Panel');
-                f7.panel.close('right');
-                return;
-            }
+            if (closePanels()) return;
 
             // 2. Close Modals
-            const modals = [
-                '.dialog.modal-in',
-                '.popup.modal-in',
-                '.sheet-modal.modal-in',
-                '.popover.modal-in',
-                '.actions-modal.modal-in',
-                '.login-screen.modal-in'
-            ];
-            
-            for (const selector of modals) {
-                const el = document.querySelector(selector);
-                if (el) {
-                    logger.debug('Closing Modal', { selector });
-                    if (selector.includes('dialog')) f7.dialog.close();
-                    else if (selector.includes('popup')) f7.popup.close();
-                    else if (selector.includes('sheet')) f7.sheet.close();
-                    else if (selector.includes('popover')) f7.popover.close();
-                    else if (selector.includes('actions')) f7.actions.close();
-                    else if (selector.includes('login')) f7.loginScreen.close();
-                    return;
-                }
-            }
+            if (closeModals()) return;
 
             // 3. Navigate Back
             if (historyLength > 1) {
@@ -142,7 +141,8 @@ const originalClosest = Element.prototype.closest;
 Element.prototype.closest = function(selector: string) {
     try {
         return originalClosest.call(this, selector);
-    } catch (e) {
+    } catch {
+        // Ignore selector errors in older WebViews
         return null;
     }
 };
@@ -241,6 +241,131 @@ async function startApp() {
         // =============================================================================
         // EDITOR BRIDGE (for Live Preview)
         // =============================================================================
+        const handleSetToken = (payload: any) => {
+             logger.info('Received token from Editor');
+                    
+            const token = typeof payload === 'string' ? payload : payload.token;
+            const roleLabel = (typeof payload === 'object' && payload.roleLabel) ? payload.roleLabel : 'User';
+
+            localStorage.setItem('auth_token', token);
+            
+            // Try to update store if it exists
+            try {
+                const authStore = useAuthStore();
+                authStore.token = token;
+            } catch {
+                // Pinia might not be ready yet
+            }
+
+            // Show visual feedback (UX)
+            if (f7) {
+                f7.toast.create({
+                    text: `Switched to ${roleLabel}`,
+                    icon: '<i class="f7-icons">person_crop_circle_fill_badge_checkmark</i>',
+                    position: 'center',
+                    closeTimeout: 2000,
+                    cssClass: 'preview-toast-feedback'
+                }).open();
+            }
+        };
+
+        const handleSchemaOverride = async (payload: any) => {
+            const { tableId, fields, layout } = payload;
+            let { settings } = payload;
+            // Fallback: extract from schema if not at top level
+            if (!settings && payload.schema?.settings) {
+                settings = payload.schema.settings;
+            }
+            // Legacy support for formId
+            const targetId = tableId || payload.formId;
+            
+            const name = payload.name || payload.schema?.name;
+            const description = payload.description || payload.schema?.description;
+            
+            const targetFields = fields || payload.schema?.fields || (Array.isArray(payload.schema) ? payload.schema : []);
+
+            logger.info('Received schema override for table:', targetId);
+            
+            // 1. Set Memory Override (for instant component updates)
+            (window as any).__SCHEMA_OVERRIDE = (window as any).__SCHEMA_OVERRIDE || {};
+            (window as any).__SCHEMA_OVERRIDE[targetId] = { 
+                schema: { 
+                    name, 
+                    description, 
+                    settings, 
+                    fields: targetFields 
+                }, 
+                layout 
+            };
+            
+            // 2. Persist to SQLite (for Dashboard visibility on refresh)
+            try {
+                const db = await databaseService.getDB();
+                
+                // Check if we already have this table and what its app_id is
+                const existingRes = await db.query('SELECT app_id FROM tables WHERE id = ?', [targetId]);
+                const existingAppId = existingRes.values?.[0]?.app_id;
+                
+                const sql = `
+                    INSERT OR REPLACE INTO tables (id, app_id, name, description, fields, layout, settings, version, synced_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `;
+                const values = [
+                    targetId,
+                    payload.appId || existingAppId || targetId, // Use tableId as fallback if no appId
+                    name || 'Preview Table',
+                    description || '',
+                    JSON.stringify(targetFields),
+                    JSON.stringify(layout),
+                    JSON.stringify(settings || {}),
+                    payload.version || 1,
+                    new Date().toISOString()
+                ];
+                await db.run(sql, values);
+                logger.debug('Persisted preview schema to DB', { tableId: targetId });
+                logger.debug('[DEBUG] Layout views.default saved to SQLite:', JSON.stringify({
+                    groupBy: layout?.views?.default?.groupBy || 'NONE',
+                    deck: layout?.views?.default?.deck || 'NO DECK'
+                }));
+
+                // 3. Force Dashboard Reload (Critical Fix)
+                try {
+                    const dashboardStore = useDashboardStore();
+                    await dashboardStore.loadData(true);
+                    logger.info('Dashboard reloaded with new preview data');
+                } catch (storeErr) {
+                    logger.warn('Failed to reload dashboard store', storeErr);
+                }
+
+            } catch (e) {
+                    logger.error('Failed to persist preview schema to DB', e);
+            }
+
+            // 4. Notify Components
+            logger.debug('[MAIN] Dispatching schema-override-updated event', { tableId: targetId });
+            window.dispatchEvent(new CustomEvent('schema-override-updated', {
+                    detail: { tableId: targetId, fields: targetFields, layout }
+            }));
+            logger.debug('[MAIN] Event dispatched successfully');
+        };
+
+        const handleRefreshData = async () => {
+             logger.info('Received REFRESH_DATA command from Editor');
+            try {
+                const dashboardStore = useDashboardStore();
+                // Reload data forces hard refresh from DB
+                await dashboardStore.loadData(true);
+                logger.info('Dashboard data refreshed successfully');
+                
+                // Also force F7 to update if needed
+                if (f7 && f7.view && f7.view.main) {
+                        f7.view.main.router.refreshPage();
+                }
+            } catch (e) {
+                logger.error('Failed to refresh data', e);
+            }
+        };
+
         if (window.self !== window.top) {
             logger.info('Running inside iframe, initializing Editor Bridge');
 
@@ -250,137 +375,9 @@ async function startApp() {
 
                 const { type, payload } = event.data;
 
-                if (type === 'SET_TOKEN') {
-                    logger.info('Received token from Editor');
-                    
-                    const token = typeof payload === 'string' ? payload : payload.token;
-                    const roleLabel = (typeof payload === 'object' && payload.roleLabel) ? payload.roleLabel : 'User';
-
-                    localStorage.setItem('auth_token', token);
-                    
-                    // Try to update store if it exists
-                    try {
-                        const authStore = useAuthStore();
-                        authStore.token = token;
-                    } catch (e) {
-                        // Pinia might not be ready yet
-                    }
-
-                    // Show visual feedback (UX)
-                    if (f7) {
-                        f7.toast.create({
-                            text: `Switched to ${roleLabel}`,
-                            icon: '<i class="f7-icons">person_crop_circle_fill_badge_checkmark</i>',
-                            position: 'center',
-                            closeTimeout: 2000,
-                            cssClass: 'preview-toast-feedback'
-                        }).open();
-                    }
-                }
-
-                if (type === 'SET_SCHEMA_OVERRIDE') {
-                    const { tableId, fields, layout } = payload;
-                    let { settings } = payload;
-                    // Fallback: extract from schema if not at top level
-                    if (!settings && payload.schema?.settings) {
-                        settings = payload.schema.settings;
-                    }
-                    // Legacy support for formId
-                    const targetId = tableId || payload.formId;
-                    
-                    // Handle multiple payload formats for name/description:
-                    // 1. Directly on payload: payload.name, payload.description
-                    // 2. Nested in schema: payload.schema.name, payload.schema.description
-                    const name = payload.name || payload.schema?.name;
-                    const description = payload.description || payload.schema?.description;
-                    
-                    // Handle multiple payload formats for fields:
-                    // 1. { fields: [...] } - direct fields array
-                    // 2. { schema: { fields: [...] } } - nested in schema object
-                    // 3. { schema: [...] } - legacy format where schema IS the fields
-                    const targetFields = fields || payload.schema?.fields || (Array.isArray(payload.schema) ? payload.schema : []);
-
-                    logger.info('Received schema override for table:', targetId);
-                    
-                    // 1. Set Memory Override (for instant component updates)
-                    (window as any).__SCHEMA_OVERRIDE = (window as any).__SCHEMA_OVERRIDE || {};
-                    (window as any).__SCHEMA_OVERRIDE[targetId] = { 
-                        schema: { 
-                            name, 
-                            description, 
-                            settings, 
-                            fields: targetFields 
-                        }, 
-                        layout 
-                    };
-                    
-                    // 2. Persist to SQLite (for Dashboard visibility on refresh)
-                    try {
-                        const db = await databaseService.getDB();
-                        
-                        // Check if we already have this table and what its app_id is
-                        const existingRes = await db.query('SELECT app_id FROM tables WHERE id = ?', [targetId]);
-                        const existingAppId = existingRes.values?.[0]?.app_id;
-                        
-                        const sql = `
-                            INSERT OR REPLACE INTO tables (id, app_id, name, description, fields, layout, settings, version, synced_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        `;
-                        const values = [
-                            targetId,
-                            payload.appId || existingAppId || targetId, // Use tableId as fallback if no appId
-                            name || 'Preview Table',
-                            description || '',
-                            JSON.stringify(targetFields),
-                            JSON.stringify(layout),
-                            JSON.stringify(settings || {}),
-                            payload.version || 1,
-                            new Date().toISOString()
-                        ];
-                        await db.run(sql, values);
-                        logger.debug('Persisted preview schema to DB', { tableId: targetId });
-                        logger.debug('[DEBUG] Layout views.default saved to SQLite:', JSON.stringify({
-                            groupBy: layout?.views?.default?.groupBy || 'NONE',
-                            deck: layout?.views?.default?.deck || 'NO DECK'
-                        }));
-
-                        // 3. Force Dashboard Reload (Critical Fix)
-                        try {
-                            const dashboardStore = useDashboardStore();
-                            await dashboardStore.loadData(true);
-                            logger.info('Dashboard reloaded with new preview data');
-                        } catch (storeErr) {
-                            logger.warn('Failed to reload dashboard store', storeErr);
-                        }
-
-                    } catch (e) {
-                         logger.error('Failed to persist preview schema to DB', e);
-                    }
-
-                    // 4. Notify Components
-                    logger.debug('[MAIN] Dispatching schema-override-updated event', { tableId: targetId });
-                    window.dispatchEvent(new CustomEvent('schema-override-updated', {
-                         detail: { tableId: targetId, fields: targetFields, layout }
-                    }));
-                    logger.debug('[MAIN] Event dispatched successfully');
-                }
-
-                if (type === 'REFRESH_DATA') {
-                    logger.info('Received REFRESH_DATA command from Editor');
-                    try {
-                        const dashboardStore = useDashboardStore();
-                        // Reload data forces hard refresh from DB
-                        await dashboardStore.loadData(true);
-                        logger.info('Dashboard data refreshed successfully');
-                        
-                        // Also force F7 to update if needed
-                        if (f7 && f7.view && f7.view.main) {
-                             f7.view.main.router.refreshPage();
-                        }
-                    } catch (e) {
-                        logger.error('Failed to refresh data', e);
-                    }
-                }
+                if (type === 'SET_TOKEN') handleSetToken(payload);
+                if (type === 'SET_SCHEMA_OVERRIDE') await handleSchemaOverride(payload);
+                if (type === 'REFRESH_DATA') await handleRefreshData();
             });
 
             // Handshake: Notify Editor that we are ready to receive messages

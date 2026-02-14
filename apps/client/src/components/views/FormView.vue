@@ -78,7 +78,7 @@ const loadSchema = async () => {
             // fields column
             let fieldsObj = row.fields;
             if (typeof fieldsObj === 'string') {
-                try { fieldsObj = JSON.parse(fieldsObj); } catch (e) { }
+                try { fieldsObj = JSON.parse(fieldsObj); } catch { /* Ignore parse error */ }
             }
 
             // Wrap if array

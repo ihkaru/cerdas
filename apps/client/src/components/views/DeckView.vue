@@ -133,17 +133,25 @@ const options = computed(() => {
     };
 });
 
+// Helper to safely parse JSON if needed
+const ensureObject = (data: any) => {
+    if (typeof data === 'string') {
+        try { return JSON.parse(data); }
+        catch {
+            // Ignore parse error
+            return {};
+        }
+    }
+    return (typeof data === 'object' && data !== null) ? data : {};
+};
+
 // Helper to get nested data (e.g. 'prelist_data.name')
 const resolvePath = (obj: any, path: string) => {
     if (!path) return '';
 
-    // Constants
-    if (path === 'house_photo') {
-        // Debug specific path
-    }
-
     // 0. Inner Helper for robust deep access
     const getDeep = (target: any, p: string) => {
+        if (!target) return undefined;
         return p.split('.').reduce((o, i) => (o ? o[i] : undefined), target);
     };
 
@@ -152,33 +160,16 @@ const resolvePath = (obj: any, path: string) => {
     if (directValue !== undefined && directValue !== null) return directValue;
 
     // 2. Try searching in response_data (HIGHEST PRIORITY for form fields)
-    let responseData = obj.response_data;
-    if (typeof responseData === 'string') {
-        try { responseData = JSON.parse(responseData); } catch (e) { responseData = {}; }
-    }
-
-    // Check deep path in response_data
-    if (responseData && typeof responseData === 'object') {
-        const val = getDeep(responseData, path);
-        if (val !== undefined && val !== null) return val;
-    }
+    const responseData = ensureObject(obj.response_data);
+    const responseVal = getDeep(responseData, path);
+    if (responseVal !== undefined && responseVal !== null) return responseVal;
 
     // 3. Try searching in prelist_data (Data source default)
-    let prelistData = obj.prelist_data;
-    if (typeof prelistData === 'string') {
-        try { prelistData = JSON.parse(prelistData); } catch (e) { prelistData = {}; }
-    }
+    const prelistData = ensureObject(obj.prelist_data);
+    const prelistVal = getDeep(prelistData, path);
+    if (prelistVal !== undefined && prelistVal !== null) return prelistVal;
 
-    if (prelistData && typeof prelistData === 'object') {
-        const val = getDeep(prelistData, path);
-        if (val !== undefined && val !== null) return val;
-    }
-
-    // 4. Debug Result (Transparent Logging)
-    const result = (responseData && typeof responseData === 'object' && getDeep(responseData, path)) ||
-        (prelistData && typeof prelistData === 'object' && getDeep(prelistData, path));
-
-    return result;
+    return '';
 };
 
 const getImageUrl = (path: string) => {
