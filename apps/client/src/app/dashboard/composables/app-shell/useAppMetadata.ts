@@ -7,7 +7,7 @@ import { AppMetadataService } from '../../services/AppMetadataService';
 
 interface AuthStore {
     user: { role?: string | undefined } | null;
-    updateUser: (data: { role: string }) => void;
+    updateUser: (data: any) => void;
 }
 
 interface AppMetadata {
@@ -58,7 +58,7 @@ export function useAppMetadata(
     }
 
     /** Load local metadata from SQLite (offline support) */
-    async function loadLocalMetadata(conn: unknown, appId: string) {
+    async function loadLocalMetadata(conn: any, appId: string) {
         try {
             const { navigation, views, version } = await AppMetadataService.getLocalAppMetadata(conn, appId);
             log.info(`Local Metadata loaded: ${navigation?.length || 0} nav items, ${views?.length || 0} views, v${version}`);
@@ -76,11 +76,11 @@ export function useAppMetadata(
     }
 
     /** Background sync: fetch remote metadata and update reactively */
-    function startBackgroundSync(conn: unknown, validAppId: string) {
+    function startBackgroundSync(conn: any, validAppId: string) {
         (async () => {
             try {
                 log.info('Fetching App Metadata from API... (background)');
-                const result: SyncResult = await AppMetadataService.syncAppMetadata(conn, validAppId);
+                const result: SyncResult | null = await AppMetadataService.syncAppMetadata(conn, validAppId);
                 await fetchAppContext(validAppId);
                 
                 if (result?.appData) {
