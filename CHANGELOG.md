@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.32](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.31...cerdas-v0.1.32) (2026-02-14)
+
+
+### Bug Fixes
+
+* **client:** enable grouping transition animation across levels ([2dcc456](https://github.com/ihkaru/cerdas/commit/2dcc45601f45c28e9181c06f3ac18ffea2c47f7e))
+* **dashboard:** resolve assignment filter/sort status counts, z-index, and search bugs ([5188b37](https://github.com/ihkaru/cerdas/commit/5188b37ed871f514cebedfea99657a9bc6ae2b33))
+
 ## [0.1.31](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.30...cerdas-v0.1.31) (2026-02-13)
 
 
