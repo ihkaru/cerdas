@@ -388,10 +388,10 @@ const addSourceAndLayers = () => {
     map.addSource(SOURCE_ID, {
         type: 'geojson',
         data: geojson,
-        cluster: false,
+        cluster: true, // Enable clustering for performance (prevents OOM on zoom out)
         clusterMaxZoom: 16,
-        clusterRadius: 60,
-        clusterMinPoints: 3,
+        clusterRadius: 30,
+        clusterMinPoints: 60,
         generateId: true,
     });
 

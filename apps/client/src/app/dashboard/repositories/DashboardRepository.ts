@@ -42,6 +42,20 @@ export const DashboardRepository = {
         }));
     },
 
+    async getApps(db: SQLiteDBConnection): Promise<App[]> {
+        const res = await db.query(`SELECT * FROM apps ORDER BY name ASC`);
+        return (res.values || []).map(row => ({
+            id: row.id,
+            slug: row.slug,
+            name: row.name,
+            description: row.description,
+            version: row.version,
+            navigation: typeof row.navigation === 'string' ? JSON.parse(row.navigation) : row.navigation,
+            view_configs: typeof row.view_configs === 'string' ? JSON.parse(row.view_configs) : row.view_configs,
+            synced_at: row.synced_at
+        }));
+    },
+
     async getAssignments(db: SQLiteDBConnection, limit: number = 50, offset: number = 0): Promise<Assignment[]> {
         log.debug(`getAssignments fetching limit=${limit} offset=${offset}...`);
         

@@ -112,6 +112,33 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
         refreshDataFn();
     });
 
+    // NEW: Watch activeView to switch Table Context if view belongs to a different table
+    watch(() => metadata.activeView.value, async (newViewId) => {
+        if (!newViewId) return;
+
+        // Find view config
+        const viewConfig = metadata.appViews.value.find((v: any) => v.id === newViewId);
+        if (viewConfig && viewConfig.form_id) {
+            // Check if we need to switch table
+            if (viewConfig.form_id !== resolvedTableId.value) {
+                log.info(`[AppShell] Switching context to table: ${viewConfig.form_id} (View: ${newViewId})`);
+                state.loading.value = true;
+                
+                try {
+                    resolvedTableId.value = viewConfig.form_id;
+                    // Reload Schema & Data for new table
+                    await schemaLoader.loadTable(resolvedTableId.value);
+                    filters.activeFilters.value = []; // Reset filters on table switch
+                    await refreshDataFn();
+                } catch (e) {
+                    log.error('Failed to switch table context', e);
+                } finally {
+                    state.loading.value = false;
+                }
+            }
+        }
+    });
+
     // 7. Search & Filter
     const filter = useSearchAndFilter(
         state.searchQuery,

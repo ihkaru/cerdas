@@ -13,6 +13,17 @@ export interface Table {
     version: number;
 }
 
+export interface App {
+    id: string;
+    slug: string;
+    name: string;
+    description: string | null;
+    navigation: any; // JSON
+    view_configs: any; // JSON
+    version: number | string;
+    synced_at?: string;
+}
+
 export interface Assignment {
     id: string;
     table_id: string; // Renamed from form_id

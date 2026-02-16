@@ -102,6 +102,10 @@ packages/types  - @cerdas/types (shared strict TS types)
 - **Final Push**: Successfully pushed all verified code fixes to GitHub while excluding large CSV test files.
 - **Excel Import (Recent)**:
   - Enhanced `ExcelImportModal` and backend `ExcelImportController` for more robust data handling (matching modified files).
+- **App Hierarchy & UX (2026-02-17)**:
+  - **Refactor**: `AppShell` now supports multi-table Apps via dynamic `resolvedTableId` switching based on `activeView` (View -> Form ID).
+  - **Editor UX**: Added Breadcrumbs (`App Name / Table Name`) to `EditorHeader.vue` for better context.
+  - **Map Optimization**: Enabled Clustering (`cluster: true`) in `MapView.vue` to prevent OOM crashes on Android (20k+ points).
 
 - **Version**: 0.1.1 (Updated due to significant bug fixes)
 
@@ -812,5 +816,14 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
 - **Fix (MapView.vue)**:
   - Enabled MapLibre built-in clustering (`cluster: true`, `clusterMaxZoom: 16`, `clusterRadius: 60`, `clusterMinPoints: 3`).
   - Added `generateId: true` for correct `getClusterExpansionZoom` behavior.
-  - Optimized `buildGeoJson` to pre-extract `markerStyleFn.value` once instead of calling `getMarkerStyle()` per-item.
+  - Optimized `buildGeoJson` — pre-extract style function, reducing CPU overhead.
+
+### 2026-02-17: App Hierarchy Refactor
+
+- **Problem**: Client Dashboard showed unconnected Forms as Apps. "Rumah" App was missing.
+- **Fix**:
+  - **SyncService**: Added `syncApps()` to pull app metadata (id, slug, name, navigation) from `/dashboard`.
+  - **Dashboard**: Switched `DashboardRepository` to fetch from `apps` table instead of `tables`.
+  - **AppShell**: Verified `useAppShellLogic` handles App ID resolution (defaults to first table) and Sidebar allows switching tables.
+- **Result**: Dashboard now correctly shows "Rumah" as the App. Internally navigates to "master sls" form by default.
 - **Verified**: `vue-tsc --noEmit` passed (exit code 0).

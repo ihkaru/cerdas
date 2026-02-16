@@ -1,9 +1,10 @@
 <template>
     <EditorShell>
         <template #header>
-            <EditorHeader :title="tableName" :is-dirty="isGlobalDirty" :is-published="isPublished"
-                :version="currentVersion" :can-publish="isGlobalDirty && hasTableSelected" @rename="handleRename"
-                @save="handleSave" @publish="onPublish" @back="handleBack" @export="exportTable" />
+            <EditorHeader :title="tableName" :app-name="appStore.currentApp?.name" :is-dirty="isGlobalDirty"
+                :is-published="isPublished" :version="currentVersion" :can-publish="isGlobalDirty && hasTableSelected"
+                @rename="handleRename" @save="handleSave" @publish="onPublish" @back="handleBack"
+                @export="exportTable" />
         </template>
 
         <template #sidebar>

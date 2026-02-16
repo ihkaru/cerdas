@@ -22,10 +22,10 @@
 </template>
 
 <script setup lang="ts">
-import type { Table } from '../types';
+import type { App } from '../types';
 
 defineProps<{
-    apps: Table[];
+    apps: App[];
 }>();
 
 const emit = defineEmits<{
@@ -36,12 +36,10 @@ const handleAppClick = (id: string) => {
     emit('open-app', id);
 };
 
-const getAppIcon = (app: Table) => {
-    let settings: Record<string, unknown> = (app.settings as Record<string, unknown>) || {};
-    if (typeof settings === 'string') {
-        try { settings = JSON.parse(settings); } catch { settings = {}; }
-    }
-    return settings?.icon || 'square_stack_3d_up_fill';
+const getAppIcon = (app: App) => {
+    // Apps don't have settings inside them currently for icons
+    // We can use a default or check view_configs if we store meta there
+    return 'square_stack_3d_up_fill';
 };
 </script>
 

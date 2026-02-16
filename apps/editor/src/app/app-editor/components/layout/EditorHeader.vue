@@ -5,7 +5,11 @@
                 <f7-icon f7="chevron_left" />
             </a>
             <div class="form-title" @click="emit('rename')">
-                <span class="title-text">{{ title }}</span>
+                <span class="title-text">
+                    <span v-if="appName" class="app-name">{{ appName }}</span>
+                    <span v-if="appName" class="breadcrumb-separator">/</span>
+                    {{ title }}
+                </span>
                 <span v-if="isDirty" class="dirty-dot"></span>
                 <f7-icon f7="pencil" class="edit-icon" />
             </div>
@@ -56,6 +60,7 @@
 <script setup lang="ts">
 interface Props {
     title: string;
+    appName?: string; // New prop
     isDirty: boolean;
     isPublished: boolean;
     version?: number;
@@ -127,6 +132,20 @@ const emit = defineEmits<{
     font-size: 16px;
     font-weight: 600;
     color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.app-name {
+    color: #64748b;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.breadcrumb-separator {
+    color: #cbd5e1;
+    font-size: 14px;
 }
 
 .dirty-dot {

@@ -3,14 +3,14 @@ import { ref } from 'vue';
 import { useDatabase } from '../../../common/composables/useDatabase';
 import { useLogger } from '../../../common/utils/logger';
 import { DashboardRepository } from '../repositories/DashboardRepository';
-import type { Assignment, Table } from '../types';
+import type { App, Assignment } from '../types';
 
 export const useDashboardStore = defineStore('dashboard', () => {
     const logger = useLogger('DashboardStore');
     const db = useDatabase(); 
 
     // State
-    const apps = ref<Table[]>([]);
+    const apps = ref<App[]>([]);
     const assignments = ref<Assignment[]>([]);
     const totalAssignments = ref(0);
     const assignmentStats = ref<{ status: string; count: number }[]>([]);
@@ -33,7 +33,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
             
             // Parallel fetch for performance
             const [fetchedApps, fetchedAssignments, fetchedPending, fetchedCount, fetchedStats] = await Promise.all([
-                DashboardRepository.getTables(conn),
+                DashboardRepository.getApps(conn),
                 DashboardRepository.getAssignments(conn),
                 DashboardRepository.getPendingUploadCount(conn),
                 DashboardRepository.getAssignmentCount(conn),
@@ -48,7 +48,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
                         ...app,
                         name: override.schema.name || app.name,
                         description: override.schema.description || app.description,
-                        settings: override.schema.settings || app.settings
+                        // settings: override.schema.settings || app.settings // Apps don't have settings currently
                     };
                 }
                 return app;

@@ -96,6 +96,9 @@ export class SyncService {
                 }
             }
 
+            // A2. Update Apps List (NEW)
+            await this.syncApps(db, res.data.apps || []);
+
             // B. ORPHAN CLEANUP: Delete local tables NOT in server response
             const serverTableIds = tables.map((t: { id: string }) => t.id);
             if (serverTableIds.length > 0) {
@@ -117,6 +120,7 @@ export class SyncService {
                 logger.warn('[Sync] Server returned no tables, cleared all local data');
             }
 
+
             // C. Store Dashboard Stats (in LocalStorage for speed access by UI)
             localStorage.setItem('dashboard_stats', JSON.stringify(res.data.stats));
             localStorage.setItem('app_pending_counts', JSON.stringify(
@@ -125,8 +129,57 @@ export class SyncService {
         }
     }
 
-    // 2. TABLE PULL (Full JSON)
-    // 2. TABLE PULL (Full JSON) - Refactored
+    private async syncApps(db: any, apps: any[]) {
+        for (const app of apps) {
+            // Check if exists
+            const existing = await db.query(`SELECT version FROM apps WHERE id = ?`, [app.id]);
+            
+            if (existing.values && existing.values.length > 0) {
+                await db.run(
+                    `UPDATE apps SET slug = ?, name = ?, description = ?, navigation = ?, view_configs = ?, version = ?, synced_at = ? WHERE id = ?`,
+                    [
+                        app.slug, 
+                        app.name, 
+                        app.description, 
+                        JSON.stringify(app.navigation || []), 
+                        JSON.stringify(app.view_configs || {}), 
+                        app.version || 1, 
+                        new Date().toISOString(), 
+                        app.id
+                    ]
+                );
+            } else {
+                await db.run(
+                    `INSERT INTO apps (id, slug, name, description, navigation, view_configs, version, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        app.id, 
+                        app.slug, 
+                        app.name, 
+                        app.description, 
+                        JSON.stringify(app.navigation || []), 
+                        JSON.stringify(app.view_configs || {}), 
+                        app.version || 1, 
+                        new Date().toISOString()
+                    ]
+                );
+            }
+        }
+
+        // Cleanup Orphan Apps
+        const serverAppIds = apps.map((a: { id: string }) => a.id);
+        if (serverAppIds.length > 0) {
+            const placeholders = serverAppIds.map(() => '?').join(',');
+            await db.run(
+                `DELETE FROM apps WHERE id NOT IN (${placeholders})`,
+                serverAppIds
+            );
+            logger.info('[Sync] Orphan cleanup: removed apps not on server');
+        } else {
+            await db.run(`DELETE FROM apps`);
+            logger.warn('[Sync] Server returned no apps, cleared all local apps');
+        }
+    }
+
     private async pullTable(tableId: string) {
         const db = await databaseService.getDB();
         
