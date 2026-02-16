@@ -34,7 +34,8 @@ REM Start PHP-CGI
 echo Starting PHP-CGI...
 echo Press Ctrl+C to stop
 echo.
-"%PHP_PATH%\php-cgi.exe" -c "%PHP_PATH%\php.ini" -b 127.0.0.1:%PHP_CGI_PORT%
+set PHP_FCGI_MAX_REQUESTS=0
+"%PHP_PATH%\php-cgi.exe" -b 127.0.0.1:%PHP_CGI_PORT% -d memory_limit=512M -d post_max_size=512M -d upload_max_filesize=512M -d max_execution_time=300
 
 echo.
 echo PHP-CGI has stopped.

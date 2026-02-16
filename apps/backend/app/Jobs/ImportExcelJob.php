@@ -57,6 +57,9 @@ class ImportExcelJob implements ShouldQueue
         $fullPath = Storage::path($this->filePath);
 
         try {
+            ini_set('memory_limit', '512M');
+            set_time_limit(3600);
+
             $this->updateStatus('processing', 0, 'Reading file...');
 
             // Determine reader type based on extension
@@ -210,6 +213,9 @@ class ImportExcelJob implements ShouldQueue
 
                     // Update Progress
                     $this->updateStatus('processing', $rowCount, "Processed $rowCount rows...");
+
+                    // Force garbage collection
+                    gc_collect_cycles();
                 }
             }
 

@@ -13,14 +13,23 @@ class NotificationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        // Return unread notifications first, then read. Limit 50.
-        $notifications = $request->user()->notifications()->take(50)->get();
+        try {
+            // Return unread notifications first, then read. Limit 50.
+            $notifications = $request->user()->notifications()->take(50)->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $notifications,
-            'unread_count' => $request->user()->unreadNotifications()->count(),
-        ]);
+            return response()->json([
+                'success' => true,
+                'data' => $notifications,
+                'unread_count' => $request->user()->unreadNotifications()->count(),
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Notification Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     /**

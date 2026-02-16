@@ -41,12 +41,14 @@ class App extends Model
         'is_active',
         'mode',
         'navigation',
+        'view_configs',
         'settings',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'navigation' => 'array',
+        'view_configs' => 'array',
         'settings' => 'array',
     ];
 

@@ -64,14 +64,14 @@ export const AppMetadataService = {
     async getLocalAppMetadata(db: SQLiteDBConnection, appId: string) {
         const localApp = await db.query('SELECT * FROM apps WHERE id = ?', [appId]);
         let navigation = [];
-        let views = [];
+        let viewConfigs: Record<string, unknown> = {};
         
         if (localApp.values && localApp.values.length > 0) {
             const row = localApp.values[0];
             navigation = row.navigation ? JSON.parse(row.navigation) : [];
-            views = row.views ? JSON.parse(row.views) : [];
+            viewConfigs = row.view_configs ? JSON.parse(row.view_configs) : {};
         }
-        return { navigation, views, version: localApp.values?.[0]?.version || 'Draft' };
+        return { navigation, viewConfigs, version: localApp.values?.[0]?.version || 'Draft' };
     },
     
     async getSiblingTables(db: SQLiteDBConnection, appId: string) {
@@ -94,7 +94,7 @@ export const AppMetadataService = {
                   const d = appApiRes.data;
                   appData = {
                       navigation: d.navigation || [],
-                      views: d.views || [],
+                      viewConfigs: d.view_configs || {},
                       version: d.version || 'Draft'
                   };
                   
@@ -111,8 +111,8 @@ export const AppMetadataService = {
                   
                   // Update Local DB
                   await db.run(
-                      `INSERT OR REPLACE INTO apps (id, slug, name, description, navigation, views, version, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                      [d.id, d.slug, d.name, d.description, JSON.stringify(d.navigation), JSON.stringify(d.views), d.version, new Date().toISOString()]
+                      `INSERT OR REPLACE INTO apps (id, slug, name, description, navigation, view_configs, version, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                      [d.id, d.slug, d.name, d.description, JSON.stringify(d.navigation), JSON.stringify(d.view_configs), d.version, new Date().toISOString()]
                   );
               }
 

@@ -25,24 +25,22 @@ export function useNavigationManagement(appId: () => string | null) {
         }
     }
 
-    async function saveNavigation() {
+    async function saveNavigation(views?: Record<string, unknown>) {
         const id = appId();
-        console.log('[useNavigationManagement] saveNavigation called for App ID:', id);
-        
-        if (!id) {
-            console.warn('[useNavigationManagement] No App ID provided, aborting save.');
-            return;
-        }
+        if (!id) return;
 
         try {
-            console.log('[useNavigationManagement] Sending PUT request to:', `/apps/${id}`);
-            console.log('[useNavigationManagement] Payload:', { navigation: navigation.value });
-            
-            const res = await ApiClient.put(`/apps/${id}`, {
+            const payload: Record<string, unknown> = {
                 navigation: navigation.value
-            });
+            };
+
+            // Include view configs alongside navigation for atomic save
+            if (views) {
+                payload.view_configs = views;
+            }
+
+            await ApiClient.put(`/apps/${id}`, payload);
             
-            console.log('[useNavigationManagement] Save success, response:', res);
             isNavDirty.value = false;
             f7.toast.show({ text: 'Navigation saved', position: 'center', closeTimeout: 1500 });
         } catch (e) {

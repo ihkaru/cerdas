@@ -33,19 +33,34 @@
                 <f7-icon slot="media" f7="briefcase" size="14" />
                 <f7-accordion-content>
                     <div class="schema-list padding-horizontal padding-bottom-half">
-                        <div class="schema-hint size-10 text-color-gray margin-vertical-half">
+                        <!-- Search Bar -->
+                        <div class="schema-search margin-bottom-half display-flex align-items-center bg-color-white padding-half border-radius">
+                            <f7-icon f7="search" size="14" class="text-color-gray margin-right-half" />
+                            <input type="text" v-model="searchQuery" placeholder="Search fields..." 
+                                style="border:none; background:transparent; width:100%; font-size:12px; outline:none;" />
+                            <f7-icon v-if="searchQuery" f7="xmark_circle_fill" size="14" class="text-color-gray cursor-pointer" 
+                                @click="searchQuery = ''" />
+                        </div>
+
+                        <div class="schema-hint size-10 text-color-gray margin-bottom-half">
                             Context: <code>data</code> (Row Data), <code>item</code> (Full Object)
                         </div>
+                        
                         <!-- Field List -->
-                        <div v-for="f in (fields || [])" :key="f.id"
-                            class="schema-item display-flex align-items-center padding-vertical-half cursor-pointer"
-                            @click="copyToClipboard(`data.${f.name}`)">
-                            <f7-icon :f7="getFieldIcon(f.type)" size="14" class="text-color-blue margin-right-half" />
-                            <div class="flex-grow-1">
-                                <div class="text-color-black size-12 font-weight-bold">{{ f.name }}</div>
-                                <div class="text-color-gray size-10">{{ f.label }}</div>
+                        <div class="fields-container" style="max-height: 200px; overflow-y: auto;">
+                            <div v-for="f in filteredFields" :key="f.id"
+                                class="schema-item display-flex align-items-center padding-vertical-half cursor-pointer hover:bg-gray-50"
+                                @click="copyToClipboard(`data.${f.name}`)">
+                                <f7-icon :f7="getFieldIcon(f.type)" size="14" class="text-color-blue margin-right-half" />
+                                <div class="flex-grow-1">
+                                    <div class="text-color-black size-12 font-weight-bold">{{ f.name }}</div>
+                                    <div class="text-color-gray size-10">{{ f.label }}</div>
+                                </div>
+                                <f7-icon f7="doc_on_doc" size="12" class="text-color-gray opacity-50" />
                             </div>
-                            <f7-icon f7="doc_on_doc" size="12" class="text-color-gray opacity-50" />
+                            <div v-if="filteredFields.length === 0" class="text-center text-color-gray size-12 padding">
+                                No fields found
+                            </div>
                         </div>
                     </div>
                 </f7-accordion-content>
@@ -69,6 +84,7 @@
 <script setup lang="ts">
 
 import CodeEditor from '@/components/CodeEditor.vue';
+import { computed, ref } from 'vue';
 import type { MapConfigProps } from '../../../../types/view-config.types';
 import FieldPicker from '../../../shared/FieldPicker.vue';
 
@@ -81,6 +97,19 @@ defineEmits<{
 // ============================================================================
 // Logic Helpers
 // ============================================================================
+
+const searchQuery = ref('');
+
+const filteredFields = computed(() => {
+    if (!props.fields) return [];
+    if (!searchQuery.value) return props.fields;
+
+    const query = searchQuery.value.toLowerCase();
+    return props.fields.filter(f => 
+        f.name.toLowerCase().includes(query) || 
+        f.label.toLowerCase().includes(query)
+    );
+});
 
 function getSyntaxError(code: string | undefined): string | null {
     if (!code || !code.trim()) return null;
@@ -154,3 +183,12 @@ function getFieldIcon(type: string) {
     return icons[type] || 'question';
 }
 </script>
+
+<style scoped>
+.hover\:bg-gray-50:hover {
+    background-color: #f9fafb;
+}
+.schema-search {
+    border: 1px solid #e5e7eb;
+}
+</style>

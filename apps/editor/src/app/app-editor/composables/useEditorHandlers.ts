@@ -27,9 +27,11 @@ export function useEditorHandlers(
     const { isPublished, currentVersion, currentTableId } = tableSelection;
 
     async function handleSave() {
-        // 1. Save Navigation if dirty
-        if (isNavDirty.value) {
-            await saveNavigation();
+        // 1. Save Navigation + Views if nav is dirty OR table has views
+        if (isNavDirty.value || editorState.layout?.views) {
+            // Extract views from layout to save alongside navigation at app level
+            const layoutViews = editorState.layout?.views || undefined;
+            await saveNavigation(layoutViews);
         }
 
         // 2. Save Table if dirty

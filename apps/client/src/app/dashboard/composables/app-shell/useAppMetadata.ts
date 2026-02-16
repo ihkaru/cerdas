@@ -24,6 +24,7 @@ export function useAppMetadata(
 
     const appNavigation = ref<Record<string, unknown>[]>([]);
     const appViews = ref<Record<string, unknown>[]>([]);
+    const appViewConfigs = ref<Record<string, unknown>>({});
     const appTables = ref<Record<string, unknown>[]>([]);
     const activeView = ref<string>('');
     const appVersion = ref<string>('Draft');
@@ -52,15 +53,15 @@ export function useAppMetadata(
     /** Load local metadata from SQLite (offline support) */
     async function loadLocalMetadata(conn: any, appId: string) {
         try {
-            const { navigation, views, version } = await AppMetadataService.getLocalAppMetadata(conn, appId);
-            log.info(`Local Metadata loaded: ${navigation?.length || 0} nav items, ${views?.length || 0} views, v${version}`);
+            const { navigation, viewConfigs, version } = await AppMetadataService.getLocalAppMetadata(conn, appId);
+            log.info(`Local Metadata loaded: ${navigation?.length || 0} nav items, ${Object.keys(viewConfigs || {}).length} view configs, v${version}`);
             
             if (version) appVersion.value = version;
             if (navigation?.length) {
                 appNavigation.value = navigation;
                 autoSelectView(navigation);
             }
-            if (views?.length) appViews.value = views;
+            if (viewConfigs && Object.keys(viewConfigs).length) appViewConfigs.value = viewConfigs;
             appTables.value = await AppMetadataService.getSiblingTables(conn, appId);
         } catch (e) {
             log.warn('Failed to load local app metadata', e);
@@ -76,9 +77,9 @@ export function useAppMetadata(
                 await fetchAppContext(validAppId);
                 
                 if (result?.appData) {
-                    log.info(`Remote Metadata synced. Views: ${result.appData.views?.length}`);
+                    log.info(`Remote Metadata synced. ViewConfigs: ${Object.keys(result.appData.viewConfigs || {}).length}`);
                     appNavigation.value = result.appData.navigation || [];
-                    appViews.value = result.appData.views || [];
+                    appViewConfigs.value = result.appData.viewConfigs || {};
                     if (result.appData.version) appVersion.value = result.appData.version;
                     autoSelectView(appNavigation.value);
                 }
@@ -121,6 +122,7 @@ export function useAppMetadata(
     return {
         appNavigation,
         appViews,
+        appViewConfigs,
         appTables,
         activeView,
         loadAppMetadata,

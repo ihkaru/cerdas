@@ -71,6 +71,19 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
     const filters = useAssignmentFilters(state.schemaData);
 
     // 6. Assignment Queries (The source of truth for refreshData)
+    // Dynamic Limit: -1 (all) for Map, 1k for others
+    const queryLimit = computed(() => {
+        const viewId = metadata.activeView.value;
+        if (!viewId) return 1000;
+        
+        const viewConfig = metadata.appViews.value.find((v: any) => v.id === viewId);
+        // Also check layout views for fallback
+        const layoutView = state.layout.value?.views?.[viewId];
+        
+        const type = viewConfig?.type || layoutView?.type || 'list';
+        return type === 'map' ? -1 : 1000;
+    });
+
     const queries = useAssignmentQueries(
         resolvedTableId,
         {
@@ -85,11 +98,19 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
         {
             sort: filters.activeSort,
             filters: filters.activeFilters
+        },
+        {
+            limit: queryLimit
         }
     );
     
     // Assign real refreshData implementation
     refreshDataFn = queries.refreshData;
+
+    // Watch query limit to refresh data when view type changes (e.g. List -> Map)
+    watch(queryLimit, () => {
+        refreshDataFn();
+    });
 
     // 7. Search & Filter
     const filter = useSearchAndFilter(
@@ -262,6 +283,7 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
         appTables: metadata.appTables, // Renamed
         appNavigation: metadata.appNavigation,
         appViews: metadata.appViews,
+        appViewConfigs: metadata.appViewConfigs,
         // Prefer Table Schema Version (e.g. v8) -> App Version -> Draft
         appVersion: computed(() => state.schemaData.value?.version || metadata.appVersion.value),
         

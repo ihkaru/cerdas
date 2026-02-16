@@ -67,6 +67,9 @@ export function useAssignmentQueries(
     filterSort?: {
         sort: Ref<SortConfig>;
         filters: Ref<FilterConfig[]>;
+    },
+    options?: {
+        limit: Ref<number>;
     }
 ) {
 
@@ -111,11 +114,13 @@ export function useAssignmentQueries(
                 }
             } else {
                 state.groups.value = [];
+                const queryLimit = options?.limit.value || 1000;
+                
                 state.assignments.value = await AssignmentQueryService.getAssignments(
                     conn, 
                     dataClause.where, 
                     dataClause.params, 
-                    1000, 
+                    queryLimit, 
                     filterSort?.sort.value, 
                     []
                 );

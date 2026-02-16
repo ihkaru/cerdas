@@ -3,10 +3,32 @@
     
     # Enable compression
     encode gzip
+
+    # CORS safety net: if PHP-CGI crashes (502), Caddy adds CORS headers
+    # Using 'defer' so these only apply AFTER upstream responds.
+    # Laravel CORS middleware handles normal responses; Caddy handles error fallback.
+    @apiFromEditor {
+        path /api/*
+        header Origin http://localhost:9982
+    }
+    @apiFromClient {
+        path /api/*
+        header Origin http://localhost:9981
+    }
+    header @apiFromEditor ?Access-Control-Allow-Origin "http://localhost:9982"
+    header @apiFromEditor ?Access-Control-Allow-Credentials "true"
+    header @apiFromClient ?Access-Control-Allow-Origin "http://localhost:9981"
+    header @apiFromClient ?Access-Control-Allow-Credentials "true"
+    header @apiFromEditor ?Access-Control-Allow-Headers "Content-Type, Accept, Authorization, X-Requested-With"
+    header @apiFromClient ?Access-Control-Allow-Headers "Content-Type, Accept, Authorization, X-Requested-With"
+    header @apiFromEditor ?Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    header @apiFromClient ?Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
     
     # PHP-CGI configuration - PORT 8888
     php_fastcgi 127.0.0.1:8888 {
         env SERVER_SOFTWARE "Caddy"
+        read_timeout 300s
+        dial_timeout 10s
     }
     
     # Laravel routing

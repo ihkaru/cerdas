@@ -192,6 +192,7 @@ class AppController extends Controller
             'description' => 'nullable|string',
             'mode' => 'nullable|string|in:simple,complex',
             'navigation' => 'nullable|array', // Allow saving navigation JSON
+            'view_configs' => 'nullable|array', // View configs JSON (separate from views() relation)
             'is_active' => 'boolean',
         ]);
 

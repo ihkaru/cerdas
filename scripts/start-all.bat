@@ -41,7 +41,7 @@ timeout /t 1 /nobreak > nul
 
 REM Start Queue Worker
 echo [5/5] Starting Queue Worker...
-start "Cerdas Queue" cmd /k "cd /d %~dp0..\apps\backend && php artisan queue:work"
+start "Cerdas Queue" cmd /k "cd /d %~dp0..\apps\backend && php -d memory_limit=512M artisan queue:work --memory=512 --timeout=3600"
 
 echo.
 echo ========================================

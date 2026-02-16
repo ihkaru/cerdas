@@ -234,7 +234,7 @@ const props = defineProps<{
 // --- 1. Core Logic & State ---
 const {
     loading, layout, assignments, totalAssignments, activeView,
-    searchQuery, statusFilter, isGroupingActive, groupByConfig, currentGroupLevel, appTables, appViews, appNavigation,
+    searchQuery, statusFilter, isGroupingActive, groupByConfig, currentGroupLevel, appTables, appViews, appViewConfigs, appNavigation,
     filteredAssignments, filteredGroups, statusCounts, headerActions, rowActions, swipeConfig, appName, previewFields,
     loadApp, refreshData, deleteAssignment, completeAssignment, syncApp, createAssignment,
     enterGroup, navigateUp, forceShowItems,
@@ -419,12 +419,20 @@ const onPageAfterIn = () => {
 };
 
 const getAppViewConfig = (viewId: string) => {
-    // 1. Try finding in new AppViews (DB)
+    // 1. Check App-level View Configs (co-located with navigation, no timing issues)
+    if (appViewConfigs.value?.[viewId]) {
+        return {
+            id: viewId,
+            type: (appViewConfigs.value[viewId] as any).type,
+            config: appViewConfigs.value[viewId]
+        };
+    }
+
+    // 2. Try finding in AppViews DB (future: first-class view entities)
     const dbView = appViews.value.find((v: any) => v.id === viewId);
     if (dbView) return dbView;
 
-    // 2. Fallback to Legacy Layout Views (JSON)
-    // This supports the 'default' view often found in legacy schema
+    // 3. Fallback to Legacy Layout Views (JSON in table version schema)
     if (layout.value?.views?.[viewId]) {
         return {
             id: viewId,

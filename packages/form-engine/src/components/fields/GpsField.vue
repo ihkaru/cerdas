@@ -10,13 +10,7 @@
       <!-- 1. Map / Preview Area -->
       <div v-if="hasLocation" class="map-preview-container">
         <!-- Interactive Map (Online/Cached) -->
-        <div :id="`map-${uniqueId}`" class="leaflet-map" v-show="!isOffline"></div>
-
-        <!-- Offline Fallback / Static Placeholder -->
-        <div v-if="isOffline" class="offline-placeholder">
-          <f7-icon f7="wifi_slash" size="32" class="text-color-gray margin-bottom-half"></f7-icon>
-          <span class="text-color-gray size-12">Map unavailable offline</span>
-        </div>
+        <div :id="`map-${uniqueId}`" class="maplibre-map"></div>
       </div>
 
       <!-- 2. Coordinates Display -->
@@ -35,7 +29,7 @@
           <div class="stat-row margin-top-limit">
             <div class="stat-item" v-if="normalizedCoords?.accuracy">
               <span class="label">Acc</span>
-              <span class="val text-color-blue">±{{ Math.round(normalizedCoords.accuracy) }}m</span>
+              <span class="val" :class="accuracyColorClass">±{{ Math.round(normalizedCoords.accuracy) }}m</span>
             </div>
             <div class="stat-item" v-if="normalizedValue?.timestamp">
               <span class="label">Time</span>
@@ -46,7 +40,7 @@
 
         <!-- Clear Action -->
         <f7-button v-if="!field.readonly" type="button" small fill color="red" class="btn-icon-only"
-          @click.stop="clearLocation">
+          @click.stop="confirmClear">
           <f7-icon f7="trash" size="16"></f7-icon>
         </f7-button>
       </div>
@@ -126,7 +120,7 @@
   position: relative;
 }
 
-.leaflet-map {
+.maplibre-map {
   width: 100%;
   height: 100%;
   z-index: 1;
@@ -224,18 +218,18 @@
 
 <script setup lang="ts">
 import { f7 } from 'framework7-vue';
-// @ts-ignore
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { FieldDefinition } from '../../types/schema';
 import {
-  formatCoordinate,
-  getCurrentPosition,
-  getGeoErrorMessage,
-  getGoogleMapsUrl,
-  parseCoordsString
+    formatCoordinate,
+    getCurrentPosition,
+    getGeoErrorMessage,
+    getGoogleMapsUrl,
+    parseCoordsString
 } from '../../utils/geoUtils';
+import { createMap, destroyMap as destroyMapUtil } from '../../utils/maplibreUtils';
 
 // ============================================================================
 // Props
@@ -259,8 +253,8 @@ const systemError = ref<string | null>(null);
 const uniqueId = Math.random().toString(36).substring(2, 9);
 const isOffline = ref(!navigator.onLine);
 
-let map: L.Map | null = null;
-let marker: L.Marker | null = null;
+let map: maplibregl.Map | null = null;
+let marker: maplibregl.Marker | null = null;
 
 // ============================================================================
 // Computed
@@ -297,6 +291,15 @@ const normalizedCoords = computed(() => {
   return normalizedValue.value?.coords || null;
 });
 
+/** Accuracy color: green < 20m, yellow 20-50m, red > 50m */
+const accuracyColorClass = computed(() => {
+  const acc = normalizedCoords.value?.accuracy;
+  if (!acc) return 'text-color-blue';
+  if (acc <= 20) return 'text-color-green';
+  if (acc <= 50) return 'text-color-orange';
+  return 'text-color-red';
+});
+
 // ============================================================================
 // Lifecycle & Watchers
 // ============================================================================
@@ -322,7 +325,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('online', updateOnlineStatus);
   window.removeEventListener('offline', updateOnlineStatus);
-  destroyMap();
+  cleanupMap();
 });
 
 watch(() => props.value, (newVal) => {
@@ -340,7 +343,7 @@ watch(() => props.value, (newVal) => {
       }
     }
   } else {
-    destroyMap();
+    cleanupMap();
   }
 }, { deep: true });
 
@@ -370,9 +373,12 @@ const handleCapture = async () => {
     });
 
     emit('update:value', position);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const c = (position as any).coords;
+    const coordText = c ? `${formatCoordinate(c.latitude, 4)}, ${formatCoordinate(c.longitude, 4)}` : '';
     f7.toast.show({
-      text: 'Location updated',
-      closeTimeout: 2000,
+      text: coordText ? `Location: ${coordText}` : 'Location updated',
+      closeTimeout: 2500,
       cssClass: 'color-green',
       icon: '<i class="f7-icons">checkmark_alt</i>'
     });
@@ -393,7 +399,15 @@ const handleCapture = async () => {
 
 const clearLocation = () => {
   emit('update:value', null);
-  destroyMap();
+  cleanupMap();
+};
+
+const confirmClear = () => {
+  f7.dialog.confirm(
+    'Hapus data lokasi ini?',
+    'Konfirmasi',
+    () => clearLocation()
+  );
 };
 
 const openDirections = () => {
@@ -409,71 +423,47 @@ const formatTime = (ts: number) => {
 };
 
 // ============================================================================
-// Map Handling (Leaflet)
+// Map Handling (MapLibre GL JS)
 // ============================================================================
 
 const initMap = (lat: number, lng: number) => {
-  if (isOffline.value) return; // Don't init map if offline
+  // Tiles are cached in IndexedDB — map works offline after first view
 
   const mapId = `map-${uniqueId}`;
   const el = document.getElementById(mapId);
   if (!el) return;
 
-  // If map exists, just update view
+  // If map exists, just update view and marker
   if (map) {
-    map.setView([lat, lng], 16);
-    if (marker) marker.setLatLng([lat, lng]);
+    map.flyTo({ center: [lng, lat], zoom: 16, duration: 500 });
+    if (marker) marker.setLngLat([lng, lat]);
     return;
   }
 
   try {
-    // Fix Leaflet Icons
-    // Use inline SVG Data URI for guaranteed offline/no-network access
-
-    // Safe Default Icon (Inline SVG Data URI - clean and always works)
-    // Simple blue location marker pin
-    const iconUrl = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNSIgaGVpZ2h0PSI0MSIgdmlld0JveD0iMCAwIDI1IDQxIj48cGF0aCBmaWxsPSIjMjE5NkYzIiBkPSJNMTIuNSAwQzUuNiAwIDAgNS42IDAgMTIuNWMwIDkuNCAxMi41IDI4LjUgMTIuNSAyOC41UzI1IDIxLjkgMjUgMTIuNUMyNSA1LjYgMTkuNCAwIDEyLjUgMHoiLz48Y2lyY2xlIGZpbGw9IiNmZmYiIGN4PSIxMi41IiBjeT0iMTIuNSIgcj0iNSIvPjwvc3ZnPg==';
-    const iconRetinaUrl = iconUrl;
-    // shadowUrl removed - not used, skip shadow for cleaner look/offline
-
-    // Default Icon Setup
-    const DefaultIcon = L.icon({
-      iconUrl,
-      iconRetinaUrl,
-      // shadowUrl, // Skip shadow for cleaner look/offline
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      tooltipAnchor: [16, -28],
-      // shadowSize: [41, 41]
-    });
-
-    // Map Init
-    map = L.map(el, {
-      center: [lat, lng],
+    // MapLibre uses [lng, lat] order (GeoJSON standard)
+    map = createMap(mapId, {
+      center: [lng, lat],
       zoom: 16,
-      zoomControl: false,
-      attributionControl: false
+      navigationControl: 'bottom-right',
     });
 
-    // Tile Layer (OSM)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-    }).addTo(map);
-
-    // Marker
-    marker = L.marker([lat, lng], { icon: DefaultIcon }).addTo(map);
+    // Add marker
+    marker = new maplibregl.Marker({ color: '#2196F3' })
+      .setLngLat([lng, lat])
+      .addTo(map);
 
   } catch (e) {
     console.warn('[GpsField] Map init failed:', e);
   }
 };
 
-const destroyMap = () => {
-  if (map) {
-    map.remove();
-    map = null;
+const cleanupMap = () => {
+  if (marker) {
+    marker.remove();
     marker = null;
   }
+  destroyMapUtil(map);
+  map = null;
 };
 </script>

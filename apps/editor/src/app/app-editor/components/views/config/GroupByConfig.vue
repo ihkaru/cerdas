@@ -1,7 +1,7 @@
 <template>
     <div class="groupby-config">
         <f7-block-title>Group By</f7-block-title>
-        <f7-list inset strong>
+        <f7-list class="!my-0">
             <!-- Current GroupBy Fields -->
             <f7-list-item v-for="(field, index) in groupBy" :key="field" :title="`Level ${index + 1}: ${getFieldLabel(field)}`">
                 <template #media>
@@ -82,18 +82,26 @@ function removeField(index: number) {
 function moveUp(index: number) {
     if (index <= 0) return;
     const newGroupBy = [...props.groupBy];
-    const temp = newGroupBy[index - 1]!;
-    newGroupBy[index - 1] = newGroupBy[index]!;
-    newGroupBy[index] = temp;
+    const prev = newGroupBy[index - 1];
+    const curr = newGroupBy[index];
+    
+    if (prev === undefined || curr === undefined) return;
+
+    newGroupBy[index - 1] = curr;
+    newGroupBy[index] = prev;
     emit('update', newGroupBy);
 }
 
 function moveDown(index: number) {
     if (index >= props.groupBy.length - 1) return;
     const newGroupBy = [...props.groupBy];
-    const temp = newGroupBy[index]!;
-    newGroupBy[index] = newGroupBy[index + 1]!;
-    newGroupBy[index + 1] = temp;
+    const curr = newGroupBy[index];
+    const next = newGroupBy[index + 1];
+
+    if (curr === undefined || next === undefined) return;
+
+    newGroupBy[index] = next;
+    newGroupBy[index + 1] = curr;
     emit('update', newGroupBy);
 }
 </script>

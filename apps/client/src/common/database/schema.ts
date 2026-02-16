@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS apps (
     name TEXT,
     description TEXT,
     navigation TEXT, -- JSON
-    views TEXT, -- JSON
+    view_configs TEXT, -- JSON (view configs co-located with navigation)
     version INTEGER,
     synced_at TEXT
 );
@@ -82,4 +82,4 @@ CREATE TABLE IF NOT EXISTS table_versions (
 );
 `;
 
-export const SCHEMA_VERSION = 13; // Added table_versions cache + schema_version on responses
+export const SCHEMA_VERSION = 14; // Renamed apps.views to apps.view_configs for Eloquent compat

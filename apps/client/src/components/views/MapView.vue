@@ -3,21 +3,50 @@
         <div class="map-wrapper flex-shrink-0" style="height: 60vh; width: 100%; position: relative;">
             <div :id="mapId" class="map-container" style="height: 100%; width: 100%; z-index: 1;"></div>
 
+            <!-- Loading Overlay -->
+            <div v-if="mapLoading" class="map-loading-overlay">
+                <f7-preloader />
+                <span class="text-color-gray size-12 margin-top-half">Memuat peta...</span>
+            </div>
+
+            <!-- Empty State Overlay -->
+            <div v-if="!mapLoading && validLocations.length === 0" class="map-empty-overlay">
+                <f7-icon f7="map" size="40" class="text-color-gray margin-bottom"></f7-icon>
+                <span class="text-color-gray">Belum ada data lokasi</span>
+            </div>
+
             <!-- Locate Me FAB -->
             <div class="map-fab-container">
-                <f7-button fab color="white" class="map-locate-btn" @click="locateUser" :loading="locating">
+                <f7-button fab color="white" class="map-action-btn margin-bottom-half" @click="toggleMapStyle">
+                    <f7-icon :f7="currentStyle === 'satellite' ? 'map' : 'globe'" size="22" color="blue"></f7-icon>
+                </f7-button>
+                <f7-button fab color="white" class="map-action-btn" @click="locateUser" :loading="locating">
                     <f7-icon f7="location" size="22" color="blue"></f7-icon>
                 </f7-button>
             </div>
         </div>
 
         <div class="list-container flex-grow-1 overflow-auto bg-color-white">
-            <f7-block-title>Locations ({{ validLocations.length }})</f7-block-title>
+            <f7-block-title>
+                Lokasi ({{ validLocations.length }})
+                <span v-if="validLocations.length > 50" class="text-color-gray size-12 font-normal margin-left-half">
+                    (Menampilkan 50 teratas)
+                </span>
+            </f7-block-title>
             <f7-list media-list>
-                <f7-list-item v-for="item in validLocations" :key="item.id || item.local_id"
+                <f7-list-item v-for="item in displayedListItems" :key="item.id || item.local_id"
                     :title="resolvePath(item, normalizedConfig.label) || resolvePath(item, normalizedConfig.popup_title) || 'Untitled'"
                     :subtitle="resolvePath(item, normalizedConfig.subtitle) || resolvePath(item, normalizedConfig.popup_subtitle) || ''"
                     @click="focusMap(item)" link="#">
+                    <template #media>
+                        <div class="list-color-dot" :style="{ background: resolveColor(getMarkerStyle(item).color) }">
+                        </div>
+                    </template>
+                </f7-list-item>
+                <f7-list-item v-if="validLocations.length > 50">
+                    <div class="text-align-center width-100 padding text-color-gray">
+                        Gunakan pencarian untuk memfilter hasil list.
+                    </div>
                 </f7-list-item>
             </f7-list>
         </div>
@@ -25,19 +54,10 @@
 </template>
 
 <script setup lang="ts">
-import { getCurrentPosition, getGoogleMapsUrl } from '@cerdas/form-engine';
+import { createMap, destroyMap, getCurrentPosition, getGoogleMapsUrl, maplibregl } from '@cerdas/form-engine';
 import { f7 } from 'framework7-vue';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-
-// Fix Leaflet icon issue in Webpack/Vite
-// @ts-ignore
-import iconUrl from 'leaflet/dist/images/marker-icon.png';
-// @ts-ignore
-import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
-// @ts-ignore
-import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 
 const props = defineProps<{
     config: any;
@@ -47,10 +67,15 @@ const props = defineProps<{
 
 // eslint-disable-next-line sonarjs/pseudo-random
 const mapId = `map-${Math.random().toString(36).substr(2, 9)}`;
-let map: L.Map | null = null;
-let markers: L.LayerGroup | null = null;
-let userMarker: L.CircleMarker | null = null;
+let map: maplibregl.Map | null = null;
+let popup: maplibregl.Popup | null = null;
+let userMarker: maplibregl.Marker | null = null;
 const locating = ref(false);
+const mapLoading = ref(true);
+
+// ============================================================================
+// Config Parsing (unchanged)
+// ============================================================================
 
 const normalizedConfig = computed(() => {
     return props.config.map || props.config.config?.map || props.config.options || {};
@@ -63,17 +88,11 @@ const toNum = (v: any): number => {
 
 const parseLatLongString = (val: any): [number, number] | null => {
     if (typeof val !== 'string') return null;
-
-    // Support both comma and space separation
     const parts = val.includes(',') ? val.split(',') : val.trim().split(/\s+/);
-
-    // Explicitly destructure and check for existence to satisfy TypeScript
     const [latStr, lngStr] = parts;
     if (!latStr || !lngStr) return null;
-
     const lat = toNum(latStr.trim());
     const lng = toNum(lngStr.trim());
-
     if (!isNaN(lat) && !isNaN(lng)) return [lat, lng];
     return null;
 };
@@ -106,7 +125,6 @@ const parseLatLongArray = (val: any): [number, number] | null => {
 const getCoordinates = (item: any, gpsCol: string): [number, number] | null => {
     const val = resolvePath(item, gpsCol);
     if (!val) return null;
-
     return parseLatLongString(val) ||
         parseGeoCoords(val) ||
         parseLatLongObject(val) ||
@@ -116,12 +134,15 @@ const getCoordinates = (item: any, gpsCol: string): [number, number] | null => {
 const validLocations = computed(() => {
     const mapConfig = normalizedConfig.value;
     const gpsCol = mapConfig.gps_column;
-
     if (!gpsCol) return [];
-
     return props.data.filter(item => {
         return getCoordinates(item, gpsCol) !== null;
     });
+});
+
+// LIMIT LIST RENDERING TO PREVENT DOM FREEZE
+const displayedListItems = computed(() => {
+    return validLocations.value.slice(0, 50);
 });
 
 const getDeep = (target: any, p: string) => {
@@ -140,52 +161,381 @@ const resolvePrelist = (obj: any, path: string) => {
 
 const resolvePath = (obj: any, path: string) => {
     if (!obj || !path) return '';
-
     if (path.startsWith('prelist_data.')) {
         return resolvePrelist(obj, path);
     }
-
-    // Try multiple sources in order
-    // Added prelist_data fallback as most imported data lives there
     const val = getDeep(obj, path) ||
         getDeep(obj.response_data, path) ||
         getDeep(obj.data, path) ||
         getDeep(obj.prelist_data, path);
-
     if (val !== undefined && val !== null && val !== '') return val;
     return '';
+};
+
+// ============================================================================
+// Marker Style (adapted for MapLibre circle colors)
+// ============================================================================
+
+const markerStyleFn = computed(() => {
+    const fnBody = normalizedConfig.value.marker_style_fn;
+    if (!fnBody) return null;
+    try {
+        /* eslint-disable-next-line sonarjs/code-eval */
+        return new Function('data', 'item', fnBody);
+    } catch (e) {
+        console.error('Invalid marker logic:', e);
+        return null;
+    }
+});
+
+const getMarkerStyle = (item: any) => {
+    const defaultStyle = { icon: 'location_fill', color: 'blue' };
+    if (!markerStyleFn.value) return defaultStyle;
+    try {
+        const data = item.response_data || item.data || {};
+        const result = markerStyleFn.value(data, item);
+        return {
+            icon: result?.icon || defaultStyle.icon,
+            color: result?.color || defaultStyle.color
+        };
+    } catch {
+        return defaultStyle;
+    }
+};
+
+/** Map F7 color names to hex for MapLibre circle-color */
+const COLOR_MAP: Record<string, string> = {
+    red: '#ff3b30',
+    green: '#34c759',
+    blue: '#2196f3',
+    orange: '#ff9500',
+    yellow: '#ffcc00',
+    purple: '#af52de',
+    pink: '#ff2d55',
+    gray: '#8e8e93',
+    teal: '#5ac8fa',
+    deeporange: '#ff6d00',
+    lightblue: '#64b5f6',
+    white: '#ffffff',
+    black: '#1c1c1e',
+};
+
+const resolveColor = (colorName: string): string => {
+    return COLOR_MAP[colorName] ?? '#2196f3';
+};
+
+// ============================================================================
+// GeoJSON Construction
+// ============================================================================
+
+/**
+ * Convert validLocations into a GeoJSON FeatureCollection.
+ * Each feature carries properties for popup display and circle styling.
+ * This is a SINGLE data object — MapLibre renders it all via WebGL
+ * without creating any DOM elements per marker.
+ */
+const buildGeoJson = (): GeoJSON.FeatureCollection => {
+    const mapConfig = normalizedConfig.value;
+    const gpsCol = mapConfig.gps_column;
+
+    const features: GeoJSON.Feature[] = [];
+
+    for (const item of validLocations.value) {
+        const coords = getCoordinates(item, gpsCol);
+        if (!coords) continue;
+
+        const [lat, lng] = coords;
+        const title = resolvePath(item, mapConfig.label) || resolvePath(item, mapConfig.popup_title) || 'Untitled';
+        const subtitle = resolvePath(item, mapConfig.subtitle) || resolvePath(item, mapConfig.popup_subtitle) || '';
+        const style = getMarkerStyle(item);
+        const itemId = item.id || item.local_id;
+
+        features.push({
+            type: 'Feature',
+            geometry: {
+                type: 'Point',
+                coordinates: [lng, lat], // GeoJSON: [longitude, latitude]
+            },
+            properties: {
+                id: itemId,
+                title,
+                subtitle,
+                markerColor: resolveColor(style.color),
+                lat,
+                lng,
+            },
+        });
+    }
+
+    return { type: 'FeatureCollection', features };
+};
+
+// ============================================================================
+// Map Init & Layers
+// ============================================================================
+
+const SOURCE_ID = 'markers-source';
+const CLUSTER_LAYER = 'clusters';
+const CLUSTER_COUNT_LAYER = 'cluster-count';
+const UNCLUSTERED_LAYER = 'unclustered-point';
+
+const GoogleHybridStyle = {
+    version: 8,
+    sources: {
+        'google-hybrid': {
+            type: 'raster',
+            tiles: [
+                'cached-tile://https://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+                'cached-tile://https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+                'cached-tile://https://mt2.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+                'cached-tile://https://mt3.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+            ],
+            tileSize: 256,
+            attribution: '© Google',
+        },
+    },
+    layers: [
+        {
+            id: 'google-hybrid-layer',
+            type: 'raster',
+            source: 'google-hybrid',
+            minzoom: 0,
+            maxzoom: 22,
+        },
+    ],
+};
+
+const GoogleStreetsStyle = {
+    version: 8,
+    sources: {
+        'google-streets': {
+            type: 'raster',
+            tiles: [
+                'cached-tile://https://mt0.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                'cached-tile://https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                'cached-tile://https://mt2.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                'cached-tile://https://mt3.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+            ],
+            tileSize: 256,
+            attribution: '© Google',
+        },
+    },
+    layers: [
+        {
+            id: 'google-streets-layer',
+            type: 'raster',
+            source: 'google-streets',
+            minzoom: 0,
+            maxzoom: 22,
+        },
+    ],
+};
+
+const currentStyle = ref<'satellite' | 'streets'>('satellite');
+
+const toggleMapStyle = () => {
+    if (!map) return;
+    const newStyle = currentStyle.value === 'satellite' ? 'streets' : 'satellite';
+    currentStyle.value = newStyle;
+
+    const styleConfig = newStyle === 'satellite' ? GoogleHybridStyle : GoogleStreetsStyle;
+
+    // Switch style and re-add layers once loaded
+    map.setStyle(styleConfig as any);
+    map.once('styledata', () => {
+        addSourceAndLayers();
+    });
 };
 
 const initMap = () => {
     if (map) return;
 
-    map = L.map(mapId, {
-        zoomControl: false // Move zoom control to custom position or hide for cleaner mobile UI
-    }).setView([-6.2088, 106.8456], 13);
-
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        crossOrigin: true
-    }).addTo(map);
-
-    markers = L.layerGroup().addTo(map);
-
-    updateMarkers();
-
-    // Fix icons
-    const DefaultIcon = L.icon({
-        iconUrl: iconUrl,
-        iconRetinaUrl: iconRetinaUrl,
-        shadowUrl: shadowUrl,
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
+    map = createMap(mapId, {
+        navigationControl: 'bottom-right',
+        style: GoogleHybridStyle as any, // Default to Hybrid
     });
-    L.Marker.prototype.options.icon = DefaultIcon;
+
+    map.on('load', () => {
+        mapLoading.value = false;
+        addSourceAndLayers();
+        setupClickHandlers();
+    });
+
+    map.on('error', () => {
+        mapLoading.value = false;
+    });
 };
+
+// ... (rest of the file)
+
+
+const addSourceAndLayers = () => {
+    if (!map) return;
+
+    const geojson = buildGeoJson();
+
+    // GeoJSON Source with built-in clustering
+    map.addSource(SOURCE_ID, {
+        type: 'geojson',
+        data: geojson,
+        cluster: false, // User requested individual points
+        // clusterMaxZoom: 14,
+        // clusterRadius: 50,
+    });
+
+    // Layer 1: Cluster circles
+    map.addLayer({
+        id: CLUSTER_LAYER,
+        type: 'circle',
+        source: SOURCE_ID,
+        filter: ['has', 'point_count'],
+        paint: {
+            'circle-color': [
+                'step', ['get', 'point_count'],
+                '#51bbd6',  // < 100
+                100, '#f1f075', // 100-750
+                750, '#f28cb1'  // > 750
+            ],
+            'circle-radius': [
+                'step', ['get', 'point_count'],
+                18,   // < 100
+                100, 24, // 100-750
+                750, 30  // > 750
+            ],
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#fff',
+        },
+    });
+
+    // Layer 2: Cluster count label
+    map.addLayer({
+        id: CLUSTER_COUNT_LAYER,
+        type: 'symbol',
+        source: SOURCE_ID,
+        filter: ['has', 'point_count'],
+        layout: {
+            'text-field': '{point_count_abbreviated}',
+            'text-size': 12,
+            'text-font': ['Open Sans Bold'] as string[],
+        },
+        paint: {
+            'text-color': '#333',
+        },
+    });
+
+    // Layer 3: Individual (unclustered) points
+    map.addLayer({
+        id: UNCLUSTERED_LAYER,
+        type: 'circle',
+        source: SOURCE_ID,
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+            'circle-color': ['get', 'markerColor'],
+            'circle-radius': 7,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff',
+        },
+    });
+
+    // Fit bounds to data
+    fitBoundsToData(geojson);
+};
+
+const fitBoundsToData = (geojson: GeoJSON.FeatureCollection) => {
+    if (!map || geojson.features.length === 0) return;
+
+    const bounds = new maplibregl.LngLatBounds();
+    for (const feature of geojson.features) {
+        const coords = (feature.geometry as GeoJSON.Point).coordinates;
+        bounds.extend(coords as [number, number]);
+    }
+    map.fitBounds(bounds, { padding: 50, maxZoom: 16 });
+};
+
+// ============================================================================
+// Click Handlers
+// ============================================================================
+
+const setupClickHandlers = () => {
+    if (!map) return;
+
+    // Click on cluster → zoom in
+    map.on('click', CLUSTER_LAYER, (e) => {
+        if (!map) return;
+        const features = map.queryRenderedFeatures(e.point, { layers: [CLUSTER_LAYER] });
+        if (!features.length) return;
+
+        const feature = features[0];
+        if (!feature) return;
+        const clusterId = feature.properties?.cluster_id;
+        const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource;
+        source.getClusterExpansionZoom(clusterId).then((zoom) => {
+            map?.easeTo({
+                center: (feature.geometry as GeoJSON.Point).coordinates as [number, number],
+                zoom,
+            });
+        });
+    });
+
+    // Click on individual point → show popup
+    map.on('click', UNCLUSTERED_LAYER, (e) => {
+        if (!map || !e.features?.length) return;
+
+        const feature = e.features[0];
+        if (!feature) return;
+        const featureProps = feature.properties;
+        const coords = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
+
+        const popupHtml = `
+            <div class="map-popup-content">
+                <div class="popup-title">${featureProps?.title || 'Untitled'}</div>
+                <div class="popup-subtitle">${featureProps?.subtitle || ''}</div>
+                <div class="popup-actions display-flex margin-top-half">
+                    <a href="/assignments/${featureProps?.id}" data-item-id="${featureProps?.id}" class="button button-small button-fill color-blue margin-right-half flex-grow-1">
+                        <span class="text-color-white">Buka Detail</span>
+                    </a>
+                    <a href="${getGoogleMapsUrl(featureProps?.lat, featureProps?.lng)}" target="_blank" class="button button-small button-fill color-green flex-shrink-0 external">
+                        <i class="f7-icons size-14 text-color-white">map_fill</i>
+                    </a>
+                </div>
+            </div>
+        `;
+
+        // Remove previous popup
+        if (popup) popup.remove();
+
+        popup = new maplibregl.Popup({ maxWidth: '260px' })
+            .setLngLat(coords)
+            .setHTML(popupHtml)
+            .addTo(map);
+    });
+
+    // Cursor changes
+    map.on('mouseenter', CLUSTER_LAYER, () => { if (map) map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', CLUSTER_LAYER, () => { if (map) map.getCanvas().style.cursor = ''; });
+    map.on('mouseenter', UNCLUSTERED_LAYER, () => { if (map) map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', UNCLUSTERED_LAYER, () => { if (map) map.getCanvas().style.cursor = ''; });
+};
+
+// ============================================================================
+// Data Updates
+// ============================================================================
+
+const updateGeoJsonSource = () => {
+    if (!map) return;
+
+    const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    const geojson = buildGeoJson();
+
+    if (source) {
+        source.setData(geojson);
+        fitBoundsToData(geojson);
+    }
+};
+
+// ============================================================================
+// User Location
+// ============================================================================
 
 const locateUser = async () => {
     if (!map) return;
@@ -196,115 +546,31 @@ const locateUser = async () => {
         const { latitude, longitude } = pos.coords;
 
         if (userMarker) {
-            userMarker.setLatLng([latitude, longitude]);
+            userMarker.setLngLat([longitude, latitude]);
         } else {
-            userMarker = L.circleMarker([latitude, longitude], {
-                radius: 8,
-                fillColor: '#2196F3',
-                color: '#fff',
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.8
-            }).addTo(map);
+            // Create a blue dot marker for user location
+            const el = document.createElement('div');
+            el.className = 'user-location-marker';
+            userMarker = new maplibregl.Marker({ element: el })
+                .setLngLat([longitude, latitude])
+                .addTo(map);
         }
-        map.setView([latitude, longitude], 16);
+        map.flyTo({ center: [longitude, latitude], zoom: 16 });
     } catch (e) {
         console.error('Failed to locate user:', e);
+        f7.toast.show({
+            text: 'Gagal mendapatkan lokasi',
+            closeTimeout: 2000,
+            cssClass: 'color-red'
+        });
     } finally {
         locating.value = false;
     }
 };
 
-const markerStyleFn = computed(() => {
-    const fnBody = normalizedConfig.value.marker_style_fn;
-    if (!fnBody) return null;
-    try {
-        // Safe-ish evaluation
-        /* eslint-disable-next-line sonarjs/code-eval */
-        return new Function('data', 'item', fnBody);
-    } catch (e) {
-        console.error('Invalid marker logic:', e);
-        return null;
-    }
-});
-
-const getMarkerStyle = (item: any) => {
-    const defaultStyle = { icon: 'location_fill', color: 'blue' }; // Default F7 icon
-
-    if (!markerStyleFn.value) return defaultStyle;
-
-    try {
-        // Resolve data context (Assignment Response or Raw Data)
-        const data = item.response_data || item.data || {};
-        const result = markerStyleFn.value(data, item);
-
-        return {
-            icon: result?.icon || defaultStyle.icon,
-            color: result?.color || defaultStyle.color
-        };
-    } catch {
-        return defaultStyle;
-    }
-}
-
-const updateMarkers = () => {
-    if (!map || !markers) return;
-    markers.clearLayers();
-
-    const mapConfig = normalizedConfig.value;
-    const gpsCol = mapConfig.gps_column;
-
-    // Explicitly type as tuple array for fitBounds
-    const bounds: [number, number][] = [];
-
-    validLocations.value.forEach(item => {
-        const coords = getCoordinates(item, gpsCol);
-        if (!coords) return;
-
-        const [lat, lng] = coords;
-        const title = resolvePath(item, mapConfig.label) || resolvePath(item, mapConfig.popup_title) || 'Untitled';
-        const subtitle = resolvePath(item, mapConfig.subtitle) || resolvePath(item, mapConfig.popup_subtitle) || '';
-        const style = getMarkerStyle(item);
-        const itemId = item.id || item.local_id;
-
-        // Create Custom Icon (DivIcon with F7 Icon)
-        const customIcon = L.divIcon({
-            className: 'custom-map-marker',
-            html: `<div class="marker-pin bg-color-${style.color}">
-                     <i class="f7-icons text-color-white size-18">${style.icon}</i>
-                   </div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 32], // Bottom center
-            popupAnchor: [0, -32]
-        });
-
-        const popupHtml = `
-            <div class="map-popup-content">
-                <div class="popup-title">${title}</div>
-                <div class="popup-subtitle">${subtitle}</div>
-                <div class="popup-actions display-flex margin-top-half">
-                    <a href="/assignments/${itemId}" data-item-id="${itemId}" class="button button-small button-fill color-blue margin-right-half flex-grow-1">
-                        <span class="text-color-white">Buka Detail</span>
-                    </a>
-                    <a href="${getGoogleMapsUrl(lat, lng)}" target="_blank" class="button button-small button-fill color-green flex-shrink-0 external">
-                        <i class="f7-icons size-14 text-color-white">map_fill</i>
-                    </a>
-                </div>
-            </div>
-        `;
-
-        const marker = L.marker([lat, lng], { icon: customIcon })
-            .bindPopup(popupHtml, { minWidth: 200 })
-            .on('click', () => { });
-
-        markers?.addLayer(marker);
-        bounds.push([lat, lng]);
-    });
-
-    if (bounds.length > 0) {
-        map.fitBounds(bounds, { padding: [50, 50] });
-    }
-};
+// ============================================================================
+// Focus on List Item
+// ============================================================================
 
 const focusMap = (item: any) => {
     const mapConfig = normalizedConfig.value;
@@ -312,17 +578,52 @@ const focusMap = (item: any) => {
     const coords = getCoordinates(item, gpsCol);
 
     if (coords && map) {
-        map.setView(coords, 18);
+        const [lat, lng] = coords;
+        map.flyTo({ center: [lng, lat], zoom: 18 });
+
+        // Auto-open popup for this item after flyTo finishes
+        map.once('moveend', () => {
+            if (!map) return;
+            const title = resolvePath(item, mapConfig.label) || resolvePath(item, mapConfig.popup_title) || 'Untitled';
+            const subtitle = resolvePath(item, mapConfig.subtitle) || resolvePath(item, mapConfig.popup_subtitle) || '';
+            const itemId = item.id || item.local_id;
+
+            const popupHtml = `
+                <div class="map-popup-content">
+                    <div class="popup-title">${title}</div>
+                    <div class="popup-subtitle">${subtitle}</div>
+                    <div class="popup-actions display-flex margin-top-half">
+                        <a href="/assignments/${itemId}" data-item-id="${itemId}" class="button button-small button-fill color-blue margin-right-half flex-grow-1">
+                            <span class="text-color-white">Buka Detail</span>
+                        </a>
+                        <a href="${getGoogleMapsUrl(lat, lng)}" target="_blank" class="button button-small button-fill color-green flex-shrink-0 external">
+                            <i class="f7-icons size-14 text-color-white">map_fill</i>
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            if (popup) popup.remove();
+            popup = new maplibregl.Popup({ maxWidth: '260px' })
+                .setLngLat([lng, lat])
+                .setHTML(popupHtml)
+                .addTo(map);
+        });
     }
 };
 
+// ============================================================================
+// Watchers
+// ============================================================================
+
 watch(() => props.data, () => {
-    updateMarkers();
-}, { deep: true });
+    updateGeoJsonSource();
+});
 
 /**
- * Delegated click listener for Leaflet popups.
- * Leaflet popups are raw HTML in the DOM, so Framework7's router doesn't automatically capture their links.
+ * Delegated click listener for MapLibre popups.
+ * MapLibre popups are raw HTML in the DOM, so Framework7's router
+ * doesn't automatically capture their links.
  */
 const handlePopupClick = (e: MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -331,24 +632,27 @@ const handlePopupClick = (e: MouseEvent) => {
         const href = link.getAttribute('href');
         if (href) {
             e.preventDefault();
-            // Use Framework7 router for internal navigation
             f7.view.main.router.navigate(href);
         }
     }
 };
 
+// ============================================================================
+// Lifecycle
+// ============================================================================
+
 onMounted(() => {
     setTimeout(() => {
         initMap();
-    }, 500);
+    }, 300);
     document.addEventListener('click', handlePopupClick);
 });
 
 onUnmounted(() => {
-    if (map) {
-        map.remove();
-        map = null;
-    }
+    if (popup) popup.remove();
+    if (userMarker) userMarker.remove();
+    destroyMap(map);
+    map = null;
     document.removeEventListener('click', handlePopupClick);
 });
 </script>
@@ -359,31 +663,6 @@ onUnmounted(() => {
     overflow: hidden;
 }
 
-/* Global styles for dynamic markers (Leaflet renders outside scoped) */
-:global(.custom-map-marker) {
-    background: transparent;
-    border: none;
-}
-
-:global(.marker-pin) {
-    width: 32px;
-    height: 32px;
-    border-radius: 50% 50% 50% 0;
-    transform: rotate(-45deg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    border: 2px solid white;
-}
-
-:global(.marker-pin i) {
-    transform: rotate(45deg);
-    /* Counter rotate icon */
-    margin-top: 2px;
-    margin-left: 2px;
-}
-
 .map-fab-container {
     position: absolute;
     top: 16px;
@@ -391,15 +670,75 @@ onUnmounted(() => {
     z-index: 1000;
 }
 
-.map-locate-btn {
+.map-action-btn {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    background-color: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1001;
+    /* Ensure on top */
+}
+
+/* Loading & Empty overlays */
+.map-loading-overlay,
+.map-empty-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(248, 249, 250, 0.9);
+    pointer-events: none;
+}
+
+/* List color dot */
+.list-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+/* User location blue dot with pulse */
+:global(.user-location-marker) {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #2196F3;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.3);
+    animation: user-pulse 2s ease-out infinite;
+}
+
+@keyframes user-pulse {
+    0% {
+        box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 12px rgba(33, 150, 243, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 4px rgba(33, 150, 243, 0);
+    }
+}
+
+/* MapLibre popup styling */
+:global(.maplibregl-popup-content) {
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 :global(.map-popup-content) {
