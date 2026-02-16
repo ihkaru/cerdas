@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.41](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.40...cerdas-v0.1.41) (2026-02-16)
+
+
+### Features
+
+* optimize map view, add google basemap toggle, and fix pagination ([4818e20](https://github.com/ihkaru/cerdas/commit/4818e2096add1ddd9e2ec30fba3d55ba9ee707df))
+
 ## [0.1.40](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.39...cerdas-v0.1.40) (2026-02-14)
 
 
