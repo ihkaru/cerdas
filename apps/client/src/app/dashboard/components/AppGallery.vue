@@ -36,7 +36,7 @@ const handleAppClick = (id: string) => {
     emit('open-app', id);
 };
 
-const getAppIcon = (app: App) => {
+const getAppIcon = (_app: App) => {
     // Apps don't have settings inside them currently for icons
     // We can use a default or check view_configs if we store meta there
     return 'square_stack_3d_up_fill';
