@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.42](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.41...cerdas-v0.1.42) (2026-02-16)
+
+
+### Performance Improvements
+
+* **map:** optimize buildGeoJson and add clustering config ([61c8019](https://github.com/ihkaru/cerdas/commit/61c80194d168d90680152492b76731350e6db9c3))
+
 ## [0.1.41](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.40...cerdas-v0.1.41) (2026-02-16)
 
 
