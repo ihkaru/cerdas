@@ -125,7 +125,7 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
                 state.loading.value = true;
                 
                 try {
-                    resolvedTableId.value = viewConfig.form_id;
+                    resolvedTableId.value = viewConfig.form_id as string;
                     // Reload Schema & Data for new table
                     await schemaLoader.loadTable(resolvedTableId.value);
                     filters.activeFilters.value = []; // Reset filters on table switch
