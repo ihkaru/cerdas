@@ -2,7 +2,7 @@
 import { SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { useLogger } from '../../../common/utils/logger';
 import { generateUUID } from '../../../common/utils/uuid';
-import type { Assignment, Table } from '../types';
+import type { App, Assignment, Table } from '../types';
 
 const log = useLogger('DashboardRepository');
 
