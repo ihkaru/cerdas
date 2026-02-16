@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.43](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.42...cerdas-v0.1.43) (2026-02-16)
+
+
+### Features
+
+* **editor:** improve UX hierarchy and optimize map view ([b5121e0](https://github.com/ihkaru/cerdas/commit/b5121e04265d5db4b2cb3284687bf400700c9472))
+
+
+### Bug Fixes
+
+* **client:** import App type in DashboardRepository ([f08d5b4](https://github.com/ihkaru/cerdas/commit/f08d5b4af3ee90bb52ae8dfc2b08beaa3c3e0858))
+* **client:** rename unused variable in AppGallery ([b2a3450](https://github.com/ihkaru/cerdas/commit/b2a3450646c1e58de9d0447c69c855d1e68f1da9))
+* **client:** resolve TypeScript error in useAppShellLogic ([3217cd2](https://github.com/ihkaru/cerdas/commit/3217cd239559424ecf0e907e1bf7cc8fb164d988))
+
 ## [0.1.42](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.41...cerdas-v0.1.42) (2026-02-16)
 
 
