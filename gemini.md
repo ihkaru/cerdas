@@ -105,7 +105,10 @@ packages/types  - @cerdas/types (shared strict TS types)
 - **App Hierarchy & UX (2026-02-17)**:
   - **Refactor**: `AppShell` now supports multi-table Apps via dynamic `resolvedTableId` switching based on `activeView` (View -> Form ID).
   - **Editor UX**: Added Breadcrumbs (`App Name / Table Name`) to `EditorHeader.vue` for better context.
-  - **Map Optimization**: Enabled Clustering (`cluster: true`) in `MapView.vue` to prevent OOM crashes on Android (20k+ points).
+  - **Map Optimization**:
+      - Enabled Clustering (`cluster: true`, minPoints: 30) in `MapView.vue`.
+      - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
+      - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
 - **Version**: 0.1.1 (Updated due to significant bug fixes)
 

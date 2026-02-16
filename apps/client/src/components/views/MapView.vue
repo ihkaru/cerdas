@@ -9,6 +9,16 @@
                 <span class="text-color-gray size-12 margin-top-half">Memuat peta...</span>
             </div>
 
+            <!-- Processing Overlay (Async Build) -->
+            <div v-if="isProcessing && !mapLoading" class="map-loading-overlay">
+                <div class="display-flex flex-direction-column align-items-center">
+                    <f7-preloader />
+                    <span class="margin-top-half size-12 font-weight-bold">Memproses Peta... {{ processProgress
+                        }}%</span>
+                    <span class="size-10 text-color-gray">Mohon tunggu sebentar</span>
+                </div>
+            </div>
+
             <!-- Empty State Overlay -->
             <div v-if="!mapLoading && validLocations.length === 0" class="map-empty-overlay">
                 <f7-icon f7="map" size="40" class="text-color-gray margin-bottom"></f7-icon>
@@ -57,7 +67,7 @@
 import { createMap, destroyMap, getCurrentPosition, getGoogleMapsUrl, maplibregl } from '@cerdas/form-engine';
 import { f7 } from 'framework7-vue';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, toRaw, watch } from 'vue';
 
 const props = defineProps<{
     config: any;
@@ -131,11 +141,21 @@ const getCoordinates = (item: any, gpsCol: string): [number, number] | null => {
         parseLatLongArray(val);
 };
 
+// LOADING STATE
+const isProcessing = ref(false);
+const processProgress = ref(0);
+let abortController: AbortController | null = null;
+let updateDebounce: ReturnType<typeof setTimeout> | null = null;
+const CHUNK_SIZE = 2000;
+
 const validLocations = computed(() => {
+    // PERFORMANCE: Use toRaw to avoid Proxy overhead when iterating 30k+ items
+    const rawData = toRaw(props.data);
     const mapConfig = normalizedConfig.value;
     const gpsCol = mapConfig.gps_column;
     if (!gpsCol) return [];
-    return props.data.filter(item => {
+    return rawData.filter(item => {
+        // Simple filter remains synchronous as it is fast
         return getCoordinates(item, gpsCol) !== null;
     });
 });
@@ -234,50 +254,87 @@ const resolveColor = (colorName: string): string => {
  * This is a SINGLE data object — MapLibre renders it all via WebGL
  * without creating any DOM elements per marker.
  */
-const buildGeoJson = (): GeoJSON.FeatureCollection => {
-    const mapConfig = normalizedConfig.value;
-    const gpsCol = mapConfig.gps_column;
-    const styleFn = markerStyleFn.value;
+/**
+ * ASYNC GEOJSON BUILDER
+ * Chunks the processing of 30k+ items to prevent Main Thread Block (ANR).
+ * Uses setTimeout(0) to yield to the browser rendering loop.
+ */
+const buildGeoJsonAsync = (signal: AbortSignal): Promise<GeoJSON.FeatureCollection | null> => {
+    return new Promise((resolve) => {
+        const mapConfig = normalizedConfig.value;
+        const gpsCol = mapConfig.gps_column;
+        const styleFn = markerStyleFn.value;
 
-    const features: GeoJSON.Feature[] = [];
+        // Use Valid Locations which are already filtered for valid coords
+        // use toRaw AGAIN just to be safe we are working with plain objects
+        const rawLocations = toRaw(validLocations.value);
+        const total = rawLocations.length;
+        const features: GeoJSON.Feature[] = [];
 
-    for (const item of validLocations.value) {
-        const coords = getCoordinates(item, gpsCol);
-        if (!coords) continue;
-
-        const [lat, lng] = coords;
-        const title = resolvePath(item, mapConfig.label) || resolvePath(item, mapConfig.popup_title) || 'Untitled';
-        const subtitle = resolvePath(item, mapConfig.subtitle) || resolvePath(item, mapConfig.popup_subtitle) || '';
-        const itemId = item.id || item.local_id;
-
-        // Resolve marker color — pre-extract styleFn to avoid per-item lookup
-        let markerColor = '#2196f3'; // default blue
-        if (styleFn) {
-            try {
-                const data = item.response_data || item.data || {};
-                const result = styleFn(data, item);
-                markerColor = resolveColor(result?.color || 'blue');
-            } catch { /* use default */ }
+        if (total === 0) {
+            resolve({ type: 'FeatureCollection', features: [] });
+            return;
         }
 
-        features.push({
-            type: 'Feature',
-            geometry: {
-                type: 'Point',
-                coordinates: [lng, lat], // GeoJSON: [longitude, latitude]
-            },
-            properties: {
-                id: itemId,
-                title,
-                subtitle,
-                markerColor,
-                lat,
-                lng,
-            },
-        });
-    }
+        let index = 0;
 
-    return { type: 'FeatureCollection', features };
+        const processChunk = () => {
+            if (signal.aborted) {
+                resolve(null);
+                return;
+            }
+
+            const end = Math.min(index + CHUNK_SIZE, total);
+
+            for (let i = index; i < end; i++) {
+                const item = rawLocations[i];
+                const coords = getCoordinates(item, gpsCol);
+                if (!coords) continue;
+
+                const [lat, lng] = coords;
+                const title = resolvePath(item, mapConfig.label) || resolvePath(item, mapConfig.popup_title) || 'Untitled';
+                const subtitle = resolvePath(item, mapConfig.subtitle) || resolvePath(item, mapConfig.popup_subtitle) || '';
+                const itemId = item.id || item.local_id;
+
+                // Style Marker
+                let markerColor = '#2196f3';
+                if (styleFn) {
+                    try {
+                        const data = item.response_data || item.data || {};
+                        const result = styleFn(data, item);
+                        markerColor = resolveColor(result?.color || 'blue');
+                    } catch { /* ignore */ }
+                }
+
+                features.push({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [lng, lat],
+                    },
+                    properties: {
+                        id: itemId,
+                        title,
+                        subtitle,
+                        markerColor,
+                        lat,
+                        lng,
+                    },
+                });
+            }
+
+            index = end;
+            processProgress.value = Math.round((index / total) * 100);
+
+            if (index < total) {
+                setTimeout(processChunk, 0); // Yield to main thread
+            } else {
+                resolve({ type: 'FeatureCollection', features });
+            }
+        };
+
+        processChunk();
+    });
 };
 
 // ============================================================================
@@ -376,24 +433,24 @@ const initMap = () => {
     });
 };
 
-// ... (rest of the file)
 
 
 const addSourceAndLayers = () => {
     if (!map) return;
 
-    const geojson = buildGeoJson();
-
-    // GeoJSON Source with built-in clustering (Supercluster runs in Web Worker)
+    // GeoJSON Source initial setup (empty first)
     map.addSource(SOURCE_ID, {
         type: 'geojson',
-        data: geojson,
-        cluster: true, // Enable clustering for performance (prevents OOM on zoom out)
+        data: { type: 'FeatureCollection', features: [] }, // Start empty
+        cluster: true,
         clusterMaxZoom: 16,
         clusterRadius: 30,
-        clusterMinPoints: 60,
+        clusterMinPoints: 30, // Optimized to 30 per user request
         generateId: true,
     });
+
+    // Trigger async load
+    updateGeoJsonSourceAsync();
 
     // Layer 1: Cluster circles
     map.addLayer({
@@ -449,19 +506,29 @@ const addSourceAndLayers = () => {
         },
     });
 
-    // Fit bounds to data
-    fitBoundsToData(geojson);
+    // Fit bounds is called inside updateGeoJsonSourceAsync
 };
 
 const fitBoundsToData = (geojson: GeoJSON.FeatureCollection) => {
     if (!map || geojson.features.length === 0) return;
 
+    // PERFORMANCE: Sample max 500 points for bounds calculation
+    // Iterating 30k points just for bounds is wasteful
     const bounds = new maplibregl.LngLatBounds();
-    for (const feature of geojson.features) {
+    const limit = Math.min(geojson.features.length, 500);
+    // Take even spread if possible, or just first N
+    // For speed, strict slice is fastest.
+    const sample = geojson.features.slice(0, limit);
+
+    for (const feature of sample) {
         const coords = (feature.geometry as GeoJSON.Point).coordinates;
         bounds.extend(coords as [number, number]);
     }
-    map.fitBounds(bounds, { padding: 50, maxZoom: 16 });
+
+    // Check if we have valid bounds (not 0,0)
+    if (!bounds.isEmpty()) {
+        map.fitBounds(bounds, { padding: 50, maxZoom: 16 });
+    }
 };
 
 // ============================================================================
@@ -533,15 +600,40 @@ const setupClickHandlers = () => {
 // Data Updates
 // ============================================================================
 
-const updateGeoJsonSource = () => {
+// ============================================================================
+// Data Updates (Async)
+// ============================================================================
+
+const updateGeoJsonSourceAsync = async () => {
     if (!map) return;
 
-    const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
-    const geojson = buildGeoJson();
+    // 1. Cancel previous build if running
+    if (abortController) abortController.abort();
+    abortController = new AbortController();
+    const signal = abortController.signal;
 
-    if (source) {
-        source.setData(geojson);
-        fitBoundsToData(geojson);
+    isProcessing.value = true;
+    processProgress.value = 0;
+
+    try {
+        // 2. Build GeoJSON in chunks
+        const geojson = await buildGeoJsonAsync(signal);
+
+        // 3. Update Map if not aborted
+        if (!signal.aborted && geojson) {
+            const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+            if (source) {
+                // Reuse existing source (performance)
+                source.setData(geojson);
+                fitBoundsToData(geojson);
+            }
+        }
+    } catch (e) {
+        console.error('Map update failed:', e);
+    } finally {
+        if (!signal.aborted) {
+            isProcessing.value = false;
+        }
     }
 };
 
@@ -628,8 +720,12 @@ const focusMap = (item: any) => {
 // Watchers
 // ============================================================================
 
+// Debounce updates to prevent heavy rebuilding on rapid changes
 watch(() => props.data, () => {
-    updateGeoJsonSource();
+    if (updateDebounce) clearTimeout(updateDebounce);
+    updateDebounce = setTimeout(() => {
+        updateGeoJsonSourceAsync();
+    }, 300);
 });
 
 /**
