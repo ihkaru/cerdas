@@ -73,6 +73,7 @@ packages/types  - @cerdas/types (shared strict TS types)
 4. **Type API Responses**: Always define interfaces
 5. **Modular Vue Structure**: `src/app/[module]/` with own routes, components
 6. **Context Pattern**: Inject deps via `ctx` object, not argument drilling
+7. **Utility Types**: Prefer `type-fest` for cleaner, stricter types (Except, Merge, etc) over manual helpers
 
 ## Reference Documents
 - `docs/architecture_principles.md` - Full technical principles
@@ -804,3 +805,12 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
   - `SANCTUM_STATEFUL_DOMAINS=app.dvlpid.my.id,editor.dvlpid.my.id`
   - Verify Traefik is NOT adding duplicate CORS headers.
 
+### 2026-02-17: Map Performance Optimization (30k+ Points)
+
+- **Problem**: Map View with 30k+ points caused OOM crash on Android. Secondary `GoogleAuth NullPointerException` was a side effect of OOM.
+- **Root Cause**: Clustering was explicitly disabled (`cluster: false`) despite all cluster layers already being defined.
+- **Fix (MapView.vue)**:
+  - Enabled MapLibre built-in clustering (`cluster: true`, `clusterMaxZoom: 16`, `clusterRadius: 60`, `clusterMinPoints: 3`).
+  - Added `generateId: true` for correct `getClusterExpansionZoom` behavior.
+  - Optimized `buildGeoJson` to pre-extract `markerStyleFn.value` once instead of calling `getMarkerStyle()` per-item.
+- **Verified**: `vue-tsc --noEmit` passed (exit code 0).

@@ -237,6 +237,7 @@ const resolveColor = (colorName: string): string => {
 const buildGeoJson = (): GeoJSON.FeatureCollection => {
     const mapConfig = normalizedConfig.value;
     const gpsCol = mapConfig.gps_column;
+    const styleFn = markerStyleFn.value;
 
     const features: GeoJSON.Feature[] = [];
 
@@ -247,8 +248,17 @@ const buildGeoJson = (): GeoJSON.FeatureCollection => {
         const [lat, lng] = coords;
         const title = resolvePath(item, mapConfig.label) || resolvePath(item, mapConfig.popup_title) || 'Untitled';
         const subtitle = resolvePath(item, mapConfig.subtitle) || resolvePath(item, mapConfig.popup_subtitle) || '';
-        const style = getMarkerStyle(item);
         const itemId = item.id || item.local_id;
+
+        // Resolve marker color — pre-extract styleFn to avoid per-item lookup
+        let markerColor = '#2196f3'; // default blue
+        if (styleFn) {
+            try {
+                const data = item.response_data || item.data || {};
+                const result = styleFn(data, item);
+                markerColor = resolveColor(result?.color || 'blue');
+            } catch { /* use default */ }
+        }
 
         features.push({
             type: 'Feature',
@@ -260,7 +270,7 @@ const buildGeoJson = (): GeoJSON.FeatureCollection => {
                 id: itemId,
                 title,
                 subtitle,
-                markerColor: resolveColor(style.color),
+                markerColor,
                 lat,
                 lng,
             },
@@ -374,13 +384,15 @@ const addSourceAndLayers = () => {
 
     const geojson = buildGeoJson();
 
-    // GeoJSON Source with built-in clustering
+    // GeoJSON Source with built-in clustering (Supercluster runs in Web Worker)
     map.addSource(SOURCE_ID, {
         type: 'geojson',
         data: geojson,
-        cluster: false, // User requested individual points
-        // clusterMaxZoom: 14,
-        // clusterRadius: 50,
+        cluster: false,
+        clusterMaxZoom: 16,
+        clusterRadius: 60,
+        clusterMinPoints: 3,
+        generateId: true,
     });
 
     // Layer 1: Cluster circles
