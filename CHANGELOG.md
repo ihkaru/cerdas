@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.47](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.46...cerdas-v0.1.47) (2026-02-17)
+
+
+### Features
+
+* **client:** remove pagination from assignment list ([23505ed](https://github.com/ihkaru/cerdas/commit/23505ed0ed00722c46d0ecc40505ac4667d4094e))
+* **client:** update header title to use view name ([2731b92](https://github.com/ihkaru/cerdas/commit/2731b92cd27854b0378c08bc4ab70ca476b21314))
+
 ## [0.1.46](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.45...cerdas-v0.1.46) (2026-02-17)
 
 

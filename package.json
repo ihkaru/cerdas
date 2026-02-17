@@ -1,6 +1,6 @@
 {
   "name": "cerdas",
-  "version": "0.1.46",
+  "version": "0.1.47",
   "private": true,
   "description": "Self-hosted, offline-first, no-code app builder for data collection",
   "scripts": {
