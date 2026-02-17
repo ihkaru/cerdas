@@ -1,11 +1,9 @@
 <template>
     <div class="deck-view-container height-100 overflow-auto">
         <f7-list media-list>
-            <f7-list-item v-for="(item, idx) in displayedItems" :key="item.id || item.local_id"
-                :class="[`status-border-${item.status}`, 'enter-animation']"
-                :style="{ animationDelay: `${idx * 0.03}s` }" :swipeout="hasSwipe"
-                :title="resolvePath(item, options.title)" :subtitle="resolvePath(item, options.subtitle)"
-                @click="$emit('click', item)" link="#">
+            <f7-list-item v-for="item in data" :key="item.id || item.local_id" :class="[`status-border-${item.status}`]"
+                :swipeout="hasSwipe" :title="resolvePath(item, options.title)"
+                :subtitle="resolvePath(item, options.subtitle)" @click="$emit('click', item)" link="#">
                 <template #media v-if="options.image">
                     <img v-if="resolvePath(item, options.image)" :src="getImageUrl(resolvePath(item, options.image))"
                         width="44" height="44" style="border-radius: 4px; object-fit: cover;" />
@@ -30,15 +28,6 @@
                         <f7-icon :f7="action.icon" />
                     </f7-swipeout-button>
                 </f7-swipeout-actions>
-            </f7-list-item>
-
-            <f7-list-item v-if="data.length > renderLimit">
-                <f7-button fill round small @click="showMore" :loading="loadingMore">Show More</f7-button>
-            </f7-list-item>
-            <f7-list-item v-if="data.length > renderLimit">
-                <div class="text-align-center width-100 padding text-color-gray size-12">
-                    Showing {{ renderLimit }} of {{ data.length }} items
-                </div>
             </f7-list-item>
         </f7-list>
     </div>
@@ -69,28 +58,15 @@
     padding-left: 8px;
 }
 
-/* Staggered slide-up animation for list items */
-@keyframes slideUpFade {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.enter-animation {
-    opacity: 0;
-    animation: slideUpFade 0.35s ease-out forwards;
+/* Ensure border is visible */
+:deep(.item-inner) {
+    padding-left: 8px;
 }
 </style>
 
 <script setup lang="ts">
 import { apiClient } from '@/common/api/ApiClient';
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 
 const props = defineProps<{
     config: any;
@@ -101,26 +77,7 @@ const props = defineProps<{
 
 defineEmits(['click', 'action']);
 
-// Pagination Logic
-const renderLimit = ref(50);
-const loadingMore = ref(false);
 
-const displayedItems = computed(() => {
-    return (props.data || []).slice(0, renderLimit.value);
-});
-
-const showMore = () => {
-    loadingMore.value = true;
-    setTimeout(() => {
-        renderLimit.value += 50;
-        loadingMore.value = false;
-    }, 100);
-};
-
-// Reset limit when data changes significantly (e.g. filter or fresh load)
-watch(() => props.data?.length, () => {
-    renderLimit.value = 50;
-});
 
 
 const getActionDef = (id: string) => {
@@ -151,12 +108,6 @@ const hasSwipe = computed(() => leftSwipeActions.value.length > 0 || rightSwipeA
 const options = computed(() => {
     // Check if we received the full View Object (which has a .config property) OR just the config object
     const realConfig = props.config?.config || props.config;
-
-    if (props.data && props.data.length > 0) {
-        console.log('[DeckView] First Item:', props.data[0]);
-        console.log('[DeckView] Raw Config:', props.config);
-        console.log('[DeckView] Real Config:', realConfig);
-    }
 
     const deckConfig = realConfig?.deck || realConfig?.options || {};
 
