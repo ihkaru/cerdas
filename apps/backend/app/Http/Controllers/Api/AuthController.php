@@ -92,6 +92,7 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             \Illuminate\Support\Facades\Log::warning('Login failed: invalid credentials', ['email' => $validated['email']]);
+
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);

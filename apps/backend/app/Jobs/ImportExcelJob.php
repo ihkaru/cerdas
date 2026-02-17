@@ -17,7 +17,10 @@ use Illuminate\Support\Str;
 
 class ImportExcelJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
 
     public $timeout = 3600; // 1 hour timeout for large files
 
@@ -74,11 +77,13 @@ class ImportExcelJob implements ShouldQueue
             foreach ($sheetIterator as $sheet) {
                 if ($this->sheetName && $sheet->getName() === $this->sheetName) {
                     $targetSheet = $sheet;
+
                     break;
                 }
                 // Default to first sheet if not specified
                 if (! $this->sheetName) {
                     $targetSheet = $sheet;
+
                     break;
                 }
             }
@@ -231,6 +236,7 @@ class ImportExcelJob implements ShouldQueue
         } catch (\Exception $e) {
             Log::error('Import Job Failed: '.$e->getMessage());
             $this->updateStatus('failed', 0, 'Error: '.$e->getMessage());
+
             throw $e;
         }
     }
@@ -306,9 +312,11 @@ class ImportExcelJob implements ShouldQueue
                 } else {
                     // Single row failure, cannot split further
                     Log::error('Single row insert failed after splits. Skipping potentially bad row.');
+
                     throw $e;
                 }
             }
+
             throw $e; // Rethrow non-connection errors
         }
     }

@@ -116,6 +116,7 @@ class ExcelImportController extends Controller
                 foreach ($sampleValues as $val) {
                     if (! is_numeric($val) && $val !== null && $val !== '') {
                         $isNumeric = false;
+
                         break;
                     }
                 }

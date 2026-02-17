@@ -99,12 +99,15 @@ Route::middleware('auth:sanctum')->group(function () {
         switch ($request->role) {
             case 'admin':
                 $targetUser = $user; // Self
+
                 break;
             case 'supervisor':
                 $targetUser = \App\Models\User::where('email', 'supervisor@cerdas.com')->first();
+
                 break;
             case 'enumerator':
                 $targetUser = \App\Models\User::where('email', 'user@example.com')->first();
+
                 break;
         }
 

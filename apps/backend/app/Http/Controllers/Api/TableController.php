@@ -308,6 +308,7 @@ class TableController extends Controller
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Illuminate\Support\Facades\Log::error('Validation failed', $e->errors());
+
             throw $e;
         }
 

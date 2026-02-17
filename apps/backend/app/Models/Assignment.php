@@ -11,7 +11,8 @@ use Illuminate\Support\Str;
 
 class Assignment extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    use SoftDeletes;
 
     public $incrementing = false;
 

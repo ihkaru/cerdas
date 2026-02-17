@@ -62,7 +62,7 @@ export class HealthCheckService {
 
             // Classify the error
             if (fetchError.name === 'AbortError') {
-                logger.error('[HealthCheck] 🕐 TIMEOUT: Server did not respond within 8 seconds.');
+                logger.error('[HealthCheck] 🕐 TIMEOUT: HealthCheck probe did not respond within 8 seconds. (This is NOT an upload timeout)');
             }
         }
 

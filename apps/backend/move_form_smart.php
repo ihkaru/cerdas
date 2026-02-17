@@ -18,6 +18,7 @@ foreach ($strategies as $id) {
     if ($candidate) {
         $targetApp = $candidate;
         echo "Found target App by ID $id: {$candidate->name}\n";
+
         break;
     }
 }

@@ -18,7 +18,8 @@ use Illuminate\Support\Str;
  */
 class Organization extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    use SoftDeletes;
 
     public $incrementing = false;
 

@@ -10,7 +10,8 @@ use Illuminate\Support\Str;
 
 class AppRecord extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    use SoftDeletes;
 
     public $incrementing = false;
 

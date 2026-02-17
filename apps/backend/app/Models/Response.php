@@ -11,7 +11,8 @@ use Illuminate\Support\Str;
 
 class Response extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    use SoftDeletes;
 
     public $incrementing = false;
 
