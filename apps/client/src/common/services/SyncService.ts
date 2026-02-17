@@ -448,9 +448,9 @@ export class SyncService {
         let inserted = 0;
         if (batchSet.length > 0) {
             try { 
-                // console.log(`[SyncService] Inserting batch of ${batchSet.length}. Sample:`, batchSet[0].values);
+
                 await db.executeSet(batchSet); 
-                // console.log('[SyncService] ExecuteSet Result:', result);
+
                 inserted = batchSet.length; 
                 
             }
