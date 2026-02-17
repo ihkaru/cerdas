@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.49](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.48...cerdas-v0.1.49) (2026-02-17)
+
+
+### Performance Improvements
+
+* **backend:** remove logging from auth check ([1606f89](https://github.com/ihkaru/cerdas/commit/1606f89fdb950b38d527cad2be11b7ff75598db3))
+
 ## [0.1.48](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.47...cerdas-v0.1.48) (2026-02-17)
 
 
