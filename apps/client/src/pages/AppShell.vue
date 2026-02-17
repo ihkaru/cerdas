@@ -8,7 +8,7 @@
         </f7-panel>
 
         <!-- navbar -->
-        <AppShellNavbar :title="appName" :actions="headerActions" @back="handleBackNav" @action="handleHeaderAction"
+        <AppShellNavbar :title="pageTitle" :actions="headerActions" @back="handleBackNav" @action="handleHeaderAction"
             @menu="openMenuPanel" />
 
         <!-- CASE 0: Dynamic View Logic (from Navigation) -->
@@ -264,6 +264,23 @@ watch(routeViewId, (newId) => {
         activeView.value = newId;
     }
 }, { immediate: true });
+
+const pageTitle = computed(() => {
+    // 1. If we have an active view, use its title
+    if (currentViewConfig.value) {
+        // @ts-ignore
+        return currentViewConfig.value.label || currentViewConfig.value.title || appName.value;
+    }
+
+    // 2. If we are in the legacy layout fallback
+    if (layout.value && layout.value.views && activeView.value) {
+        const legacyView = layout.value.views[activeView.value];
+        if (legacyView) return legacyView.title || appName.value;
+    }
+
+    // 3. Fallback to App Name
+    return appName.value;
+});
 const db = useDatabase();
 const {
     previewSheetOpen,
