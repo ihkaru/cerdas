@@ -292,8 +292,6 @@ const buildGeoJsonAsync = (signal: AbortSignal): Promise<GeoJSON.FeatureCollecti
                 if (!coords) continue;
 
                 const [lat, lng] = coords;
-                const title = resolvePath(item, mapConfig.label) || resolvePath(item, mapConfig.popup_title) || 'Untitled';
-                const subtitle = resolvePath(item, mapConfig.subtitle) || resolvePath(item, mapConfig.popup_subtitle) || '';
                 const itemId = item.id || item.local_id;
 
                 // Style Marker
@@ -314,11 +312,7 @@ const buildGeoJsonAsync = (signal: AbortSignal): Promise<GeoJSON.FeatureCollecti
                     },
                     properties: {
                         id: itemId,
-                        title,
-                        subtitle,
                         markerColor,
-                        lat,
-                        lng,
                     },
                 });
             }
@@ -562,18 +556,38 @@ const setupClickHandlers = () => {
 
         const feature = e.features[0];
         if (!feature) return;
-        const featureProps = feature.properties;
-        const coords = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
+
+        const geometry = feature.geometry as GeoJSON.Point;
+        const coords = geometry.coordinates.slice() as [number, number];
+        const properties = feature.properties;
+        const itemId = properties?.id;
+
+        // Lookup item logic
+        // We use the ID to find the original item from validLocations
+        // logic must handle both string/number IDs
+        const item = validLocations.value.find((x: any) =>
+            String(x.id) === String(itemId) || String(x.local_id) === String(itemId)
+        );
+
+        if (!item) {
+            console.warn('Marker clicked but item not found:', itemId);
+            return;
+        }
+
+        const mapConfig = normalizedConfig.value;
+        const title = resolvePath(item, mapConfig.label) || resolvePath(item, mapConfig.popup_title) || 'Untitled';
+        const subtitle = resolvePath(item, mapConfig.subtitle) || resolvePath(item, mapConfig.popup_subtitle) || '';
+        const [lat, lng] = [coords[1], coords[0]]; // display purpose / external link
 
         const popupHtml = `
             <div class="map-popup-content">
-                <div class="popup-title">${featureProps?.title || 'Untitled'}</div>
-                <div class="popup-subtitle">${featureProps?.subtitle || ''}</div>
+                <div class="popup-title">${title}</div>
+                <div class="popup-subtitle">${subtitle}</div>
                 <div class="popup-actions display-flex margin-top-half">
-                    <a href="/assignments/${featureProps?.id}" data-item-id="${featureProps?.id}" class="button button-small button-fill color-blue margin-right-half flex-grow-1">
+                    <a href="/assignments/${itemId}" data-item-id="${itemId}" class="button button-small button-fill color-blue margin-right-half flex-grow-1">
                         <span class="text-color-white">Buka Detail</span>
                     </a>
-                    <a href="${getGoogleMapsUrl(featureProps?.lat, featureProps?.lng)}" target="_blank" class="button button-small button-fill color-green flex-shrink-0 external">
+                    <a href="${getGoogleMapsUrl(lat, lng)}" target="_blank" class="button button-small button-fill color-green flex-shrink-0 external">
                         <i class="f7-icons size-14 text-color-white">map_fill</i>
                     </a>
                 </div>
