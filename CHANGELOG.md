@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.45](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.44...cerdas-v0.1.45) (2026-02-17)
+
+
+### Bug Fixes
+
+* **client:** remove commented out code in SyncService.ts to satisfy CI linter ([5ad5749](https://github.com/ihkaru/cerdas/commit/5ad5749ec848ecb8c44571592b3292c7886273ae))
+
 ## [0.1.44](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.43...cerdas-v0.1.44) (2026-02-17)
 
 
