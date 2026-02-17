@@ -114,7 +114,7 @@ export class SyncService {
 
             // 3. Sync Each Table
             for (let i = 0; i < totalTables; i++) {
-                const tableId = uniqueTables[i];
+                const tableId = uniqueTables[i]!;
                 const baseProgress = (i / totalTables) * 100;
                 const progressPerTable = 100 / totalTables;
 
@@ -449,7 +449,7 @@ export class SyncService {
         if (batchSet.length > 0) {
             try { 
                 // console.log(`[SyncService] Inserting batch of ${batchSet.length}. Sample:`, batchSet[0].values);
-                const result = await db.executeSet(batchSet); 
+                await db.executeSet(batchSet); 
                 // console.log('[SyncService] ExecuteSet Result:', result);
                 inserted = batchSet.length; 
                 
