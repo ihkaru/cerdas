@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.44](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.43...cerdas-v0.1.44) (2026-02-17)
+
+
+### Features
+
+* **client:** implement async map rendering engine and simple memory optimizations ([01ed9df](https://github.com/ihkaru/cerdas/commit/01ed9df32694fc4c90349402d06c55d6febfa57d))
+
+
+### Bug Fixes
+
+* **client:** resolve SyncService type errors blocking build ([c7d6dbd](https://github.com/ihkaru/cerdas/commit/c7d6dbdf0e02ff43493876edc5fd6d89559958c5))
+* **editor:** Live Preview Reactivity, GroupBy Logic & UX ([6f489c2](https://github.com/ihkaru/cerdas/commit/6f489c2e7a07bc945891609dab8390fff2718aed))
+
 ## [0.1.43](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.42...cerdas-v0.1.43) (2026-02-16)
 
 
