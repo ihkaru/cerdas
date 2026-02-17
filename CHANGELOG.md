@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.46](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.45...cerdas-v0.1.46) (2026-02-17)
+
+
+### Bug Fixes
+
+* **client:** optimize map cluster memory & enable largeHeap for stability ([9785eff](https://github.com/ihkaru/cerdas/commit/9785eff42ce4be371824098b4fbde34d3b4b0add))
+
 ## [0.1.45](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.44...cerdas-v0.1.45) (2026-02-17)
 
 
