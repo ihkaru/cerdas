@@ -244,6 +244,7 @@ export interface TableSettings { // Renamed from AppSettings
 export interface ViewDefinition {
   type: 'deck' | 'table' | 'map' | 'calendar';
   title: string;
+  table_id?: string; // Reference to which data source this view uses
   icon?: string;
   slice_filter?: string;
   sortBy?: string;
@@ -272,7 +273,7 @@ export interface LayoutConfig {
   type: 'standard' | 'custom';
   app_name: string; // Maybe tableName?
   groupBy: string[];
-  views: Record<string, ViewDefinition>;
+  views?: Record<string, ViewDefinition>;
   settings?: TableSettings; // Store settings here for persistence
 }
 

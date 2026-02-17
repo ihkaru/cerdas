@@ -36,6 +36,8 @@ export class SyncService {
             await this.pullResponses(tableId); // Optimized to pull relevant responses
             
             onProgress?.('Sync complete!', 100);
+            
+            
             await databaseService.save(); // Persist changes (Web)
             return { success: true };
         } catch (error) {
@@ -52,9 +54,11 @@ export class SyncService {
             
             // SKIP pullTable() to keep the local draft schema
             
+            // 3. Pull Assignments
             onProgress?.('Downloading assignments...', 30);
             await this.pullAssignments(tableId, onProgress);
             
+            // 4. Pull Responses
             onProgress?.('Downloading responses...', 90);
             await this.pullResponses(tableId); 
             
@@ -65,6 +69,89 @@ export class SyncService {
             logger.error(`App Sync Data Only failed for ${tableId}`, error);
             throw error;
         }
+    }
+
+    // NEW: Multi-Table Sync for App-level Views
+    async syncApp(appId: string, onProgress?: (phase: string, progress?: number) => void) {
+        try {
+            onProgress?.('Fetching app configuration...', 0);
+            
+            // 1. Ensure we have the latest App Config (Views, Nav, etc)
+            let app = await this.pullApp(appId);
+            let isLegacyTable = false;
+
+            if (!app) {
+                // Fallback 1: Local App Metadata
+                app = await this.getAppMetadata(appId);
+            }
+            
+            if (!app) {
+                // Fallback 2: Treat as Legacy Table ID
+                // If App ID is not found in apps table (server or local), it might be a direct Table ID (Legacy URL)
+                logger.info(`[SyncService] App ${appId} not found, treating as potential Table ID`);
+                isLegacyTable = true;
+                app = { id: appId }; // Pseudo-app object
+            }
+
+            // 2. Identify ALL tables used by this App
+            const tableIds = new Set<string>();
+            
+            // A. Legacy/Default Table (App ID is often the Table ID in legacy apps)
+            tableIds.add(String(appId));
+
+            // B. Tables from View Configs (Only for real Apps)
+            if (!isLegacyTable && app.view_configs) {
+                const views = typeof app.view_configs === 'string' ? JSON.parse(app.view_configs) : app.view_configs;
+                Object.values(views).forEach((v: any) => {
+                    if (v.table_id) tableIds.add(String(v.table_id));
+                });
+            }
+
+            const uniqueTables = Array.from(tableIds);
+            const totalTables = uniqueTables.length;
+            
+            logger.info(`[SyncService] Syncing App ${appId} with tables: ${uniqueTables.join(', ')}`);
+
+            // 3. Sync Each Table
+            for (let i = 0; i < totalTables; i++) {
+                const tableId = uniqueTables[i];
+                const baseProgress = (i / totalTables) * 100;
+                const progressPerTable = 100 / totalTables;
+
+                await this.syncTable(tableId, (phase, stepProgress) => {
+                     // Scale table progress to overall progress
+                     const currentTableContribution = ((stepProgress || 0) / 100) * progressPerTable;
+                     const total = Math.min(99, Math.round(baseProgress + currentTableContribution));
+                     onProgress?.(`Syncing ${tableId}: ${phase}`, total);
+                });
+            }
+
+            onProgress?.('App Sync Complete!', 100);
+            return { success: true };
+
+        } catch (error) {
+            logger.error(`App Sync failed for ${appId}`, error);
+            throw error;
+        }
+    }
+
+    private async pullApp(appId: string) {
+        try {
+            const res = await apiClient.get(`/apps/${appId}`);
+            if (res.success && res.data) {
+                const db = await databaseService.getDB();
+                await this.syncApps(db, [res.data]); // Re-use syncApps logic for single item
+                return res.data;
+            }
+        } catch (e: any) {
+            // Check if it's a 404 (Not Found) - expected for legacy table IDs
+            if (e.status === 404 || e.message?.includes('404')) {
+                logger.info(`[SyncService] App ${appId} not found (404), assuming Legacy Table ID.`);
+            } else {
+                logger.warn(`[SyncService] Failed to pull app ${appId}`, e);
+            }
+        }
+        return null;
     }
 
     // 1. GLOBAL PULL: Dashboard Stats & App List
@@ -107,12 +194,14 @@ export class SyncService {
                     `DELETE FROM tables WHERE id NOT IN (${placeholders})`,
                     serverTableIds
                 );
-                // Also clean up orphaned assignments for deleted tables
-                await db.run(
-                    `DELETE FROM assignments WHERE table_id NOT IN (${placeholders})`,
-                    serverTableIds
-                );
-                logger.info('[Sync] Orphan cleanup: removed tables/assignments not on server');
+                // WARNING: Do NOT clean up assignments here. 
+                // pullGlobal returns "My Apps" tables, but we might have synced other tables (Ad-hoc/Legacy) locally.
+                // Cleaning them up here wipes valid data.
+                // await db.run(
+                //    `DELETE FROM assignments WHERE table_id NOT IN (${placeholders})`,
+                //    serverTableIds
+                // );
+                logger.info('[Sync] Orphan cleanup: removed tables not on server');
             } else {
                 // Server returned empty tables list - clear all local data
                 await db.run(`DELETE FROM tables`);
@@ -323,16 +412,18 @@ export class SyncService {
         );
         const localIds: string[] = (localResult.values || []).map((r: { id: string }) => r.id);
 
+        console.log(`[SyncService] Cleanup Orphans. Local: ${localIds.length}, Fetched: ${fetchedIds.length}`);
+
         const fetchedSet = new Set(fetchedIds);
         const orphanIds = localIds.filter((id: string) => !fetchedSet.has(id));
 
         if (orphanIds.length > 0) {
-            logger.info(`[Sync] Removing ${orphanIds.length} orphan assignments for table ${tableId}`);
+            console.log(`[Sync] Removing ${orphanIds.length} orphan assignments for table ${tableId}`);
             for (const id of orphanIds) {
                 await db.run('DELETE FROM assignments WHERE id = ?', [id]);
             }
         } else {
-            logger.info(`[Sync] No orphan assignments found for table ${tableId}`);
+            console.log(`[Sync] No orphan assignments found for table ${tableId}`);
         }
     }
 
@@ -356,8 +447,16 @@ export class SyncService {
 
         let inserted = 0;
         if (batchSet.length > 0) {
-            try { await db.executeSet(batchSet); inserted = batchSet.length; }
-            catch (e) { logger.error('[Sync] Assignment batch insert failed', e); }
+            try { 
+                // console.log(`[SyncService] Inserting batch of ${batchSet.length}. Sample:`, batchSet[0].values);
+                const result = await db.executeSet(batchSet); 
+                // console.log('[SyncService] ExecuteSet Result:', result);
+                inserted = batchSet.length; 
+                
+            }
+            catch (e) { 
+                console.error('[Sync] Assignment batch insert failed', e); 
+            }
         }
 
         await this.handleTombstones(db, res.deleted_ids);

@@ -12,14 +12,15 @@
         </div>
 
         <div class="p-4">
-            <f7-list accordion-list inset strong class="!mt-0">
+            <f7-list inset strong class="!mt-0">
 
                 <!-- General Settings -->
                 <f7-list-item accordion-item title="General Settings" :opened="true">
                     <f7-accordion-content>
                         <f7-list inset class="!my-0 !mx-0 no-hairlines-ul">
                             <!-- View Type Selector -->
-                            <f7-list-item title="View Type" smart-select :smart-select-params="{ openIn: 'popover' }"
+                            <f7-list-item title="View Type" smart-select
+                                :smart-select-params="{ openIn: 'popup', popupCloseLinkText: 'Done', searchbar: false }"
                                 :key="view.type">
                                 <select :value="view.type" @change="updateProp('type', $event)">
                                     <option value="deck">Deck View (Cards)</option>
@@ -35,6 +36,18 @@
                                 @input="updateProp('title', ($event.target as HTMLInputElement).value)">
                                 <f7-icon slot="media" f7="textformat" />
                             </f7-list-input>
+
+                            <!-- Data Source Selector -->
+                            <f7-list-item v-if="appTables && appTables.length > 0" title="Data Source" smart-select
+                                :smart-select-params="{ openIn: 'popup', popupCloseLinkText: 'Done', searchbar: false }">
+                                <select v-model="viewTableId">
+                                    <option value="" disabled>Select a data source...</option>
+                                    <option v-for="table in appTables" :key="table.id" :value="table.id">
+                                        {{ table.name }}
+                                    </option>
+                                </select>
+                                <f7-icon slot="media" f7="tray_full" />
+                            </f7-list-item>
                         </f7-list>
                     </f7-accordion-content>
                 </f7-list-item>
@@ -115,6 +128,7 @@
 
 <script setup lang="ts">
 
+import { computed } from 'vue';
 import type { ViewConfigPanelProps } from '../../../types/view-config.types';
 import FieldPicker from '../../shared/FieldPicker.vue';
 import { getViewIcon } from '../utils/viewHelpers';
@@ -123,18 +137,29 @@ import DeckViewConfig from './view-types/DeckViewConfig.vue';
 import MapViewConfig from './view-types/MapViewConfig.vue';
 import ViewActionsSelector from './ViewActionsSelector.vue';
 
-defineProps<ViewConfigPanelProps>();
+interface AppTable {
+    id: string;
+    name: string;
+    description?: string;
+}
+
+const props = defineProps<ViewConfigPanelProps & { appTables?: AppTable[] }>();
 
 const emit = defineEmits<{
-    (e: 'update:viewProp', key: string, value: any): void;
-    (e: 'update:deckConfig', key: string, value: any): void;
-    (e: 'update:mapConfig', key: string, value: any): void;
+    (e: 'update:viewProp', key: string, value: unknown): void;
+    (e: 'update:deckConfig', key: string, value: unknown): void;
+    (e: 'update:mapConfig', key: string, value: unknown): void;
     (e: 'update:groupBy', value: string[]): void;
     (e: 'toggle-action', actionId: string): void;
     (e: 'delete-view'): void;
 }>();
 
-function updateProp(key: string, value: any) {
+const viewTableId = computed({
+    get: () => props.view.table_id || '',
+    set: (val: unknown) => emit('update:viewProp', 'table_id', val)
+});
+
+function updateProp(key: string, value: unknown) {
     const finalValue = (value instanceof Event) ? (value.target as HTMLSelectElement).value : value;
     emit('update:viewProp', key, finalValue);
 }

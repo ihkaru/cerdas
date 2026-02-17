@@ -34,7 +34,8 @@ export function useAppShellSync(
                     if (progress !== undefined) syncProgress.value = progress;
                 });
             } else {
-                await sync.syncTable(targetId, (phase: string, progress?: number) => {
+                // Use SyncApp to ensure ALL data sources (multi-table) are synced
+                await sync.syncApp(targetId, (phase: string, progress?: number) => {
                     syncMessage.value = phase;
                     if (progress !== undefined) syncProgress.value = progress;
                 });

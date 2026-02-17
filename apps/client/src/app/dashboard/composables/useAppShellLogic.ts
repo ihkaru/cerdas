@@ -118,14 +118,18 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
 
         // Find view config
         const viewConfig = metadata.appViews.value.find((v: any) => v.id === newViewId);
-        if (viewConfig && viewConfig.form_id) {
+        
+        // Support both new 'table_id' and legacy 'form_id'
+        const targetTableId = viewConfig?.table_id || viewConfig?.form_id;
+
+        if (targetTableId) {
             // Check if we need to switch table
-            if (viewConfig.form_id !== resolvedTableId.value) {
-                log.info(`[AppShell] Switching context to table: ${viewConfig.form_id} (View: ${newViewId})`);
+            if (targetTableId !== resolvedTableId.value) {
+                log.info(`[AppShell] Switching context to table: ${targetTableId} (View: ${newViewId})`);
                 state.loading.value = true;
                 
                 try {
-                    resolvedTableId.value = viewConfig.form_id as string;
+                    resolvedTableId.value = targetTableId as string;
                     // Reload Schema & Data for new table
                     await schemaLoader.loadTable(resolvedTableId.value);
                     filters.activeFilters.value = []; // Reset filters on table switch
@@ -185,11 +189,32 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
             // Passing null to schemaData forces resolution by ID (App vs Table check)
             await metadata.loadAppMetadata(null, isRefresh, state.loading);
 
+
             // STEP 2: Determine Target Table ID from App Context
             let targetTableId = contextId; // Fallback: Assume contextId is TableID
             
-            // If we found an App context with tables, use the first table (or default view logic later)
-            if (metadata.appTables.value && metadata.appTables.value.length > 0) {
+            // Check if active view dictates a specific table context (Pre-emptively switch)
+            if (metadata.activeView.value) {
+                const viewConfig = metadata.appViews.value.find((v: any) => v.id === metadata.activeView.value);
+                const viewTableId = viewConfig?.table_id || viewConfig?.form_id; // Support legacy form_id
+                
+                console.log('[AppShell] Checking Active View for Table Context:', {
+                    activeView: metadata.activeView.value,
+                    foundConfig: !!viewConfig,
+                    viewTableId,
+                    currentContext: contextId
+                });
+
+                if (viewTableId) {
+                    targetTableId = String(viewTableId);
+                    console.log(`Context ${contextId} resolved to Active View Table ${targetTableId}`);
+                }
+            } else {
+                console.log('[AppShell] No Active View found during loadApp');
+            }
+
+            // If NOT resolved by active view, and we found an App context with tables, use the first table
+            if (targetTableId === contextId && metadata.appTables.value && metadata.appTables.value.length > 0) {
                  // Logic: If contextId was an AppID, we must pick a Table ID to load.
                  // Ideally this comes from the active View, but for now specific Table ID from list.
                  // Check if contextId matches any table ID?
@@ -197,7 +222,7 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
                  if (!exactTable) {
                      // contextId is likely AppID, so pick first table as default
                      targetTableId = (metadata.appTables.value[0] as any).id;
-                     log.debug(`Context ${contextId} resolved to Default Table ${targetTableId}`);
+                     console.log(`Context ${contextId} resolved to Default Table ${targetTableId}`);
                  }
             }
 
@@ -210,6 +235,7 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
             // STEP 4: Now load data - groupByConfig is available from layout
             // This ensures first render has grouping applied, preventing flashing
             await refreshDataFn();
+            console.log('[AppShell] loadApp finished. Assignments count:', state.assignments.value.length);
             
             if (!isRefresh) state.loading.value = false;
             
@@ -241,36 +267,24 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
             targetId, 
             contextId, 
             resolvedTableIdValue: resolvedTableId.value,
+            hasViewConfigs: !!detail?.viewConfigs,
             willMatch: targetId === contextId || targetId === resolvedTableId.value
         });
+
+        // Handle View Config updates (instant, no full reload needed)
+        if (detail?.viewConfigs) {
+            log.info('[AppShell] Applying view config override directly');
+            metadata.applyViewConfigOverride(detail.viewConfigs);
+        }
         
         if (targetId === contextId || targetId === resolvedTableId.value) {
-            log.info('[AppShell] Override updated, reloading app...', { targetId, contextId, resolvedTableId: resolvedTableId.value });
+            log.info('[AppShell] Override updated, reloading schema...', { targetId, contextId, resolvedTableId: resolvedTableId.value });
             
-            // CRITICAL FIX: Load SQLite data FIRST for instant preview update
-            log.debug('[OVERRIDE] Step 1: Calling loadTable...');
+            // Load SQLite data FIRST for instant preview update
             await schemaLoader.loadTable(resolvedTableId.value);
             
-            // Log the layout AFTER loadTable
-            log.debug('[OVERRIDE] Step 2: Layout AFTER loadTable:', JSON.stringify({
-                hasLayout: !!state.layout.value,
-                viewsDefaultGroupBy: state.layout.value?.views?.default?.groupBy || 'NONE',
-                viewsDefaultDeck: !!state.layout.value?.views?.default?.deck
-            }));
-            
-            // Log grouping state
-            log.debug('[OVERRIDE] Step 3: Grouping state:', JSON.stringify({
-                groupByConfig: grouping.groupByConfig.value,
-                isGroupingActive: grouping.isGroupingActive.value,
-                currentGroupField: grouping.currentGroupField.value
-            }));
-            
             // Then refresh data to apply the new layout
-            log.debug('[OVERRIDE] Step 4: Calling refreshData...');
             refreshDataFn();
-            
-            // Full app reload in background (for metadata sync)
-            loadApp(true); // isRefresh=true to skip loading spinner
         }
     };
 

@@ -9,7 +9,8 @@
         <f7-list-input label="Label" type="text" :value="field.label" placeholder="Display Label"
             @input="emit('update', { label: ($event.target as HTMLInputElement).value })" />
 
-        <f7-list-item title="Field Type" smart-select :smart-select-params="{ openIn: 'popover' }">
+        <f7-list-item title="Field Type" smart-select
+            :smart-select-params="{ openIn: 'popup', popupCloseLinkText: 'Done', searchbar: false }">
             <select :value="field.type" @change="emit('update', { type: ($event.target as HTMLSelectElement).value })">
                 <optgroup v-for="category in ['basic', 'choice', 'media', 'advanced']" :key="category"
                     :label="category.charAt(0).toUpperCase() + category.slice(1)">

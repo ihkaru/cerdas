@@ -8,9 +8,10 @@ export function useEditorHandlers(
         navManagement: any;
         tableEditor: any;
         tableSelection: any;
+        appViewManagement?: any;
     }
 ) {
-    const { tableStore, navManagement, tableEditor, tableSelection } = dependencies;
+    const { tableStore, navManagement, tableEditor, tableSelection, appViewManagement } = dependencies;
 
     // Destructure dependencies for easier access
     const { isNavDirty, saveNavigation } = navManagement;
@@ -27,11 +28,14 @@ export function useEditorHandlers(
     const { isPublished, currentVersion, currentTableId } = tableSelection;
 
     async function handleSave() {
-        // 1. Save Navigation + Views if nav is dirty OR table has views
-        if (isNavDirty.value || editorState.layout?.views) {
-            // Extract views from layout to save alongside navigation at app level
-            const layoutViews = editorState.layout?.views || undefined;
-            await saveNavigation(layoutViews);
+        // 1. Save Navigation if dirty
+        if (isNavDirty.value) {
+            await saveNavigation();
+        }
+
+        // 2. Save App Views if dirty
+        if (appViewManagement?.isViewsDirty?.value) {
+            await appViewManagement.saveAppViews();
         }
 
         // 2. Save Table if dirty
@@ -82,10 +86,15 @@ export function useEditorHandlers(
 
     async function handlePublish() {
         console.log('[DEBUG] handlePublish called. currentVersion:', tableStore.currentVersion);
+        
+        // If no table version (e.g. App context), just save.
         if (!tableStore.currentVersion) {
-            console.warn('[DEBUG] handlePublish aborted: currentVersion is null');
+            console.warn('[DEBUG] handlePublish: No table version, saving app config...');
+            await handleSave();
+            f7.toast.show({ text: 'App configuration saved', position: 'center', closeTimeout: 2000 });
             return;
         }
+        
         // Instead of inline dialog, we emit 'show-publish-dialog'.
         // The actual publish happens in confirmPublish().
         return { action: 'show-publish-dialog' };

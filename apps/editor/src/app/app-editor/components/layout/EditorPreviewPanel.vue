@@ -30,7 +30,7 @@
 
         <div class="preview-content">
             <DeviceFrame :device="device" :orientation="orientation" :scale="scale">
-                <LivePreview :key="refreshKey" :role="role" />
+                <LivePreview :key="refreshKey" :role="role" :app-views="appViews" :views-version="viewsVersion" />
             </DeviceFrame>
         </div>
     </div>
@@ -40,6 +40,11 @@
 import { ref } from 'vue';
 import DeviceFrame from '../preview/DeviceFrame.vue';
 import LivePreview from '../preview/LivePreview.vue';
+
+const props = defineProps<{
+    appViews?: Record<string, any>;
+    viewsVersion?: number;
+}>();
 
 const device = ref<'phone' | 'tablet'>('phone');
 const orientation = ref<'portrait' | 'landscape'>('portrait');

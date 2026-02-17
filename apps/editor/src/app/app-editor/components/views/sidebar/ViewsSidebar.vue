@@ -24,7 +24,7 @@
 
             <f7-list class="flex-shrink-0 !my-0 border-b border-gray-200">
                 <f7-list-item v-for="(view, key) in filteredViews" :key="key" :title="view.title || key"
-                    :subtitle="view.type" link="#"
+                    :subtitle="view.type" link="#" href="javascript:void(0)"
                     :class="{ 'bg-blue-50': selectedKey === key && configMode === 'view' }"
                     @click="$emit('select-view', key as string)">
                     <template #media>
@@ -45,7 +45,7 @@
 
             <f7-list sortable @sortable:sort="onSort" class="flex-1 overflow-y-auto !my-0">
                 <f7-list-item v-for="(item, index) in filteredNavigation" :key="item.id || index" :title="item.label"
-                    :subtitle="item.type" link="#"
+                    :subtitle="item.type" link="#" href="javascript:void(0)"
                     :class="{ 'bg-blue-50': selectedKey === item.id && configMode === 'nav' }"
                     @click="$emit('select-nav', item.id)">
                     <template #media>

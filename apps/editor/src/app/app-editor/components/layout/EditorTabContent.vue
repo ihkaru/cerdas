@@ -1,7 +1,8 @@
 <template>
     <div class="editor-tab-content h-full">
-        <!-- Data Tab (Tables List) -->
+        <!-- Data Tab (Sources + Fields merged) -->
         <div v-show="activeTab === 'data'" class="tab-content">
+            <!-- Left: Data Sources List -->
             <div class="field-list-panel"
                 :style="{ width: panels.dataListWidth + 'px', minWidth: '250px', maxWidth: '500px' }">
                 <div class="panel-header">
@@ -40,18 +41,8 @@
             <ResizableDivider @resize-start="panels.dataListBaseWidth = panels.dataListWidth"
                 @resize="(delta) => panels.dataListWidth = Math.max(250, Math.min(500, panels.dataListBaseWidth + delta))" />
 
-            <div class="field-config-panel empty-selection-placeholder">
-                Select a data source to edit its fields
-            </div>
-        </div>
-
-        <!-- Tab Contents -->
-        <div v-show="activeTab === 'fields'" class="tab-content fields-content">
-            <EditorEmptyState v-if="!tableSelection.hasTableSelected" icon="doc_text" title="No Data Source Selected"
-                action-label="Go to Data Sources" @action="$emit('update:activeTab', 'data')">
-                Select a data source from the <strong>Data</strong> tab to edit its fields.
-            </EditorEmptyState>
-            <template v-else>
+            <!-- Right: Fields (inline when table selected) -->
+            <template v-if="tableSelection.hasTableSelected">
                 <div class="field-list-panel"
                     :style="{ width: panels.fieldListWidth + 'px', minWidth: '250px', maxWidth: '600px' }">
                     <div class="field-list-scroll">
@@ -63,7 +54,6 @@
                             @drill-up="tableEditor.drillUp" @drill-to="tableEditor.drillToPath" />
                     </div>
                 </div>
-                <!-- Note: using showConfigPanel computed locally or check selectedFieldPath directly -->
                 <ResizableDivider v-if="!!tableEditor.selectedFieldPath"
                     @resize-start="panels.fieldListBaseWidth = panels.fieldListWidth"
                     @resize="(delta) => panels.fieldListWidth = Math.max(250, Math.min(600, panels.fieldListBaseWidth + delta))" />
@@ -74,6 +64,9 @@
                         @update="(updates) => tableEditor.updateField(tableEditor.selectedFieldPath, updates)" />
                 </div>
             </template>
+            <div v-else class="field-config-panel empty-selection-placeholder">
+                Select a data source to edit its fields
+            </div>
         </div>
 
         <!-- Settings Tab -->
@@ -85,13 +78,9 @@
 
         <!-- Views Tab -->
         <div v-show="activeTab === 'views'" class="tab-content">
-            <EditorEmptyState v-if="!tableSelection.hasTableSelected" icon="rectangle_3_offgrid"
-                title="No Data Source Selected" action-label="Go to Data Sources"
-                @action="$emit('update:activeTab', 'data')">
-                Select a data source from the <strong>Data</strong> tab to configure views.
-            </EditorEmptyState>
-            <ViewsPanel v-else :navigation="navManagement.navigation" :selected-nav-key="navManagement.selectedNavKey"
-                :selected-nav="navManagement.selectedNav" @update:selected-nav-key="navManagement.selectNavItem"
+            <ViewsPanel :navigation="navManagement.navigation" :selected-nav-key="navManagement.selectedNavKey"
+                :selected-nav="navManagement.selectedNav" :app-view-management="appViewManagement"
+                :app-tables="tableSelection.appTables" @update:selected-nav-key="navManagement.selectNavItem"
                 @create-nav="navManagement.createNavItem" @delete-nav="navManagement.deleteNavItem"
                 @update-nav="navManagement.updateNavItem" @nav-sorted="navManagement.onNavSort" />
         </div>
@@ -162,6 +151,7 @@ const props = defineProps<{
     tableEditor: any;
     navManagement: any;
     tableSelection: any;
+    appViewManagement: any;
 }>();
 
 defineEmits<{
@@ -175,4 +165,5 @@ const panels = reactive(props.panels);
 const tableEditor = reactive(props.tableEditor);
 const navManagement = reactive(props.navManagement);
 const tableSelection = reactive(props.tableSelection);
+const appViewManagement = props.appViewManagement;
 </script>

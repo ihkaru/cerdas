@@ -18,6 +18,8 @@ import { useTableEditor } from '../../composables/useTableEditor';
 
 const props = defineProps<{
     role?: string;
+    appViews?: Record<string, any>;
+    viewsVersion?: number;
 }>();
 
 const {
@@ -112,7 +114,8 @@ function syncSchema() {
             formId: schemaId.value, // Legacy support
             appId: editorState.appId, // Include app_id for proper sync
             schema: schemaForPreview.value,
-            layout: editorState.layout
+            layout: editorState.layout,
+            viewConfigs: props.appViews
         }
     })), '*');
 }
@@ -124,7 +127,7 @@ watch(() => props.role, () => {
 });
 
 // Watch for changes in schema or layout and push to iframe
-watch([schemaForPreview, () => editorState.layout], () => {
+watch([schemaForPreview, () => editorState.layout, () => props.appViews, () => props.viewsVersion], () => {
     syncSchema();
 }, { deep: true });
 

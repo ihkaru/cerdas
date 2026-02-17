@@ -112,7 +112,7 @@ export const AppMetadataService = {
                   // Update Local DB
                   await db.run(
                       `INSERT OR REPLACE INTO apps (id, slug, name, description, navigation, view_configs, version, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                      [d.id, d.slug, d.name, d.description, JSON.stringify(d.navigation), JSON.stringify(d.view_configs), d.version, new Date().toISOString()]
+                      [d.id, d.slug, d.name, d.description, JSON.stringify(d.navigation || []), JSON.stringify(d.view_configs || {}), d.version, new Date().toISOString()]
                   );
               }
 

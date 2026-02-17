@@ -61,7 +61,11 @@ export function useAppMetadata(
                 appNavigation.value = navigation;
                 autoSelectView(navigation);
             }
-            if (viewConfigs && Object.keys(viewConfigs).length) appViewConfigs.value = viewConfigs;
+            if (viewConfigs && Object.keys(viewConfigs).length) {
+                appViewConfigs.value = viewConfigs;
+                // Sync appViews array for search/find logic
+                appViews.value = Object.entries(viewConfigs).map(([id, cfg]: [string, any]) => ({ id, ...cfg }));
+            }
             appTables.value = await AppMetadataService.getSiblingTables(conn, appId);
         } catch (e) {
             log.warn('Failed to load local app metadata', e);
@@ -80,6 +84,8 @@ export function useAppMetadata(
                     log.info(`Remote Metadata synced. ViewConfigs: ${Object.keys(result.appData.viewConfigs || {}).length}`);
                     appNavigation.value = result.appData.navigation || [];
                     appViewConfigs.value = result.appData.viewConfigs || {};
+                    // Sync appViews array
+                    appViews.value = Object.entries(appViewConfigs.value).map(([id, cfg]: [string, any]) => ({ id, ...cfg }));
                     if (result.appData.version) appVersion.value = result.appData.version;
                     autoSelectView(appNavigation.value);
                 }
@@ -119,6 +125,13 @@ export function useAppMetadata(
         }
     };
 
+    /** Apply view config overrides directly (from editor preview) without re-reading SQLite */
+    function applyViewConfigOverride(viewConfigs: Record<string, unknown>) {
+        log.info('Applying view config override directly', { keys: Object.keys(viewConfigs) });
+        appViewConfigs.value = viewConfigs;
+        appViews.value = Object.entries(viewConfigs).map(([id, cfg]: [string, any]) => ({ id, ...cfg }));
+    }
+
     return {
         appNavigation,
         appViews,
@@ -126,6 +139,7 @@ export function useAppMetadata(
         appTables,
         activeView,
         loadAppMetadata,
+        applyViewConfigOverride,
         appVersion
     };
 }

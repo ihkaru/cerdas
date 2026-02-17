@@ -341,10 +341,29 @@ async function startApp() {
                     logger.error('Failed to persist preview schema to DB', e);
             }
 
-            // 4. Notify Components
+            // 4. Handle App View Configs Override
+            if (payload.viewConfigs && payload.appId) {
+                try {
+                     const db = await databaseService.getDB();
+                     await db.run(`UPDATE apps SET view_configs = ? WHERE id = ?`, 
+                        [JSON.stringify(payload.viewConfigs), payload.appId]);
+                     logger.debug('Persisted app view configs to DB', { appId: payload.appId });
+                     
+                     // Register memory override for instant updates
+                     (window as any).__SCHEMA_OVERRIDE = (window as any).__SCHEMA_OVERRIDE || {};
+                     (window as any).__SCHEMA_OVERRIDE[`APP_${payload.appId}`] = {
+                         viewConfigs: payload.viewConfigs
+                     };
+
+                } catch (e) {
+                    logger.error('Failed to persist app view configs', e);
+                }
+            }
+
+            // 5. Notify Components
             logger.debug('[MAIN] Dispatching schema-override-updated event', { tableId: targetId });
             window.dispatchEvent(new CustomEvent('schema-override-updated', {
-                    detail: { tableId: targetId, fields: targetFields, layout }
+                    detail: { tableId: targetId, fields: targetFields, layout, viewConfigs: payload.viewConfigs }
             }));
             logger.debug('[MAIN] Event dispatched successfully');
         };

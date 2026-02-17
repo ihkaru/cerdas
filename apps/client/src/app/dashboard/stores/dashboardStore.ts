@@ -42,16 +42,24 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
             // Apply Preview Overrides if running in Editor
             apps.value = fetchedApps.map(app => {
-                const override = (window as any).__SCHEMA_OVERRIDE?.[app.id];
-                if (override) {
-                    return {
-                        ...app,
-                        name: override.schema.name || app.name,
-                        description: override.schema.description || app.description,
-                        // settings: override.schema.settings || app.settings // Apps don't have settings currently
+                const tableOverride = (window as any).__SCHEMA_OVERRIDE?.[app.id];
+                const appOverride = (window as any).__SCHEMA_OVERRIDE?.[`APP_${app.id}`];
+
+                let merged = { ...app };
+
+                if (tableOverride) {
+                    merged = {
+                        ...merged,
+                        name: tableOverride.schema.name || merged.name,
+                        description: tableOverride.schema.description || merged.description,
                     };
                 }
-                return app;
+
+                if (appOverride && appOverride.viewConfigs) {
+                    merged.view_configs = appOverride.viewConfigs;
+                }
+
+                return merged;
             });
 
             assignments.value = fetchedAssignments;

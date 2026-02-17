@@ -183,14 +183,13 @@ export const AssignmentQueryService = {
             ORDER BY ${orderBy} LIMIT ${limit}
         `;
         
-        console.log('[AssignmentQueryService] getAssignments SQL:', { sqlJoin, dynamicParams, limit });
+
         
+
+
         const assignRes = await db.query(sqlJoin, dynamicParams);
         
-        console.log('[AssignmentQueryService] getAssignments result:', { 
-            count: assignRes.values?.length || 0,
-            firstRow: assignRes.values?.[0] || null
-        });
+
         
         if (assignRes.values) {
             return assignRes.values.map(a => ({

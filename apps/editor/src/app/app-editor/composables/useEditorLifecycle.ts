@@ -16,6 +16,7 @@ export function useEditorLifecycle(
             appId: string
         ) => void;
         fetchNavigation: () => Promise<void>;
+        fetchAppViews: () => Promise<void>;
         initNewTable: () => void;
         setActiveTab: (tab: string) => void;
         selectTable: (id: string | number) => Promise<void>;
@@ -27,7 +28,8 @@ export function useEditorLifecycle(
         appStore, 
         tableStore, 
         onTableLoaded, 
-        fetchNavigation, 
+        fetchNavigation,
+        fetchAppViews,
         initNewTable, 
         setActiveTab, 
         selectTable,
@@ -56,7 +58,8 @@ export function useEditorLifecycle(
                         const singleTable = tables[0];
                         await selectTable(singleTable.id);
                         await fetchNavigation();
-                        setActiveTab('fields');
+                        await fetchAppViews();
+                        setActiveTab('data');
                         f7Instance.preloader.hide();
                         return;
                     }
@@ -67,6 +70,7 @@ export function useEditorLifecycle(
                     }
     
                     await fetchNavigation();
+                    await fetchAppViews();
                     setActiveTab('data');
                     f7Instance.preloader.hide();
                     return;
@@ -97,6 +101,7 @@ export function useEditorLifecycle(
                     if (tableStore.currentTable?.app_id) {
                         await appStore.fetchApp(tableStore.currentTable.app_id);
                         await fetchNavigation();
+                        await fetchAppViews();
                     }
                 } else {
                     initNewTable();

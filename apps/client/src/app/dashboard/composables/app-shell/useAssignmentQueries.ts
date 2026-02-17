@@ -116,6 +116,8 @@ export function useAssignmentQueries(
                 state.groups.value = [];
                 const queryLimit = options?.limit.value || 1000;
                 
+
+
                 state.assignments.value = await AssignmentQueryService.getAssignments(
                     conn, 
                     dataClause.where, 

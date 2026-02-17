@@ -35,20 +35,6 @@ const defaultLayout: LayoutConfig = {
   type: 'standard',
   app_name: 'Untitled App',
   groupBy: [],
-  views: {
-    default: {
-      type: 'deck',
-      title: 'Assignments', 
-      groupBy: [],
-      deck: {
-        primaryHeaderField: 'name',
-        secondaryHeaderField: 'description',
-        imageField: null,
-        imageShape: 'square'
-      },
-      actions: ['open', 'delete']
-    }
-  }
 };
 
 // ============================================================================

@@ -9,5 +9,7 @@ export function useSync() {
         syncTableDataOnly: async (tableId: string, onProgress?: (phase: string, progress?: number) => void) => 
             await syncService.syncTableDataOnly(tableId, onProgress),
         push: async () => await syncService.push(),
+        syncApp: async (appId: string, onProgress?: (phase: string, progress?: number) => void) => 
+            await syncService.syncApp(appId, onProgress),
     };
 }

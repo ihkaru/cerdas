@@ -2,7 +2,7 @@
     <EditorShell>
         <template #header>
             <EditorHeader :title="tableName" :app-name="appStore.currentApp?.name" :is-dirty="isGlobalDirty"
-                :is-published="isPublished" :version="currentVersion" :can-publish="isGlobalDirty && hasTableSelected"
+                :is-published="isPublished" :version="currentVersion" :can-publish="isGlobalDirty"
                 @rename="handleRename" @save="handleSave" @publish="onPublish" @back="handleBack"
                 @export="exportTable" />
         </template>
@@ -13,12 +13,13 @@
 
         <template #main>
             <EditorTabContent v-model:activeTab="panels.activeTab.value" :panels="panels" :table-editor="tableEditor"
-                :nav-management="navManagement" :table-selection="tableSelection" @reset-field="handleFieldReset"
+                :nav-management="navManagement" :table-selection="tableSelection"
+                :app-view-management="appViewManagement" @reset-field="handleFieldReset"
                 @code-apply="handleCodeApply" />
         </template>
 
         <template #preview>
-            <EditorPreviewPanel />
+            <EditorPreviewPanel :app-views="appViewManagement.appViews.value" :views-version="appViewManagement.viewsVersion.value" />
         </template>
 
         <template #modals>
@@ -54,6 +55,7 @@ import PublishDialog from './components/PublishDialog.vue';
 
 // Composables & Types
 import type { F7PageProps } from '@/types/framework7.types';
+import { useAppViewManagement } from './composables/useAppViewManagement';
 import { useEditorHandlers } from './composables/useEditorHandlers';
 import { useEditorLifecycle } from './composables/useEditorLifecycle';
 import { useEditorPanels } from './composables/useEditorPanels';
@@ -77,6 +79,10 @@ const { tableName, selectedFieldPath, isDirty, selectedOriginalField, updateFiel
 const navManagement = useNavigationManagement(() => appStore.currentApp?.id ? String(appStore.currentApp.id) : null);
 const { isNavDirty, fetchNavigation } = navManagement;
 
+// 3b. App View Management (App-level views stored in apps.view_configs)
+const appViewManagement = useAppViewManagement(() => appStore.currentApp?.id ? String(appStore.currentApp.id) : null);
+const { isViewsDirty, fetchAppViews } = appViewManagement;
+
 // 4. Table Selection & CRUD
 const tableSelection = useTableSelection(
     appStore,
@@ -90,7 +96,7 @@ const tableSelection = useTableSelection(
 const { hasTableSelected, selectTable, currentVersion, isPublished } = tableSelection;
 
 // 5. Handlers
-const handlers = useEditorHandlers(props, { tableStore, navManagement, tableEditor, tableSelection });
+const handlers = useEditorHandlers(props, { tableStore, navManagement, tableEditor, tableSelection, appViewManagement });
 const { handleSave, handlePublish, confirmPublish, handleRename, handleBack, exportTable, handleCodeApply } = handlers;
 
 // Publish Dialog State
@@ -107,7 +113,7 @@ async function onPublishConfirm(payload: { changelog: string; versionPolicy: str
 }
 
 // 6. UI Helpers
-const isGlobalDirty = computed(() => isDirty.value || isNavDirty.value);
+const isGlobalDirty = computed(() => isDirty.value || isNavDirty.value || isViewsDirty.value);
 
 function handleFieldReset() {
     if (selectedFieldPath.value && selectedOriginalField.value) {
@@ -127,6 +133,7 @@ useEditorLifecycle(props, {
     tableStore,
     onTableLoaded: loadTable,
     fetchNavigation,
+    fetchAppViews,
     initNewTable: tableEditor.initNewTable,
     setActiveTab: (tab: string) => panels.activeTab.value = tab,
     selectTable,

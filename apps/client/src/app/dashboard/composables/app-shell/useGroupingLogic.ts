@@ -33,8 +33,8 @@ export function useGroupingLogic(
         if (viewId) {
             const view = appViews.value.find(v => v.id === viewId || v.view_id === viewId);
             
-            if (view?.config?.groupBy) {
-                const gb = view.config.groupBy;
+            if (view?.groupBy) {
+                const gb = view.groupBy;
                 log.debug('[groupByConfig] Found in appViews:', { viewId, groupBy: gb });
                 if (Array.isArray(gb)) {
                     return { levels: gb.map(f => ({ field: f as string })) };
