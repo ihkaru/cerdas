@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.48](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.47...cerdas-v0.1.48) (2026-02-17)
+
+
+### Bug Fixes
+
+* **backend:** increase upload memory limit and clarify health check timeout ([342acd5](https://github.com/ihkaru/cerdas/commit/342acd53123e3e0c9f7238614bccd3a0547af63a))
+
 ## [0.1.47](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.46...cerdas-v0.1.47) (2026-02-17)
 
 
