@@ -7,24 +7,27 @@ use App\Models\Table;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
-class CleanOrphanedViewConfigs extends Command {
-    protected $signature   = 'app:clean-orphaned-views {--dry-run : Preview changes without saving}';
-    protected $description  = 'Remove view_configs and navigation items that reference deleted tables';
+class CleanOrphanedViewConfigs extends Command
+{
+    protected $signature = 'app:clean-orphaned-views {--dry-run : Preview changes without saving}';
 
-    public function handle(): int {
+    protected $description = 'Remove view_configs and navigation items that reference deleted tables';
+
+    public function handle(): int
+    {
         $isDryRun = $this->option('dry-run');
 
         if ($isDryRun) {
             $this->warn('DRY RUN mode — no changes will be saved.');
         }
 
-        $apps        = App::all();
+        $apps = App::all();
         $existingIds = Table::withTrashed(false)->pluck('id')->flip(); // fast O(1) lookup
-        $totalFixed  = 0;
+        $totalFixed = 0;
 
         foreach ($apps as $app) {
-            $viewConfigs  = $app->view_configs ?? [];
-            $navigation   = $app->navigation  ?? [];
+            $viewConfigs = $app->view_configs ?? [];
+            $navigation = $app->navigation ?? [];
             $orphanedViews = [];
 
             if (! is_array($viewConfigs)) {
@@ -56,8 +59,8 @@ class CleanOrphanedViewConfigs extends Command {
 
             if (! $isDryRun) {
                 $app->update([
-                    'view_configs' => empty($viewConfigs) ? new \stdClass() : $viewConfigs,
-                    'navigation'   => $navigation,
+                    'view_configs' => empty($viewConfigs) ? new \stdClass : $viewConfigs,
+                    'navigation' => $navigation,
                 ]);
                 Log::info("Cleaned orphaned views from App {$app->id}", ['views' => $orphanedViews]);
             }
