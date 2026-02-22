@@ -253,10 +253,13 @@ export class DatabaseService {
         localStorage.removeItem('dashboard_stats');
         localStorage.removeItem('app_pending_counts');
         
-        // 3. Persist Empty State (Web)
+        // 3. Re-create the tables immediately so the connection remains usable
+        await this.createTables();
+
+        // 4. Persist Empty State (Web)
         await this.save();
         
-        log.info('Database reset complete.');
+        log.info('Database reset and schema re-initialized complete.');
     }
 }
 
