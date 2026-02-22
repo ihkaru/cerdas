@@ -11,6 +11,7 @@ export interface TableModel {
     current_version?: number;
     created_at: string;
     updated_at: string;
+    deleted_at?: string;
     app?: { id: string; name: string };
     versions?: any[];
 }
@@ -27,6 +28,7 @@ export interface TableVersion {
 
 export const useTableStore = defineStore('table', () => {
     const tables = ref<TableModel[]>([]);
+    const trashedTables = ref<TableModel[]>([]);
     const currentTable = ref<TableModel | null>(null);
     const currentVersion = ref<TableVersion | null>(null);
     
@@ -151,10 +153,11 @@ export const useTableStore = defineStore('table', () => {
         }
     }
 
-    async function deleteTable(tableId: string | number) {
+    async function deleteTable(tableId: string | number, forceCleanup: boolean = false) {
         loading.value = true;
         try {
-            await ApiClient.delete(`/tables/${tableId}`);
+            const url = forceCleanup ? `/tables/${tableId}?force_cleanup=1` : `/tables/${tableId}`;
+            await ApiClient.delete(url);
             tables.value = tables.value.filter(t => t.id !== tableId);
             if (currentTable.value?.id === tableId) {
                 currentTable.value = null;
@@ -162,6 +165,48 @@ export const useTableStore = defineStore('table', () => {
             }
         } catch (e: any) {
             error.value = e.message || 'Failed to delete table';
+            // Important: We throw the error so the caller can check its status for 409 logic
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function fetchTrashedTables(appId: number | string) {
+        loading.value = true;
+        try {
+            const res = await ApiClient.get(`/apps/${appId}/tables/trash`);
+            trashedTables.value = res.data.data;
+        } catch (e: any) {
+            error.value = e.message || 'Failed to fetch trashed tables';
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function restoreTable(tableId: string | number, appId: number | string) {
+        loading.value = true;
+        try {
+            await ApiClient.put(`/tables/${tableId}/restore`);
+            // Refresh lists
+            await fetchTrashedTables(appId);
+            await fetchTables(appId as number);
+        } catch (e: any) {
+            error.value = e.message || 'Failed to restore table';
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function forceDeleteTable(tableId: string | number, appId: number | string) {
+        loading.value = true;
+        try {
+            await ApiClient.delete(`/tables/${tableId}/force`);
+            // Refresh trash list
+            await fetchTrashedTables(appId);
+        } catch (e: any) {
+            error.value = e.message || 'Failed to permanently delete table';
             throw e;
         } finally {
             loading.value = false;
@@ -170,6 +215,7 @@ export const useTableStore = defineStore('table', () => {
 
     return {
         tables,
+        trashedTables,
         currentTable,
         currentVersion,
         loading,
@@ -179,6 +225,9 @@ export const useTableStore = defineStore('table', () => {
         fetchTable,
         createTable,
         deleteTable,
+        fetchTrashedTables,
+        restoreTable,
+        forceDeleteTable,
         fetchVersion,
         createDraft,
         updateVersion,

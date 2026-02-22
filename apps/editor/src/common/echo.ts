@@ -23,7 +23,7 @@ const echo = new Echo({
             Accept: 'application/json',
         }
     },
-    authorizer: (channel: any, options: any) => {
+    authorizer: (channel: any, _options: any) => {
         return {
             authorize: (socketId: any, callback: any) => {
                 const token = localStorage.getItem('auth_token'); // Use correct key 'auth_token'

@@ -253,6 +253,15 @@ See `.agent/workflows/android-dev.md` for detailed ADB debugging guide.
 - `.agent/workflows/android-dev.md` - Step-by-step Android dev guide
 - `docs/DEVELOPMENT_LIFECYCLE.md` - Comprehensive documentation
 
+## Log Pekerjaan AI Asisten
+
+### 22 Feb 2026 - Safe Deletion Data Source & Strict Type Fixes
+- **Backend**: Mengubah penghapusan Data Source di `TableController` menjadi 'Soft Delete' supaya tidak terjadi force delete pada data `Assignment` dan `AppRecord`. Menambahkan Dependency Guard yang mengecek penggunaan tabel di config View dan Navigation untuk mencegah penghapusan jika sedang digunakan (409 Conflict). Menambahkan flag `force_cleanup` agar bisa melakukan unbind secara paksa.
+- **Frontend (Editor)**: Menambahkan _confirmation dialog_ dimana pengguna harus mengetikkan nama tabel secara presisi sebelum bisa menghapusnya. Jika terhalang Dependency Guard, akan muncul _prompt_ untuk secara otomatis melepas penggunaan tabel di View terkait.
+- **Fixing Build Errors**: Memperbaiki berbagai error build Vue/TypeScript strict mode di beberapa komponen Editor (`OrganizationsPage`, `AppLayout`, `useViewConfigSync`, `echo.ts`, dan `ActionEditorModal`). Build `npm run build` kembali hijau.
+- **Trash Management UI**: Menambahkan sistem "Trash / Deleted Data Sources" via modal dialog khusus pada tab Data editor. Modal ini terhubung dengan store state `trashedTables` dan Endpoint `GET /trash`, `PUT /restore`, serta `DELETE /force` di backend `TableController`. Pembersihan permanen wajib mengetik konfirmasi *EXACTLY DELETE*.
+- **Automated Trash Cleanup**: Menulis dan Mendaftarkan daemon artisan `php artisan app:clean-trash --days=30` menggunakan Laravel Scheduler di `routes/console.php` agar setiap *soft-deleted variables* yang berusia di atas 30 hari dihapus selamanya secara ootmatis setiap malam untuk mengamankan limit kapasitas Database production.
+
 ### Strategic Logging System
 
 Import and use the logger anywhere:
@@ -831,3 +840,10 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
   - **AppShell**: Verified `useAppShellLogic` handles App ID resolution (defaults to first table) and Sidebar allows switching tables.
 - **Result**: Dashboard now correctly shows "Rumah" as the App. Internally navigates to "master sls" form by default.
 - **Verified**: `vue-tsc --noEmit` passed (exit code 0).
+
+### 2026-02-22: MapView Component Refactoring
+
+- **Problem**: `MapView.vue` had grown to ~800 lines, violating single-responsibility principles.
+- **Solution**: Decomposed the component into utilities (`mapCoordinates`, `mapStyles`, `mapColorResolver`), composables (`useMapUserLocation`, `useMapInstance`, `useMapGeoJson`, `useMapLayers`, `useMapPopup`), and sub-components (`MapContainer`, `MapListPanel`).
+- **Result**: `MapView.vue` operates purely as an orchestrator (~130 lines).
+- **Verified**: `vue-tsc --noEmit` passed (exit code 0) and local linting on the Map components reported 0 errors.

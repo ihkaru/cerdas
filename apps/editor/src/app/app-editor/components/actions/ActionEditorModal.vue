@@ -14,10 +14,12 @@
             <f7-block-title>Basic Info</f7-block-title>
             <f7-list inset strong>
                 <f7-list-input label="Label" type="text" placeholder="e.g. Approve, Reject" :value="formData.label"
-                    @input="formData.label = $event.target.value" clear-button required validate />
+                    @input="formData.label = ($event.target as HTMLInputElement).value" clear-button required
+                    validate />
 
                 <f7-list-item title="Action Type" smart-select :smart-select-params="{ openIn: 'popover' }">
-                    <select :value="formData.type" @change="formData.type = $event.target.value">
+                    <select :value="formData.type"
+                        @change="formData.type = ($event.target as HTMLSelectElement).value as any">
                         <option value="custom">Custom (Trigger Workflow)</option>
                         <option value="create">Create Item</option>
                         <option value="edit">Edit Item</option>

@@ -32,7 +32,7 @@
                         <f7-badge color="gray">Public</f7-badge>
                     </template>
                 </f7-list-item>
-                 <f7-list-item v-if="publicOrgs.length === 0" title="No public organizations"></f7-list-item>
+                <f7-list-item v-if="publicOrgs.length === 0" title="No public organizations"></f7-list-item>
             </f7-list>
         </div>
 
@@ -46,7 +46,7 @@
 
         <!-- Create Dialog -->
         <f7-popup class="create-org-popup" :opened="createOpened" @popup:closed="createOpened = false">
-             <f7-page>
+            <f7-page>
                 <f7-navbar title="Create Organization">
                     <f7-nav-right>
                         <f7-link popup-close>Close</f7-link>
@@ -54,23 +54,19 @@
                 </f7-navbar>
                 <f7-block-title>Organization Details</f7-block-title>
                 <f7-list strong-ios dividers-ios inset-ios>
-                    <f7-list-input label="Name" type="text" placeholder="e.g. My Team"
-                        :value="newOrg.name" @input="newOrg.name = $event.target.value" clear-button required validate />
-                    <f7-list-input label="Code" type="text" placeholder="e.g. TEAM-A"
-                        :value="newOrg.code" @input="newOrg.code = $event.target.value" clear-button required validate />
+                    <f7-list-input label="Name" type="text" placeholder="e.g. My Team" :value="newOrg.name"
+                        @input="newOrg.name = $event.target.value" clear-button required validate />
+                    <f7-list-input label="Code" type="text" placeholder="e.g. TEAM-A" :value="newOrg.code"
+                        @input="newOrg.code = $event.target.value" clear-button required validate />
                 </f7-list>
                 <f7-block>
                     <f7-button fill large @click="saveOrg" :loading="saving">Create Organization</f7-button>
                 </f7-block>
-             </f7-page>
+            </f7-page>
         </f7-popup>
-        
+
         <!-- Detail/Members Dialog -->
-        <OrganizationDetailDialog 
-            v-model:opened="detailOpened" 
-            :organization="selectedOrg" 
-            @refresh="fetchOrgs" 
-        />
+        <OrganizationDetailDialog v-model:opened="detailOpened" :organization="selectedOrg" @refresh="fetchOrgs" />
 
     </f7-page>
 </template>
@@ -98,9 +94,7 @@ const newOrg = reactive({
 const myOrgs = computed(() => organizations.value.filter(o => o.creator_id === authStore.user?.id));
 const publicOrgs = computed(() => organizations.value.filter(o => o.creator_id !== authStore.user?.id));
 
-function isOwner(org: any) {
-    return org.creator_id === authStore.user?.id;
-}
+
 
 async function fetchOrgs() {
     loading.value = true;
@@ -112,8 +106,8 @@ async function fetchOrgs() {
             console.log('[OrgsPage] Current User:', authStore.user);
             console.log('[OrgsPage] User ID:', authStore.user?.id);
             if (organizations.value.length > 0) {
-                 console.log('[OrgsPage] First Org Creator ID:', organizations.value[0].creator_id);
-                 console.log('[OrgsPage] Is Owner?', organizations.value[0].creator_id === authStore.user?.id);
+                console.log('[OrgsPage] First Org Creator ID:', organizations.value[0].creator_id);
+                console.log('[OrgsPage] Is Owner?', organizations.value[0].creator_id === authStore.user?.id);
             }
         }
     } catch (e) {
@@ -136,7 +130,7 @@ function editOrg(org: any) {
 
 async function saveOrg() {
     if (!newOrg.name || !newOrg.code) return;
-    
+
     saving.value = true;
     try {
         await ApiClient.post('/organizations', newOrg);

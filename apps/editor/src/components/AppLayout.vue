@@ -153,14 +153,14 @@ const handleLogout = () => {
 onMounted(() => {
     // Get initial path
     currentPath.value = window.location.pathname;
-    
+
     // Fetch notifications
     notificationStore.fetchNotifications();
 
     // Listen to real-time notifications
     if (authStore.user?.id) {
         import('@/common/echo').then(({ default: echo }) => {
-            echo.private(`App.Models.User.${authStore.user.id}`)
+            echo.private(`App.Models.User.${authStore.user!.id}`)
                 .notification((notification: any) => {
                     console.log('Realtime notification:', notification);
                     notificationStore.handleRealtimeNotification(notification);

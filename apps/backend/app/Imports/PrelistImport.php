@@ -82,16 +82,33 @@ class PrelistImport implements ToCollection, WithHeadingRow
         // Remove known fields from prelist data
         $prelistData = $row->except(['external_id', 'organization', 'supervisor', 'enumerator'])->toArray();
 
-        // Create Assignment
-        Assignment::create([
-            'table_id' => $this->tableId,
-            'table_version_id' => $this->tableVersionId,
-            'organization_id' => $orgId,
-            'supervisor_id' => $supervisorId,
-            'enumerator_id' => $enumeratorId,
-            'external_id' => $externalId,
-            'status' => 'assigned',
-            'prelist_data' => $prelistData,
-        ]);
+        // Use updateOrCreate if external_id is provided, otherwise create
+        if ($externalId) {
+            Assignment::updateOrCreate(
+                [
+                    'table_version_id' => $this->tableVersionId,
+                    'external_id' => $externalId,
+                ],
+                [
+                    'table_id' => $this->tableId,
+                    'organization_id' => $orgId,
+                    'supervisor_id' => $supervisorId,
+                    'enumerator_id' => $enumeratorId,
+                    'status' => 'assigned',
+                    'prelist_data' => $prelistData,
+                ]
+            );
+        } else {
+            Assignment::create([
+                'table_id' => $this->tableId,
+                'table_version_id' => $this->tableVersionId,
+                'organization_id' => $orgId,
+                'supervisor_id' => $supervisorId,
+                'enumerator_id' => $enumeratorId,
+                'external_id' => null,
+                'status' => 'assigned',
+                'prelist_data' => $prelistData,
+            ]);
+        }
     }
 }

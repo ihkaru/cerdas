@@ -144,21 +144,51 @@ export function useTableSelection(
         }
     }
 
-    function handleDeleteTable(table: any) {
-        f7.dialog.confirm(`Are you sure you want to delete "${table.name}"? This cannot be undone.`, async () => {
-            f7.preloader.show();
-            try {
-                await tableStore.deleteTable(table.id);
-                f7.toast.show({ text: 'Table deleted', position: 'center', closeTimeout: 2000 });
-                if (appStore.currentApp?.id) {
-                    await appStore.fetchApp(appStore.currentApp.id);
-                }
-            } catch (e: any) {
-                f7.dialog.alert(e.message || 'Failed to delete table');
-            } finally {
-                f7.preloader.hide();
+    async function doDelete(tableId: string | number, forceCleanup: boolean) {
+        f7.preloader.show();
+        let conflictError: any = null;
+        try {
+            await tableStore.deleteTable(tableId, forceCleanup);
+            f7.toast.show({ text: 'Table deleted', position: 'center', closeTimeout: 2000 });
+            if (appStore.currentApp?.id) {
+                await appStore.fetchApp(appStore.currentApp.id);
             }
-        });
+        } catch (e: any) {
+            // Check if Axios error with 409 status
+            if (e.response?.status === 409 && e.response?.data?.requires_force_cleanup) {
+                conflictError = e.response.data;
+            } else {
+                f7.dialog.alert(e.message || 'Failed to delete table');
+            }
+        } finally {
+            f7.preloader.hide();
+        }
+
+        if (conflictError) {
+            setTimeout(() => {
+                f7.dialog.confirm(
+                    `${conflictError.message}<br><br>Do you want to automatically remove this Data Source from all dependent views and proceed with deletion?`,
+                    'Data Source is in Use',
+                    () => {
+                        doDelete(tableId, true);
+                    }
+                );
+            }, 100);
+        }
+    }
+
+    function handleDeleteTable(table: any) {
+        f7.dialog.prompt(
+            `Type the name of the table exactly (<b>${table.name}</b>) to confirm deletion:`,
+            'Delete Data Source',
+            (typedName) => {
+                if (typedName !== table.name) {
+                    f7.dialog.alert('Name does not match. Deletion cancelled.');
+                    return;
+                }
+                doDelete(table.id, false);
+            }
+        );
     }
 
     return {

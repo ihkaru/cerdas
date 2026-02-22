@@ -39,15 +39,19 @@ export function useViewConfigSync(
         localLayout.app_name = raw.app_name || 'Untitled App';
         localLayout.groupBy = raw.groupBy ? [...raw.groupBy] : [];
 
+        if (!localLayout.views) {
+            localLayout.views = {};
+        }
+
         // Replace views entirely
         // Clear old keys
         Object.keys(localLayout.views).forEach(key => {
-            delete localLayout.views[key];
+            delete localLayout.views![key];
         });
         // Add new keys
         if (raw.views) {
             Object.keys(raw.views).forEach(key => {
-                localLayout.views[key] = raw.views[key];
+                localLayout.views![key] = raw.views[key];
             });
         }
 

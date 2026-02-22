@@ -145,6 +145,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{app}/schema', [AppSchemaController::class, 'updateSchema']);
         Route::get('/{app}/schema/export', [AppSchemaController::class, 'exportSchema']);
 
+        // App Trash Details
+        Route::get('/{app}/tables/trash', [TableController::class, 'trashed']);
+
         // App Organization Management
         Route::get('/{app}/organizations', [AppController::class, 'organizations']);
         Route::post('/{app}/organizations', [AppController::class, 'attachOrganization']);
@@ -191,6 +194,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{table}', [TableController::class, 'show']);
         Route::put('/{table}', [TableController::class, 'update']);
         Route::delete('/{table}', [TableController::class, 'destroy']);
+        Route::put('/{table}/restore', [TableController::class, 'restore']);
+        Route::delete('/{table}/force', [TableController::class, 'forceDestroy']);
 
         // Version management
         Route::get('/{table}/versions', [TableController::class, 'listVersions']); // Version history

@@ -7,9 +7,14 @@
                 :style="{ width: panels.dataListWidth + 'px', minWidth: '250px', maxWidth: '500px' }">
                 <div class="panel-header">
                     <span class="panel-title">Data Sources</span>
-                    <f7-button small fill round @click="tableSelection.createNewTable">
-                        <f7-icon f7="plus" size="14" /> New
-                    </f7-button>
+                    <div style="display: flex; gap: 4px;">
+                        <f7-button small fill round color="orange" @click="showTrashModal = true" title="View Trash">
+                            <f7-icon f7="trash_slash" size="14" />
+                        </f7-button>
+                        <f7-button small fill round @click="tableSelection.createNewTable">
+                            <f7-icon f7="plus" size="14" /> New
+                        </f7-button>
+                    </div>
                 </div>
                 <div class="field-list-scroll">
                     <div v-if="tableSelection.loadingTables" class="start-message">Loading...</div>
@@ -126,11 +131,14 @@
                 </div>
             </template>
         </div>
+
+        <!-- Trash Modal for Soft-Deleted Data Sources -->
+        <TrashModal v-model:opened="showTrashModal" :app-id="tableSelection.appTables?.[0]?.app_id" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 
 // Layout Components
 import EditorEmptyState from '../shared/EditorEmptyState.vue';
@@ -140,6 +148,7 @@ import ResizableDivider from '../shared/ResizableDivider.vue';
 import ActionsPanel from '../actions/ActionsPanel.vue';
 import AssignmentsPanel from '../assignments/AssignmentsPanel.vue';
 import CodeEditorTab from '../code/CodeEditorTab.vue';
+import TrashModal from '../data/TrashModal.vue';
 import FieldConfigPanel from '../field-config/FieldConfigPanel.vue';
 import FieldList from '../field-list/FieldList.vue';
 import AppSettingsPanel from '../settings/AppSettingsPanel.vue';
@@ -166,4 +175,7 @@ const tableEditor = reactive(props.tableEditor);
 const navManagement = reactive(props.navManagement);
 const tableSelection = reactive(props.tableSelection);
 const appViewManagement = props.appViewManagement;
+
+// Local UI State
+const showTrashModal = ref(false);
 </script>

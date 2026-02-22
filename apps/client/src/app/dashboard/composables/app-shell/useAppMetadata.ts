@@ -94,6 +94,28 @@ export function useAppMetadata(
         }
     }
 
+    async function handleMetadataSync(conn: any, validAppId: string, isRefresh: boolean, loading: Ref<boolean>) {
+        const hasLocalViews = Object.keys(appViewConfigs.value).length > 0 || appNavigation.value.length > 0;
+        const now = Date.now();
+        const shouldSync = isRefresh || (now - lastSyncTimestamp > SYNC_THROTTLE_MS);
+
+        if (!navigator.onLine || !shouldSync) {
+            if (!isRefresh) loading.value = false;
+            return;
+        }
+
+        lastSyncTimestamp = now;
+        
+        if (!hasLocalViews && !isRefresh) {
+            log.info('[AppMetadata] No local views found. Awaiting remote metadata before rendering.');
+            await startBackgroundSync(conn, validAppId);
+            loading.value = false;
+        } else {
+            if (!isRefresh) loading.value = false;
+            startBackgroundSync(conn, validAppId);
+        }
+    }
+
     const loadAppMetadata = async (schemaData: Record<string, unknown> | null, isRefresh: boolean, loading: Ref<boolean>) => {
         try {
             const conn = await db.getDB();
@@ -109,27 +131,8 @@ export function useAppMetadata(
 
             restoreCachedRole(validAppId);
             await loadLocalMetadata(conn, validAppId);
+            await handleMetadataSync(conn, validAppId, isRefresh, loading);
 
-            const hasLocalViews = Object.keys(appViewConfigs.value).length > 0 || appNavigation.value.length > 0;
-            const now = Date.now();
-            const shouldSync = isRefresh || (now - lastSyncTimestamp > SYNC_THROTTLE_MS);
-
-            if (navigator.onLine && shouldSync) {
-                lastSyncTimestamp = now;
-                
-                if (!hasLocalViews && !isRefresh) {
-                    // Block the loading state until metadata is fetched to prevent flashing wrong default table
-                    log.info('[AppMetadata] No local views found. Awaiting remote metadata before rendering.');
-                    await startBackgroundSync(conn, validAppId);
-                    loading.value = false;
-                } else {
-                    // Background sync (non-blocking)
-                    if (!isRefresh) loading.value = false;
-                    startBackgroundSync(conn, validAppId);
-                }
-            } else {
-                if (!isRefresh) loading.value = false;
-            }
         } catch (e) {
             console.error('Failed to load app metadata', e);
             if (!isRefresh) loading.value = false;

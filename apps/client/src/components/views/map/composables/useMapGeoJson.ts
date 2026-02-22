@@ -1,0 +1,141 @@
+import { maplibregl } from '@cerdas/form-engine';
+import { ref, toRaw, watch, type Ref, type ShallowRef } from 'vue';
+import { resolveColor } from '../utils/mapColorResolver';
+import { getCoordinates } from '../utils/mapCoordinates';
+import { SOURCE_ID } from './useMapLayers';
+
+const CHUNK_SIZE = 2000;
+
+export function useMapGeoJson(
+    mapRef: ShallowRef<maplibregl.Map | null>,
+    validLocations: Ref<any[]>,
+    normalizedConfig: Ref<any>,
+    markerStyleFn: Ref<any>,
+    fitBoundsToData: (geojson: GeoJSON.FeatureCollection) => void
+) {
+    const isProcessing = ref(false);
+    const processProgress = ref(0);
+    let abortController: AbortController | null = null;
+    let updateDebounce: ReturnType<typeof setTimeout> | null = null;
+
+    const buildGeoJsonAsync = (signal: AbortSignal): Promise<GeoJSON.FeatureCollection | null> => {
+        return new Promise((resolve) => {
+            const mapConfig = normalizedConfig.value;
+            const gpsCol = mapConfig.gps_column;
+            const styleFn = markerStyleFn.value;
+
+            // Use Valid Locations which are already filtered for valid coords
+            const rawLocations = toRaw(validLocations.value);
+            const total = rawLocations.length;
+            const features: GeoJSON.Feature[] = [];
+
+            if (total === 0) {
+                resolve({ type: 'FeatureCollection', features: [] });
+                return;
+            }
+
+            let index = 0;
+
+            const processChunk = () => {
+                if (signal.aborted) {
+                    resolve(null);
+                    return;
+                }
+
+                const end = Math.min(index + CHUNK_SIZE, total);
+
+                for (let i = index; i < end; i++) {
+                    const item = rawLocations[i];
+                    const coords = getCoordinates(item, gpsCol);
+                    if (!coords) continue;
+
+                    const [lat, lng] = coords;
+                    const itemId = item.id || item.local_id;
+
+                    // Style Marker
+                    let markerColor = '#2196f3';
+                    if (styleFn) {
+                        try {
+                            const data = item.response_data || item.data || {};
+                            const result = styleFn(data, item);
+                            markerColor = resolveColor(result?.color || 'blue');
+                        } catch { /* ignore */ }
+                    }
+
+                    features.push({
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            coordinates: [lng, lat],
+                        },
+                        properties: {
+                            id: itemId,
+                            markerColor,
+                        },
+                    });
+                }
+
+                index = end;
+                processProgress.value = Math.round((index / total) * 100);
+
+                if (index < total) {
+                    setTimeout(processChunk, 0); // Yield to main thread
+                } else {
+                    resolve({ type: 'FeatureCollection', features });
+                }
+            };
+
+            processChunk();
+        });
+    };
+
+    const updateGeoJsonSourceAsync = async () => {
+        if (!mapRef.value) return;
+
+        // 1. Cancel previous build if running
+        if (abortController) abortController.abort();
+        abortController = new AbortController();
+        const signal = abortController.signal;
+
+        isProcessing.value = true;
+        processProgress.value = 0;
+
+        try {
+            // 2. Build GeoJSON in chunks
+            const geojson = await buildGeoJsonAsync(signal);
+
+            // 3. Update Map if not aborted
+            if (!signal.aborted && geojson) {
+                const map = mapRef.value;
+                const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+                if (source) {
+                    // Reuse existing source (performance)
+                    source.setData(geojson);
+                    fitBoundsToData(geojson);
+                }
+            }
+        } catch (e) {
+            console.error('Map update failed:', e);
+        } finally {
+            if (!signal.aborted) {
+                isProcessing.value = false;
+            }
+        }
+    };
+
+    const setupDataWatcher = (dataRef: Ref<any[]>) => {
+        watch(dataRef, () => {
+            if (updateDebounce) clearTimeout(updateDebounce);
+            updateDebounce = setTimeout(() => {
+                updateGeoJsonSourceAsync();
+            }, 300);
+        });
+    };
+
+    return {
+        isProcessing,
+        processProgress,
+        updateGeoJsonSourceAsync,
+        setupDataWatcher,
+    };
+}
