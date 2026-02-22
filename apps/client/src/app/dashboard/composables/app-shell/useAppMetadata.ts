@@ -73,27 +73,25 @@ export function useAppMetadata(
     }
 
     /** Background sync: fetch remote metadata and update reactively */
-    function startBackgroundSync(conn: any, validAppId: string) {
-        (async () => {
-            try {
-                log.info('Fetching App Metadata from API... (background)');
-                const result: any = await AppMetadataService.syncAppMetadata(conn, validAppId);
-                await fetchAppContext(validAppId);
-                
-                if (result?.appData) {
-                    log.info(`Remote Metadata synced. ViewConfigs: ${Object.keys(result.appData.viewConfigs || {}).length}`);
-                    appNavigation.value = result.appData.navigation || [];
-                    appViewConfigs.value = result.appData.viewConfigs || {};
-                    // Sync appViews array
-                    appViews.value = Object.entries(appViewConfigs.value).map(([id, cfg]: [string, any]) => ({ id, ...cfg }));
-                    if (result.appData.version) appVersion.value = result.appData.version;
-                    autoSelectView(appNavigation.value);
-                }
-                if (result?.tables) appTables.value = result.tables;
-            } catch (e) {
-                log.warn('Failed to fetch remote app metadata', e);
+    async function startBackgroundSync(conn: any, validAppId: string) {
+        try {
+            log.info('Fetching App Metadata from API... (background/blocking if needed)');
+            const result: any = await AppMetadataService.syncAppMetadata(conn, validAppId);
+            await fetchAppContext(validAppId);
+            
+            if (result?.appData) {
+                log.info(`Remote Metadata synced. ViewConfigs: ${Object.keys(result.appData.viewConfigs || {}).length}`);
+                appNavigation.value = result.appData.navigation || [];
+                appViewConfigs.value = result.appData.viewConfigs || {};
+                // Sync appViews array
+                appViews.value = Object.entries(appViewConfigs.value).map(([id, cfg]: [string, any]) => ({ id, ...cfg }));
+                if (result.appData.version) appVersion.value = result.appData.version;
+                autoSelectView(appNavigation.value);
             }
-        })();
+            if (result?.tables) appTables.value = result.tables;
+        } catch (e) {
+            log.warn('Failed to fetch remote app metadata', e);
+        }
     }
 
     const loadAppMetadata = async (schemaData: Record<string, unknown> | null, isRefresh: boolean, loading: Ref<boolean>) => {
@@ -105,23 +103,36 @@ export function useAppMetadata(
 
             if (!validAppId) {
                 log.debug('No valid app ID, skipping refreshData here');
+                if (!isRefresh) loading.value = false;
                 return;
             }
 
             restoreCachedRole(validAppId);
             await loadLocalMetadata(conn, validAppId);
 
-            if (!isRefresh) loading.value = false;
-
-            // Background sync (throttled)
+            const hasLocalViews = Object.keys(appViewConfigs.value).length > 0 || appNavigation.value.length > 0;
             const now = Date.now();
             const shouldSync = isRefresh || (now - lastSyncTimestamp > SYNC_THROTTLE_MS);
+
             if (navigator.onLine && shouldSync) {
                 lastSyncTimestamp = now;
-                startBackgroundSync(conn, validAppId);
+                
+                if (!hasLocalViews && !isRefresh) {
+                    // Block the loading state until metadata is fetched to prevent flashing wrong default table
+                    log.info('[AppMetadata] No local views found. Awaiting remote metadata before rendering.');
+                    await startBackgroundSync(conn, validAppId);
+                    loading.value = false;
+                } else {
+                    // Background sync (non-blocking)
+                    if (!isRefresh) loading.value = false;
+                    startBackgroundSync(conn, validAppId);
+                }
+            } else {
+                if (!isRefresh) loading.value = false;
             }
         } catch (e) {
             console.error('Failed to load app metadata', e);
+            if (!isRefresh) loading.value = false;
         }
     };
 

@@ -110,17 +110,64 @@ This document outlines the user flows, routing logic, and navigation paths for t
 
 ---
 
-## 4. Generic App Flow (Future Expansion)
+## 4. Generic App (AppShell) Flow
 
-**Goal**: Access generic app modules defined by schemas.
-**Route**: `/app/:schemaId`
+**Goal**: Access specific app modules (e.g., "Rumah") defined by dynamic schemas.
+**Route**: `/app/:contextId` (where contextId can be an App ID or Table ID)
 **Component**: `AppShell.vue`
+**Logic Controller**: `useAppShellLogic.ts`
 
-### Happy Path
-1.  User clicks App Icon (e.g., "RTLH App") on Dashboard.
-2.  Navigates to App Shell.
-3.  Lists records/entries associated with that Schema.
-4.  User can Create New Record or View Existing.
+### Initial Load & Sync Architecture
+
+When a user opens an App, the application attempts to load data locally first (Offline-First). If the local SQLite database does not contain the required schema (e.g., first-time load), it automatically triggers a blocking synchronization to fetch the missing schema and data before rendering the UI.
+
+```mermaid
+sequenceDiagram
+    participant UI as AppShell.vue
+    participant Logic as useAppShellLogic
+    participant DB as Local SQLite
+    participant Sync as SyncService
+    participant API as Laravel Server
+
+    UI->>Logic: loadApp() mounted
+    Logic->>DB: Query tables schema for contextId
+    
+    alt Schema Exists Locally
+        DB-->>Logic: Valid Schema & Layout
+        Logic->>DB: Query assignments
+        DB-->>Logic: Local Assignments List
+        Logic-->>UI: Render Data & App Title
+        Note over Logic,Sync: Background metadata sync runs non-blocking
+        Logic->>Sync: Fetch latest App Metadata
+    else Schema Missing (First Load)
+        DB-->>Logic: Returns NULL
+        Note over Logic: Detects First-Time Load
+        Logic->>Sync: Call syncApp(tableId) IMMEDIATELY
+        Sync-->>UI: Emits "Syncing Data..." Progress Overlay
+        
+        Sync->>API: GET /apps/{id} & /tables/{id}
+        API-->>Sync: App Metadata & Schema
+        Sync->>DB: Save Schema
+        
+        Sync->>API: GET /assignments?table_id={id}
+        API-->>Sync: Form Assignments
+        Sync->>DB: Save Assignments
+        
+        Sync-->>Logic: Sync Complete Callback
+        Logic->>DB: Re-query tables schema & data
+        DB-->>Logic: Valid Schema & Rows
+        Logic-->>UI: Render Data & App Title
+    end
+```
+
+### Unhappy Paths
+1. **First Load + Offline**:
+    - Schema is missing locally, but device has no internet connection.
+    - UI Error: "Form definition not found. Please sync when online."
+2. **Sync Failure During First Load**:
+    - API returns error (e.g., 500) during the initial sync.
+    - UI Alert: "Sync failed - [Error Message]".
+    - App Shell remains in an empty state or redirects back to Dashboard.
 
 ---
 

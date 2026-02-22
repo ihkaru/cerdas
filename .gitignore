@@ -71,3 +71,5 @@ apps/client/build_error.log
 apps/editor/build_error.log
 gradle_build.log
 !**/.env.docker-web
+
+dashboard_response.json

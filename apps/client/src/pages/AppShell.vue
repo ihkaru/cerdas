@@ -28,6 +28,12 @@
                             @show-all="forceShowItems = true" />
                     </div>
 
+                    <!-- Skeleton while data loads -->
+                    <div v-else-if="isLoadingData" key="skeleton" class="padding">
+                        <f7-skeleton-block v-for="i in 5" :key="i" style="height: 80px; border-radius: 12px;"
+                            class="margin-bottom skeleton-effect-wave" />
+                    </div>
+
                     <!-- Leaf Views (Assignments/Map/etc) -->
                     <div v-else key="leaf">
                         <ViewRenderer :config="currentViewConfig.config"
@@ -73,6 +79,12 @@
                                     @show-all="forceShowItems = true" />
                             </div>
 
+                            <!-- Skeleton while data loads -->
+                            <div v-else-if="isLoadingData" key="skeleton" class="padding">
+                                <f7-skeleton-block v-for="i in 5" :key="i" style="height: 80px; border-radius: 12px;"
+                                    class="margin-bottom skeleton-effect-wave" />
+                            </div>
+
                             <!-- Leaf Views (Assignments/Map/etc) -->
                             <div v-else key="leaf">
                                 <ViewRenderer v-if="getAppViewConfig(item.view_id)"
@@ -80,8 +92,17 @@
                                     :data="getViewData((getAppViewConfig(item.view_id)!.config as any).source)"
                                     :contextId="contextId" :actions="rowActions" :swipe-config="swipeConfig"
                                     @action="handleRowAction" />
-                                <div v-else class="padding text-align-center">
-                                    <p>View configuration not found: {{ item.view_id }}</p>
+                                <!-- Only show error AFTER all loading is done — prevents flash during metadata init -->
+                                <div v-else-if="!loading && !isLoadingData"
+                                    class="padding text-align-center text-color-gray">
+                                    <f7-icon f7="exclamationmark_circle" size="48" class="opacity-30 margin-bottom" />
+                                    <p>View not configured.</p>
+                                </div>
+                                <!-- Skeleton fallback during any loading phase -->
+                                <div v-else class="padding">
+                                    <f7-skeleton-block v-for="i in 5" :key="i"
+                                        style="height: 80px; border-radius: 12px;"
+                                        class="margin-bottom skeleton-effect-wave" />
                                 </div>
                             </div>
                         </transition>
@@ -154,7 +175,7 @@
                             :swipe-config="swipeConfig" @action="handleRowAction" />
                         <!-- Fallback to AssignmentList if no layout view defined -->
                         <AssignmentList v-else :assignments="displayedAssignments" :total-count="totalAssignments"
-                            :loading="false" :row-actions="rowActions" :swipe-config="swipeConfig"
+                            :loading="isLoadingData" :row-actions="rowActions" :swipe-config="swipeConfig"
                             @open-assignment="handleShowPreview" @row-action="handleRowAction" />
                     </div>
                 </transition>
@@ -197,13 +218,13 @@
 
 <script setup lang="ts">
 import { f7 } from 'framework7-vue';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // Version
 const appClientVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 // @ts-ignore
 const buildTimestamp = typeof __BUILD_TIMESTAMP__ !== 'undefined' ? __BUILD_TIMESTAMP__ : 'Dev';
-console.log(`[AppShell] v${appClientVersion} Build: ${buildTimestamp}`);
+console.warn(`[AppShell] v${appClientVersion} Build: ${buildTimestamp}`);
 
 // Components
 import { getIcon } from '@/app/dashboard/utils/iconHelpers';
@@ -225,10 +246,11 @@ import { useAuthStore } from '../common/stores/authStore';
 import ViewRenderer from '../components/views/ViewRenderer.vue';
 
 // Props
+
 const props = defineProps<{
     contextId: string;
-    f7router?: any;
-    f7route?: any; // Ensure f7route is available
+    f7router?: any; // F7 router has no official TS type
+    f7route?: any;  // F7 route has no official TS type
 }>();
 
 // --- 1. Core Logic & State ---
@@ -239,7 +261,8 @@ const {
     loadApp, refreshData, deleteAssignment, completeAssignment, syncApp, createAssignment,
     enterGroup, navigateUp, forceShowItems,
     isSyncing, syncProgress, syncMessage, pendingUploadCount, currentUserRole, appVersion,
-    activeSort, activeFilters, availableFields
+    activeSort, activeFilters, availableFields,
+    isLoadingData
 } = useAppShellLogic(props.contextId);
 
 const sortSheetOpen = ref(false);
@@ -385,9 +408,9 @@ const executeAction = (action: any) => {
                         await db.reset?.();
                         f7.dialog.close();
                         window.location.reload();
-                    } catch (e: any) {
+                    } catch (e: unknown) {
                         f7.dialog.close();
-                        f7.dialog.alert('Reset failed: ' + e.message, 'Error');
+                        f7.dialog.alert('Reset failed: ' + (e instanceof Error ? e.message : String(e)), 'Error');
                     }
                 }
             );
@@ -410,19 +433,17 @@ const handleRowAction = async ({ actionId, assignmentId }: { actionId: string, a
 
 // --- 6. Lifecycle & Helpers ---
 const getViewData = (source?: string) => {
-    // Default source to 'assignments' if not specified
     const targetSource = source || 'assignments';
-    console.log(`[DEBUG-VIEW] getViewData called. Source: ${source} -> Used: ${targetSource}`);
-
     if (targetSource === 'assignments') {
-        console.log(`[DEBUG-VIEW] Returning assignments. Raw: ${assignments.value?.length}, Filtered: ${filteredAssignments.value?.length}`);
         return filteredAssignments.value;
     }
     return [];
 };
 
 // Watchers
-watch(() => forceShowItems.value, () => loadApp());
+// NOTE: forceShowItems only changes UI state (grouping → flat list), so only refreshData() is needed.
+// Using loadApp() here was causing a full metadata+schema reload, resulting in 0 assignments on second open.
+watch(() => forceShowItems.value, () => refreshData());
 
 // Init
 let justMounted = false;
@@ -430,6 +451,25 @@ onMounted(() => {
     justMounted = true;
     loadApp();
 });
+
+// Critical: close any open F7 overlays BEFORE the component is destroyed.
+// F7 Panel/Actions call onClosed via a CSS transition callback that fires AFTER the DOM is gone,
+// causing `this.app.panel` to be undefined and breaking navigation.
+onBeforeUnmount(() => {
+    try {
+        if (panelOpened.value) {
+            f7.panel.close('left', false); // false = no animation, immediate close
+            panelOpened.value = false;
+        }
+        if (actionsSheetOpen.value) {
+            f7.actions.close('.actions-modal.modal-in', false);
+            actionsSheetOpen.value = false;
+        }
+    } catch {
+        // Ignore errors if F7 is already torn down
+    }
+});
+
 const onPageAfterIn = () => {
     if (justMounted) { justMounted = false; return; }
     refreshData(); // Only refresh local data, do not sync metadata
@@ -440,13 +480,13 @@ const getAppViewConfig = (viewId: string) => {
     if (appViewConfigs.value?.[viewId]) {
         return {
             id: viewId,
-            type: (appViewConfigs.value[viewId] as any).type,
+            type: (appViewConfigs.value[viewId] as Record<string, unknown>).type,
             config: appViewConfigs.value[viewId]
         };
     }
 
     // 2. Try finding in AppViews DB (future: first-class view entities)
-    const dbView = appViews.value.find((v: any) => v.id === viewId);
+    const dbView = appViews.value.find((v: Record<string, unknown>) => v.id === viewId);
     if (dbView) return dbView;
 
     // 3. Fallback to Legacy Layout Views (JSON in table version schema)
@@ -461,14 +501,11 @@ const getAppViewConfig = (viewId: string) => {
     return null;
 };
 
-const handleAppNavClick = (item: any) => {
+const handleAppNavClick = (item: Record<string, unknown>) => {
     if (item.type === 'view' && item.view_id) {
-        // Find if this view belongs to current form?
-        // Actually, if it is in appNavigation, it is a global view.
-        // We just switch activeView.
-        activeView.value = item.view_id;
+        activeView.value = String(item.view_id);
     } else if (item.type === 'link' && item.url) {
-        window.open(item.url, '_blank');
+        window.open(String(item.url), '_blank');
     } else {
         f7.toast.show({ text: 'Unknown navigation item', closeTimeout: 1000 });
     }

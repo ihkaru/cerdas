@@ -9,13 +9,11 @@ use App\Models\Table;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class DashboardController extends Controller
-{
+class DashboardController extends Controller {
     /**
      * Get global dashboard stats, app list, and recent tables
      */
-    public function index(Request $request): JsonResponse
-    {
+    public function index(Request $request): JsonResponse {
         $user = $request->user();
 
         // 1. Global Stats (All Apps)
@@ -46,6 +44,8 @@ class DashboardController extends Controller
                 'name' => $app->name,
                 'description' => $app->description,
                 'slug' => $app->slug,
+                'navigation' => $app->navigation,
+                'view_configs' => $app->view_configs,
                 'created_at' => $app->created_at,
             ];
         });

@@ -80,6 +80,8 @@ export function useAssignmentQueries(
     
     const statusCounts = ref({ assigned: 0, in_progress: 0, completed: 0, all: 0 });
 
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     const refreshData = async () => {
         try {
             const conn = await db.getDB();
@@ -115,7 +117,7 @@ export function useAssignmentQueries(
             } else {
                 state.groups.value = [];
                 const queryLimit = options?.limit.value || 1000;
-                
+
 
 
                 state.assignments.value = await AssignmentQueryService.getAssignments(
@@ -133,8 +135,19 @@ export function useAssignmentQueries(
         }
     };
 
+    /** Debounced version — collapses rapid watcher-triggered calls into a single SQLite query */
+    const debouncedRefreshData = (): Promise<void> => {
+        return new Promise((resolve) => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                await refreshData();
+                resolve();
+            }, 80);
+        });
+    };
+
     return {
-        refreshData,
+        refreshData: debouncedRefreshData,
         statusCounts
     };
 }

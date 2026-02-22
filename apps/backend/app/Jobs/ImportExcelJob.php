@@ -15,14 +15,20 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class ImportExcelJob implements ShouldQueue
-{
+class ImportExcelJob implements ShouldQueue {
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
     use SerializesModels;
 
-    public $timeout = 3600; // 1 hour timeout for large files
+    /** Max number of attempts before marking as failed */
+    public int $tries = 3;
+
+    /** Max exceptions before marking as failed (regardless of tries) */
+    public int $maxExceptions = 2;
+
+    /** Timeout per attempt in seconds */
+    public int $timeout = 3600;
 
     protected $filePath;
 
@@ -39,10 +45,16 @@ class ImportExcelJob implements ShouldQueue
     protected $userId;
 
     /**
+     * Exponential backoff: wait 10s, 60s, 300s between retries.
+     */
+    public function backoff(): array {
+        return [10, 60, 300];
+    }
+
+    /**
      * Create a new job instance.
      */
-    public function __construct($filePath, $tableId, $appId, $columns, $sheetName, $jobId, $userId)
-    {
+    public function __construct($filePath, $tableId, $appId, $columns, $sheetName, $jobId, $userId) {
         $this->filePath = $filePath;
         $this->tableId = $tableId;
         $this->appId = $appId;
@@ -55,8 +67,7 @@ class ImportExcelJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(): void
-    {
+    public function handle(): void {
         $fullPath = Storage::path($this->filePath);
 
         try {
@@ -89,7 +100,7 @@ class ImportExcelJob implements ShouldQueue
             }
 
             if (! $targetSheet) {
-                throw new \Exception('Sheet not found: '.($this->sheetName ?? 'First Sheet'));
+                throw new \Exception('Sheet not found: ' . ($this->sheetName ?? 'First Sheet'));
             }
 
             // Setup Context
@@ -234,15 +245,41 @@ class ImportExcelJob implements ShouldQueue
 
             $this->updateStatus('completed', $rowCount, 'Import finished successfully.');
         } catch (\Exception $e) {
-            Log::error('Import Job Failed: '.$e->getMessage());
-            $this->updateStatus('failed', 0, 'Error: '.$e->getMessage());
+            Log::error('Import Job Failed: ' . $e->getMessage());
+
+            // If we have retries left, let the queue handler retry (re-throw).
+            // Only update to 'queued_retry' status so the UI can show retrying.
+            if ($this->attempts() < $this->tries) {
+                $this->updateStatus('queued_retry', 0, 'Retrying... (Attempt ' . $this->attempts() . ' of ' . $this->tries . ')');
+            } else {
+                $this->updateStatus('failed', 0, 'Error: ' . $e->getMessage());
+            }
 
             throw $e;
         }
     }
 
-    protected function getReader($extension)
-    {
+    /**
+     * Handle a job that has permanently failed (all retries exhausted).
+     * Laravel calls this automatically after all tries are consumed.
+     */
+    public function failed(\Throwable $exception): void {
+        Log::error("ImportExcelJob permanently failed for table {$this->tableId}", [
+            'error' => $exception->getMessage(),
+            'jobId' => $this->jobId,
+        ]);
+
+        // Update cache status so the UI stops polling
+        $this->updateStatus('failed', 0, 'Import failed permanently: ' . $exception->getMessage());
+
+        // Clean up the uploaded file so it doesn't linger on disk
+        if ($this->filePath && Storage::exists($this->filePath)) {
+            Storage::delete($this->filePath);
+            Log::info("Cleaned up abandoned import file: {$this->filePath}");
+        }
+    }
+
+    protected function getReader($extension) {
         switch (strtolower($extension)) {
             case 'xlsx':
                 return new \OpenSpout\Reader\XLSX\Reader;
@@ -255,8 +292,7 @@ class ImportExcelJob implements ShouldQueue
         }
     }
 
-    protected function updateStatus($status, $rows, $message)
-    {
+    protected function updateStatus($status, $rows, $message) {
         Cache::put("import_job_{$this->jobId}", [
             'status' => $status,
             'rows_processed' => $rows,
@@ -269,13 +305,12 @@ class ImportExcelJob implements ShouldQueue
      * Insert batch with recursive retry logic.
      * If a batch fails due to connection issues, it splits the batch in half and retries.
      */
-    protected function insertBatchRecursive(array $records, array $assignments, $attempt = 1)
-    {
+    protected function insertBatchRecursive(array $records, array $assignments, $attempt = 1) {
         // Ensure fresh connection for impactful operations
         try {
             DB::reconnect();
         } catch (\Exception $e) {
-            Log::warning('Failed to force reconnect DB: '.$e->getMessage());
+            Log::warning('Failed to force reconnect DB: ' . $e->getMessage());
         }
 
         try {
@@ -296,7 +331,7 @@ class ImportExcelJob implements ShouldQueue
                 if ($count > 1) {
                     // Split and retry
                     $mid = (int) ceil($count / 2);
-                    Log::info("Splitting batch of $count into $mid and ".($count - $mid));
+                    Log::info("Splitting batch of $count into $mid and " . ($count - $mid));
 
                     $recordsChunk1 = array_slice($records, 0, $mid);
                     $recordsChunk2 = array_slice($records, $mid);

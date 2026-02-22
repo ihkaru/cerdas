@@ -2,6 +2,8 @@ import { ref, shallowRef } from 'vue';
 
 export function useAppShellState() {
     const loading = ref(true);
+    /** True between page-ready and first data load completing — used for skeleton loading */
+    const isLoadingData = ref(false);
     const schemaData = ref<any>(null);
     const layout = ref<any>(null);
     // Use shallowRef for performance with large datasets (30k+ items)
@@ -16,6 +18,7 @@ export function useAppShellState() {
 
     return {
         loading,
+        isLoadingData,
         schemaData,
         layout,
         assignments,

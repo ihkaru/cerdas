@@ -9,13 +9,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-class TableController extends Controller
-{
+class TableController extends Controller {
     /**
      * List all tables for an app
      */
-    public function index(Request $request): JsonResponse
-    {
+    public function index(Request $request): JsonResponse {
         $request->validate([
             'app_id' => 'nullable|exists:apps,id',
         ]);
@@ -51,8 +49,7 @@ class TableController extends Controller
     /**
      * Create a new table
      */
-    public function store(Request $request): JsonResponse
-    {
+    public function store(Request $request): JsonResponse {
         $validated = $request->validate([
             'app_id' => 'required|exists:apps,id',
             'name' => 'required|string|max:255',
@@ -80,7 +77,7 @@ class TableController extends Controller
             ->where('slug', $slug)
             ->exists()
         ) {
-            $slug = $baseSlug.'-'.$counter++;
+            $slug = $baseSlug . '-' . $counter++;
         }
 
         $table = Table::create([
@@ -110,8 +107,7 @@ class TableController extends Controller
     /**
      * Get a specific table with its current version
      */
-    public function show(Request $request, Table $table): JsonResponse
-    {
+    public function show(Request $request, Table $table): JsonResponse {
         $user = $request->user();
 
         // Check access (super admin bypasses)
@@ -135,8 +131,7 @@ class TableController extends Controller
     /**
      * Update table metadata (not fields)
      */
-    public function update(Request $request, Table $table): JsonResponse
-    {
+    public function update(Request $request, Table $table): JsonResponse {
         $user = $request->user();
 
         if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
@@ -166,8 +161,7 @@ class TableController extends Controller
     /**
      * Delete a table (soft delete)
      */
-    public function destroy(Request $request, Table $table): JsonResponse
-    {
+    public function destroy(Request $request, Table $table): JsonResponse {
         $user = $request->user();
 
         if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
@@ -180,13 +174,50 @@ class TableController extends Controller
         // Cascading Hard Delete (Permanent)
         // User requested strict cleanup to avoid DB bloat.
 
-        // 1. Permanently Delete all AppRecords associated with this table
+        $app = \App\Models\App::find($table->app_id);
+
+        if ($app) {
+            $viewConfigs = $app->view_configs ?? [];
+            $navigation = $app->navigation ?? [];
+            $deletedViewIds = [];
+
+            // 1. Clean up view_configs
+            if (is_array($viewConfigs)) {
+                foreach ($viewConfigs as $viewId => $config) {
+                    $configTableId = $config['table_id'] ?? $config['form_id'] ?? null;
+                    if ($configTableId === $table->id) {
+                        $deletedViewIds[] = $viewId;
+                        unset($viewConfigs[$viewId]);
+                    }
+                }
+            }
+
+            // 2. Clean up navigation
+            if (is_array($navigation) && !empty($deletedViewIds)) {
+                $navigation = array_values(array_filter($navigation, function ($navItem) use ($deletedViewIds) {
+                    return !in_array($navItem['view_id'] ?? null, $deletedViewIds);
+                }));
+            }
+
+            // 3. Save the pruned JSON structure back to the App
+            if (!empty($deletedViewIds)) {
+                $app->update([
+                    'view_configs' => empty($viewConfigs) ? new \stdClass() : $viewConfigs, // Force JSON object if empty
+                    'navigation' => $navigation,
+                ]);
+                \Illuminate\Support\Facades\Log::info("Cleaned up orphaned views from App {$app->id} after Table {$table->id} deletion.", [
+                    'deleted_views' => $deletedViewIds
+                ]);
+            }
+        }
+
+        // 4. Permanently Delete all AppRecords associated with this table
         \App\Models\AppRecord::where('table_id', $table->id)->forceDelete();
 
-        // 2. Permanently Delete all Assignments associated with this table
+        // 5. Permanently Delete all Assignments associated with this table
         \App\Models\Assignment::where('table_id', $table->id)->forceDelete();
 
-        // 3. Permanently Delete the table itself
+        // 6. Permanently Delete the table itself
         $table->forceDelete();
 
         return response()->json([
@@ -198,8 +229,7 @@ class TableController extends Controller
     /**
      * List all versions for a table (Version History)
      */
-    public function listVersions(Request $request, Table $table): JsonResponse
-    {
+    public function listVersions(Request $request, Table $table): JsonResponse {
         $user = $request->user();
 
         if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
@@ -238,8 +268,7 @@ class TableController extends Controller
     /**
      * Get a specific version
      */
-    public function showVersion(Request $request, Table $table, int $version): JsonResponse
-    {
+    public function showVersion(Request $request, Table $table, int $version): JsonResponse {
         $user = $request->user();
 
         if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
@@ -273,8 +302,7 @@ class TableController extends Controller
     /**
      * Update a version's fields/layout (Editor Save)
      */
-    public function updateVersion(Request $request, Table $table, int $version): JsonResponse
-    {
+    public function updateVersion(Request $request, Table $table, int $version): JsonResponse {
         $user = $request->user();
 
         if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
@@ -324,8 +352,7 @@ class TableController extends Controller
     /**
      * Publish a version (makes it immutable)
      */
-    public function publishVersion(Request $request, Table $table, int $version): JsonResponse
-    {
+    public function publishVersion(Request $request, Table $table, int $version): JsonResponse {
         $user = $request->user();
 
         if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
@@ -357,7 +384,7 @@ class TableController extends Controller
             'request_all' => $request->all(),
         ]);
 
-        $changelog = $request->input('changelog', 'Published version '.$version);
+        $changelog = $request->input('changelog', 'Published version ' . $version);
         $tableVersion->publish($changelog);
 
         // Save version policy to table settings if provided
@@ -381,8 +408,7 @@ class TableController extends Controller
     /**
      * Create a new draft version based on latest published or specific version
      */
-    public function createDraftVersion(Request $request, Table $table): JsonResponse
-    {
+    public function createDraftVersion(Request $request, Table $table): JsonResponse {
         $user = $request->user();
 
         if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {

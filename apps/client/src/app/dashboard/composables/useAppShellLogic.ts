@@ -1,6 +1,7 @@
 
 import { useAuthStore } from '@/common/stores/authStore';
 import { useLogger } from '@/common/utils/logger';
+import { f7 } from 'framework7-vue';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 // Composables
@@ -112,9 +113,15 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
         refreshDataFn();
     });
 
+    // Flag to prevent activeView watcher from triggering a redundant table reload
+    // during the initial `loadApp` sequence (which already handles table resolution)
+    const isLoadingApp = ref(false);
+
     // NEW: Watch activeView to switch Table Context if view belongs to a different table
     watch(() => metadata.activeView.value, async (newViewId) => {
         if (!newViewId) return;
+        // Skip if loadApp is currently running — it already handles table resolution
+        if (isLoadingApp.value) return;
 
         // Find view config
         const viewConfig = metadata.appViews.value.find((v: any) => v.id === newViewId);
@@ -160,13 +167,12 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
         const customActions = settings?.actions?.header || state.layout.value?.headerActions || [];
         const defaultActions = [
              { id: 'sync', label: 'Sync Data', icon: 'arrow_2_circlepath', type: 'sync' },
-             { id: 'reset', label: 'Reset Data', icon: 'trash', type: 'reset', color: 'red' }
         ];
         // Check if sync already exists in custom actions
         const hasSync = customActions.some((a: any) => a.type === 'sync');
         
         if (hasSync) {
-            return [...customActions, { id: 'reset', label: 'Reset Data', icon: 'trash', type: 'reset', color: 'red' }];
+            return [...customActions];
         }
         return [...customActions, ...defaultActions];
     });
@@ -182,23 +188,44 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
     });
     const previewFields = computed(() => state.layout.value?.previewFields || []);
 
+    /** Handles recovery when a local schema is missing — syncs from server or redirects. Returns true if handled (caller should return). */
+    const handleMissingSchema = async (targetTableId: string): Promise<boolean> => {
+        if (!navigator.onLine) return false;
+        log.warn(`[AppShell] No local schema for ${targetTableId}, triggering automatic initial sync...`);
+        try {
+            await syncApp(targetTableId);
+            const recheckedSchema = await schemaLoader.loadTable(targetTableId);
+            if (!recheckedSchema) {
+                f7.popup.close();
+                f7.toast.show({ text: 'Menu configuration is outdated or the table was deleted.', position: 'bottom', closeTimeout: 3000, cssClass: 'color-red' });
+                f7.views.main.router.navigate('/dashboard/', { reloadCurrent: true });
+                return true;
+            }
+        } catch (syncError: unknown) {
+            const msg = syncError instanceof Error ? syncError.message : '';
+            f7.popup.close();
+            f7.toast.show({ text: msg.includes('404') ? 'Application data not found on server.' : 'Failed to sync application data.', position: 'bottom', closeTimeout: 3000, cssClass: 'color-red' });
+            f7.views.main.router.navigate('/dashboard/', { reloadCurrent: true });
+            return true;
+        }
+        return false;
+    };
+
     const loadApp = async (isRefresh = false) => {
         if (!isRefresh) state.loading.value = true;
+        isLoadingApp.value = true;
         try {
             // STEP 1: Load App Metadata FIRST (Resolves App Context)
-            // Passing null to schemaData forces resolution by ID (App vs Table check)
             await metadata.loadAppMetadata(null, isRefresh, state.loading);
 
-
             // STEP 2: Determine Target Table ID from App Context
-            let targetTableId = contextId; // Fallback: Assume contextId is TableID
+            let targetTableId = contextId;
             
-            // Check if active view dictates a specific table context (Pre-emptively switch)
             if (metadata.activeView.value) {
-                const viewConfig = metadata.appViews.value.find((v: any) => v.id === metadata.activeView.value);
-                const viewTableId = viewConfig?.table_id || viewConfig?.form_id; // Support legacy form_id
+                const viewConfig = metadata.appViews.value.find((v: unknown) => (v as Record<string, unknown>).id === metadata.activeView.value) as Record<string, unknown> | undefined;
+                const viewTableId = viewConfig?.table_id || viewConfig?.form_id;
                 
-                console.log('[AppShell] Checking Active View for Table Context:', {
+                log.debug('[AppShell] Checking Active View for Table Context:', {
                     activeView: metadata.activeView.value,
                     foundConfig: !!viewConfig,
                     viewTableId,
@@ -207,41 +234,47 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
 
                 if (viewTableId) {
                     targetTableId = String(viewTableId);
-                    console.log(`Context ${contextId} resolved to Active View Table ${targetTableId}`);
                 }
-            } else {
-                console.log('[AppShell] No Active View found during loadApp');
             }
 
-            // If NOT resolved by active view, and we found an App context with tables, use the first table
             if (targetTableId === contextId && metadata.appTables.value && metadata.appTables.value.length > 0) {
-                 // Logic: If contextId was an AppID, we must pick a Table ID to load.
-                 // Ideally this comes from the active View, but for now specific Table ID from list.
-                 // Check if contextId matches any table ID?
-                 const exactTable = metadata.appTables.value.find((t: any) => t.id === contextId);
+                 const exactTable = metadata.appTables.value.find((t: unknown) => (t as Record<string, unknown>).id === contextId);
                  if (!exactTable) {
-                     // contextId is likely AppID, so pick first table as default
-                     targetTableId = (metadata.appTables.value[0] as any).id;
-                     console.log(`Context ${contextId} resolved to Default Table ${targetTableId}`);
+                     targetTableId = (metadata.appTables.value[0] as Record<string, unknown>).id as string;
                  }
             }
 
-            // Update the reactive ID so queries and grouping use the correct Table ID
             resolvedTableId.value = targetTableId;
 
-            // STEP 3: Load Table Schema (Layout with groupByConfig)
-            await schemaLoader.loadTable(targetTableId); 
+            // STEP 3: Load Table Schema (Layout + groupByConfig)
+            const schema = await schemaLoader.loadTable(targetTableId); 
             
-            // STEP 4: Now load data - groupByConfig is available from layout
-            // This ensures first render has grouping applied, preventing flashing
-            await refreshDataFn();
-            console.log('[AppShell] loadApp finished. Assignments count:', state.assignments.value.length);
-            
+            // AUTO-SYNC FIX: If local database has no schema for this table, trigger sync
+            if (!schema && !isRefresh) {
+                state.loading.value = false;
+                isLoadingApp.value = false;
+                await handleMissingSchema(targetTableId);
+                return;
+            }
+
+            // STEP 4: SHOW UI IMMEDIATELY — schema is ready, let the page render
             if (!isRefresh) state.loading.value = false;
+            isLoadingApp.value = false;
+
+            // STEP 5: Load data asynchronously (non-blocking for initial render)
+            state.isLoadingData.value = true;
+            refreshDataFn().then(() => {
+                log.info('loadApp finished. Assignments count:', state.assignments.value.length);
+            }).catch((e: unknown) => {
+                log.error('Failed to refresh data after load', e);
+            }).finally(() => {
+                state.isLoadingData.value = false;
+            });
             
         } catch (e) {
             log.error('Failed to load app', e);
             if (!isRefresh) state.loading.value = false;
+            isLoadingApp.value = false;
         }
     };
 
@@ -287,6 +320,26 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
             refreshDataFn();
         }
     };
+    const onTableDeleted = (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        if (detail?.tableId === resolvedTableId.value) {
+            log.warn(`[AppShell] Current table ${detail.tableId} was deleted on server. Exiting.`);
+             
+             // Close any pending popups before navigating
+             f7.popup.close();
+             
+             // Show a toast or alert if needed before navigating
+             f7.toast.show({
+                 text: 'Data source was deleted on server.',
+                 position: 'center',
+                 closeTimeout: 3000,
+                 cssClass: 'color-red'
+             });
+             
+             // Gracefully route back
+             f7.views.main.router.navigate('/dashboard/', { reloadCurrent: true });
+        }
+    };
 
     let searchDebounce: any;
     // WAT-FILTER: Watch for changes in search, status, sort, OR activeFilters (deep)
@@ -300,10 +353,12 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
     onMounted(() => {
          log.debug('[AppShell] Mounted - Registering override listener', { contextId, resolvedTableIdValue: resolvedTableId.value });
          window.addEventListener('schema-override-updated', onOverrideUpdate);
+         window.addEventListener('table-deleted-from-server', onTableDeleted);
     });
 
     onUnmounted(() => {
         window.removeEventListener('schema-override-updated', onOverrideUpdate);
+        window.removeEventListener('table-deleted-from-server', onTableDeleted);
     });
 
     return {
@@ -356,6 +411,7 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
         refreshData: refreshDataFn,
         deleteAssignment,
         completeAssignment,
-        createAssignment
+        createAssignment,
+        isLoadingData: state.isLoadingData
     };
 }

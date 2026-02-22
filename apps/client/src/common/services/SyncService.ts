@@ -118,12 +118,23 @@ export class SyncService {
                 const baseProgress = (i / totalTables) * 100;
                 const progressPerTable = 100 / totalTables;
 
-                await this.syncTable(tableId, (phase, stepProgress) => {
-                     // Scale table progress to overall progress
-                     const currentTableContribution = ((stepProgress || 0) / 100) * progressPerTable;
-                     const total = Math.min(99, Math.round(baseProgress + currentTableContribution));
-                     onProgress?.(`Syncing ${tableId}: ${phase}`, total);
-                });
+                try {
+                    await this.syncTable(tableId, (phase, stepProgress) => {
+                         // Scale table progress to overall progress
+                         const currentTableContribution = ((stepProgress || 0) / 100) * progressPerTable;
+                         const total = Math.min(99, Math.round(baseProgress + currentTableContribution));
+                         onProgress?.(`Syncing ${tableId}: ${phase}`, total);
+                    });
+                } catch (tableError: any) {
+                    // If a specific table inside an app sync fails with 404, it might be an orphaned view config.
+                    // We shouldn't crash the entire App sync for this. Just log and skip.
+                    if (tableError.message?.includes('404') || tableError.message?.includes('deleted')) {
+                        logger.warn(`[SyncService] Skipping orphaned table ${tableId} during App Sync.`);
+                        continue;
+                    }
+                    // For other critical errors (like network drop), we should abort
+                    throw tableError;
+                }
             }
 
             onProgress?.('App Sync Complete!', 100);
@@ -272,18 +283,30 @@ export class SyncService {
     private async pullTable(tableId: string) {
         const db = await databaseService.getDB();
         
-        const res = await apiClient.get(`/tables/${tableId}`);
-        if (res.success && res.data) {
-            const table = res.data;
-            this.logPullTableDebug(table);
+        try {
+            const res = await apiClient.get(`/tables/${tableId}`);
+            if (res.success && res.data) {
+                const table = res.data;
+                this.logPullTableDebug(table);
 
-            const version = this.determineVersion(table);
-            
-             if (version) {
-                 // Use server-provided ID (UUID) to ensure we update the correct local record
-                 // even if we requested via slug/AppID
-                 await this.cacheAndSaveTable(db, table.id, version, table);
-             }
+                const version = this.determineVersion(table);
+                
+                if (version) {
+                    await this.cacheAndSaveTable(db, table.id, version, table);
+                }
+            }
+        } catch (e: any) {
+            if (e.status === 404 || e.message?.includes('404')) {
+                logger.warn(`[SyncService] Table ${tableId} not found on server (404). Cleaning up local database.`);
+                await db.run('DELETE FROM tables WHERE id = ?', [tableId]);
+                await db.run('DELETE FROM assignments WHERE table_id = ?', [tableId]);
+                // We dispatch an event to tell the UI (AppShell) to exit if it's currently on this table
+                window.dispatchEvent(new CustomEvent('table-deleted-from-server', { detail: { tableId } }));
+                throw new Error(`Table ${tableId} has been deleted or is unavailable.`);
+            } else {
+                logger.error(`[SyncService] Failed to pull table ${tableId}`, e);
+                throw e; // re-throw so sync process knows it failed
+            }
         }
     }
 

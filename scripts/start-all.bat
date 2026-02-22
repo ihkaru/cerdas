@@ -39,9 +39,9 @@ start "Cerdas Reverb" cmd /k "cd /d %~dp0..\apps\backend && php artisan reverb:s
 
 timeout /t 1 /nobreak > nul
 
-REM Start Queue Worker
-echo [5/5] Starting Queue Worker...
-start "Cerdas Queue" cmd /k "cd /d %~dp0..\apps\backend && php -d memory_limit=512M artisan queue:work --memory=512 --timeout=3600"
+REM Start Queue Worker (dedicated script with auto-restart loop)
+echo [5/5] Starting Queue Worker (auto-restart enabled)...
+start "Cerdas Queue" cmd /k "%~dp0backend\start-queue.bat"
 
 echo.
 echo ========================================
