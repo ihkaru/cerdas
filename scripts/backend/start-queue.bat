@@ -22,7 +22,7 @@ php -d memory_limit=512M artisan queue:work ^
     --backoff=5 ^
     --queue=default ^
     --sleep=3 ^
-    --max-time=3600
+    --max-time=14400
 
 REM -- Worker exited. Reasons: crash, --memory exceeded, or --max-time reached.
 REM -- All are expected. Restarting automatically.
