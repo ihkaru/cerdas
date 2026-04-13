@@ -1,9 +1,11 @@
+import type { FieldType } from '@cerdas/types';
+
 // Flattened to match DB Schema
 export interface FieldDefinition {
     id?: string;
     name: string;
     label: string;
-    type: string; // 'text' | 'number' | ... | 'separator' | 'html_block'
+    type: FieldType; // Centralized SSOT
     
     // Standard Config
     placeholder?: string;

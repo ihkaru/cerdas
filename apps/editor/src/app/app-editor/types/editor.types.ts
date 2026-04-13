@@ -2,6 +2,7 @@
  * Schema Editor Types
  */
 
+import type { FieldType } from '@cerdas/types';
 import type { FieldDefinition } from '@cerdas/form-engine';
 
 // ============================================================================
@@ -184,18 +185,7 @@ export interface EditableFieldDefinition extends FieldDefinition {
 }
 
 /** Supported field types in the editor */
-export type FieldType =
-  | 'text'
-  | 'number'
-  | 'date'
-  | 'select'
-  | 'radio'
-  | 'checkbox'
-  | 'gps'
-  | 'image'
-  | 'signature'
-  | 'html_block'
-  | 'nested_form';
+// Now imported from @cerdas/types
 
 /** Field type metadata for UI */
 export interface FieldTypeMeta {

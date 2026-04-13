@@ -15,6 +15,7 @@ export type FieldType =
   | 'gps'
   | 'signature'
   | 'nested'
+  | 'nested_form' // Unified alias
   | 'lookup'
   | 'separator'
   | 'html_block';

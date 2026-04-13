@@ -12,6 +12,7 @@
     "vue": "^3.0.0"
   },
   "dependencies": {
+    "@cerdas/types": "workspace:^",
     "@cerdas/expression-engine": "workspace:^",
     "idb-keyval": "^6.2.2",
     "maplibre-gl": "^5.18.0",

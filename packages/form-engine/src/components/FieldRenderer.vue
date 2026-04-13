@@ -22,7 +22,8 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue';
-import type { FieldDefinition } from '../types/schema';
+import type { AppSchema, FieldDefinition } from '../types/schema';
+import type { FieldType } from '@cerdas/types';
 import DateField from './fields/DateField.vue';
 import GpsField from './fields/GpsField.vue';
 import HtmlBlockField from './fields/HtmlBlockField.vue';
@@ -51,7 +52,7 @@ const modelValue = computed({
   set: (val) => emit('update:value', val)
 });
 
-const componentMap: Record<string, any> = {
+const componentMap: Partial<Record<FieldType | string, any>> = {
   text: TextField,
   number: NumberField,
   select: SelectField,
