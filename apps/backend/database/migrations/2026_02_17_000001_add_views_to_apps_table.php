@@ -21,7 +21,7 @@ return new class extends Migration
             Schema::table('apps', function (Blueprint $table) {
                 $table->renameColumn('views', 'view_configs');
             });
-        } elseif (! Schema::hasColumn('apps', 'view_configs')) {
+        } elseif (!Schema::hasColumn('apps', 'view_configs')) {
             Schema::table('apps', function (Blueprint $table) {
                 $table->json('view_configs')->nullable()->after('navigation');
             });

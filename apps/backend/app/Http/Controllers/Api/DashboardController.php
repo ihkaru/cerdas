@@ -17,6 +17,8 @@ class DashboardController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $updatedSince = $request->input('updated_since');
+        $serverTime = now()->toIso8601String();
 
         // 1. Global Stats (All Apps)
         // Count assignments specific to this user (enumerator or supervisor)
@@ -33,13 +35,18 @@ class DashboardController extends Controller
         ];
 
         // 2. Apps List (User's Apps)
-        if ($user->isSuperAdmin()) {
-            $appsQuery = App::query();
-        } else {
-            $appsQuery = $user->apps();
+        $appIds = $user->isSuperAdmin() ? App::withTrashed()->pluck('id') : $user->appMemberships->pluck('app_id');
+        $appsQuery = App::whereIn('id', $appIds);
+
+        if ($updatedSince) {
+            $appsQuery->withTrashed()->where('updated_at', '>=', \Carbon\Carbon::parse($updatedSince));
         }
 
-        $apps = $appsQuery->get()->map(function ($app) {
+        $allQueriedApps = $appsQuery->get();
+        $activeApps = $allQueriedApps->whereNull('deleted_at');
+        $deletedAppIds = $allQueriedApps->whereNotNull('deleted_at')->pluck('id')->values()->all();
+
+        $apps = $activeApps->map(function ($app) {
             // In future, calculate stats per app here
             return [
                 'id' => $app->id,
@@ -50,11 +57,11 @@ class DashboardController extends Controller
                 'view_configs' => $app->view_configs,
                 'created_at' => $app->created_at,
             ];
-        });
+        })->values();
 
         // 3. Recent Tables (e.g. last edited or accessed)
-        // For now, list all tables user has access to, limited to 5
-        $tableIds = Table::whereIn('app_id', $user->apps->pluck('id'))->pluck('id');
+        // For now, list all active tables user has access to, limited to 5
+        $tableIds = Table::whereIn('app_id', $appIds)->pluck('id');
         $recentTables = Table::whereIn('id', $tableIds)
             ->with(['app'])
             ->orderBy('updated_at', 'desc')
@@ -71,22 +78,33 @@ class DashboardController extends Controller
             });
 
         // 4. All Tables (for Client Sync)
-        $allTables = Table::whereIn('app_id', $user->apps->pluck('id'))
-            ->get()
-            ->map(function ($table) {
-                return [
-                    'id' => $table->id,
-                    'app_id' => $table->app_id,
-                    'name' => $table->name,
-                    'description' => $table->description,
-                    'version' => $table->current_version,
-                    'version_policy' => $table->settings['version_policy'] ?? 'accept_all',
-                    'updated_at' => $table->updated_at,
-                ];
-            });
+        $tablesQuery = Table::whereIn('app_id', $appIds);
+
+        if ($updatedSince) {
+            $tablesQuery->withTrashed()->where('updated_at', '>=', \Carbon\Carbon::parse($updatedSince));
+        }
+
+        $allQueriedTables = $tablesQuery->get();
+        $activeTables = $allQueriedTables->whereNull('deleted_at');
+        $deletedTableIds = $allQueriedTables->whereNotNull('deleted_at')->pluck('id')->values()->all();
+
+        $allTables = $activeTables->map(function ($table) {
+            return [
+                'id' => $table->id,
+                'app_id' => $table->app_id,
+                'name' => $table->name,
+                'description' => $table->description,
+                'version' => $table->current_version,
+                'version_policy' => $table->settings['version_policy'] ?? 'accept_all',
+                'updated_at' => $table->updated_at,
+            ];
+        })->values();
 
         return response()->json([
             'success' => true,
+            'server_time' => $serverTime,
+            'deleted_apps' => $deletedAppIds,
+            'deleted_tables' => $deletedTableIds,
             'data' => [
                 'stats' => $stats,
                 'apps' => $apps,

@@ -178,7 +178,7 @@ class AppSchemaController extends Controller
             foreach ($data['views'] ?? [] as $viewKey => $viewData) {
                 // Find table by slug
                 $table = $app->tables->firstWhere('slug', $viewData['table']);
-                if (! $table) {
+                if (!$table) {
                     continue; // Skip if table not found
                 }
 
@@ -306,7 +306,7 @@ class AppSchemaController extends Controller
 
             foreach ($data['views'] ?? [] as $viewKey => $viewData) {
                 $table = $app->tables->firstWhere('slug', $viewData['table']);
-                if (! $table) {
+                if (!$table) {
                     continue;
                 }
 

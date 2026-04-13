@@ -147,7 +147,7 @@ class AppController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->hasAppAccess($app->id)) {
+        if (!$user->hasAppAccess($app->id)) {
             return response()->json(['success' => false, 'message' => 'Access denied'], 403);
         }
 
@@ -180,9 +180,9 @@ class AppController extends Controller
         // Check if user is app_admin logic?
         // For now just check access. Ideally check role 'app_admin'.
         $membership = $user->getMembershipForApp($app->id);
-        if (! $membership || $membership->role !== 'app_admin') {
+        if (!$membership || $membership->role !== 'app_admin') {
             // Allow super admin?
-            if (! $user->isSuperAdmin()) {
+            if (!$user->isSuperAdmin()) {
                 return response()->json(['success' => false, 'message' => 'Access denied. Generic Admin role required.'], 403);
             }
         }
@@ -244,7 +244,7 @@ class AppController extends Controller
         // Get user's membership for this app
         $membership = $user->getMembershipForApp($app->id);
 
-        if (! $membership || ! $membership->is_active) {
+        if (!$membership || !$membership->is_active) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied. You are not a member of this app.',
@@ -328,9 +328,9 @@ class AppController extends Controller
         $user = $request->user();
 
         // 1. Authorization: Only App Admin or Super Admin can add members
-        if (! $user->isSuperAdmin()) {
+        if (!$user->isSuperAdmin()) {
             $membership = $user->getMembershipForApp($app->id);
-            if (! $membership || $membership->role !== 'app_admin') {
+            if (!$membership || $membership->role !== 'app_admin') {
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
         }
@@ -343,7 +343,7 @@ class AppController extends Controller
         // 2. Find User
         $targetUser = User::where('email', $validated['email'])->first();
 
-        if (! $targetUser) {
+        if (!$targetUser) {
             // Create Invitation for non-existing user
             // Check if already invited
             $existingInvite = \App\Models\AppInvitation::where('app_id', $app->id)
@@ -425,9 +425,9 @@ class AppController extends Controller
         $user = $request->user();
 
         // 1. Authorization
-        if (! $user->isSuperAdmin()) {
+        if (!$user->isSuperAdmin()) {
             $membership = $user->getMembershipForApp($app->id);
-            if (! $membership || $membership->role !== 'app_admin') {
+            if (!$membership || $membership->role !== 'app_admin') {
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
         }
@@ -454,9 +454,9 @@ class AppController extends Controller
         $user = $request->user();
 
         // 1. Authorization
-        if (! $user->isSuperAdmin()) {
+        if (!$user->isSuperAdmin()) {
             $membership = $user->getMembershipForApp($app->id);
-            if (! $membership || $membership->role !== 'app_admin') {
+            if (!$membership || $membership->role !== 'app_admin') {
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
         }

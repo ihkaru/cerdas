@@ -25,7 +25,7 @@ DB::table('assignments')
 
             // Try explicit fields first to be safer
             $extKey = $a->external_id;
-            if (! $extKey) {
+            if (!$extKey) {
                 // Try to extract idsbr
                 preg_match('/"idsbr"\s*:\s*"?(\w+)"?/', $a->prelist_data, $matches);
                 if (isset($matches[1])) {

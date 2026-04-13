@@ -30,14 +30,14 @@ class CleanOrphanedViewConfigs extends Command
             $navigation = $app->navigation ?? [];
             $orphanedViews = [];
 
-            if (! is_array($viewConfigs)) {
+            if (!is_array($viewConfigs)) {
                 continue;
             }
 
             // 1. Detect orphaned view_configs
             foreach ($viewConfigs as $viewId => $config) {
                 $tableId = $config['table_id'] ?? $config['form_id'] ?? null;
-                if ($tableId && ! isset($existingIds[$tableId])) {
+                if ($tableId && !isset($existingIds[$tableId])) {
                     $orphanedViews[] = $viewId;
                     unset($viewConfigs[$viewId]);
                     $this->line("  [App: {$app->name}] Removing orphaned view '{$viewId}' → table '{$tableId}'");
@@ -51,13 +51,13 @@ class CleanOrphanedViewConfigs extends Command
             // 2. Remove matching navigation items
             if (is_array($navigation)) {
                 $navigation = array_values(array_filter($navigation, function ($item) use ($orphanedViews) {
-                    return ! in_array($item['view_id'] ?? null, $orphanedViews);
+                    return !in_array($item['view_id'] ?? null, $orphanedViews);
                 }));
             }
 
             $totalFixed++;
 
-            if (! $isDryRun) {
+            if (!$isDryRun) {
                 $app->update([
                     'view_configs' => empty($viewConfigs) ? new \stdClass : $viewConfigs,
                     'navigation' => $navigation,

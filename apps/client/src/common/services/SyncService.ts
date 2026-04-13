@@ -168,7 +168,13 @@ export class SyncService {
     // 1. GLOBAL PULL: Dashboard Stats & App List
     private async pullGlobal() {
         const db = await databaseService.getDB();
-        const res = await apiClient.get('/dashboard');
+        
+        const syncKey = 'sync_global';
+        const lastSync = localStorage.getItem(syncKey);
+        const url = lastSync ? `/dashboard?updated_since=${encodeURIComponent(lastSync)}` : '/dashboard';
+        
+        logger.info(`[Sync] Pulling Global Scope from: ${url}`);
+        const res = await apiClient.get(url);
         
         if (res.success && res.data) {
             // A. Update Tables List
@@ -195,29 +201,32 @@ export class SyncService {
             }
 
             // A2. Update Apps List (NEW)
-            await this.syncApps(db, res.data.apps || []);
+            await this.syncApps(db, res.data.apps || [], !lastSync);
 
-            // B. ORPHAN CLEANUP: Delete local tables NOT in server response
-            const serverTableIds = tables.map((t: { id: string }) => t.id);
-            if (serverTableIds.length > 0) {
-                const placeholders = serverTableIds.map(() => '?').join(',');
-                await db.run(
-                    `DELETE FROM tables WHERE id NOT IN (${placeholders})`,
-                    serverTableIds
-                );
-                // WARNING: Do NOT clean up assignments here. 
-                // pullGlobal returns "My Apps" tables, but we might have synced other tables (Ad-hoc/Legacy) locally.
-                // Cleaning them up here wipes valid data.
-                // await db.run(
-                //    `DELETE FROM assignments WHERE table_id NOT IN (${placeholders})`,
-                //    serverTableIds
-                // );
-                logger.info('[Sync] Orphan cleanup: removed tables not on server');
+            // B. ORPHAN CLEANUP OR TOMBSTONE DELETES
+            if (!lastSync) {
+                // Initial Sync: Delete local tables NOT in server response
+                const serverTableIds = tables.map((t: { id: string }) => t.id);
+                if (serverTableIds.length > 0) {
+                    const placeholders = serverTableIds.map(() => '?').join(',');
+                    await db.run(
+                        `DELETE FROM tables WHERE id NOT IN (${placeholders})`,
+                        serverTableIds
+                    );
+                    logger.info('[Sync] Orphan cleanup: removed tables not on server');
+                } else {
+                    await db.run(`DELETE FROM tables`);
+                    await db.run(`DELETE FROM assignments`);
+                    logger.warn('[Sync] Server returned no tables, cleared all local data');
+                }
             } else {
-                // Server returned empty tables list - clear all local data
-                await db.run(`DELETE FROM tables`);
-                await db.run(`DELETE FROM assignments`);
-                logger.warn('[Sync] Server returned no tables, cleared all local data');
+                // Delta Sync: Use exact tombstones returned from backend
+                const deletedTableIds = res.deleted_tables || [];
+                if (deletedTableIds.length > 0) {
+                    const placeholders = deletedTableIds.map(() => '?').join(',');
+                    await db.run(`DELETE FROM tables WHERE id IN (${placeholders})`, deletedTableIds);
+                    logger.info(`[Sync] Delta cleanup: removed ${deletedTableIds.length} deleted tables`);
+                }
             }
 
 
@@ -226,10 +235,16 @@ export class SyncService {
             localStorage.setItem('app_pending_counts', JSON.stringify(
                 tables.reduce((acc: any, t: any) => ({ ...acc, [t.id]: t.pending_tasks || 0 }), {})
             ));
+            
+            // D. Save Checkpoint
+            if (res.server_time) {
+                localStorage.setItem(syncKey, res.server_time);
+                logger.debug(`[Sync] Global checkpoint saved: ${res.server_time}`);
+            }
         }
     }
 
-    private async syncApps(db: any, apps: any[]) {
+    private async syncApps(db: any, apps: any[], isInitialSync: boolean = true) {
         for (const app of apps) {
             // Check if exists
             const existing = await db.query(`SELECT version FROM apps WHERE id = ?`, [app.id]);
@@ -265,18 +280,20 @@ export class SyncService {
             }
         }
 
-        // Cleanup Orphan Apps
-        const serverAppIds = apps.map((a: { id: string }) => a.id);
-        if (serverAppIds.length > 0) {
-            const placeholders = serverAppIds.map(() => '?').join(',');
-            await db.run(
-                `DELETE FROM apps WHERE id NOT IN (${placeholders})`,
-                serverAppIds
-            );
-            logger.info('[Sync] Orphan cleanup: removed apps not on server');
-        } else {
-            await db.run(`DELETE FROM apps`);
-            logger.warn('[Sync] Server returned no apps, cleared all local apps');
+        // Cleanup Apps
+        if (isInitialSync) {
+            const serverAppIds = apps.map((a: { id: string }) => a.id);
+            if (serverAppIds.length > 0) {
+                const placeholders = serverAppIds.map(() => '?').join(',');
+                await db.run(
+                    `DELETE FROM apps WHERE id NOT IN (${placeholders})`,
+                    serverAppIds
+                );
+                logger.info('[Sync] Orphan cleanup: removed apps not on server');
+            } else {
+                await db.run(`DELETE FROM apps`);
+                logger.warn('[Sync] Server returned no apps, cleared all local apps');
+            }
         }
     }
 
@@ -560,7 +577,15 @@ export class SyncService {
             const db = await databaseService.getDB();
             
             // Allow filtering by specific table ID if provided
-            const url = tableId ? `/responses?table_id=${tableId}` : '/responses';
+            let url = tableId ? `/responses?table_id=${tableId}` : '/responses';
+            const syncKey = tableId ? `sync_responses_${tableId}` : 'sync_responses_all';
+            const lastSync = localStorage.getItem(syncKey);
+            
+            if (lastSync) {
+                const separator = url.includes('?') ? '&' : '?';
+                url += `${separator}updated_since=${encodeURIComponent(lastSync)}`;
+            }
+
             logger.info(`[Sync] Pulling responses from: ${url}`);
 
             const responsesRes = await apiClient.get(url); 
@@ -604,6 +629,11 @@ export class SyncService {
                     } catch (e) {
                          logger.error('[Sync] Failed to execute response batch', e);
                     }
+                }
+                
+                if (responsesRes.server_time) {
+                    localStorage.setItem(syncKey, responsesRes.server_time);
+                    logger.debug(`[Sync] Responses checkpoint saved: ${syncKey} = ${responsesRes.server_time}`);
                 }
             } 
         } catch (e) {

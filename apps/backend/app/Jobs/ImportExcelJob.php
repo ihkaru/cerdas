@@ -96,14 +96,14 @@ class ImportExcelJob implements ShouldQueue
                     break;
                 }
                 // Default to first sheet if not specified
-                if (! $this->sheetName) {
+                if (!$this->sheetName) {
                     $targetSheet = $sheet;
 
                     break;
                 }
             }
 
-            if (! $targetSheet) {
+            if (!$targetSheet) {
                 throw new \Exception('Sheet not found: '.($this->sheetName ?? 'First Sheet'));
             }
 
@@ -111,20 +111,20 @@ class ImportExcelJob implements ShouldQueue
             $app = App::find($this->appId);
             $table = Table::withTrashed()->find($this->tableId);
 
-            if (! $table) {
+            if (!$table) {
                 // Retry once with a slight delay if it's a propagation issue
                 sleep(1);
                 $table = Table::withTrashed()->find($this->tableId);
             }
 
-            if (! $table) {
+            if (!$table) {
                 throw new \Exception("Table not found for import: {$this->tableId}");
             }
 
             $defaultOrgId = $app->organizations()->first()?->id;
             $versionModel = $table->versions()->latest('version')->first();
 
-            if (! $versionModel) {
+            if (!$versionModel) {
                 throw new \Exception("Table version not found for import: {$this->tableId}");
             }
 
@@ -136,10 +136,10 @@ class ImportExcelJob implements ShouldQueue
             $addressField = null;
             foreach ($this->columns as $col) {
                 $slug = $col['name'];
-                if (! $nameField && in_array($slug, ['name', 'nama', 'title', 'judul', 'customer_name', 'nama_pelanggan', 'full_name', 'nama_lengkap'])) {
+                if (!$nameField && in_array($slug, ['name', 'nama', 'title', 'judul', 'customer_name', 'nama_pelanggan', 'full_name', 'nama_lengkap'])) {
                     $nameField = $slug;
                 }
-                if (! $addressField && in_array($slug, ['address', 'alamat', 'location', 'lokasi', 'alamat_lengkap', 'full_address', 'kabupaten', 'kota'])) {
+                if (!$addressField && in_array($slug, ['address', 'alamat', 'location', 'lokasi', 'alamat_lengkap', 'full_address', 'kabupaten', 'kota'])) {
                     $addressField = $slug;
                 }
             }
@@ -184,15 +184,15 @@ class ImportExcelJob implements ShouldQueue
                     $recordData[$col['name']] = $value;
                 }
 
-                if (! $hasData) {
+                if (!$hasData) {
                     continue;
                 } // Skip empty rows
 
                 // Inject aliases
-                if ($nameField && ! isset($recordData['name'])) {
+                if ($nameField && !isset($recordData['name'])) {
                     $recordData['name'] = $recordData[$nameField];
                 }
-                if ($addressField && ! isset($recordData['address'])) {
+                if ($addressField && !isset($recordData['address'])) {
                     $recordData['address'] = $recordData[$addressField];
                 }
 
@@ -240,7 +240,7 @@ class ImportExcelJob implements ShouldQueue
             }
 
             // Flush remaining
-            if (! empty($insertRecords)) {
+            if (!empty($insertRecords)) {
                 $this->insertBatchRecursive($insertRecords, $insertAssignments);
             }
 

@@ -52,7 +52,7 @@ class AuthController extends Controller
                 ->where('user_id', $user->id)
                 ->exists();
 
-            if (! $existing) {
+            if (!$existing) {
                 \App\Models\AppMembership::create([
                     'app_id' => $invite->app_id,
                     'user_id' => $user->id,
@@ -90,7 +90,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $validated['email'])->first();
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        if (!$user || !Hash::check($validated['password'], $user->password)) {
             \Illuminate\Support\Facades\Log::warning('Login failed: invalid credentials', ['email' => $validated['email']]);
 
             throw ValidationException::withMessages([

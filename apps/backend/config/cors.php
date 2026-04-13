@@ -48,7 +48,7 @@ return [
                 'capacitor://localhost',
             ])
         ))),
-        fn ($origin) => ! empty($origin)
+        fn ($origin) => !empty($origin)
     )),
     'allowed_origins_patterns' => [],
 

@@ -14,7 +14,7 @@ header('Content-Type: application/json');
 $slug = 'perf-schema-100';
 $schema = AppSchema::where('slug', $slug)->with('latestPublishedVersion')->first();
 
-if (! $schema) {
+if (!$schema) {
     echo json_encode(['error' => 'Schema not found']);
     exit;
 }

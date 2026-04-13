@@ -76,7 +76,7 @@ class OrganizationController extends Controller
     public function update(Request $request, Organization $organization): JsonResponse
     {
         // Authorization: Only creator or Super Admin can update
-        if ($organization->creator_id !== $request->user()->id && ! $request->user()->is_super_admin) {
+        if ($organization->creator_id !== $request->user()->id && !$request->user()->is_super_admin) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -100,7 +100,7 @@ class OrganizationController extends Controller
     public function destroy(Request $request, Organization $organization): JsonResponse
     {
         // Authorization
-        if ($organization->creator_id !== $request->user()->id && ! $request->user()->is_super_admin) {
+        if ($organization->creator_id !== $request->user()->id && !$request->user()->is_super_admin) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -121,7 +121,7 @@ class OrganizationController extends Controller
         $user = $request->user();
         $isMember = $organization->members()->where('user_id', $user->id)->exists();
 
-        if (! $isMember && $organization->creator_id !== $user->id && ! $user->is_super_admin) {
+        if (!$isMember && $organization->creator_id !== $user->id && !$user->is_super_admin) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -137,7 +137,7 @@ class OrganizationController extends Controller
      */
     public function addMember(Request $request, Organization $organization): JsonResponse
     {
-        if ($organization->creator_id !== $request->user()->id && ! $request->user()->is_super_admin) {
+        if ($organization->creator_id !== $request->user()->id && !$request->user()->is_super_admin) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -183,7 +183,7 @@ class OrganizationController extends Controller
      */
     public function removeMember(Request $request, Organization $organization, User $user): JsonResponse
     {
-        if ($organization->creator_id !== $request->user()->id && ! $request->user()->is_super_admin) {
+        if ($organization->creator_id !== $request->user()->id && !$request->user()->is_super_admin) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -197,7 +197,7 @@ class OrganizationController extends Controller
      */
     public function cancelInvitation(Request $request, Organization $organization, OrganizationInvitation $invitation): JsonResponse
     {
-        if ($organization->creator_id !== $request->user()->id && ! $request->user()->is_super_admin) {
+        if ($organization->creator_id !== $request->user()->id && !$request->user()->is_super_admin) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 

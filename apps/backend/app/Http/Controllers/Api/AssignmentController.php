@@ -30,7 +30,7 @@ class AssignmentController extends Controller
             });
 
         // Filter based on role
-        if (! $user->isSuperAdmin()) {
+        if (!$user->isSuperAdmin()) {
             // Determine which apps allow unassigned access
             // Logic: App Mode = 'simple' AND restrict_unassigned != true
             $allowedAppIds = $user->apps()
@@ -65,6 +65,21 @@ class AssignmentController extends Controller
             });
         }
 
+        // Delta Sync: Filter by updated_at
+        if ($request->has('updated_since')) {
+            $updatedSince = \Carbon\Carbon::parse($request->input('updated_since'));
+            if ($request->boolean('include_deleted')) {
+                $query->withTrashed();
+                // Include either active records updated since X OR soft-deleted records deleted since X
+                $query->where(function ($q) use ($updatedSince) {
+                    $q->where('updated_at', '>=', $updatedSince)
+                        ->orWhere('deleted_at', '>=', $updatedSince);
+                });
+            } else {
+                $query->where('updated_at', '>=', $updatedSince);
+            }
+        }
+
         $perPage = (int) $request->input('per_page', 50);
         if ($perPage > 5000) {
             $perPage = 5000;
@@ -89,6 +104,7 @@ class AssignmentController extends Controller
 
         return response()->json([
             'success' => true,
+            'server_time' => now()->toIso8601String(),
             'data' => $assignments,
         ]);
     }
@@ -105,7 +121,7 @@ class AssignmentController extends Controller
 
         $tableVersion = TableVersion::with('table')->find($request->table_version_id);
 
-        if (! $tableVersion) {
+        if (!$tableVersion) {
             return response()->json([
                 'success' => false,
                 'message' => 'Table version not found',
@@ -114,14 +130,14 @@ class AssignmentController extends Controller
 
         $user = $request->user();
 
-        if (! $user->hasAppAccess($tableVersion->table->app_id)) {
+        if (!$user->hasAppAccess($tableVersion->table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
             ], 403);
         }
 
-        if (! $tableVersion->isPublished()) {
+        if (!$tableVersion->isPublished()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Can only assign to published versions',
@@ -153,7 +169,7 @@ class AssignmentController extends Controller
         // Check explicit assignment
         $isAssigned = $assignment->enumerator_id === $user->id || $assignment->supervisor_id === $user->id;
 
-        if (! $isAssigned && ! $user->isSuperAdmin()) {
+        if (!$isAssigned && !$user->isSuperAdmin()) {
             // Check if unassigned and allowed
             $isUnassigned = is_null($assignment->enumerator_id);
             $accessGranted = false;
@@ -168,7 +184,7 @@ class AssignmentController extends Controller
                 }
             }
 
-            if (! $accessGranted) {
+            if (!$accessGranted) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Access denied',

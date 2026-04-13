@@ -20,7 +20,7 @@ class ComponentShowcaseSeeder extends Seeder
         $supervisor = User::where('email', 'supervisor@cerdas.com')->first();
         $enumerator = User::where('email', 'user@example.com')->first();
 
-        if (! $supervisor || ! $enumerator) {
+        if (!$supervisor || !$enumerator) {
             $this->command->error('Supervisor or Enumerator not found. Run DatabaseSeeder first.');
             // Create dummy if not found (fallback for standalone run)
             $supervisor = User::firstOrCreate(['email' => 'supervisor@cerdas.com'], ['name' => 'Supervisor', 'password' => bcrypt('password')]);
@@ -552,7 +552,7 @@ class ComponentShowcaseSeeder extends Seeder
 
         // Get second enumerator for split testing
         $enumerator2 = User::where('email', 'enum2@cerdas.com')->first();
-        if (! $enumerator2) {
+        if (!$enumerator2) {
             $enumerator2 = User::firstOrCreate(['email' => 'enum2@cerdas.com'], ['name' => 'Siti Enumerator', 'password' => bcrypt('password')]);
         }
 

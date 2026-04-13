@@ -48,7 +48,7 @@ class PrelistImport implements ToCollection, WithHeadingRow
         // Find Organization
         $orgId = null;
         if ($orgCode) {
-            if (! isset($this->orgCache[$orgCode])) {
+            if (!isset($this->orgCache[$orgCode])) {
                 // Find organization by code attached to this app
                 $org = Organization::where('code', $orgCode)
                     ->whereHas('apps', function ($q) {
@@ -62,7 +62,7 @@ class PrelistImport implements ToCollection, WithHeadingRow
         // Find Supervisor
         $supervisorId = null;
         if ($supervisorEmail) {
-            if (! isset($this->supervisorCache[$supervisorEmail])) {
+            if (!isset($this->supervisorCache[$supervisorEmail])) {
                 $user = User::where('email', $supervisorEmail)->first();
                 $this->supervisorCache[$supervisorEmail] = $user?->id;
             }
@@ -72,7 +72,7 @@ class PrelistImport implements ToCollection, WithHeadingRow
         // Find Enumerator
         $enumeratorId = null;
         if ($enumeratorEmail) {
-            if (! isset($this->enumeratorCache[$enumeratorEmail])) {
+            if (!isset($this->enumeratorCache[$enumeratorEmail])) {
                 $user = User::where('email', $enumeratorEmail)->first();
                 $this->enumeratorCache[$enumeratorEmail] = $user?->id;
             }

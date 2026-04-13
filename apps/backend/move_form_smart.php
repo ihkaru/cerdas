@@ -23,7 +23,7 @@ foreach ($strategies as $id) {
     }
 }
 
-if (! $targetApp) {
+if (!$targetApp) {
     $targetApp = \App\Models\App::latest('id')->first();
     echo "Fallback: Using latest App ID {$targetApp->id}: {$targetApp->name}\n";
 }

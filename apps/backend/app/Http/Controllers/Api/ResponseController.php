@@ -27,11 +27,14 @@ class ResponseController extends Controller
             'params' => $request->all(),
         ]);
 
+        $updatedSince = $request->input('updated_since');
+        $serverTime = now()->toIso8601String();
+
         $query = Response::query();
 
         // If NOT Super Admin, restrict to own assignments
         // If NOT Super Admin, restrict to own assignments OR Simple Mode Apps
-        if (! $user->isSuperAdmin()) {
+        if (!$user->isSuperAdmin()) {
             $query->whereHas('assignment', function ($q) use ($user) {
                 $q->where('enumerator_id', $user->id)
                     ->orWhere('supervisor_id', $user->id)
@@ -49,12 +52,17 @@ class ResponseController extends Controller
             });
         }
 
+        if ($updatedSince) {
+            $query->where('updated_at', '>=', \Carbon\Carbon::parse($updatedSince));
+        }
+
         $responses = $query->get();
 
         Log::info('Responses Fetched', ['count' => $responses->count()]);
 
         return response()->json([
             'success' => true,
+            'server_time' => $serverTime,
             'data' => $responses,
         ]);
     }
@@ -140,13 +148,13 @@ class ResponseController extends Controller
                     $assignment = Assignment::find($assignmentInput);
 
                     // If not found, try by external_id (for ad-hoc assignments created earlier)
-                    if (! $assignment) {
+                    if (!$assignment) {
                         $assignment = Assignment::where('external_id', $assignmentInput)->first();
                     }
                 }
                 // 2. Create if not found and is UUID (Self-Assignment)
                 $newAssignmentId = null;
-                if (! $assignment && Str::isUuid($assignmentInput) && ! empty($respData['table_id'])) {
+                if (!$assignment && Str::isUuid($assignmentInput) && !empty($respData['table_id'])) {
                     // Get latest version for this table
                     $table = Table::with('app')->find($respData['table_id']);
 
@@ -176,7 +184,7 @@ class ResponseController extends Controller
                     }
                 }
 
-                if (! $assignment) {
+                if (!$assignment) {
                     Log::warning('Assignment Not Found', ['input' => $assignmentInput]);
                     $results[] = [
                         'local_id' => $respData['local_id'],
@@ -201,7 +209,7 @@ class ResponseController extends Controller
                     $isSimpleShared = true;
                 }
 
-                if (! $isSimpleShared && ! $isOwner && ! $isSupervisor && ! $user->isSuperAdmin() && ! $isUnassigned) {
+                if (!$isSimpleShared && !$isOwner && !$isSupervisor && !$user->isSuperAdmin() && !$isUnassigned) {
                     Log::warning('Access Denied', ['user_id' => $user->id, 'assignment_id' => $assignment->id]);
                     $results[] = [
                         'local_id' => $respData['local_id'],
@@ -252,19 +260,19 @@ class ResponseController extends Controller
                     if ($schemaVersion) {
                         $fields = $schemaVersion->getFields();
                         $requiredFields = collect($fields)
-                            ->filter(fn ($f) => ! empty($f['required']) || ! empty($f['validation_rules']))
+                            ->filter(fn ($f) => !empty($f['required']) || !empty($f['validation_rules']))
                             ->pluck('name')
                             ->filter()
                             ->toArray();
 
                         $missingFields = [];
                         foreach ($requiredFields as $fieldName) {
-                            if (! isset($respData['data'][$fieldName]) || $respData['data'][$fieldName] === '' || $respData['data'][$fieldName] === null) {
+                            if (!isset($respData['data'][$fieldName]) || $respData['data'][$fieldName] === '' || $respData['data'][$fieldName] === null) {
                                 $missingFields[] = $fieldName;
                             }
                         }
 
-                        if (! empty($missingFields)) {
+                        if (!empty($missingFields)) {
                             Log::warning('Strict Validation Failed', [
                                 'local_id' => $respData['local_id'],
                                 'missing_fields' => $missingFields,

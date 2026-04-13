@@ -51,7 +51,7 @@ class ExcelImportController extends Controller
 
         $filePath = Storage::path($request->file_path);
 
-        if (! file_exists($filePath)) {
+        if (!file_exists($filePath)) {
             return response()->json(['error' => 'File not found'], 404);
         }
 
@@ -70,12 +70,12 @@ class ExcelImportController extends Controller
                 if ($request->sheet && $sheet->getName() === $request->sheet) {
                     $targetSheet = $sheet;
                 }
-                if (! $request->sheet && ! $targetSheet) {
+                if (!$request->sheet && !$targetSheet) {
                     $targetSheet = $sheet; // Default to first
                 }
             }
 
-            if (! $targetSheet) {
+            if (!$targetSheet) {
                 return response()->json(['error' => 'Sheet not found'], 404);
             }
 
@@ -114,7 +114,7 @@ class ExcelImportController extends Controller
                 // Simple inference logic
                 $isNumeric = true;
                 foreach ($sampleValues as $val) {
-                    if (! is_numeric($val) && $val !== null && $val !== '') {
+                    if (!is_numeric($val) && $val !== null && $val !== '') {
                         $isNumeric = false;
 
                         break;
@@ -238,7 +238,7 @@ class ExcelImportController extends Controller
     {
         $status = Cache::get("import_job_{$jobId}");
 
-        if (! $status) {
+        if (!$status) {
             return response()->json(['status' => 'not_found'], 404);
         }
 

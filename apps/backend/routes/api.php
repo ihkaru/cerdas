@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Route;
 // Broadcasting Auth Route (manual implementation for API-only setup)
 Route::post('/broadcasting/auth', function (Request $request) {
     // Return 401 for unauthenticated requests
-    if (! $request->user()) {
+    if (!$request->user()) {
         return response()->json(['error' => 'Unauthenticated'], 401);
     }
 
@@ -89,7 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Impersonation for Editor Preview (Super Admin Only)
     Route::post('/auth/impersonate', function (Request $request) {
         $user = $request->user();
-        if (! $user->isSuperAdmin()) {
+        if (!$user->isSuperAdmin()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -111,7 +111,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 break;
         }
 
-        if (! $targetUser) {
+        if (!$targetUser) {
             return response()->json(['message' => 'Target user not found for this role'], 404);
         }
 

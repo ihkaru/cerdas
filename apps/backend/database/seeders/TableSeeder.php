@@ -18,7 +18,7 @@ class TableSeeder extends Seeder
         // Fetch Organization via pivot (multi-org)
         $org = $app->organizations()->first();
 
-        if (! $org) {
+        if (!$org) {
             // Fallback if not attached yet
             $org = Organization::where('code', 'DPR-MPW')->first();
         }

@@ -35,7 +35,7 @@ class ExportController extends Controller
             ->published()
             ->first();
 
-        if (! $tableVersion) {
+        if (!$tableVersion) {
             return response()->json([
                 'success' => false,
                 'message' => "Schema version {$requestedVersion} not found for this table.",

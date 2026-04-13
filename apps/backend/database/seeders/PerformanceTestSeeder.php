@@ -135,7 +135,7 @@ class PerformanceTestSeeder extends Seeder
             $count++;
         }
 
-        if (! empty($batch)) {
+        if (!empty($batch)) {
             DB::table('assignments')->insert($batch);
         }
 
@@ -150,7 +150,7 @@ class PerformanceTestSeeder extends Seeder
         }
 
         $this->command->info('Generating static CSV file...');
-        if (! is_dir(dirname($path))) {
+        if (!is_dir(dirname($path))) {
             mkdir(dirname($path), 0755, true);
         }
 
