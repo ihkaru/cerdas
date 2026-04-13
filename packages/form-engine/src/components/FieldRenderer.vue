@@ -22,7 +22,7 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue';
-import type { AppSchema, FieldDefinition } from '../types/schema';
+import type { FieldDefinition } from '../types/schema';
 import type { FieldType } from '@cerdas/types';
 import DateField from './fields/DateField.vue';
 import GpsField from './fields/GpsField.vue';
