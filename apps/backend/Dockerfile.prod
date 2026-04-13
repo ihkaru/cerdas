@@ -23,8 +23,10 @@ WORKDIR /var/www/html
 # Copy Composer files first for layer caching
 COPY --chown=1000:1000 composer.json composer.lock ./
 
-# Install dependencies
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-reqs --no-scripts
+# Install dependencies with BuildKit cache mount
+RUN --mount=type=cache,id=composer,target=/tmp/cache \
+    COMPOSER_CACHE_DIR=/tmp/cache \
+    composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-reqs --no-scripts
 
 # Copy application code
 COPY --chown=1000:1000 . .

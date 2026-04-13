@@ -14,8 +14,12 @@ COPY packages/ ./packages/
 # Copy Client App
 COPY apps/client/ ./apps/client/
 
-# Install dependencies from root
-RUN pnpm install
+# Setup PNPM Cache directory
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+# Install dependencies from root with BuildKit cache mount
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Build Client (Scope: client)
 # Vite needs env vars at build time
