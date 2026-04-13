@@ -1,4 +1,4 @@
-FROM dunglas/frankenphp:1.11-php8.3-alpine
+FROM dunglas/frankenphp:1.11-php8.3
 
 # Install PHP extensions required by Laravel
 RUN install-php-extensions \
@@ -11,7 +11,7 @@ RUN install-php-extensions \
     opcache
 
 # Install curl for healthcheck
-RUN apk add --no-cache curl
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 
 # Install Composer
