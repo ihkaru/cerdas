@@ -59,6 +59,8 @@ const componentMap: Record<string, any> = {
   radio: RadioField,
   image: ImageField,
   gps: GpsField,
+  gps_location: GpsField,
+  location: GpsField,
   signature: SignatureField,
 };
 </script>

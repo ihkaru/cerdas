@@ -9,14 +9,28 @@
       <!-- Use native input without v-model to avoid reactivity overhead -->
       <input ref="inputRef" class="custom-input" type="text" :placeholder="field.placeholder" @input="onInput"
         @blur="onBlur" :required="field.required" :readonly="field.readonly" />
+
+      <!-- Smart Detection Helper -->
+      <div v-if="detectedCoords && !field.readonly"
+        class="coord-detected-tip margin-top-half display-flex align-items-center justify-content-space-between">
+        <div class="display-flex align-items-center text-color-blue">
+          <f7-icon f7="compass" size="14" class="margin-right-half"></f7-icon>
+          <span class="size-12 font-weight-bold">Koordinat terdeteksi</span>
+        </div>
+        <f7-link small class="size-12" color="blue" @click="handleSwitchToGps">
+          Gunakan Komponen Peta
+        </f7-link>
+      </div>
+
       <div v-if="error" class="field-error">{{ error }}</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import type { FieldDefinition } from '../../types/schema';
+import { parseCoordsString } from '../../utils/geoUtils';
 
 const props = withDefaults(defineProps<{
   field: FieldDefinition;
@@ -28,6 +42,31 @@ const props = withDefaults(defineProps<{
 });
 
 const emit = defineEmits(['update:value']);
+
+// Smart Coordinate Detection
+const detectedCoords = computed(() => {
+  if (typeof props.value !== 'string' || props.field.type === 'gps') return null;
+  return parseCoordsString(props.value);
+});
+
+const handleSwitchToGps = () => {
+  // We can't actually change the field type in the parent from here easily
+  // without a "Force GPS Mode" flag in the field config.
+  // But for now, we'll suggest using GpsField or auto-fix the type in local state if possible.
+  // Actually, let's just emit a special event or alert the user.
+  import('framework7-vue').then(({ f7 }) => {
+    f7.dialog.confirm(
+      'Ubah tampilan kolom ini menjadi Peta?',
+      'Deteksi Koordinat',
+      () => {
+        // Technically this should be handled by the parent (FormRenderer/FieldRenderer)
+        // by updating the schema. For now, we'll emit an event that parent can listen to.
+        // But the easiest "fix" is telling the user they forgot to set the type in Editor.
+        f7.dialog.alert('Silakan ubah tipe kolom ini menjadi "GPS Location" di Editor untuk tampilan peta permanen.', 'Info');
+      }
+    );
+  });
+};
 
 // Template ref for direct DOM manipulation - bypasses Vue reactivity for zero overhead
 const inputRef = ref<HTMLInputElement | null>(null);
@@ -42,7 +81,6 @@ onMounted(() => {
 
 // NOTE: Watch props.value to handle external updates (e.g. navigation)
 // We check equality to avoid interrupting typing loop
-import { watch } from 'vue';
 
 watch(() => props.value, (newVal) => {
   if (inputRef.value && String(newVal ?? '') !== inputRef.value.value) {
@@ -125,5 +163,16 @@ const onBlur = () => {
   color: #ff3b30;
   font-size: 12px;
   margin-top: 4px;
+}
+
+.coord-detected-tip {
+  background: #e3f2fd;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #bbdefb;
+}
+
+.margin-top-half {
+  margin-top: 8px;
 }
 </style>
