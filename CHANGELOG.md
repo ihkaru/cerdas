@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.51](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.50...cerdas-v0.1.51) (2026-04-13)
+
+
+### Bug Fixes
+
+* **ci:** resolve module resolution issues and discord notification character limits ([1da12e5](https://github.com/ihkaru/cerdas/commit/1da12e56817d05c4d8b14f6a2a7eb93d3b78940b))
+* **editor:** satisfy SSOT by adding metadata for new field types ([a466f1c](https://github.com/ihkaru/cerdas/commit/a466f1c2720b70bcd3cb5ede07aa7e0132e24b75))
+* **form-engine:** resolve vue module resolution and type declaration errors ([ed70b52](https://github.com/ihkaru/cerdas/commit/ed70b52510cd82c1f379b461a540927e00028f3d))
+* **workflow:** harden discord notification and clean up build artifacts ([faa7d1e](https://github.com/ihkaru/cerdas/commit/faa7d1ef2453f036e3704f14d37b2b0a1c58a3db))
+
 ## [0.1.50](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.49...cerdas-v0.1.50) (2026-04-13)
 
 
