@@ -57,12 +57,22 @@ services:
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+        VITE_APP_NAME: ${VITE_APP_NAME}
+        VITE_REVERB_APP_KEY: ${VITE_REVERB_APP_KEY}
+        VITE_REVERB_HOST: ${VITE_REVERB_HOST}
+        VITE_REVERB_PORT: ${VITE_REVERB_PORT}
+        VITE_REVERB_SCHEME: ${VITE_REVERB_SCHEME}
     restart: always
     expose:
       - "80"
     environment:
       - VITE_API_BASE_URL=${VITE_API_BASE_URL}
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+      - VITE_APP_NAME=${VITE_APP_NAME}
+      - VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY}
+      - VITE_REVERB_HOST=${VITE_REVERB_HOST}
+      - VITE_REVERB_PORT=${VITE_REVERB_PORT}
+      - VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80"]
       interval: 30s
@@ -86,12 +96,22 @@ services:
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+        VITE_APP_NAME: ${VITE_APP_NAME}
+        VITE_REVERB_APP_KEY: ${VITE_REVERB_APP_KEY}
+        VITE_REVERB_HOST: ${VITE_REVERB_HOST}
+        VITE_REVERB_PORT: ${VITE_REVERB_PORT}
+        VITE_REVERB_SCHEME: ${VITE_REVERB_SCHEME}
     restart: always
     expose:
       - "80"
     environment:
       - VITE_API_BASE_URL=${VITE_API_BASE_URL}
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+      - VITE_APP_NAME=${VITE_APP_NAME}
+      - VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY}
+      - VITE_REVERB_HOST=${VITE_REVERB_HOST}
+      - VITE_REVERB_PORT=${VITE_REVERB_PORT}
+      - VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80"]
       interval: 30s
