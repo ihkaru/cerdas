@@ -183,6 +183,9 @@ importers:
       '@cerdas/form-engine':
         specifier: workspace:^
         version: link:../../packages/form-engine
+      '@cerdas/types':
+        specifier: workspace:^
+        version: link:../../packages/types
       '@cerdas/ui':
         specifier: workspace:^
         version: link:../../packages/ui
@@ -313,6 +316,9 @@ importers:
       '@cerdas/expression-engine':
         specifier: workspace:^
         version: link:../expression-engine
+      '@cerdas/types':
+        specifier: workspace:^
+        version: link:../types
       framework7:
         specifier: ^9.0.0
         version: 9.0.2
