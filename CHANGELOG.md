@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.1.50](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.49...cerdas-v0.1.50) (2026-04-13)
+
+
+### Features
+
+* complete local dev features and docker optimization ([3679883](https://github.com/ihkaru/cerdas/commit/3679883597e3a6d34b8683b49b1168916c079d2b))
+* **form-engine:** add direct google maps directions link to smart detection tip ([c139f52](https://github.com/ihkaru/cerdas/commit/c139f52d3f17fd1e2fd16bdbafc9971f22f057f1))
+* safe deletion, trash management, and TS strict fixes ([813ca49](https://github.com/ihkaru/cerdas/commit/813ca4956ea07170831632195401314654454624))
+
+
+### Bug Fixes
+
+* **client:** recreate sqlite schema instantly during local db reset to prevent no such table errors ([186599b](https://github.com/ihkaru/cerdas/commit/186599bff93e692668823c68a4ad94b54fbfc694))
+* **form-engine:** resolve gps field rendering issues and add smart coordinate detection ([81442af](https://github.com/ihkaru/cerdas/commit/81442af4e99bcd2d9535ae66a1657e0b89c0a642))
+* **queue:** extend worker max-time to 4h to prevent excel imports from crashing mid-execution ([59f4265](https://github.com/ihkaru/cerdas/commit/59f42652c502b8b4d51f0ffc60b8f2d3ca3fe7a4))
+* **queue:** harden queue worker auto-restart script ([033a668](https://github.com/ihkaru/cerdas/commit/033a668b9266cc5acca22a6761ad9aac9546f9d4))
+
+
+### Performance Improvements
+
+* **client:** improve app shell load performance and UX ([033a668](https://github.com/ihkaru/cerdas/commit/033a668b9266cc5acca22a6761ad9aac9546f9d4))
+* **docker:** introduce BuildKit cache mounts for instant NPM/Composer instals ([da24cf8](https://github.com/ihkaru/cerdas/commit/da24cf85f27b6f51224cd8d3a9a9c20333aa5b26))
+* **docker:** optimize chown execution for instant builds ([97a2c62](https://github.com/ihkaru/cerdas/commit/97a2c621620957c5f4eabe38dd339c1c39dcd32a))
+
 ## [0.1.49](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.48...cerdas-v0.1.49) (2026-02-17)
 
 
