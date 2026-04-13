@@ -12,14 +12,21 @@
 
       <!-- Smart Detection Helper -->
       <div v-if="detectedCoords && !field.readonly"
-        class="coord-detected-tip margin-top-half display-flex align-items-center justify-content-space-between">
-        <div class="display-flex align-items-center text-color-blue">
+        class="coord-detected-tip margin-top-half display-flex flex-direction-column">
+        <div class="display-flex align-items-center text-color-blue margin-bottom-half">
           <f7-icon f7="compass" size="14" class="margin-right-half"></f7-icon>
           <span class="size-12 font-weight-bold">Koordinat terdeteksi</span>
         </div>
-        <f7-link small class="size-12" color="blue" @click="handleSwitchToGps">
-          Gunakan Komponen Peta
-        </f7-link>
+        <div class="display-flex align-items-center gap-10">
+          <f7-link small class="size-12" color="blue" @click="handleSwitchToGps">
+            Gunakan Komponen Peta
+          </f7-link>
+          <div class="v-separator"></div>
+          <f7-link small class="size-12" color="green" @click="openDirections">
+            <f7-icon f7="map_fill" size="12" class="margin-right-half"></f7-icon>
+            Buka Petunjuk Arah
+          </f7-link>
+        </div>
       </div>
 
       <div v-if="error" class="field-error">{{ error }}</div>
@@ -30,7 +37,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import type { FieldDefinition } from '../../types/schema';
-import { parseCoordsString } from '../../utils/geoUtils';
+import { parseCoordsString, getGoogleMapsUrl } from '../../utils/geoUtils';
 
 const props = withDefaults(defineProps<{
   field: FieldDefinition;
@@ -66,6 +73,13 @@ const handleSwitchToGps = () => {
       }
     );
   });
+};
+
+const openDirections = () => {
+  if (detectedCoords.value) {
+    const { latitude, longitude } = detectedCoords.value.coords;
+    window.open(getGoogleMapsUrl(latitude, longitude), '_blank');
+  }
 };
 
 // Template ref for direct DOM manipulation - bypasses Vue reactivity for zero overhead
@@ -174,5 +188,19 @@ const onBlur = () => {
 
 .margin-top-half {
   margin-top: 8px;
+}
+
+.v-separator {
+  width: 1px;
+  height: 12px;
+  background: #bbdefb;
+}
+
+.gap-10 {
+  gap: 10px;
+}
+
+.margin-bottom-half {
+  margin-bottom: 4px;
 }
 </style>
