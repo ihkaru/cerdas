@@ -20,8 +20,6 @@ export function useEditorLifecycle(
         initNewTable: () => void;
         setActiveTab: (tab: string) => void;
         selectTable: (id: string | number) => Promise<void>;
-        currentVersion: any; // Ref
-        isPublished: any; // Ref
     }
 ) {
     const { 
@@ -32,9 +30,7 @@ export function useEditorLifecycle(
         fetchAppViews,
         initNewTable, 
         setActiveTab, 
-        selectTable,
-        currentVersion,
-        isPublished
+        selectTable
     } = dependencies;
 
     onMounted(() => {

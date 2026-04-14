@@ -165,10 +165,8 @@ export class SyncService {
         return null;
     }
 
-    // 1. GLOBAL PULL: Dashboard Stats & App List
     private async pullGlobal() {
         const db = await databaseService.getDB();
-        
         const syncKey = 'sync_global';
         const lastSync = localStorage.getItem(syncKey);
         const url = lastSync ? `/dashboard?updated_since=${encodeURIComponent(lastSync)}` : '/dashboard';
@@ -177,71 +175,74 @@ export class SyncService {
         const res = await apiClient.get(url);
         
         if (res.success && res.data) {
-            // A. Update Tables List
-            // We use INSERT OR IGNORE to create row, then UPDATE specific metadata cols
-            const tables = res.data.tables || [];
-            
-            for (const table of tables) {
-                // Check if exists
-                const existing = await db.query(`SELECT version FROM tables WHERE id = ?`, [table.id]);
-                
-                if (existing.values && existing.values.length > 0) {
-                    // Update meta only
-                    await db.run(
-                        `UPDATE tables SET name = ?, description = ?, version = ?, version_policy = ?, synced_at = ? WHERE id = ?`, 
-                        [table.name, table.description, table.version, table.version_policy || 'accept_all', new Date().toISOString(), table.id]
-                    );
-                } else {
-                    // Insert new (fields is null initially)
-                    await db.run(
-                        `INSERT INTO tables (id, app_id, name, description, version, version_policy, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                        [table.id, table.app_id || table.id, table.name, table.description, table.version, table.version_policy || 'accept_all', new Date().toISOString()]
-                    );
-                }
-            }
-
-            // A2. Update Apps List (NEW)
+            // 1. Sync Tables & Apps Metadata
+            await this.syncTablesMetadata(db, res.data.tables || []);
             await this.syncApps(db, res.data.apps || [], !lastSync);
 
-            // B. ORPHAN CLEANUP OR TOMBSTONE DELETES
-            if (!lastSync) {
-                // Initial Sync: Delete local tables NOT in server response
-                const serverTableIds = tables.map((t: { id: string }) => t.id);
-                if (serverTableIds.length > 0) {
-                    const placeholders = serverTableIds.map(() => '?').join(',');
-                    await db.run(
-                        `DELETE FROM tables WHERE id NOT IN (${placeholders})`,
-                        serverTableIds
-                    );
-                    logger.info('[Sync] Orphan cleanup: removed tables not on server');
-                } else {
-                    await db.run(`DELETE FROM tables`);
-                    await db.run(`DELETE FROM assignments`);
-                    logger.warn('[Sync] Server returned no tables, cleared all local data');
-                }
-            } else {
-                // Delta Sync: Use exact tombstones returned from backend
-                const deletedTableIds = res.deleted_tables || [];
-                if (deletedTableIds.length > 0) {
-                    const placeholders = deletedTableIds.map(() => '?').join(',');
-                    await db.run(`DELETE FROM tables WHERE id IN (${placeholders})`, deletedTableIds);
-                    logger.info(`[Sync] Delta cleanup: removed ${deletedTableIds.length} deleted tables`);
-                }
-            }
+            // 2. Cleanup Data (Orphans or Tombstones)
+            await this.cleanupOrphansAndTombstones(db, lastSync, res.data.tables || [], res.deleted_tables || []);
 
-
-            // C. Store Dashboard Stats (in LocalStorage for speed access by UI)
-            localStorage.setItem('dashboard_stats', JSON.stringify(res.data.stats));
-            localStorage.setItem('app_pending_counts', JSON.stringify(
-                tables.reduce((acc: any, t: any) => ({ ...acc, [t.id]: t.pending_tasks || 0 }), {})
-            ));
+            // 3. Update Dashboard Stats & Cache
+            this.syncDashboardUIState(res.data.stats, res.data.tables || []);
             
-            // D. Save Checkpoint
+            // 4. Save Checkpoint
             if (res.server_time) {
                 localStorage.setItem(syncKey, res.server_time);
                 logger.debug(`[Sync] Global checkpoint saved: ${res.server_time}`);
             }
         }
+    }
+
+    private async syncTablesMetadata(db: any, tables: any[]) {
+        for (const table of tables) {
+            const existing = await db.query(`SELECT version FROM tables WHERE id = ?`, [table.id]);
+            
+            if (existing.values && existing.values.length > 0) {
+                await db.run(
+                    `UPDATE tables SET name = ?, description = ?, version = ?, version_policy = ?, synced_at = ? WHERE id = ?`, 
+                    [table.name, table.description, table.version, table.version_policy || 'accept_all', new Date().toISOString(), table.id]
+                );
+            } else {
+                await db.run(
+                    `INSERT INTO tables (id, app_id, name, description, version, version_policy, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [table.id, table.app_id || table.id, table.name, table.description, table.version, table.version_policy || 'accept_all', new Date().toISOString()]
+                );
+            }
+        }
+    }
+
+    private async cleanupOrphansAndTombstones(db: any, lastSync: string | null, tables: any[], deletedTableIds: string[]) {
+        if (!lastSync) {
+            // Initial Sync: Delete local tables NOT in server response
+            const serverTableIds = tables.map((t: { id: string }) => t.id);
+            if (serverTableIds.length > 0) {
+                const placeholders = serverTableIds.map(() => '?').join(',');
+                await db.run(`DELETE FROM tables WHERE id NOT IN (${placeholders})`, serverTableIds);
+                logger.info('[Sync] Orphan cleanup: removed tables not on server');
+            } else {
+                await db.run(`DELETE FROM tables`);
+                await db.run(`DELETE FROM assignments`);
+                logger.warn('[Sync] Server returned no tables, cleared all local data');
+            }
+        } else if (deletedTableIds && deletedTableIds.length > 0) {
+            // Delta Sync: Use exact tombstones returned from backend
+            const placeholders = deletedTableIds.map(() => '?').join(',');
+            await db.run(`DELETE FROM tables WHERE id IN (${placeholders})`, deletedTableIds);
+            logger.info(`[Sync] Delta cleanup: removed ${deletedTableIds.length} deleted tables`);
+        }
+    }
+
+    private syncDashboardUIState(stats: any, tables: any[]) {
+        if (stats) {
+            localStorage.setItem('dashboard_stats', JSON.stringify(stats));
+        }
+        
+        const pendingCounts = tables.reduce((acc: any, t: any) => ({ 
+            ...acc, 
+            [t.id]: t.pending_tasks || 0 
+        }), {});
+        
+        localStorage.setItem('app_pending_counts', JSON.stringify(pendingCounts));
     }
 
     private async syncApps(db: any, apps: any[], isInitialSync: boolean = true) {

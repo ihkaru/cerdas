@@ -101,7 +101,7 @@ export class EditorBridgeService {
             authStore.token = token;
             this.log.debug('AuthStore updated with new token');
         } catch (e) {
-            this.log.warn('AuthStore not available for token sync (might be too early)');
+            this.log.warn('AuthStore not available for token sync (might be too early)', e);
         }
 
         // Show visual feedback
@@ -128,7 +128,7 @@ export class EditorBridgeService {
         const name = payload.name || payload.schema?.name;
         const description = payload.description || payload.schema?.description;
         const targetFields = payload.fields || payload.schema?.fields || (Array.isArray(payload.schema) ? payload.schema : []);
-        let settings = payload.settings || payload.schema?.settings || {};
+        const settings = payload.settings || payload.schema?.settings || {};
         const layout = payload.layout;
 
         // 1. Memory Override
@@ -208,7 +208,7 @@ export class EditorBridgeService {
             await dashboardStore.loadData(true);
             this.log.info('Dashboard store reloaded with new data');
         } catch (e) {
-            this.log.warn('Dashboard store not ready for reload');
+            this.log.warn('Dashboard store not ready for reload', e);
         }
     }
 }
