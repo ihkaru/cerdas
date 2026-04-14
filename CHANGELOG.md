@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.52](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.51...cerdas-v0.1.52) (2026-04-14)
+
+
+### Features
+
+* implement shareable join links and modernize google auth (April 2026 standards) ([aaa17ec](https://github.com/ihkaru/cerdas/commit/aaa17ec6ce10b5f98902f57af060b38030575840))
+* stabilize editor and preview sync ([884475b](https://github.com/ihkaru/cerdas/commit/884475bef72ffc613138063cd219f825c7336374))
+
 ## [0.1.51](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.50...cerdas-v0.1.51) (2026-04-13)
 
 
