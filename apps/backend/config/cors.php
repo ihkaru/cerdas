@@ -44,11 +44,14 @@ return [
                 'http://localhost:3001',
                 'http://localhost:8100',
                 'http://10.0.2.2:9981',
+                // Production (dvlpid.my.id)
+                'https://app.dvlpid.my.id',
+                'https://editor.dvlpid.my.id',
                 // Capacitor (Android/iOS)
                 'capacitor://localhost',
             ])
         ))),
-        fn ($origin) => !empty($origin)
+        fn ($origin) => ! empty($origin)
     )),
     'allowed_origins_patterns' => [],
 
