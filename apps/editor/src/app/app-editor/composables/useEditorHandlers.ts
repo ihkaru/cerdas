@@ -25,7 +25,7 @@ export function useEditorHandlers(
         replaceLayout,
         replaceSettings 
     } = tableEditor;
-    const { isPublished, currentVersion, currentTableId } = tableSelection;
+    const { isPublished, currentTableId } = tableSelection;
 
     async function handleSave() {
         // 1. Save Navigation if dirty
@@ -121,9 +121,6 @@ export function useEditorHandlers(
             }
             await tableStore.publishVersion(pubId, currentVer.version, payload.changelog || undefined, payload.versionPolicy);
             f7.toast.show({ text: `Version ${currentVer.version} published!`, position: 'center', closeTimeout: 2000 });
-            isPublished.value = true;
-            currentVersion.value = currentVer.version;
-
             if (pubId) {
                 await tableStore.fetchTable(pubId);
             }

@@ -127,8 +127,7 @@ onMounted(async () => {
 });
 
 function downloadApk() {
-  // TODO: Link to actual latest APK URL from Release Please artifacts
-  window.open('https://github.com/ihkaru/cerdas/releases/latest', '_blank');
+  window.open('https://github.com/ihkaru/cerdas/releases/latest', '_blank', 'noopener,noreferrer');
 }
 
 function openWeb() {

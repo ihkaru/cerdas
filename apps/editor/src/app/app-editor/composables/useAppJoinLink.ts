@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue';
+import { watch } from 'vue';
 import { ApiClient } from '@/common/api/ApiClient';
 import { f7 } from 'framework7-vue';
 
@@ -50,6 +50,7 @@ export function useAppJoinLink(appIdProvider: () => string | null | undefined) {
                 color: 'green'
             });
         } catch (e) {
+            console.error('[toggleJoinLink] Error:', e);
             f7.dialog.alert('Failed to update join link settings');
         }
     }
@@ -68,6 +69,7 @@ export function useAppJoinLink(appIdProvider: () => string | null | undefined) {
                     color: 'green'
                 });
             } catch (e) {
+                console.error('[regenerateJoinLink] Error:', e);
                 f7.dialog.alert('Failed to regenerate join link');
             }
         });

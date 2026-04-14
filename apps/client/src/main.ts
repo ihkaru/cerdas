@@ -28,9 +28,7 @@ import { Capacitor } from '@capacitor/core';
 import { f7 } from 'framework7-vue';
 import { defineCustomElements as jeepSqlite } from 'jeep-sqlite/loader';
 import GoogleSignInPlugin from 'vue3-google-signin';
-import { useDashboardStore } from './app/dashboard/stores/dashboardStore';
 import { databaseService } from './common/database/DatabaseService';
-import { useAuthStore } from './common/stores/authStore';
 import { logger } from './common/utils/logger';
 
 
