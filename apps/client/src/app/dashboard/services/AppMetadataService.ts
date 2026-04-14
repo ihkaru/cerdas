@@ -4,61 +4,55 @@ import { SQLiteDBConnection } from '@capacitor-community/sqlite';
 
 export const AppMetadataService = {
     async resolveAppId(db: SQLiteDBConnection, id: string, schemaAppId?: string): Promise<string | null> {
-         // id could be AppID or TableID
-         console.log('[AppMetadata] resolveAppId called:', { id, schemaAppId });
-         
          if (schemaAppId && schemaAppId !== 'undefined' && schemaAppId !== 'null') {
-             console.log('[AppMetadata] Using schemaAppId directly:', schemaAppId);
              return schemaAppId;
          }
          
          if (!id || id === 'undefined' || id === 'null') {
-             console.log('[AppMetadata] Invalid id, returning null');
              return null;
          }
 
-         try {
-             // Try assuming it's a Table ID
-             const tRes = await db.query('SELECT id, app_id FROM tables WHERE id = ?', [id]);
-             console.log('[AppMetadata] Tables query result:', { 
-                 searchId: id, 
-                 found: tRes.values?.length ?? 0,
-                 rows: tRes.values?.slice(0, 3) 
-             });
-             
-             if (tRes.values && tRes.values.length > 0) {
-                 const foundAppId = tRes.values[0].app_id;
-                 console.log('[AppMetadata] Found app_id in tables:', { tableId: id, app_id: foundAppId, type: typeof foundAppId });
-                 return foundAppId;
-             }
-             
-             // Try assuming it's an App ID
-             const aRes = await db.query('SELECT id FROM apps WHERE id = ?', [id]);
-             console.log('[AppMetadata] Apps query result:', { 
-                 searchId: id, 
-                 found: aRes.values?.length ?? 0 
-             });
-             
-             if (aRes.values && aRes.values.length > 0) {
-                 return aRes.values[0].id;
-             }
+         // 1. Try Local SQLite Resolution
+         const localId = await this._resolveLocally(db, id);
+         if (localId) return localId;
 
-             // Try assuming it's an App Slug
-             const sRes = await db.query('SELECT id FROM apps WHERE slug = ?', [id]);
-             console.log('[AppMetadata] Apps slug query result:', {
-                 searchSlug: id,
-                 found: sRes.values?.length ?? 0
-             });
-
-             if (sRes.values && sRes.values.length > 0) {
-                 return sRes.values[0].id;
-             }
-         } catch (e) {
-             console.warn('[AppMetadata] Failed to resolve app_id', e);
+         // 2. Try Remote API Fallback
+         if (navigator.onLine) {
+             return await this._resolveRemotely(id);
          }
          
-         console.log('[AppMetadata] Could not resolve, returning null');
          return null;
+    },
+
+    async _resolveLocally(db: SQLiteDBConnection, id: string): Promise<string | null> {
+        try {
+            // Try as Table ID
+            const tRes = await db.query('SELECT app_id FROM tables WHERE id = ?', [id]);
+            if (tRes.values && tRes.values.length > 0) return tRes.values[0].app_id;
+
+            // Try as App ID
+            const aRes = await db.query('SELECT id FROM apps WHERE id = ?', [id]);
+            if (aRes.values && aRes.values.length > 0) return aRes.values[0].id;
+
+            // Try as App Slug
+            const sRes = await db.query('SELECT id FROM apps WHERE slug = ?', [id]);
+            if (sRes.values && sRes.values.length > 0) return sRes.values[0].id;
+        } catch (e) {
+            console.warn('[AppMetadata] Local resolution failed', e);
+        }
+        return null;
+    },
+
+    async _resolveRemotely(id: string): Promise<string | null> {
+        try {
+            const apiRes = await apiClient.get(`/tables/${id}`);
+            if (apiRes.success && apiRes.data?.app_id) {
+                return apiRes.data.app_id;
+            }
+        } catch (e) {
+            console.warn('[AppMetadata] Remote fallback failed', e);
+        }
+        return null;
     },
 
     async getLocalAppMetadata(db: SQLiteDBConnection, appId: string) {

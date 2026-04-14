@@ -112,17 +112,29 @@ const showIconPicker = ref(false);
 const fullJoinUrl = computed(() => {
     if (!joinLink.value?.token) return '';
     
-    // Preference: use VITE_CLIENT_URL from env
-    const baseUrl = import.meta.env.VITE_CLIENT_URL;
-    if (baseUrl) {
-        return `${baseUrl}/join/${joinLink.value.token}`;
+    // 1. Primary: Use VITE_CLIENT_URL from env
+    const envBaseUrl = import.meta.env.VITE_CLIENT_URL;
+    if (envBaseUrl && !envBaseUrl.includes('localhost')) {
+        return `${envBaseUrl.replace(/\/$/, '')}/join/${joinLink.value.token}`;
     }
 
-    // Fallback: smart port replacement for local dev
+    // 2. Dynamic Detection: Swap 'editor' with 'app' for production domains
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    const port = window.location.port;
+
+    if (hostname.includes('editor.')) {
+        const clientHostname = hostname.replace('editor.', 'app.');
+        const portSuffix = port ? `:${port}` : '';
+        return `${protocol}//${clientHostname}${portSuffix}/join/${joinLink.value.token}`;
+    }
+
+    // 3. Local Development Fallback: Port swapping
     const origin = window.location.origin;
     if (origin.includes(':3001')) return origin.replace(':3001', ':3000') + `/join/${joinLink.value.token}`;
     if (origin.includes(':8001')) return origin.replace(':8001', ':8000') + `/join/${joinLink.value.token}`;
     
+    // 4. Default Fallback
     return `${origin}/join/${joinLink.value.token}`;
 });
 

@@ -57,7 +57,6 @@ export function useEditorHandlers(
 
                     const draft = await tableStore.createDraft(tableId);
                     version = draft.version;
-                    // isPublished is now computed, so it will update automatically when store.currentVersion changes
                     createdNewDraft = true;
 
                     console.log('[handleSave] Draft created, version:', version);

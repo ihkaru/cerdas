@@ -27,7 +27,7 @@ class TableController extends Controller
 
         if ($appId) {
             // Check app access via AppMembership
-            if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $appId)->exists()) {
+            if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $appId)->exists()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Access denied to this app',
@@ -64,7 +64,7 @@ class TableController extends Controller
 
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $validated['app_id'])->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $validated['app_id'])->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied to this app',
@@ -115,7 +115,7 @@ class TableController extends Controller
         $user = $request->user();
 
         // Check access (super admin bypasses)
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied to this table',
@@ -139,7 +139,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -170,7 +170,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -197,7 +197,7 @@ class TableController extends Controller
             }
 
             // If dependencies exist and force_cleanup is false, abort with 409
-            if (!empty($deletedViewIds) && !$forceCleanup) {
+            if (! empty($deletedViewIds) && ! $forceCleanup) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Table is currently used by '.count($deletedViewIds).' views in this App.',
@@ -207,7 +207,7 @@ class TableController extends Controller
             }
 
             // Proceed with view and navigation cleanup because we have force_cleanup
-            if (!empty($deletedViewIds)) {
+            if (! empty($deletedViewIds)) {
                 if (is_array($viewConfigs)) {
                     foreach ($deletedViewIds as $vId) {
                         unset($viewConfigs[$vId]);
@@ -216,7 +216,7 @@ class TableController extends Controller
 
                 if (is_array($navigation)) {
                     $navigation = array_values(array_filter($navigation, function ($navItem) use ($deletedViewIds) {
-                        return !in_array($navItem['view_id'] ?? null, $deletedViewIds);
+                        return ! in_array($navItem['view_id'] ?? null, $deletedViewIds);
                     }));
                 }
 
@@ -254,7 +254,7 @@ class TableController extends Controller
         $user = $request->user();
 
         // Check app access via AppMembership
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $app->id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $app->id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized or no access to this app',
@@ -282,7 +282,7 @@ class TableController extends Controller
 
         $table = Table::onlyTrashed()->with('app')->findOrFail($id);
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized or no access to this table',
@@ -309,7 +309,7 @@ class TableController extends Controller
 
         $table = Table::onlyTrashed()->with('app')->findOrFail($id);
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized or no access to this table',
@@ -333,7 +333,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -373,7 +373,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -384,7 +384,7 @@ class TableController extends Controller
             ->where('version', $version)
             ->first();
 
-        if (!$tableVersion) {
+        if (! $tableVersion) {
             return response()->json([
                 'success' => false,
                 'message' => 'Version not found',
@@ -408,7 +408,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -417,12 +417,17 @@ class TableController extends Controller
 
         $tableVersion = $table->versions()->where('version', $version)->first();
 
-        if (!$tableVersion) {
+        if (! $tableVersion) {
             return response()->json(['success' => false, 'message' => 'Version not found'], 404);
         }
 
         if ($tableVersion->isPublished()) {
-            return response()->json(['success' => false, 'message' => 'Cannot edit published version'], 400);
+            \Illuminate\Support\Facades\Log::warning('Save failed: requested version is already published', [
+                'table_id' => $table->id,
+                'version' => $version,
+            ]);
+
+            return response()->json(['success' => false, 'message' => 'Cannot edit published version. Please create a new draft.'], 400);
         }
 
         \Illuminate\Support\Facades\Log::debug('Updating version', [
@@ -459,7 +464,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -468,7 +473,7 @@ class TableController extends Controller
 
         $tableVersion = $table->versions()->where('version', $version)->first();
 
-        if (!$tableVersion) {
+        if (! $tableVersion) {
             return response()->json([
                 'success' => false,
                 'message' => 'Version not found',
@@ -516,7 +521,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isSuperAdmin() && !$user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -526,7 +531,7 @@ class TableController extends Controller
         // Check if latest version is already a draft
         $latestVersionObj = $table->versions()->orderByDesc('version')->first();
 
-        if ($latestVersionObj && !$latestVersionObj->isPublished()) {
+        if ($latestVersionObj && ! $latestVersionObj->isPublished()) {
             return response()->json([
                 'success' => true,
                 'data' => $latestVersionObj,
@@ -543,6 +548,7 @@ class TableController extends Controller
             'fields' => $latestVersionObj ? $latestVersionObj->fields : [],
             'layout' => $latestVersionObj ? $latestVersionObj->layout : [],
             'published_at' => null,
+            'changelog' => 'Draft',
         ]);
 
         return response()->json([
