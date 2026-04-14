@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.54](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.53...cerdas-v0.1.54) (2026-04-14)
+
+
+### Bug Fixes
+
+* add production domains to CORS allowed origins ([c278777](https://github.com/ihkaru/cerdas/commit/c27877750cbeaae88c76a3d0890e4bc47c2465bb))
+* implement safety merge for CORS and Sanctum production domains ([e1c3fe5](https://github.com/ihkaru/cerdas/commit/e1c3fe5d95c2622475fdb4482195462bf38ebbbe))
+* resolve final runtime and typescript errors in editor ([50846be](https://github.com/ihkaru/cerdas/commit/50846be980ed74c3940f0bb36871e16909cc8953))
+* resolve synchronization 404s, editor save 400s, and dynamic join link domain ([ade7fe1](https://github.com/ihkaru/cerdas/commit/ade7fe1cb911a2d9778a1a227f9170dcec4b449a))
+
 ## [0.1.53](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.52...cerdas-v0.1.53) (2026-04-14)
 
 
