@@ -29,30 +29,39 @@ return [
     ],
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_values(array_filter(
-        array_map('trim', explode(',', env(
-            'CORS_ALLOWED_ORIGINS',
-            implode(',', [
-                // Local development
-                'http://localhost',
-                'https://localhost',
-                'http://localhost:5173',
-                'http://127.0.0.1:5173',
-                'http://localhost:9981',
-                'http://localhost:9982',
-                'http://localhost:3000',
-                'http://localhost:3001',
-                'http://localhost:8100',
-                'http://10.0.2.2:9981',
-                // Production (dvlpid.my.id)
-                'https://app.dvlpid.my.id',
-                'https://editor.dvlpid.my.id',
-                // Capacitor (Android/iOS)
-                'capacitor://localhost',
-            ])
-        ))),
-        fn ($origin) => ! empty($origin)
-    )),
+    'allowed_origins' => (function () {
+        // 1. Safety Defaults (Always allowed in production)
+        $safetyDefaults = [
+            'https://app.dvlpid.my.id',
+            'https://editor.dvlpid.my.id',
+            'capacitor://localhost',
+        ];
+
+        // 2. Local/ENV Origins
+        $envOrigins = array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', '')));
+
+        // 3. Built-in Local Defaults (if ENV is empty)
+        $localDefaults = [
+            'http://localhost',
+            'https://localhost',
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://localhost:8100',
+            'http://localhost:9981',
+            'http://localhost:9982',
+            'http://10.0.2.2:9981',
+        ];
+
+        $all = array_merge(
+            $safetyDefaults,
+            $envOrigins,
+            empty(array_filter($envOrigins)) ? $localDefaults : []
+        );
+
+        return array_values(array_unique(array_filter($all)));
+    })(),
     'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
