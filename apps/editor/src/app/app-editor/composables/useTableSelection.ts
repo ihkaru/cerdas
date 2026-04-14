@@ -1,5 +1,5 @@
 import { f7 } from 'framework7-vue'; // Helper to access f7 instance if needed, or window.f7
-import { computed, ref, type Ref } from 'vue';
+import { computed, type Ref } from 'vue';
 // Note: In composables, direct f7 access via import is common in F7-Vue apps, 
 // though strictly it might be better to use f7 instance from context. 
 // We will use the standard import as in AppEditorPage.
