@@ -124,8 +124,9 @@ const signIn = async () => {
 }
 
 // Web Handler (vue3-google-signin)
-const handleGoogleErrorWeb = () => {
-  f7.dialog.alert('Google Login Failed', 'Error');
+const handleGoogleErrorWeb = (error: any) => {
+  console.error('[Login] Google Web Auth Error:', error);
+  f7.dialog.alert('Google Login Failed. Please check if your browser blocks third-party cookies or if the origin is authorized.', 'Error');
 }
 
 const handleGoogleLoginWeb = async (response: { credential?: string }) => {
@@ -186,11 +187,17 @@ const handleLogoTap = () => {
 };
 
 onMounted(() => {
+  // Gate Capacitor GoogleAuth to Native only. 
+  // For Web/PWA, we use the GIS-compliant vue3-google-signin plugin instead.
   if (isNative) {
+    const clientId = '133588067257-0huo4ja0kaavpg704si2htphl0kvgobt.apps.googleusercontent.com';
+    
     GoogleAuth.initialize({
-      clientId: '133588067257-0huo4ja0kaavpg704si2htphl0kvgobt.apps.googleusercontent.com',
+      clientId,
       scopes: ['profile', 'email'],
       grantOfflineAccess: true,
+    }).catch(e => {
+      console.warn('[Login] Native GoogleAuth.initialize error:', e);
     });
   }
 });

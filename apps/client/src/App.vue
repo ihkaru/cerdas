@@ -10,27 +10,28 @@
 
 <script setup lang="ts">
 import type { Framework7Parameters } from 'framework7/types';
+import { Capacitor } from '@capacitor/core';
 import { ref } from 'vue';
 import DebugMenuSheet from './common/components/DebugMenuSheet.vue';
 import { useLogger } from './common/utils/logger';
 import routes from './routes';
 
-
-
 const log = useLogger('App');
-
-// Note: Android Back Button handling is now done globally in main.ts
-// to ensure it's registered before the app fully mounts.
+const isNative = Capacitor.isNativePlatform();
 
 // Framework7 parameters
 const f7params = ref<Framework7Parameters>({
   name: 'Cerdas Client',
   theme: 'auto',
   routes,
-  // Disable browser history for mobile app - eliminates router warning
-  // Mobile apps don't need URL-based navigation
+  // APRIL 2026 BEST PRACTICE:
+  // Enable browserHistory for Web/PWA to support deep-linking (e.g. Join Links).
+  // Disable for Native/Capacitor to prevent hardware back-button conflicts.
   view: {
-    browserHistory: false,
+    browserHistory: !isNative,
+    browserHistorySeparator: '', // Use clean URLs without hashes
+    // Initial URL: Consume address bar if on Web
+    url: !isNative ? (window.location.pathname + window.location.search) : '/',
   },
   // Global Event Logging
   on: {

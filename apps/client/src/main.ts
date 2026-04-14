@@ -231,7 +231,10 @@ async function startApp() {
 
         // Initialize Google Login (Web Fallback)
         app.use(GoogleSignInPlugin, {
-          clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID
+          clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '133588067257-0huo4ja0kaavpg704si2htphl0kvgobt.apps.googleusercontent.com',
+          onScriptLoadError: () => {
+             logger.error('Google Sign-In script failed to load. Check network or privacy settings.');
+          }
         });
 
         // Register all Framework7 Vue components

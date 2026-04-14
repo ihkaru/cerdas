@@ -55,6 +55,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/google', [GoogleAuthController::class, 'login']);
 });
 
+Route::get('/join/{token}', [AppController::class, 'resolveJoinToken']);
+Route::post('/join', [AppController::class, 'joinWithToken'])->middleware('auth:sanctum');
+
 // Health check
 Route::get('/health', function () {
     return response()->json([
@@ -157,6 +160,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{app}/members', [AppController::class, 'addMember']);
         Route::delete('/{app}/members/{user}', [AppController::class, 'removeMember']);
         Route::delete('/{app}/invitations/{invitation}', [AppController::class, 'cancelInvitation']);
+
+        // App Join Links (Shareable Links)
+        Route::get('/{app}/join-link', [AppController::class, 'getJoinLink']);
+        Route::post('/{app}/join-link', [AppController::class, 'toggleJoinLink']);
+        Route::delete('/{app}/join-link', [AppController::class, 'regenerateJoinLink']);
     });
 
     // Import App from Schema (standalone route)

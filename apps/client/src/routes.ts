@@ -1,6 +1,7 @@
 import type { Router } from 'framework7/types';
 
 import Login from './app/auth/views/Login.vue';
+import JoinPage from './app/auth/views/JoinPage.vue';
 import DashboardPage from './app/dashboard/views/DashboardPage.vue';
 import { useAuthStore } from './common/stores/authStore';
 import NotFoundPage from './pages/404.vue';
@@ -21,6 +22,10 @@ const routes: Router.RouteParameters[] = [
         resolve({ component: Login });
       }
     }
+  },
+  {
+    path: '/join/:token',
+    component: JoinPage,
   },
   {
     path: '/assignments/:assignmentId',

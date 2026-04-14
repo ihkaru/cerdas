@@ -45,10 +45,19 @@ export const useAuthStore = defineStore('auth', {
     actions: {
         async login(email: string, password: string) {
             log.info('Attempting login', { email });
-            const res = await apiClient.post('/auth/login', { email, password, device_name: 'web-client' });
-            if (res.data && res.data.token) {
+            const joinToken = localStorage.getItem('pending_join_token');
+            const res = await apiClient.post('/auth/login', { 
+                email, 
+                password, 
+                device_name: 'web-client',
+                join_token: joinToken || undefined
+            });
+
+            // ApiClient returns the parsed JSON directly
+            if (res && res.token && res.user) {
                 log.info('Login successful');
-                this.setAuth(res.data.token, res.data.user);
+                this.setAuth(res.token, res.user);
+                localStorage.removeItem('pending_join_token');
                 return true;
             }
             log.warn('Login failed', res);
@@ -58,21 +67,29 @@ export const useAuthStore = defineStore('auth', {
         async loginWithGoogle(idToken: string) {
             log.info('Attempting Google login');
             try {
-                // client_type: 'android' or 'web' - but backend handles token verification similarly
-                // We can send 'android' if we want backend to know source
-                log.info('Google ID Token received', { 
-                    tokenLength: idToken?.length,
-                    tokenPrefix: idToken?.substring(0, 10) + '...'
+                const joinToken = localStorage.getItem('pending_join_token');
+                log.info('Google ID Token received for Join Handoff', { 
+                    hasJoinToken: !!joinToken,
+                    tokenLength: idToken?.length
                 });
 
-                const res = await apiClient.post('/auth/google', { id_token: idToken, client_type: 'web' });
+                const res = await apiClient.post('/auth/google', { 
+                    id_token: idToken, 
+                    client_type: 'web',
+                    join_token: joinToken || undefined
+                });
                 
                 if (res && res.token && res.user) {
                     log.info('Google Login successful');
                     this.setAuth(res.token, res.user);
+                    
+                    // We only remove the pending token IF the login was successful.
+                    // If backend failed to join but login worked, we keep it for manual retry if needed,
+                    // but usually the backend handles it.
+                    localStorage.removeItem('pending_join_token');
                     return true;
                 } else {
-                    log.warn('Google Login failed: No token or user in response', res);
+                    log.warn('Google Login failed: Invalid response structure', res);
                     return false;
                 }
             } catch (e: any) {

@@ -30,6 +30,36 @@
             </f7-list-item>
         </f7-list>
 
+        <!-- Public Enrollment (Shareable Link) -->
+        <f7-list inset>
+            <f7-list-item group-title>Public Enrollment</f7-list-item>
+            <f7-list-item title="Shareable Join Link">
+                <f7-toggle :checked="!!joinLink?.is_active" color="green"
+                    @toggle:change="(val) => toggleJoinLink(val)" />
+            </f7-list-item>
+
+            <template v-if="joinLink?.is_active">
+                <f7-list-input label="Invitation Link" type="text" readonly :value="fullJoinUrl" class="join-link-input">
+                    <template #info>
+                        Anyone with this link can join as <strong>{{ joinLink.role }}</strong>.
+                    </template>
+                </f7-list-input>
+                <f7-list-item>
+                    <div class="display-flex justify-content-space-between w-full">
+                        <f7-button small fill @click="copyLink">Copy Link</f7-button>
+                        <f7-button small outline color="red" @click="regenerateJoinLink">Regenerate Token</f7-button>
+                    </div>
+                </f7-list-item>
+                <f7-list-item title="Default Role" smart-select :smart-select-params="{ openIn: 'popover' }">
+                    <select :value="joinLink.role" @change="e => toggleJoinLink(true, (e.target as HTMLSelectElement).value)">
+                        <option value="enumerator">Enumerator</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="viewer">Viewer</option>
+                    </select>
+                </f7-list-item>
+            </template>
+        </f7-list>
+
         <!-- Version History -->
         <f7-list inset>
             <f7-list-item group-title>Version History</f7-list-item>
@@ -58,9 +88,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useTableEditor } from '../../composables/useTableEditor';
+import { useAppJoinLink } from '../../composables/useAppJoinLink';
+import { useAppStore } from '@/stores';
 import VersionHistory from './VersionHistory.vue';
+import { f7 } from 'framework7-vue';
 
 const {
     state,
@@ -71,7 +104,42 @@ const {
     updateTableName
 } = useTableEditor();
 
+const appStore = useAppStore();
+const { joinLink, fetchJoinLink, toggleJoinLink, regenerateJoinLink } = useAppJoinLink(() => appStore.currentApp?.id ? String(appStore.currentApp.id) : null);
+
 const showIconPicker = ref(false);
+
+const fullJoinUrl = computed(() => {
+    if (!joinLink.value?.token) return '';
+    
+    // Preference: use VITE_CLIENT_URL from env
+    const baseUrl = import.meta.env.VITE_CLIENT_URL;
+    if (baseUrl) {
+        return `${baseUrl}/join/${joinLink.value.token}`;
+    }
+
+    // Fallback: smart port replacement for local dev
+    const origin = window.location.origin;
+    if (origin.includes(':3001')) return origin.replace(':3001', ':3000') + `/join/${joinLink.value.token}`;
+    if (origin.includes(':8001')) return origin.replace(':8001', ':8000') + `/join/${joinLink.value.token}`;
+    
+    return `${origin}/join/${joinLink.value.token}`;
+});
+
+onMounted(() => {
+    fetchJoinLink();
+});
+
+function copyLink() {
+    if (fullJoinUrl.value) {
+        navigator.clipboard.writeText(fullJoinUrl.value);
+        f7.toast.show({
+            text: 'Link copied to clipboard',
+            closeTimeout: 1500,
+            color: 'blue'
+        });
+    }
+}
 
 // Version history support
 import { useTableStore } from '@/stores';

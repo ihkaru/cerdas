@@ -64,6 +64,11 @@ class AuthController extends Controller
             $invite->delete();
         }
 
+        // Process Shareable Join Token if present
+        if ($request->filled('join_token')) {
+            $user->joinAppWithToken($request->join_token);
+        }
+
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
@@ -105,6 +110,11 @@ class AuthController extends Controller
 
         // Process Pending Invitations (Auto-Accept)
         $user->acceptPendingInvitations();
+
+        // Process Shareable Join Token if present
+        if ($request->filled('join_token')) {
+            $user->joinAppWithToken($request->join_token);
+        }
 
         $token = $user->createToken('auth-token')->plainTextToken;
 

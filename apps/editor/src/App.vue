@@ -100,6 +100,15 @@ const setupRouteMonitoring = (f7: Framework7) => {
 // Check auth on mount BEFORE rendering the app
 onMounted(async () => {
   const pathOnLoad = window.location.pathname;
+
+  // UX Improvement: Redirect join links opened in Editor to the Client app
+  if (pathOnLoad.startsWith('/join/')) {
+    const clientUrl = import.meta.env.VITE_CLIENT_URL || window.location.origin.replace(':3001', ':3000');
+    console.log(`[UX] Redirecting Editor join link to Client: ${clientUrl}${pathOnLoad}`);
+    window.location.href = `${clientUrl}${pathOnLoad}`;
+    return;
+  }
+
   await checkAuth(pathOnLoad);
 
   // Listen to route changes to update currentPath reactively

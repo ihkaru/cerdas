@@ -70,6 +70,11 @@ class App extends Model
         return $this->hasMany(AppInvitation::class);
     }
 
+    public function joinLinks(): HasMany
+    {
+        return $this->hasMany(AppJoinLink::class);
+    }
+
     /**
      * Organizations participating in this App.
      * Many-to-Many via app_organizations pivot.

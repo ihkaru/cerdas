@@ -471,4 +471,132 @@ class AppController extends Controller
             'data' => $app->load('invitations')->invitations,
         ]);
     }
+
+    /**
+     * Resolve public app info from join token (Public)
+     */
+    public function resolveJoinToken($token): JsonResponse
+    {
+        $link = \App\Models\AppJoinLink::where('token', $token)->first();
+
+        if (!$link || !$link->isValid()) {
+            return response()->json(['success' => false, 'message' => 'Invalid or expired invitation link.'], 404);
+        }
+
+        $app = $link->app;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'app_name' => $app->name,
+                'app_description' => $app->description,
+                'role' => $link->role,
+                'token' => $token,
+            ],
+        ]);
+    }
+
+    /**
+     * Get active join link for an app
+     */
+    public function getJoinLink(App $app): JsonResponse
+    {
+        $link = $app->joinLinks()->where('is_active', true)->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => $link,
+        ]);
+    }
+
+    /**
+     * Toggle or Create join link
+     */
+    public function toggleJoinLink(Request $request, App $app): JsonResponse
+    {
+        $request->validate([
+            'is_active' => 'required|boolean',
+            'role' => 'nullable|string|in:enumerator,supervisor,viewer',
+        ]);
+
+        $link = $app->joinLinks()->where('is_active', true)->first();
+
+        if ($request->is_active) {
+            if (!$link) {
+                $link = $app->joinLinks()->create([
+                    'role' => $request->role ?? 'enumerator',
+                    'is_active' => true,
+                    'created_by' => $request->user()->id,
+                ]);
+            } else if ($request->has('role')) {
+                $link->update(['role' => $request->role]);
+            }
+        } else {
+            if ($link) {
+                $link->update(['is_active' => false]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $link ? $link->fresh() : null,
+            'message' => $request->is_active ? 'Join link enabled' : 'Join link disabled',
+        ]);
+    }
+
+    /**
+     * Deactivate old links and generate a fresh token
+     */
+    public function regenerateJoinLink(Request $request, App $app): JsonResponse
+    {
+        // 1. Deactivate all existing links
+        $app->joinLinks()->update(['is_active' => false]);
+
+        // 2. Create new one
+        $link = $app->joinLinks()->create([
+            'role' => 'enumerator', // Default
+            'is_active' => true,
+            'created_by' => $request->user()->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $link,
+            'message' => 'New join link generated',
+        ]);
+    }
+
+    /**
+     * Join an app using a shareable link (Authenticated)
+     */
+    public function joinWithToken(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token' => 'required|string',
+        ]);
+
+        $user = $request->user();
+
+        try {
+            $membership = $user->joinAppWithToken($request->token);
+
+            if (!$membership) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to join app. The link might be invalid or expired.',
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully joined the application!',
+                'data' => $membership->load('app'),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
 }

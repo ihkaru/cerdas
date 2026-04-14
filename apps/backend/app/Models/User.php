@@ -196,4 +196,43 @@ class User extends Authenticatable
 
         return $appInvitations->count();
     }
+
+    /**
+     * Join an app using a shareable join token
+     */
+    public function joinAppWithToken(string $token): ?AppMembership
+    {
+        $link = \App\Models\AppJoinLink::where('token', $token)->first();
+
+        if (!$link || !$link->isValid()) {
+            \Illuminate\Support\Facades\Log::warning('Join attempt with invalid or expired token', [
+                'token_preview' => substr($token, 0, 8) . '...',
+                'user_id' => $this->id
+            ]);
+            return null;
+        }
+
+        // Check if already member (including Trashed memberships if you want to restore them)
+        $membership = $this->getMembershipForApp($link->app_id);
+
+        if (!$membership) {
+            \Illuminate\Support\Facades\Log::info('Creating new app membership via join token', [
+                'app_id' => $link->app_id,
+                'user_id' => $this->id,
+                'role' => $link->role
+            ]);
+            
+            $membership = \App\Models\AppMembership::create([
+                'app_id' => $link->app_id,
+                'user_id' => $this->id,
+                'role' => $link->role,
+                'is_active' => true,
+            ]);
+        } else {
+            // Already a member - ensure it's active
+            $membership->update(['is_active' => true]);
+        }
+
+        return $membership;
+    }
 }
