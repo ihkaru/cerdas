@@ -38,27 +38,29 @@ export function useEditorHandlers(
             await appViewManagement.saveAppViews();
         }
 
-        // 2. Save Table if dirty
-        if (isDirty.value && tableStore.currentVersion) {
+        // 3. Save Table if dirty
+        // We explicitly check tableStore.currentVersion to ensure we are in a table context
+        const activeVersion = tableStore.currentVersion;
+        
+        if (isDirty.value && activeVersion) {
             try {
                 const tableId = props.f7route.params.id || currentTableId.value;
                 if (!tableId) throw new Error('No table selected');
 
-                let version = tableStore.currentVersion.version;
+                let version = activeVersion.version;
                 let createdNewDraft = false;
 
                 // If current version is published, we need to create a new draft first
-                if (isPublished.value || tableStore.currentVersion.published_at) {
+                if (isPublished.value || activeVersion.published_at) {
                     console.log('[handleSave] Current version is published, creating new draft...');
                     f7.toast.show({ text: 'Creating new draft...', position: 'center', closeTimeout: 1000 });
 
                     const draft = await tableStore.createDraft(tableId);
                     version = draft.version;
-                    isPublished.value = false;
+                    // isPublished is now computed, so it will update automatically when store.currentVersion changes
                     createdNewDraft = true;
 
                     console.log('[handleSave] Draft created, version:', version);
-                    f7.toast.show({ text: `Draft v${version} created`, position: 'center', closeTimeout: 1000 });
                 }
 
                 // Ensure settings are in layout
@@ -71,34 +73,35 @@ export function useEditorHandlers(
 
                 await tableStore.updateVersion(tableId, version, fieldsPayload, layoutPayload);
 
-                // If we created a new draft, reload the table to sync currentVersion in store
+                // If we created a new draft, we need to make sure the store knows it's the current one
+                // fetchTable might be needed to refresh the sidebar list, but currentVersion is already updated by createDraft
                 if (createdNewDraft) {
-                    console.log('[handleSave] Reloading table to sync currentVersion...');
                     await tableStore.fetchTable(tableId);
                 }
 
                 f7.toast.show({ text: 'Table saved', position: 'center', closeTimeout: 2000 });
             } catch (e: any) {
+                console.error('[handleSave] Error:', e);
                 f7.dialog.alert(e.message || 'Failed to save table');
             }
         }
     }
 
     async function handlePublish() {
-        console.log('[DEBUG] handlePublish called. currentVersion:', tableStore.currentVersion);
+        const activeVersion = tableStore.currentVersion;
+        console.log('[DEBUG] handlePublish: activeVersion from store:', activeVersion);
         
         // If no table version (e.g. App context), just save.
-        if (!tableStore.currentVersion) {
-            console.warn('[DEBUG] handlePublish: No table version, saving app config...');
+        if (!activeVersion) {
+            console.warn('[DEBUG] handlePublish: No active table version found. Saving App configuration instead.');
             await handleSave();
             f7.toast.show({ text: 'App configuration saved', position: 'center', closeTimeout: 2000 });
             return;
         }
         
-        // Instead of inline dialog, we emit 'show-publish-dialog'.
-        // The actual publish happens in confirmPublish().
         return { action: 'show-publish-dialog' };
     }
+        
 
     async function confirmPublish(payload: { changelog: string; versionPolicy: string }) {
         try {
@@ -158,15 +161,50 @@ export function useEditorHandlers(
         replaceSettings(payload.settings);
     }
 
-    function handleBack() {
+    function handleBack(isDirtyGlobal?: boolean) {
         const history = props.f7router.history;
-        if (history.length > 1) {
-            props.f7router.back();
+        const performBack = () => {
+            if (history.length > 1) {
+                props.f7router.back();
+            } else {
+                props.f7router.navigate('/applications', {
+                    animate: true,
+                    transition: 'f7-parallax'
+                });
+            }
+        };
+
+        if (isDirtyGlobal) {
+            f7.dialog.create({
+                title: 'Perubahan Belum Disimpan',
+                text: 'Anda memiliki perubahan yang belum disimpan. Apa yang ingin Anda lakukan?',
+                buttons: [
+                    {
+                        text: 'Simpan & Keluar',
+                        bold: true,
+                        onClick: async () => {
+                            f7.dialog.preloader('Menyimpan...');
+                            await handleSave();
+                            f7.dialog.close();
+                            performBack();
+                        }
+                    },
+                    {
+                        text: 'Buang Perubahan',
+                        color: 'red',
+                        onClick: () => {
+                            performBack();
+                        }
+                    },
+                    {
+                        text: 'Batal',
+                        onClick: () => {}
+                    }
+                ],
+                verticalButtons: true
+            }).open();
         } else {
-            props.f7router.navigate('/applications', {
-                animate: true,
-                transition: 'f7-parallax'
-            });
+            performBack();
         }
     }
 

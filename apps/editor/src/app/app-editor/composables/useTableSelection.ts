@@ -21,23 +21,9 @@ export function useTableSelection(
         showExcelImportModal: Ref<boolean>;
     }
 ) {
-    // State
-    const isPublished = ref(false);
-    const currentVersion = ref<number | undefined>(undefined);
-
-    // Computed
-    // editorState.tableId is usually from tableStore.currentTable?.id or similar?
-    // In AppEditorPage it was computed(() => editorState.tableId).
-    // But here we might not have editorState. 
-    // AppEditorPage uses `const currentTableId = computed(() => editorState.tableId);`
-    // And `editorState` comes from `useTableEditor`.
-    // The user said: "Yang dipindah ... createNewTable() / createBlankTable()".
-    // And `currentTableId` is needed for `selectTable` check.
-    // I will use `tableStore.currentTable?.id` as a proxy if we don't pass editorState?
-    // Or I should accept `currentTableId` as a prop/ref?
-    // User instructions: "useTableSelection.ts ... Return semua ref tersebut apa adanya." (referring to Panels).
-    // For `useTableSelection`, user didn't specify returns but listed responsibilities.
-    // I can make `currentTableId` a computed from `tableStore`.
+    // State (Derived from tableStore)
+    const currentVersion = computed(() => tableStore.currentVersion?.version);
+    const isPublished = computed(() => !!tableStore.currentVersion?.published_at);
     const currentTableId = computed(() => tableStore.currentTable?.id);
 
     const appTables = computed(() => appStore.currentApp?.tables || []);
@@ -66,33 +52,19 @@ export function useTableSelection(
                 versionToLoad = draft;
             }
 
-            if (versionToLoad.published_at) {
-                isPublished.value = true;
-                callbacks.onTableLoaded(
-                    String(table!.id),
-                    table!.name || 'Untitled',
-                    versionToLoad.fields || [],
-                    table!.description,
-                    versionToLoad.layout?.settings,
-                    versionToLoad.layout,
-                    String(table!.app_id || '')
-                );
-                currentVersion.value = versionToLoad.version;
-                tableStore.currentVersion = versionToLoad;
-            } else {
-                isPublished.value = false;
-                callbacks.onTableLoaded(
-                    String(table!.id),
-                    table!.name || 'Untitled',
-                    versionToLoad.fields || [],
-                    table!.description,
-                    versionToLoad.layout?.settings,
-                    versionToLoad.layout,
-                    String(table!.app_id || '')
-                );
-                currentVersion.value = versionToLoad.version;
-                tableStore.currentVersion = versionToLoad;
-            }
+            // Sync with store - this is the source of truth
+            tableStore.currentVersion = versionToLoad;
+
+            // Trigger callback
+            callbacks.onTableLoaded(
+                String(table!.id),
+                table!.name || 'Untitled',
+                versionToLoad.fields || [],
+                table!.description,
+                versionToLoad.layout?.settings,
+                versionToLoad.layout,
+                String(table!.app_id || '')
+            );
 
         } catch (e: any) {
             f7.dialog.alert(e.message);
@@ -100,6 +72,7 @@ export function useTableSelection(
             f7.preloader.hide();
         }
     }
+
 
     function createNewTable() {
         callbacks.showNewSourceModal.value = true;

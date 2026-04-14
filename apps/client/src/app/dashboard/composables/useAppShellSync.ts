@@ -17,7 +17,7 @@ export function useAppShellSync(
         const targetId = contextIdOverride || contextId;
 
         // PROTECTION: Disable Sync in Preview Mode (Drafts don't exist on server)
-        const isPreview = (window as any).__SCHEMA_OVERRIDE?.[targetId];
+        const isPreview = !!((window as any).__SCHEMA_OVERRIDE?.[targetId] || (window as any).__SCHEMA_OVERRIDE?.[`APP_${targetId}`]);
         
         isSyncing.value = true;
         syncProgress.value = 0;

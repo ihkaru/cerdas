@@ -95,8 +95,7 @@ export function useEditorLifecycle(
                         tableStore.currentTable?.app_id || ''
                     );
     
-                    isPublished.value = !!draft.published_at;
-                    currentVersion.value = draft.version || 1;
+                    tableStore.currentVersion = draft;
     
                     if (tableStore.currentTable?.app_id) {
                         await appStore.fetchApp(tableStore.currentTable.app_id);

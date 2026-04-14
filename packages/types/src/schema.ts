@@ -79,8 +79,8 @@ export interface FieldOption {
 }
 
 export interface Field {
-  id: number;
-  schemaVersionId: number;
+  id: string;
+  schemaVersionId: string;
   name: string;
   label: string;
   type: FieldType;
@@ -91,12 +91,12 @@ export interface Field {
   requireIfJs: string | null;
   initialValueJs: string | null;
   order: number;
-  parentFieldId: number | null;
+  parentFieldId: string | null;
 }
 
 export interface AppSchemaVersion {
-  id: number;
-  appSchemaId: number;
+  id: string;
+  appSchemaId: string;
   version: number;
   schema: Field[];
   changelog: string | null;
@@ -105,8 +105,8 @@ export interface AppSchemaVersion {
 }
 
 export interface AppSchema {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   name: string;
   slug: string;
   currentVersion: number;
