@@ -13,9 +13,9 @@ if (!reverbKey) {
     console.warn('[Echo] Reverb App Key is missing. Real-time features will be disabled.');
     // Provide a minimal dummy object to prevent crashes in components
     echo = {
-        channel: () => ({ listen: () => ({}) }),
-        private: () => ({ listen: () => ({}) }),
-        presence: () => ({ listen: () => ({}) }),
+        channel: () => ({ listen: () => ({}), listenForWhisper: () => ({}), whisper: () => ({}) }),
+        private: () => ({ listen: () => ({}), notification: () => ({}), listenForWhisper: () => ({}), whisper: () => ({}) }),
+        presence: () => ({ listen: () => ({}), here: () => ({}), joining: () => ({}), leaving: () => ({}), listenForWhisper: () => ({}), whisper: () => ({}) }),
         leave: () => ({}),
         leaveChannel: () => ({}),
         socketId: () => null

@@ -1,4 +1,4 @@
-import { watch } from 'vue';
+import { ref, watch } from 'vue';
 import { ApiClient } from '@/common/api/ApiClient';
 import { f7 } from 'framework7-vue';
 
@@ -47,7 +47,7 @@ export function useAppJoinLink(appIdProvider: () => string | null | undefined) {
             f7.toast.show({
                 text: isActive ? 'Join link enabled' : 'Join link disabled',
                 closeTimeout: 2000,
-                color: 'green'
+                cssClass: 'color-theme-green'
             });
         } catch (e) {
             console.error('[toggleJoinLink] Error:', e);
@@ -66,7 +66,7 @@ export function useAppJoinLink(appIdProvider: () => string | null | undefined) {
                 f7.toast.show({
                     text: 'New join link generated',
                     closeTimeout: 2000,
-                    color: 'green'
+                    cssClass: 'color-theme-green'
                 });
             } catch (e) {
                 console.error('[regenerateJoinLink] Error:', e);
