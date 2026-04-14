@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.53](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.52...cerdas-v0.1.53) (2026-04-14)
+
+
+### Bug Fixes
+
+* remove unused ref import in useTableSelection.ts ([6e1f880](https://github.com/ihkaru/cerdas/commit/6e1f88028e8b60b0100f06192770bc2e0a0cfe59))
+* resolve CI build failures (complexity and ignored exceptions) ([05546ab](https://github.com/ihkaru/cerdas/commit/05546ab003ba90d872bc8dd6f57aa8c9f22731fc))
+* resolve CI build failures (unused variables and incorrect computed assignments) ([a83c0d1](https://github.com/ihkaru/cerdas/commit/a83c0d102b8b38d348a2c9455aeccbf886945765))
+
 ## [0.1.52](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.51...cerdas-v0.1.52) (2026-04-14)
 
 
