@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.55](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.54...cerdas-v0.1.55) (2026-04-15)
+
+
+### Bug Fixes
+
+* total stabilization of app join and dashboard ([17d166b](https://github.com/ihkaru/cerdas/commit/17d166b5e6c9d65f25357c8a763d3cb4cfee3400))
+
 ## [0.1.54](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.53...cerdas-v0.1.54) (2026-04-14)
 
 
