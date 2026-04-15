@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.59](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.58...cerdas-v0.1.59) (2026-04-15)
+
+
+### Bug Fixes
+
+* **form-engine:** remove invalid timePicker24h property from calendar config ([46aa255](https://github.com/ihkaru/cerdas/commit/46aa255bc593c192ae6455fd79f542aef882a10a))
+* **form-engine:** resolve build errors in DateField.vue (unused vars and type mismatch) ([5d5187b](https://github.com/ihkaru/cerdas/commit/5d5187bd0bd265fe266af987578d49629bfee288))
+
 ## [0.1.58](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.57...cerdas-v0.1.58) (2026-04-15)
 
 
