@@ -12,7 +12,7 @@ import SyncPage from './pages/SyncPage.vue';
 const routes: Router.RouteParameters[] = [
   {
     path: '/',
-    async({ resolve }) {
+    async: async function({ resolve }) {
       const authStore = useAuthStore();
 
       
