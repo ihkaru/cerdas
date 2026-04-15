@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.63](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.62...cerdas-v0.1.63) (2026-04-15)
+
+
+### Bug Fixes
+
+* **client:** correctly parse auth/me payload in verifySession ([b5b98bd](https://github.com/ihkaru/cerdas/commit/b5b98bda2bca2411b5a53ec5a7a633e8c38e092a))
+
 ## [0.1.62](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.61...cerdas-v0.1.62) (2026-04-15)
 
 
