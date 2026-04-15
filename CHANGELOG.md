@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.62](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.61...cerdas-v0.1.62) (2026-04-15)
+
+
+### Bug Fixes
+
+* **client:** router syntax error ([d5a32d6](https://github.com/ihkaru/cerdas/commit/d5a32d6aa5ecad5fe397543a2201133cec86eab0))
+
 ## [0.1.61](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.60...cerdas-v0.1.61) (2026-04-15)
 
 
