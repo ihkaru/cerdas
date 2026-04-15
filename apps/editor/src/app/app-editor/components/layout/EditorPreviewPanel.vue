@@ -1,15 +1,23 @@
 <template>
     <div class="preview-panel-container">
         <div class="preview-header">
-            <div class="device-toggles">
-                <button class="toggle-btn" :class="{ active: device === 'phone' }" @click="device = 'phone'"
-                    title="Phone View">
-                    <f7-icon f7="device_phone_portrait" />
-                </button>
-                <button class="toggle-btn" :class="{ active: device === 'tablet' }" @click="device = 'tablet'"
-                    title="Tablet View">
-                    <f7-icon f7="device_tablet_portrait" />
-                </button>
+            <div class="header-left">
+                <div class="device-toggles">
+                    <button class="toggle-btn" :class="{ active: device === 'phone' }" @click="device = 'phone'"
+                        title="Phone View">
+                        <f7-icon f7="device_phone_portrait" />
+                    </button>
+                    <button class="toggle-btn" :class="{ active: device === 'tablet' }" @click="device = 'tablet'"
+                        title="Tablet View">
+                        <f7-icon f7="device_tablet_portrait" />
+                    </button>
+                </div>
+                <div v-if="isDirty" class="status-badge dirty" title="Changes not yet saved to server">
+                    <span class="dot"></span> DRAFT
+                </div>
+                <div v-else class="status-badge saved" title="All changes saved to server">
+                    <span class="dot"></span> LIVE
+                </div>
             </div>
 
             <div class="role-selector">
@@ -22,7 +30,10 @@
             </div>
 
             <div class="preview-actions">
-                <button class="action-btn" @click="refresh" title="Refresh Preview">
+                <button class="action-btn" @click="syncData" title="Sync Data (Pull from Server)">
+                    <f7-icon f7="arrow_2_circlepath" />
+                </button>
+                <button class="action-btn" @click="refresh" title="Hard Reload Preview">
                     <f7-icon f7="arrow_clockwise" />
                 </button>
             </div>
@@ -30,7 +41,14 @@
 
         <div class="preview-content">
             <DeviceFrame :device="device" :orientation="orientation" :scale="scale">
-                <LivePreview :key="refreshKey" :role="role" :app-views="appViews" :views-version="viewsVersion" />
+                <LivePreview 
+                    ref="livePreviewRef"
+                    :key="refreshKey" 
+                    :role="role" 
+                    :app-views="appViews" 
+                    :views-version="viewsVersion" 
+                    :navigation="navigation"
+                />
             </DeviceFrame>
         </div>
     </div>
@@ -44,8 +62,11 @@ import LivePreview from '../preview/LivePreview.vue';
 const props = defineProps<{
     appViews?: Record<string, any>;
     viewsVersion?: number;
+    navigation?: any[];
+    isDirty?: boolean;
 }>();
 
+const livePreviewRef = ref<any>(null);
 const device = ref<'phone' | 'tablet'>('phone');
 const orientation = ref<'portrait' | 'landscape'>('portrait');
 const role = ref('admin');
@@ -55,9 +76,60 @@ const refreshKey = ref(0);
 function refresh() {
     refreshKey.value++;
 }
+
+function syncData() {
+    if (livePreviewRef.value?.triggerDataSync) {
+        livePreviewRef.value.triggerDataSync();
+    }
+}
 </script>
 
 <style scoped>
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    text-transform: uppercase;
+}
+
+.status-badge .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.status-badge.dirty {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-badge.dirty .dot {
+    background: #f59e0b;
+    box-shadow: 0 0 8px #f59e0b;
+}
+
+.status-badge.saved {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-badge.saved .dot {
+    background: #10b981;
+}
+
 .preview-panel-container {
     height: 100%;
     display: flex;

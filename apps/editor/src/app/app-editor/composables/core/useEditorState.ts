@@ -45,11 +45,15 @@ const editorState = reactive<TableEditorState>({
   tableId: null,
   appId: null,
   tableName: 'Untitled Table',
+  originalName: 'Untitled Table',
   description: '',
+  originalDescription: '',
   fields: [],
   originalFields: [],
   settings: JSON.parse(JSON.stringify(defaultSettings)),
+  originalSettings: JSON.parse(JSON.stringify(defaultSettings)),
   layout: JSON.parse(JSON.stringify(defaultLayout)),
+  originalLayout: JSON.parse(JSON.stringify(defaultLayout)),
   selectedFieldPath: null,
   nestedPath: [],
   isDirty: false,
@@ -75,7 +79,16 @@ const tableForPreview = computed(() => ({
 
 /** Check if table has changes */
 const hasChanges = computed(() => {
-  return JSON.stringify(editorState.fields) !== JSON.stringify(editorState.originalFields);
+  const fieldsChanged = JSON.stringify(editorState.fields) !== JSON.stringify(editorState.originalFields);
+  const nameChanged = editorState.tableName !== editorState.originalName;
+  const descChanged = editorState.description !== editorState.originalDescription;
+  
+  // We avoid deep comparing settings/layout every time for performance, 
+  // but for 'isDirty' checks it's usually acceptable if done on computed.
+  const settingsChanged = JSON.stringify(editorState.settings) !== JSON.stringify(editorState.originalSettings);
+  const layoutChanged = JSON.stringify(editorState.layout) !== JSON.stringify(editorState.originalLayout);
+
+  return fieldsChanged || nameChanged || descChanged || settingsChanged || layoutChanged;
 });
 
 // ============================================================================
@@ -209,7 +222,9 @@ export function useEditorState() {
       editorState.tableId = tableId;
       editorState.appId = appId || null;
       editorState.tableName = name || 'Untitled Table';
+      editorState.originalName = name || 'Untitled Table';
       editorState.description = description || '';
+      editorState.originalDescription = description || '';
 
       // 2. Process Fields
       const editableFields = addEditorIds(fields as unknown as EditableFieldDefinition[]);
@@ -217,13 +232,16 @@ export function useEditorState() {
       editorState.originalFields = JSON.parse(JSON.stringify(editableFields));
       
       // 3. Load Settings
+      let baseSettings: TableSettings;
       if (layout?.settings) {
-         editorState.settings = JSON.parse(JSON.stringify(layout.settings));
+         baseSettings = JSON.parse(JSON.stringify(layout.settings));
       } else if (settings) {
-         editorState.settings = JSON.parse(JSON.stringify(settings));
+         baseSettings = JSON.parse(JSON.stringify(settings));
       } else {
-         editorState.settings = JSON.parse(JSON.stringify(defaultSettings));
+         baseSettings = JSON.parse(JSON.stringify(defaultSettings));
       }
+      editorState.settings = baseSettings;
+      editorState.originalSettings = JSON.parse(JSON.stringify(baseSettings));
       
       // 4. Load or Generate Layout
       if (layout) {
@@ -231,6 +249,7 @@ export function useEditorState() {
       } else {
           applySmartDefaults(name, editableFields);
       }
+      editorState.originalLayout = JSON.parse(JSON.stringify(editorState.layout));
 
       // 5. Reset Selection
       editorState.selectedFieldPath = null;

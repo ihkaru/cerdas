@@ -23,42 +23,60 @@ export function useEditorHandlers(
         updateTableName,
         replaceAllFields,
         replaceLayout,
-        replaceSettings 
+        replaceSettings,
+        isGlobalDirty 
     } = tableEditor;
     const { isPublished, currentTableId } = tableSelection;
 
     async function handleSave() {
-        // 1. Save Navigation if dirty
-        if (isNavDirty.value) {
-            await saveNavigation();
-        }
+        if (!isGlobalDirty.value) return;
 
-        // 2. Save App Views if dirty
-        if (appViewManagement?.isViewsDirty?.value) {
-            await appViewManagement.saveAppViews();
-        }
+        try {
+            const tableId = props.f7route.params.id || currentTableId.value;
+            if (!tableId) throw new Error('No table selected');
 
-        // 3. Save Table if dirty
-        // We explicitly check tableStore.currentVersion to ensure we are in a table context
-        const activeVersion = tableStore.currentVersion;
-        
-        if (isDirty.value && activeVersion) {
-            try {
-                const tableId = props.f7route.params.id || currentTableId.value;
-                if (!tableId) throw new Error('No table selected');
+            f7.dialog.preloader('Menyimpan...');
 
+            // 1. Save Navigation if dirty
+            if (isNavDirty.value) {
+                await saveNavigation();
+            }
+
+            // 2. Save App Views if dirty
+            if (appViewManagement?.isViewsDirty?.value) {
+                await appViewManagement.saveAppViews();
+            }
+
+            // 3. Save Table Metadata (Name/Desc) if changed
+            const state = editorState as any;
+            const metadataChanged = state.tableName !== state.originalName || state.description !== state.originalDescription;
+            
+            if (metadataChanged) {
+                console.log('[handleSave] Saving table metadata...');
+                await tableStore.updateTable(tableId, {
+                    name: state.tableName,
+                    description: state.description
+                });
+                // Reset original values for dirtiness tracking
+                state.originalName = state.tableName;
+                state.originalDescription = state.description;
+            }
+
+            // 4. Save Table Version if dirty
+            // We explicitly check tableStore.currentVersion to ensure we are in a table context
+            const activeVersion = tableStore.currentVersion;
+            
+            if (isDirty.value && activeVersion) {
                 let version = activeVersion.version;
                 let createdNewDraft = false;
 
-                // If current version is published, we need to create a new draft first
+                // If current version is already published on the server, we MUST create a new draft first
+                // We check both the local 'isPublished' flag and the version's published_at date
                 if (isPublished.value || activeVersion.published_at) {
                     console.log('[handleSave] Current version is published, creating new draft...');
-                    f7.toast.show({ text: 'Creating new draft...', position: 'center', closeTimeout: 1000 });
-
                     const draft = await tableStore.createDraft(tableId);
                     version = draft.version;
                     createdNewDraft = true;
-
                     console.log('[handleSave] Draft created, version:', version);
                 }
 
@@ -72,17 +90,24 @@ export function useEditorHandlers(
 
                 await tableStore.updateVersion(tableId, version, fieldsPayload, layoutPayload);
 
-                // If we created a new draft, we need to make sure the store knows it's the current one
-                // fetchTable might be needed to refresh the sidebar list, but currentVersion is already updated by createDraft
+                // If we created a new draft, refresh the store
                 if (createdNewDraft) {
                     await tableStore.fetchTable(tableId);
                 }
-
-                f7.toast.show({ text: 'Table saved', position: 'center', closeTimeout: 2000 });
-            } catch (e: any) {
-                console.error('[handleSave] Error:', e);
-                f7.dialog.alert(e.message || 'Failed to save table');
+                
+                // Reset original fields/layout for dirtiness tracking
+                editorState.originalFields = JSON.parse(JSON.stringify(editorState.fields));
+                (editorState as any).originalLayout = JSON.parse(JSON.stringify(editorState.layout));
+                (editorState as any).originalSettings = JSON.parse(JSON.stringify(editorState.settings));
             }
+
+            editorState.isDirty = false;
+            f7.dialog.close();
+            f7.toast.show({ text: 'Semua perubahan disimpan', position: 'center', closeTimeout: 2000 });
+        } catch (e: any) {
+            f7.dialog.close();
+            console.error('[handleSave] Error:', e);
+            f7.dialog.alert(e.message || 'Gagal menyimpan perubahan');
         }
     }
 
@@ -104,26 +129,32 @@ export function useEditorHandlers(
 
     async function confirmPublish(payload: { changelog: string; versionPolicy: string }) {
         try {
+            f7.dialog.preloader('Publishing...');
             await handleSave();
             const pubId = props.f7route.params.id || currentTableId.value;
             if (!pubId) return;
 
             const currentVer = tableStore.currentVersion;
-            if (!currentVer?.version) {
-                f7.dialog.alert('No version to publish');
+            // Verify version is still valid for publishing
+            if (!currentVer?.version || currentVer.published_at) {
+                f7.dialog.close();
+                f7.dialog.alert('Versi ini sudah dipublikasi atau tidak tersedia.');
                 return;
             }
-
-            if (currentVer.published_at) {
-                f7.toast.show({ text: 'Already published. No table changes to publish.', position: 'center', closeTimeout: 2000 });
-                return;
-            }
+            
             await tableStore.publishVersion(pubId, currentVer.version, payload.changelog || undefined, payload.versionPolicy);
-            f7.toast.show({ text: `Version ${currentVer.version} published!`, position: 'center', closeTimeout: 2000 });
-            if (pubId) {
-                await tableStore.fetchTable(pubId);
-            }
+            
+            // IMPORTANT: After publish, we MUST refresh the table structure 
+            // set it's now immutable.
+            await tableStore.fetchTable(pubId);
+            
+            f7.dialog.close();
+            f7.toast.show({ text: `Versi ${currentVer.version} berhasil dipublikasi!`, position: 'center', closeTimeout: 2000 });
+            
+            // Pivot check: If there is no draft, we might want to stay in "Read Only" view
+            // The isPublished computed will now be true for the currentVersion.
         } catch (e: any) {
+            f7.dialog.close();
             f7.dialog.alert(e.message);
         }
     }

@@ -105,6 +105,31 @@ export const useTableStore = defineStore('table', () => {
          }
     }
     
+    // Update Table Metadata (Name, Description, Settings)
+    async function updateTable(tableId: string | number, data: Partial<TableModel>) {
+        saving.value = true;
+        try {
+            const res = await ApiClient.put(`/tables/${tableId}`, data);
+            
+            // Sync with local tables list
+            const idx = tables.value.findIndex(t => t.id === tableId);
+            if (idx !== -1) {
+                tables.value[idx] = { ...tables.value[idx]!, ...res.data.data };
+            }
+
+            if (currentTable.value?.id === tableId) {
+                currentTable.value = { ...currentTable.value, ...res.data.data };
+            }
+
+            return res.data;
+        } catch (e: any) {
+            error.value = e.message || 'Failed to update table metadata';
+            throw e;
+        } finally {
+            saving.value = false;
+        }
+    }
+
     // Save Fields (Schema)
     async function updateVersion(tableId: string | number, version: number, fields: any, layout: any) {
         saving.value = true;
@@ -230,6 +255,7 @@ export const useTableStore = defineStore('table', () => {
         forceDeleteTable,
         fetchVersion,
         createDraft,
+        updateTable,
         updateVersion,
         publishVersion
     };

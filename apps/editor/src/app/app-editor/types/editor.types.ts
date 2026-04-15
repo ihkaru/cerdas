@@ -104,50 +104,45 @@ export interface AppSchema {
 // Editor State Types
 // ============================================================================
 
-export interface TableEditorState { // Renamed from SchemaEditorState
+export interface TableEditorState {
   /** Table ID from backend (null for new table) */
-  tableId: string | null; // Renamed from schemaId
+  tableId: string | null;
   
-  /** Table name */
-  tableName: string; // Renamed from schemaName
+  /** Table name and tracking */
+  tableName: string;
+  originalName: string;
 
   /** Linked App ID */
   appId: string | null;
 
-  /** Table description */
+  /** Table description and tracking */
   description?: string;
+  originalDescription?: string;
   
   /** List of fields in the table */
   fields: EditableFieldDefinition[];
-  
-  /** Table Settings (icon, actions, etc.) */
-  settings: TableSettings; // Renamed from AppSettings
-
-  /** Layout Configuration */
-  layout: LayoutConfig;
-
-  /** Original fields for dirty check */
   originalFields: EditableFieldDefinition[];
   
+  /** Table Settings and tracking */
+  settings: TableSettings;
+  originalSettings: TableSettings;
+
+  /** Layout Configuration and tracking */
+  layout: LayoutConfig;
+  originalLayout: LayoutConfig;
+
   /** Currently selected field path (e.g., "0" or "2.fields.1") */
   selectedFieldPath: string | null;
   
   /** 
    * Current drill-down path into nested forms
-   * e.g., [{ index: 2, name: 'Family Members' }] means we're editing field[2]'s sub-fields
    */
   nestedPath: { index: number; name: string }[];
   
-  /** Has unsaved changes */
+  /** Status flags */
   isDirty: boolean;
-  
-  /** Currently saving */
   isSaving: boolean;
-  
-  /** Loading state */
   isLoading: boolean;
-  
-  /** Error message */
   error: string | null;
 }
 

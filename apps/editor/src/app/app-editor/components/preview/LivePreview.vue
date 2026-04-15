@@ -20,6 +20,7 @@ const props = defineProps<{
     role?: string;
     appViews?: Record<string, any>;
     viewsVersion?: number;
+    navigation?: any[];
 }>();
 
 const {
@@ -115,10 +116,24 @@ function syncSchema() {
             appId: editorState.appId, // Include app_id for proper sync
             schema: schemaForPreview.value,
             layout: editorState.layout,
+            navigation: props.navigation, // Pass live navigation
             viewConfigs: props.appViews
         }
     })), '*');
 }
+
+/** Trigger data sync inside the iframe */
+function triggerDataSync() {
+    if (iframeRef.value?.contentWindow) {
+        console.log('[LivePreview] Triggering data sync in iframe...');
+        iframeRef.value.contentWindow.postMessage({ type: 'REFRESH_DATA' }, '*');
+    }
+}
+
+// Expose for parent
+defineExpose({
+    triggerDataSync
+});
 
 // Watch role change to clear cache and re-sync
 watch(() => props.role, () => {
@@ -127,7 +142,13 @@ watch(() => props.role, () => {
 });
 
 // Watch for changes in schema or layout and push to iframe
-watch([schemaForPreview, () => editorState.layout, () => props.appViews, () => props.viewsVersion], () => {
+watch([
+    schemaForPreview, 
+    () => editorState.layout, 
+    () => props.appViews, 
+    () => props.viewsVersion,
+    () => props.navigation
+], () => {
     syncSchema();
 }, { deep: true });
 

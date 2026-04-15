@@ -19,7 +19,12 @@
         </template>
 
         <template #preview>
-            <EditorPreviewPanel :app-views="appViewManagement.appViews.value" :views-version="appViewManagement.viewsVersion.value" />
+            <EditorPreviewPanel 
+                :app-views="appViewManagement.appViews.value" 
+                :views-version="appViewManagement.viewsVersion.value"
+                :navigation="navManagement.navigation.value"
+                :is-dirty="isGlobalDirty"
+            />
         </template>
 
         <template #modals>
