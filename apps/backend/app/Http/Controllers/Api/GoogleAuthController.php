@@ -86,13 +86,13 @@ class GoogleAuthController extends Controller
 
             // Process Shareable Join Token if present
             if ($request->filled('join_token')) {
-                Log::info('Processing Join Token during Google Login', [
-                    'email' => $email,
-                    'token_preview' => substr($request->join_token, 0, 5).'...',
-                ]);
                 $membership = $user->joinAppWithToken($request->join_token);
-                if (! $membership) {
-                    Log::warning('Failed to join app with token during Google Login', ['email' => $email]);
+
+                if ($membership) {
+                    Log::info('Successfully joined app via Google Login', [
+                        'app_id' => $membership->app_id,
+                        'user_id' => $user->id,
+                    ]);
                 }
             }
 

@@ -38,21 +38,30 @@ class DashboardController extends Controller
         if ($user->isSuperAdmin()) {
             $appIds = App::withTrashed()->pluck('id');
         } else {
-            // Get Direct Memberships
+            // Get IDs of apps where user is a direct member OR via organization
             $directAppIds = $user->appMemberships()->pluck('app_id');
-
-            // Get Apps via Organization Membership
             $orgAppIds = App::whereHas('organizations.members', function ($q) use ($user) {
                 $q->where('users.id', $user->id);
-            })->pluck('apps.id');
+            })->pluck('id');
 
-            $appIds = $directAppIds->concat($orgAppIds)->unique();
+            $appIds = $directAppIds->concat($orgAppIds)->unique()->values()->all();
         }
 
-        $appsQuery = App::whereIn('id', $appIds);
+        $appsQuery = App::query()->whereIn('id', $appIds);
 
         if ($updatedSince) {
-            $appsQuery->withTrashed()->where('updated_at', '>=', \Carbon\Carbon::parse($updatedSince));
+            $since = \Carbon\Carbon::parse($updatedSince);
+
+            // Critical Fix: An app is "updated" for a user if:
+            // 1. The App record itself changed.
+            // 2. The User's membership for that app was just created/updated.
+            $appsQuery->withTrashed()->where(function ($q) use ($since, $user) {
+                $q->where('updated_at', '>=', $since)
+                    ->orWhereHas('memberships', function ($mq) use ($since, $user) {
+                        $mq->where('user_id', $user->id)
+                            ->where('updated_at', '>=', $since);
+                    });
+            });
         }
 
         $allQueriedApps = $appsQuery->get();

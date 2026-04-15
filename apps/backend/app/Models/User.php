@@ -182,7 +182,7 @@ class User extends Authenticatable
                 ->where('user_id', $this->id)
                 ->exists();
 
-            if (!$existing) {
+            if (! $existing) {
                 \App\Models\AppMembership::create([
                     'app_id' => $invite->app_id,
                     'user_id' => $this->id,
@@ -204,24 +204,14 @@ class User extends Authenticatable
     {
         $link = \App\Models\AppJoinLink::where('token', $token)->first();
 
-        if (!$link || !$link->isValid()) {
-            \Illuminate\Support\Facades\Log::warning('Join attempt with invalid or expired token', [
-                'token_preview' => substr($token, 0, 8) . '...',
-                'user_id' => $this->id
-            ]);
+        if (! $link || ! $link->isValid()) {
             return null;
         }
 
-        // Check if already member (including Trashed memberships if you want to restore them)
+        // Check if already member
         $membership = $this->getMembershipForApp($link->app_id);
 
-        if (!$membership) {
-            \Illuminate\Support\Facades\Log::info('Creating new app membership via join token', [
-                'app_id' => $link->app_id,
-                'user_id' => $this->id,
-                'role' => $link->role
-            ]);
-            
+        if (! $membership) {
             $membership = \App\Models\AppMembership::create([
                 'app_id' => $link->app_id,
                 'user_id' => $this->id,
@@ -229,7 +219,6 @@ class User extends Authenticatable
                 'is_active' => true,
             ]);
         } else {
-            // Already a member - ensure it's active
             $membership->update(['is_active' => true]);
         }
 

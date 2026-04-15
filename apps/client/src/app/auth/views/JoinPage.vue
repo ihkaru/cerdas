@@ -154,6 +154,10 @@ async function joinImmediately() {
         cssClass: 'color-theme-green',
         closeTimeout: 3000
       });
+      
+      // Force fresh sync to show the new app immediately
+      localStorage.removeItem('sync_global');
+      
       // Go to dashboard
       f7.views.main.router.navigate('/', { reloadCurrent: true, clearPreviousHistory: true });
     }

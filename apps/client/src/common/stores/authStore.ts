@@ -73,11 +73,13 @@ export const useAuthStore = defineStore('auth', {
                     tokenLength: idToken?.length
                 });
 
-                const res = await apiClient.post('/auth/google', { 
+                const payload = { 
                     id_token: idToken, 
                     client_type: 'web',
                     join_token: joinToken || undefined
-                });
+                };
+
+                const res = await apiClient.post('/auth/google', payload);
                 
                 if (res && res.token && res.user) {
                     log.info('Google Login successful');
