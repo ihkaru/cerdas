@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.60](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.59...cerdas-v0.1.60) (2026-04-15)
+
+
+### Bug Fixes
+
+* **docker:** add missing traefik.docker.network label to fix 504 on editor/client ([2095276](https://github.com/ihkaru/cerdas/commit/209527607bbe79fa29e6827a04470826f935f269))
+* **docker:** expand .dockerignore to exclude 38MB APK and build artifacts, update COOLIFY_GUIDE ([11c0d00](https://github.com/ihkaru/cerdas/commit/11c0d008449a143d0f9da9ae84fc2e55f99614f9))
+
 ## [0.1.59](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.58...cerdas-v0.1.59) (2026-04-15)
 
 
