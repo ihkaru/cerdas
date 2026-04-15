@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.58](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.57...cerdas-v0.1.58) (2026-04-15)
+
+
+### Features
+
+* **form-engine/editor:** standardize hint, refactor DateField UI, add read-only toggle ([ed8538c](https://github.com/ihkaru/cerdas/commit/ed8538c9823b3797fd73f80b59f4ee012d9dce1e))
+* implement user isolation and data purging on account swap ([f22498c](https://github.com/ihkaru/cerdas/commit/f22498c7718b17f3f14e26a900cf3e8734dcdddd))
+* stabilize editor publish flow and enhance live preview sync ([0464ba0](https://github.com/ihkaru/cerdas/commit/0464ba059a50350ae5382d2990119e302050c241))
+
 ## [0.1.57](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.56...cerdas-v0.1.57) (2026-04-15)
 
 
