@@ -134,9 +134,11 @@ export const useAuthStore = defineStore('auth', {
             
             try {
                 const res = await apiClient.get('/auth/me');
-                if (res && res.id) {
+                // The API returns { success: true, data: { user: { id: ... } } }
+                const userData = res?.data?.user || res?.user || res?.data;
+                if (userData && userData.id) {
                     // Update user info silently
-                    this.user = { ...this.user, ...res } as User;
+                    this.user = { ...this.user, ...userData } as User;
                     localStorage.setItem('auth_user', JSON.stringify(this.user));
                     this.isSessionVerified = true;
                     return true;
