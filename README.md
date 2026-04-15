@@ -23,24 +23,25 @@
 
 Most no-code platforms come with **heavy restrictions**. Cerdas was born out of the frustration with AppSheet's limit of **only 10 users** for the free tier.
 
-| | AppSheet | KoboToolbox | **Cerdas** |
-|---|---------|-------------|-----------|
-| **Self-Hosted** | ❌ | ✅ | ✅ |
-| **User Limit** | 10 (free) | Unlimited | **Unlimited** |
-| **Offline-First** | Partial | ❌ | ✅ |
-| **Custom Hosting** | ❌ | Complex | **Docker one-click** |
-| **Monthly Cost** | $10/user | Free | **Free** |
+|                   | AppSheet       | KoboToolbox | **Cerdas**              |
+|-------------------|----------------|-------------|-------------------------|
+| **Self-Hosted**   | ❌             | ✅          | ✅                      |
+| **User Limit**    | 10 (free)      | Unlimited   | **Unlimited**           |
+| **Offline-First** | Partial        | ❌          | ✅                      |
+| **Custom Hosting**| ❌             | Complex     | **Docker one-click**    |
+| **Monthly Cost**  | $10/user       | Free        | **Free**                |
 
 ## Key Features
 
-- **📱 Offline-First Mobile PWA** — Native-like experience with Framework7 + Capacitor. Works without internet, syncs when online.
-- **🛠️ No-Code Form Editor** — Build complex schemas with nested forms, conditional visibility, and dynamic formulas.
-- **🔄 Robust Sync Engine** — Bi-directional sync with conflict resolution for large datasets and media attachments.
-- **🗺️ Geospatial Support** — GPS capture with Leaflet map integration.
-- **📊 Data Export** — Excel/CSV export for analysis and reporting.
-- **🔐 Role-Based Access** — Advanced RBAC via Spatie Laravel Permission.
-- **⚡ High Performance** — Laravel Octane + FrankenPHP worker mode (3,000-15,000 req/s).
-- **🤖 Automated Builds** — GitHub Actions CI/CD with automatic APK distribution.
+- **📱 Offline-First Mobile Client** — Built with Framework7 + Capacitor. Operates fully offline using SQLite and syncs data when connectivity is restored.
+- **🛠️ Visual Form Editor** — Web-based builder for complex schemas, with support for nested forms, repeating groups, conditional fields, and dynamic options.
+- **🧠 JS Expression Engine** — Write custom JavaScript closures directly in the editor to control validation (`Warning`), field visibility (`Show If`), edit access (`Editable If`), pre-calculated values (`Formula`), and default values (`Initial Value`).
+- **🔄 Bi-directional Sync** — Background synchronization with conflict handling for large datasets and binary media attachments.
+- **🗺️ GPS + Map** — Native coordinate capture with accuracy metadata and offline-capable map previews via MapLibre GL.
+- **📊 Data Export** — Export submissions to Excel/CSV for downstream analysis.
+- **🔐 Role-Based Access** — Granular RBAC via Spatie Laravel Permission.
+- **⚡ High-Throughput Backend** — Laravel Octane with FrankenPHP worker mode for sustained high concurrency.
+- **🤖 Automated CI/CD** — GitHub Actions for APK builds, Octane safety audits, code quality checks, and secret scanning.
 
 ## Architecture
 
@@ -62,11 +63,11 @@ Most no-code platforms come with **heavy restrictions**. Cerdas was born out of 
 |-------|-----------|---------|
 | **API Server** | Laravel 12 + Octane + FrankenPHP | High-performance API (worker mode) |
 | **Mobile Client** | Vue 3 + Framework7 + Capacitor | Offline-first PWA / Android APK |
-| **Form Editor** | Vue 3 + Framework7 | No-code drag-and-drop form builder |
-| **Shared Packages** | TypeScript | Form engine, expression engine, types |
-| **Database** | MySQL/PostgreSQL (server) + SQLite (client) | Persistent + offline storage |
+| **Form Editor** | Vue 3 + Framework7 | No-code visual form builder |
+| **Shared Packages** | TypeScript | Form engine, expression engine |
+| **Database** | MySQL (server) · SQLite (client) | Server-side + offline-first storage |
 | **Auth** | Laravel Sanctum + Google OAuth | Token-based API authentication |
-| **CI/CD** | GitHub Actions | APK builds, Octane safety audits |
+| **CI/CD** | GitHub Actions | APK builds, audits, quality checks |
 | **Deployment** | Docker Compose + Coolify | One-click self-hosted deployment |
 
 ## Quick Start
@@ -77,11 +78,21 @@ Most no-code platforms come with **heavy restrictions**. Cerdas was born out of 
 - **Node.js 22+**
 - **pnpm** (`npm install -g pnpm`)
 - **Composer**
+- **Docker** (for the Docker-based workflow)
 
-### Development
+### Option A — Docker (Recommended)
 
 ```bash
-# Clone
+git clone https://github.com/ihkaru/cerdas.git
+cd cerdas
+
+# Start all services (Backend + Client + Editor) in Docker
+./start-dev-docker.sh
+```
+
+### Option B — Local Setup
+
+```bash
 git clone https://github.com/ihkaru/cerdas.git
 cd cerdas
 
@@ -96,28 +107,28 @@ php artisan key:generate
 php artisan migrate
 cd ../..
 
-# Start all services (Backend + Editor + Client)
+# Start all services (Windows)
 ./start-all.bat
+
+# Start all services (Linux/Mac)
+./start-all.sh
 ```
 
+### Verification
 
-
-### Verification (Local)
-
-Run this before pushing code to ensure everything is clean.
+Run this before pushing to ensure the build is clean.
 
 ```bash
+# Linux / Mac
+./verify-local.sh
+
 # Windows (PowerShell)
 ./verify-local.ps1
-
-# Linux / Mac (Bash)
-./verify-local.sh
 ```
 
 ### Production (Docker)
 
 ```bash
-# One command deployment
 docker compose -f docker-compose.prod.yml up -d
 ```
 
@@ -128,30 +139,30 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 cerdas/
 ├── apps/
-│   ├── backend/          # Laravel 12 API (Octane + FrankenPHP)
-│   ├── client/           # Mobile PWA (Vue 3 + Framework7 + Capacitor)
-│   └── editor/           # Web Editor (Vue 3 + Framework7)
+│   ├── backend/           # Laravel 12 API (Octane + FrankenPHP)
+│   ├── client/            # Mobile PWA (Vue 3 + Framework7 + Capacitor)
+│   └── editor/            # Web Editor (Vue 3 + Framework7)
 ├── packages/
-│   ├── form-engine/      # Core form rendering library
-│   └── expression-engine/ # Dynamic formulas & filters
-├── scripts/              # Automation & audit scripts
-├── .github/workflows/    # CI/CD pipelines
+│   ├── form-engine/       # Shared form rendering library
+│   └── expression-engine/ # JS expression evaluator for dynamic field logic
+├── scripts/               # Automation & audit scripts
+├── .github/workflows/     # CI/CD pipelines
 └── docker-compose.prod.yml
 ```
 
 ## CI/CD Pipelines
 
 | Workflow | Trigger | Purpose |
-|----------|---------|---------|
+|----------|---------|---------| 
 | **Build APK** | Push to `main` (client changes) | Auto-build signed APK → GitHub Releases |
 | **Octane Audit** | Push to `main` (backend changes) | Detect memory leak patterns before deploy |
-| **Code Quality** | Push to `main` (apps changes) | ESLint (Vue/TS) + Laravel Pint (PHP) style enforcement |
+| **Code Quality** | Push to `main` (apps changes) | ESLint (Vue/TS) + Laravel Pint (PHP) |
 | **Secret Scan** | Push to `main` (all) | Detect leaked credentials/keys |
 
 ## Security
 
 - All secrets managed via GitHub Secrets / environment variables
-- Automated credential leak detection via pre-commit scanning
+- Automated credential leak detection via pre-commit hooks
 - Octane-safe code patterns enforced by CI
 
 ## License
@@ -161,5 +172,5 @@ cerdas/
 ---
 
 <div align="center">
-  Built with ❤️ for field data collection teams everywhere.
+  Built with ❤️ for field data collection teams.
 </div>
