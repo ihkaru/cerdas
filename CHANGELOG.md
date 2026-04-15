@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.56](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.55...cerdas-v0.1.56) (2026-04-15)
+
+
+### Bug Fixes
+
+* stabilize dashboard sync and join flow cleanup ([996e318](https://github.com/ihkaru/cerdas/commit/996e318574974c67895497150c05d3760c8e755e))
+
 ## [0.1.55](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.54...cerdas-v0.1.55) (2026-04-15)
 
 
