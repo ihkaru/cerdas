@@ -116,7 +116,7 @@ const openPicker = () => {
   })() : [];
 
   calendarInstance.value = f7.calendar.create({
-    inputEl: hiddenInputRef.value,
+    inputEl: hiddenInputRef.value as HTMLElement,
     openIn: 'customModal',
     animate: true,
     backdrop: true,
@@ -127,7 +127,7 @@ const openPicker = () => {
     toolbarCloseText: 'Done',
     value: initialValue,
     on: {
-      change: (calendar: any, val: any) => {
+      change: (_calendar: any, val: any) => {
         onCalendarChange(val);
       }
     }
@@ -190,7 +190,7 @@ const setupTimePicker = () => {
     value: parseValueForPicker(safeValue.value),
     cols: columns,
     on: {
-      change: (picker: any, value: any) => {
+      change: (_picker: any, value: any) => {
         const values = value as any[];
         let newValue = '';
         if (use24h.value) {
