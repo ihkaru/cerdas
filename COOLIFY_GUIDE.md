@@ -85,3 +85,5 @@ For the first run, you need to migrate the database yourself.
 - **CORS Errors?** Check `SANCTUM_STATEFUL_DOMAINS` and `SESSION_DOMAIN`.
 - **Vite connection error?** Check `VITE_API_BASE_URL` - must match the backend domain.
 - **File Upload Errors?** Ensure `docker-compose.prod.yml` defines the `app_storage` volume and mounts it to `backend`, `worker`, and `scheduler`. This is required for background processing of files.
+- **504 Gateway Timeout on a specific service?** This almost always means Traefik cannot route to the container because it doesn't know which Docker network to use. Ensure every service in `docker-compose.prod.yml` that has `traefik.enable=true` also has the label `traefik.docker.network=coolify`. This is critical when a service is connected to more than one network.
+- **Build context too large / deploy is slow?** Make sure the `.dockerignore` at the repo root is comprehensive. Large files like `.apk`, `.sql`, or log files in the root directory will be sent to the Docker daemon on every build.
