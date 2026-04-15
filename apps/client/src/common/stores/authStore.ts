@@ -16,6 +16,7 @@ interface User {
 interface AuthState {
     token: string | null;
     user: User | null;
+    isSessionVerified: boolean;
 }
 
 import { useLogger } from '../utils/logger';
@@ -36,6 +37,7 @@ export const useAuthStore = defineStore('auth', {
         return {
             token,
             user,
+            isSessionVerified: false,
         };
     },
 
@@ -46,7 +48,16 @@ export const useAuthStore = defineStore('auth', {
     actions: {
         async login(email: string, password: string) {
             log.info('Attempting login', { email });
-            const joinToken = localStorage.getItem('pending_join_token');
+            let joinToken = localStorage.getItem('pending_join_token');
+            const joinTokenAt = localStorage.getItem('pending_join_token_at');
+            
+            if (joinTokenAt && (Date.now() - parseInt(joinTokenAt)) > 30 * 60 * 1000) {
+                // Expired after 30 mins
+                localStorage.removeItem('pending_join_token');
+                localStorage.removeItem('pending_join_token_at');
+                joinToken = null;
+            }
+
             const res = await apiClient.post('/auth/login', { 
                 email, 
                 password, 
@@ -68,7 +79,16 @@ export const useAuthStore = defineStore('auth', {
         async loginWithGoogle(idToken: string) {
             log.info('Attempting Google login');
             try {
-                const joinToken = localStorage.getItem('pending_join_token');
+                let joinToken = localStorage.getItem('pending_join_token');
+                const joinTokenAt = localStorage.getItem('pending_join_token_at');
+                
+                if (joinTokenAt && (Date.now() - parseInt(joinTokenAt)) > 30 * 60 * 1000) {
+                    // Expired after 30 mins
+                    localStorage.removeItem('pending_join_token');
+                    localStorage.removeItem('pending_join_token_at');
+                    joinToken = null;
+                }
+
                 log.info('Google ID Token received for Join Handoff', { 
                     hasJoinToken: !!joinToken,
                     tokenLength: idToken?.length
@@ -94,6 +114,7 @@ export const useAuthStore = defineStore('auth', {
 
                     // We only remove the pending token IF the login was successful.
                     localStorage.removeItem('pending_join_token');
+                    localStorage.removeItem('pending_join_token_at');
                     return true;
                 } else {
                     log.warn('Google Login failed: Invalid response structure', res);
@@ -105,6 +126,26 @@ export const useAuthStore = defineStore('auth', {
                 console.error('GOOGLE_LOGIN_FAILURE_DETAILS:', JSON.stringify(e, null, 2));
                 throw e;
             }
+        },
+
+        async verifySession() {
+            if (!this.token) return false;
+            if (this.isSessionVerified) return true; // Optimized!
+            
+            try {
+                const res = await apiClient.get('/auth/me');
+                if (res && res.id) {
+                    // Update user info silently
+                    this.user = { ...this.user, ...res } as User;
+                    localStorage.setItem('auth_user', JSON.stringify(this.user));
+                    this.isSessionVerified = true;
+                    return true;
+                }
+            } catch (e: any) {
+                // If ApiClient hit 401, it already cleared auth and redirected.
+                log.warn('Session verification failed', e);
+            }
+            return false;
         },
 
         async logout() {

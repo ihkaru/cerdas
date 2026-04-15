@@ -111,6 +111,14 @@ onMounted(async () => {
   setTimeout(() => clearInterval(checkGoogle), 5000);
 
   try {
+    // Verify session validity if we think we are logged in
+    if (authStore.isAuthenticated) {
+      const isValid = await authStore.verifySession();
+      if (!isValid) {
+        authStore.clearAuth(); // Token was stale or server rejected it.
+      }
+    }
+
     const res = await apiClient.get(`/join/${props.token}`);
     // The API returns { success: true, data: { ... } }
     // apiClient already returns the JSON object, so res.data is the payload
@@ -133,6 +141,7 @@ function downloadApk() {
 function openWeb() {
   // Store token for later use during login
   localStorage.setItem('pending_join_token', props.token);
+  localStorage.setItem('pending_join_token_at', Date.now().toString());
   
   // Transition to login
   f7.views.main.router.navigate('/login', {

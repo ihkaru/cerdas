@@ -17,7 +17,14 @@ const routes: Router.RouteParameters[] = [
 
       
       if (authStore.isAuthenticated) {
-        resolve({ component: DashboardPage });
+        const isValid = await authStore.verifySession();
+        if (isValid) {
+          resolve({ component: DashboardPage });
+        } else {
+          // ensure auth is cleared locally if invalid
+          authStore.clearAuth();
+          resolve({ component: Login });
+        }
       } else {
         resolve({ component: Login });
       }

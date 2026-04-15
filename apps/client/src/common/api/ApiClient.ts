@@ -55,10 +55,22 @@ const ANDROID_LOOPBACK = '10.0.2.2';
         if (res.status === 401) {
             logger.warn('Unauthorized access (401). Redirecting to login...');
             localStorage.removeItem('auth_token');
-            // Force reload/redirect to login
-            // Using window.location to ensure clean state reset
-            if (!window.location.href.includes('/login')) {
-                 window.location.href = '/login';
+            localStorage.removeItem('auth_user'); // Fix #2: also clear user!
+            
+            // Try using f7 router if available (avoids full reload in Capacitor/SPA)
+            try {
+                // Dynamic import to avoid circular dependency
+                import('framework7-vue').then(({ f7 }) => {
+                    if (f7 && f7.views && f7.views.main) {
+                        f7.views.main.router.navigate('/login', { reloadCurrent: true, clearPreviousHistory: true });
+                    } else if (!window.location.href.includes('/login')) {
+                        window.location.href = '/login';
+                    }
+                });
+            } catch {
+                if (!window.location.href.includes('/login')) {
+                    window.location.href = '/login';
+                }
             }
             throw new Error('Unauthorized');
         }
