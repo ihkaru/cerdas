@@ -70,7 +70,22 @@
                     </div>
 
                     <div class="logic-editor-group">
-                        <div class="logic-label">Editable If (JS)</div>
+                        <div class="logic-label-row">
+                            <div class="logic-label">Editable If (JS)</div>
+                            <!-- Status badge when sentinel is active -->
+                            <div v-if="isReadonlySentinel" class="readonly-badge">
+                                <f7-icon f7="lock_fill" size="10" />
+                                Always Read-only
+                            </div>
+                        </div>
+                        <!-- Readonly sentinel banner -->
+                        <div v-if="isReadonlySentinel" class="sentinel-banner">
+                            <f7-icon f7="info_circle_fill" size="14" class="banner-icon" />
+                            <div class="banner-text">
+                                This field is set to <strong>always read-only</strong> via the Display toggle.
+                                Edit the code below to add conditional logic instead.
+                            </div>
+                        </div>
                         <CodeEditor :model-value="field.editable_if_fn || ''" language="javascript" height="100px"
                             placeholder="return ctx.user.role === 'admin';"
                             @update:model-value="emit('update', { editable_if_fn: $event })" />
@@ -132,10 +147,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import CodeEditor from '@/components/CodeEditor.vue';
 import type { EditableFieldDefinition } from '../../../types/editor.types';
 
-defineProps<{
+const READONLY_SENTINEL = 'return false;';
+
+const props = defineProps<{
     field: EditableFieldDefinition;
     allFields?: EditableFieldDefinition[];
     hasOptions: boolean;
@@ -147,6 +165,11 @@ defineProps<{
 const emit = defineEmits<{
     (e: 'update', updates: Partial<EditableFieldDefinition>): void;
 }>();
+
+/** Detect if the simple read-only toggle is active */
+const isReadonlySentinel = computed(() =>
+    (props.field.editable_if_fn ?? '').trim() === READONLY_SENTINEL
+);
 </script>
 
 <style scoped>
@@ -165,13 +188,62 @@ const emit = defineEmits<{
     border-bottom: none;
 }
 
+.logic-label-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
 .logic-label {
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     color: var(--editor-text-secondary, #64748b);
-    margin-bottom: 8px;
     letter-spacing: 0.5px;
+    /* Remove margin-bottom — now controlled by parent .logic-label-row */
+}
+
+/* Keep original single-label logic sections working */
+.logic-editor-group > .logic-label:first-child {
+    margin-bottom: 8px;
+}
+
+.readonly-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 59, 48, 0.1);
+    color: #ff3b30;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.sentinel-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: #fff8f8;
+    border: 1px solid rgba(255, 59, 48, 0.2);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+}
+
+.banner-icon {
+    color: #ff3b30;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.banner-text {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
 }
 
 .schema-item {

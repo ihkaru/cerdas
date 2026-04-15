@@ -14,6 +14,23 @@
                 @input="emit('update', { max: parseFloat(($event.target as HTMLInputElement).value) })" />
         </template>
 
+        <template v-if="field.type === 'date' || field.type === 'datetime' || field.type === 'time'">
+            <f7-list-input :label="field.type === 'time' ? 'Min Time' : 'Min Date'"
+                :type="field.type === 'datetime' ? 'datetime-local' : (field.type === 'time' ? 'time' : 'date')"
+                :value="field.min" @input="emit('update', { min: ($event.target as HTMLInputElement).value })" />
+            <f7-list-input :label="field.type === 'time' ? 'Max Time' : 'Max Date'"
+                :type="field.type === 'datetime' ? 'datetime-local' : (field.type === 'time' ? 'time' : 'date')"
+                :value="field.max" @input="emit('update', { max: ($event.target as HTMLInputElement).value })" />
+            <f7-list-input label="Display Format" type="text" :value="field.format"
+                placeholder="e.g. YYYY-MM-DD" info="Formatting for display only"
+                @input="emit('update', { format: ($event.target as HTMLInputElement).value })" />
+            <f7-list-item v-if="field.type === 'datetime' || field.type === 'time'">
+                <span>Use 24H Format</span>
+                <f7-toggle slot="after" :checked="field.config?.use24h"
+                    @toggle:change="emit('update', { config: { ...field.config, use24h: $event } })" />
+            </f7-list-item>
+        </template>
+
         <template v-if="field.type === 'nested_form'">
             <f7-list-input label="Min Items" type="number" :value="field.min" placeholder="0"
                 @input="emit('update', { min: parseFloat(($event.target as HTMLInputElement).value) })" />

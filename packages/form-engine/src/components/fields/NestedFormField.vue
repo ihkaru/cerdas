@@ -4,6 +4,9 @@
             <span>{{ field.label }}</span>
             <span v-if="error" class="text-color-red size-12 font-normal normal-case">{{ error }}</span>
         </f7-block-title>
+        <f7-block-footer v-if="field.hint" class="margin-horizontal no-margin-top field-hint">
+            {{ field.hint }}
+        </f7-block-footer>
 
         <f7-list inset strong>
             <f7-list-item v-for="(item, index) in modelValue" :key="index" :title="getSummary(item, index)" link="#"
@@ -184,5 +187,12 @@ defineExpose({ openItemAndScrollToField });
 <style scoped>
 .nested-form-container {
     margin-bottom: 24px;
+}
+
+.field-hint {
+    color: #666;
+    font-size: 12px;
+    margin-top: -8px;
+    margin-bottom: 8px;
 }
 </style>

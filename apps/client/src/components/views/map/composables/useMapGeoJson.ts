@@ -124,12 +124,13 @@ export function useMapGeoJson(
     };
 
     const setupDataWatcher = (dataRef: Ref<any[]>) => {
-        watch(dataRef, () => {
+        // Watch for data changes OR config changes (like GPS column or marker styles)
+        watch([dataRef, normalizedConfig, markerStyleFn], () => {
             if (updateDebounce) clearTimeout(updateDebounce);
             updateDebounce = setTimeout(() => {
                 updateGeoJsonSourceAsync();
             }, 300);
-        });
+        }, { deep: true });
     };
 
     return {

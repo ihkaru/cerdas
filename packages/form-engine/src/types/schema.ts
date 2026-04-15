@@ -14,7 +14,8 @@ export interface FieldDefinition {
     max?: number;
     options?: { label: string; value: any }[]; // For select/radio
     rows?: number; // For textarea
-    description?: string;     // Helper text
+    description?: string;     // Legacy helper text
+    hint?: string;            // Primary helper text (synchronized with Editor)
     
     // HTML Block
     content?: string; // HTML content to render

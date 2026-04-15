@@ -55,6 +55,15 @@ export function createDefaultField(type: FieldType): EditableFieldDefinition {
         { value: 'option2', label: 'Option 2' },
       ];
       break;
+    case 'date':
+      base.format = 'YYYY-MM-DD';
+      break;
+    case 'datetime':
+      base.format = 'YYYY-MM-DD HH:mm';
+      break;
+    case 'time':
+      base.format = 'HH:mm';
+      break;
     case 'number':
       base.min = 0;
       break;

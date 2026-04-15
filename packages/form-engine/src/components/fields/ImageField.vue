@@ -56,6 +56,7 @@
         <span>Processing...</span>
       </div>
 
+      <div v-if="field.hint" class="field-hint">{{ field.hint }}</div>
       <div v-if="error" class="field-error">{{ error }}</div>
     </div>
 
@@ -250,6 +251,12 @@
   font-size: 12px;
   margin-top: 8px;
   padding: 0 12px 12px 12px;
+}
+
+.field-hint {
+  color: #666;
+  font-size: 12px;
+  margin-top: 4px;
 }
 </style>
 

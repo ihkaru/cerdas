@@ -24,7 +24,8 @@
         </div>
 
         <div class="header-right">
-            <f7-button outline @click="emit('save')" :disabled="!isDirty" class="save-btn">
+            <f7-button :fill="isDirty" :outline="!isDirty" @click="emit('save')" :disabled="!isDirty" 
+                :class="['save-btn', { 'dirty-active': isDirty }]">
                 <f7-icon f7="arrow_down_doc" />
                 Save Draft
             </f7-button>
@@ -198,6 +199,28 @@ const emit = defineEmits<{
 .save-btn {
     --f7-button-outline-border-color: #e2e8f0;
     color: #64748b;
+    transition: all 0.3s ease;
+}
+
+.save-btn.dirty-active {
+    --f7-button-bg-color: #0284c7; /* Sky blue primary */
+    --f7-button-hover-bg-color: #0369a1;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    animation: pulse-save 2s infinite;
+}
+
+@keyframes pulse-save {
+    0% {
+        box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(2, 132, 199, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(2, 132, 199, 0);
+    }
 }
 
 .publish-btn {

@@ -12,6 +12,7 @@
             <canvas ref="canvasEl" class="signature-canvas"></canvas>
         </div>
 
+        <div v-if="field.hint" class="field-hint">{{ field.hint }}</div>
         <div v-if="error" class="field-error">
             {{ error }}
         </div>
@@ -61,6 +62,12 @@
 
 .field-error {
     color: #ff3b30;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.field-hint {
+    color: #666;
     font-size: 12px;
     margin-top: 4px;
 }

@@ -9,6 +9,7 @@
       <!-- Use native input without v-model to avoid reactivity overhead -->
       <input ref="inputRef" class="custom-input" type="number" :placeholder="field.placeholder" @input="onInput"
         @blur="onBlur" :required="field.required" :readonly="field.readonly" :min="field.min" :max="field.max" />
+      <div v-if="field.hint" class="field-hint">{{ field.hint }}</div>
       <div v-if="error" class="field-error">{{ error }}</div>
     </div>
   </div>
@@ -133,6 +134,12 @@ const onBlur = () => {
 
 .field-error {
   color: #ff3b30;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.field-hint {
+  color: #666;
   font-size: 12px;
   margin-top: 4px;
 }

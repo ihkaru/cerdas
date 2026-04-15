@@ -29,6 +29,7 @@
         </div>
       </div>
 
+      <div v-if="field.hint" class="field-hint">{{ field.hint }}</div>
       <div v-if="error" class="field-error">{{ error }}</div>
     </div>
   </div>
@@ -88,7 +89,7 @@ let emitTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Set initial value after mount (direct DOM access)
 onMounted(() => {
-  if (inputRef.value && props.value != null) {
+  if (inputRef.value && props.value !== null && props.value !== undefined) {
     inputRef.value.value = String(props.value);
   }
 });
@@ -175,6 +176,12 @@ const onBlur = () => {
 
 .field-error {
   color: #ff3b30;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.field-hint {
+  color: #666;
   font-size: 12px;
   margin-top: 4px;
 }

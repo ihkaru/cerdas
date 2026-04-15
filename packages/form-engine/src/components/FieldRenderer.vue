@@ -57,6 +57,8 @@ const componentMap: Partial<Record<FieldType | string, any>> = {
   number: NumberField,
   select: SelectField,
   date: DateField,
+  datetime: DateField,
+  time: DateField,
   radio: RadioField,
   image: ImageField,
   gps: GpsField,

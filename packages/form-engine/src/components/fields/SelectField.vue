@@ -14,6 +14,7 @@
           {{ getLabel(opt) }}
         </option>
       </select>
+      <div v-if="field.hint" class="field-hint">{{ field.hint }}</div>
       <div v-if="error" class="field-error">{{ error }}</div>
     </div>
   </div>
@@ -103,6 +104,12 @@ const getLabel = (opt: any) => typeof opt === 'object' ? opt.label : opt;
 
 .field-error {
   color: #ff3b30;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.field-hint {
+  color: #666;
   font-size: 12px;
   margin-top: 4px;
 }

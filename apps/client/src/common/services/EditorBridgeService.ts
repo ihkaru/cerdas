@@ -67,6 +67,9 @@ export class EditorBridgeService {
                     case 'REFRESH_DATA':
                         await this.handleRefreshData();
                         break;
+                    case 'NAVIGATE_TO':
+                        await this.handleNavigateTo(payload);
+                        break;
                     default:
                         // Ignore unknown messages
                         break;
@@ -181,7 +184,13 @@ export class EditorBridgeService {
             // 4. Update Store
             this.notifyStores();
 
-            // 5. Custom Event
+            // 5. Handle Navigation if activeViewId is present
+            if (payload.activeViewId) {
+                this.log.info(`Syncing active view from Editor: ${payload.activeViewId}`);
+                this.handleNavigateTo({ viewId: payload.activeViewId });
+            }
+
+            // 6. Custom Event
             window.dispatchEvent(new CustomEvent('schema-override-updated', {
                 detail: { tableId: targetId, fields: targetFields, layout, viewConfigs: payload.viewConfigs }
             }));
@@ -199,6 +208,26 @@ export class EditorBridgeService {
         
         if (f7?.view?.main) {
             f7.view.main.router.refreshPage();
+        }
+    }
+
+    private async handleNavigateTo(payload: any) {
+        const viewId = payload.viewId;
+        if (!viewId) return;
+
+        this.log.info(`Remote navigation request to view: ${viewId}`);
+
+        if (f7?.view?.main) {
+            const currentRoute = f7.view.main.router.currentRoute;
+            const newUrl = `${currentRoute.path}?view=${viewId}`;
+            
+            // Only navigate if we are not already on that view query
+            if (currentRoute.query.view !== viewId) {
+                f7.view.main.router.navigate(newUrl, {
+                    reloadCurrent: true,
+                    ignoreCache: true
+                });
+            }
         }
     }
 

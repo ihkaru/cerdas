@@ -21,6 +21,7 @@ const props = defineProps<{
     appViews?: Record<string, any>;
     viewsVersion?: number;
     navigation?: any[];
+    selectedViewId?: string;
 }>();
 
 const {
@@ -117,7 +118,8 @@ function syncSchema() {
             schema: schemaForPreview.value,
             layout: editorState.layout,
             navigation: props.navigation, // Pass live navigation
-            viewConfigs: props.appViews
+            viewConfigs: props.appViews,
+            activeViewId: props.selectedViewId // NEW: include active view for sync
         }
     })), '*');
 }
@@ -139,6 +141,20 @@ defineExpose({
 watch(() => props.role, () => {
     impersonatedToken.value = null; // Clear cache
     syncAuth();
+});
+
+// Watch for selection change and tell iframe to navigate
+watch(() => props.selectedViewId, (newId) => {
+    if (newId && iframeRef.value?.contentWindow) {
+        console.log('[LivePreview] Proposing navigation to view:', newId);
+        iframeRef.value.contentWindow.postMessage({
+            type: 'NAVIGATE_TO',
+            payload: { viewId: newId }
+        }, '*');
+        
+        // Also trigger schema sync to ensure the destination view has the latest config
+        syncSchema();
+    }
 });
 
 // Watch for changes in schema or layout and push to iframe

@@ -69,6 +69,10 @@
       </div>
 
       <!-- Error Message -->
+      <div v-if="field.hint" class="field-hint">
+        <f7-icon f7="info_circle" size="14" class="margin-right-half"></f7-icon>
+        {{ field.hint }}
+      </div>
       <div v-if="error" class="field-error">
         <f7-icon f7="exclamationmark_circle_fill" size="14" class="margin-right-half"></f7-icon>
         {{ error }}
@@ -213,6 +217,15 @@
   background: rgba(255, 59, 48, 0.1);
   padding: 6px 10px;
   border-radius: 6px;
+}
+
+.field-hint {
+  color: #666;
+  font-size: 12px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
 }
 </style>
 

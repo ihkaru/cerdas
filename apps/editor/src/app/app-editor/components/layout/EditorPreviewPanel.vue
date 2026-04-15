@@ -48,6 +48,7 @@
                     :app-views="appViews" 
                     :views-version="viewsVersion" 
                     :navigation="navigation"
+                    :selected-view-id="selectedViewId"
                 />
             </DeviceFrame>
         </div>
@@ -62,6 +63,7 @@ import LivePreview from '../preview/LivePreview.vue';
 const props = defineProps<{
     appViews?: Record<string, any>;
     viewsVersion?: number;
+    selectedViewId?: string;
     navigation?: any[];
     isDirty?: boolean;
 }>();

@@ -9,9 +9,10 @@ export function useEditorHandlers(
         tableEditor: any;
         tableSelection: any;
         appViewManagement?: any;
+        isGlobalDirty: { value: boolean };
     }
 ) {
-    const { tableStore, navManagement, tableEditor, tableSelection, appViewManagement } = dependencies;
+    const { tableStore, navManagement, tableEditor, tableSelection, appViewManagement, isGlobalDirty } = dependencies;
 
     // Destructure dependencies for easier access
     const { isNavDirty, saveNavigation } = navManagement;
@@ -21,10 +22,8 @@ export function useEditorHandlers(
         tableForPreview, 
         tableName, 
         updateTableName,
-        replaceAllFields,
         replaceLayout,
-        replaceSettings,
-        isGlobalDirty 
+        replaceSettings
     } = tableEditor;
     const { isPublished, currentTableId } = tableSelection;
 

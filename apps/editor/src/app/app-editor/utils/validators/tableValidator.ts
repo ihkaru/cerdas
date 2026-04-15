@@ -138,28 +138,28 @@ export function validateLayout(
     // Note: app_name belongs to App level, not layout
     // Note: groupBy belongs to View level, not layout
 
-    // Required: views object with at least one view
-    if (!l.views || typeof l.views !== 'object') {
-        errors.push({
+    // Optional: views object (recommended for custom layouts)
+    if (l.views !== undefined && typeof l.views !== 'object') {
+        warnings.push({
             path: `${basePath}.views`,
-            message: '"views" must be an object',
-            severity: 'error'
+            message: 'No views defined in layout. It is recommended to define at least one view.',
+            severity: 'warning'
         });
-    } else {
+    } else if (l.views) {
         const views = l.views as Record<string, unknown>;
         const viewKeys = Object.keys(views);
 
         if (viewKeys.length === 0) {
-            errors.push({
+            warnings.push({
                 path: `${basePath}.views`,
-                message: 'At least one view is required',
-                severity: 'error'
+                message: 'No views defined in layout.',
+                severity: 'warning'
+            });
+        } else {
+            viewKeys.forEach(viewKey => {
+                validateView(views[viewKey], `${basePath}.views.${viewKey}`, errors, warnings);
             });
         }
-
-        viewKeys.forEach(viewKey => {
-            validateView(views[viewKey], `${basePath}.views.${viewKey}`, errors, warnings);
-        });
     }
 }
 

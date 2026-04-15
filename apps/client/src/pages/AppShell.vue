@@ -35,10 +35,16 @@
                     </div>
 
                     <!-- Leaf Views (Assignments/Map/etc) -->
-                    <div v-else key="leaf">
+                    <div v-else-if="currentViewConfig && currentViewConfig.config" key="leaf">
                         <ViewRenderer :config="currentViewConfig.config"
-                            :data="getViewData((currentViewConfig!.config as any).source)" :contextId="contextId"
+                            :data="getViewData((currentViewConfig.config as any).source)" :contextId="contextId"
                             :actions="rowActions" :swipe-config="swipeConfig" @action="handleRowAction" />
+                    </div>
+
+                    <!-- Not Found / Fallback if no view found -->
+                    <div v-else key="empty" class="padding text-align-center">
+                        <f7-icon f7="search" size="48" color="gray" />
+                        <p class="text-color-gray">Konfigurasi view tidak ditemukan</p>
                     </div>
                 </transition>
             </div>
@@ -275,9 +281,42 @@ const filterSheetOpen = ref(false);
 // ============================================================================
 const routeViewId = computed(() => props.f7route?.query?.view);
 const currentViewConfig = computed(() => {
-    if (routeViewId.value && appViews.value.length) {
-        return appViews.value.find((v: any) => v.id === routeViewId.value);
+    const viewId = routeViewId.value;
+    if (!viewId) return null;
+
+    // Use the logic from getAppViewConfig to ensure consistent structure {id, type, config}
+    
+    // 1. Check App-level View Configs (co-located with navigation)
+    if (appViewConfigs.value && appViewConfigs.value[viewId]) {
+        return {
+            id: viewId,
+            label: (appViewConfigs.value[viewId] as any).title || viewId,
+            type: (appViewConfigs.value[viewId] as any).type,
+            config: appViewConfigs.value[viewId]
+        };
     }
+
+    // 2. Try finding in AppViews DB array (fallback)
+    const dbView = appViews.value.find((v: any) => v.id === viewId || v.view_id === viewId);
+    if (dbView) {
+        return {
+            id: viewId,
+            label: dbView.title || dbView.label || viewId,
+            type: dbView.type,
+            config: dbView.config || dbView // Support both wrapped and direct
+        };
+    }
+
+    // 3. Fallback to Legacy Layout Views
+    if (layout.value?.views?.[viewId]) {
+        return {
+            id: viewId,
+            label: layout.value.views[viewId].title || viewId,
+            type: layout.value.views[viewId].type,
+            config: layout.value.views[viewId]
+        };
+    }
+
     return null;
 });
 

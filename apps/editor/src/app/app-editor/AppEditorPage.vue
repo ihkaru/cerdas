@@ -22,6 +22,7 @@
             <EditorPreviewPanel 
                 :app-views="appViewManagement.appViews.value" 
                 :views-version="appViewManagement.viewsVersion.value"
+                :selected-view-id="appViewManagement.selectedViewKey.value"
                 :navigation="navManagement.navigation.value"
                 :is-dirty="isGlobalDirty"
             />
@@ -100,8 +101,11 @@ const tableSelection = useTableSelection(
 );
 const { hasTableSelected, selectTable, currentVersion, isPublished } = tableSelection;
 
+// 6. UI Helpers
+const isGlobalDirty = computed(() => isDirty.value || isNavDirty.value || isViewsDirty.value);
+
 // 5. Handlers
-const handlers = useEditorHandlers(props, { tableStore, navManagement, tableEditor, tableSelection, appViewManagement });
+const handlers = useEditorHandlers(props, { tableStore, navManagement, tableEditor, tableSelection, appViewManagement, isGlobalDirty });
 const { handleSave, handlePublish, confirmPublish, handleRename, handleBack, exportTable, handleCodeApply } = handlers;
 
 // Publish Dialog State
@@ -117,9 +121,6 @@ async function onPublishConfirm(payload: { changelog: string; versionPolicy: str
     await confirmPublish(payload);
 }
 
-// 6. UI Helpers
-const isGlobalDirty = computed(() => isDirty.value || isNavDirty.value || isViewsDirty.value);
-
 function handleFieldReset() {
     if (selectedFieldPath.value && selectedOriginalField.value) {
         updateField(selectedFieldPath.value, JSON.parse(JSON.stringify(selectedOriginalField.value)));
@@ -133,6 +134,23 @@ function handleFieldReset() {
 }
 
 // 7. Lifecycle
+import { onMounted, onUnmounted } from 'vue';
+
+const onBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (isGlobalDirty.value) {
+        e.preventDefault();
+        e.returnValue = ''; // Required for most browsers
+    }
+};
+
+onMounted(() => {
+    window.addEventListener('beforeunload', onBeforeUnload);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('beforeunload', onBeforeUnload);
+});
+
 useEditorLifecycle(props, {
     appStore,
     tableStore,
