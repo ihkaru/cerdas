@@ -47,9 +47,16 @@ onMounted(async () => {
     await dashboardStore.loadData();
 
     if (navigator.onLine) {
+        // If it's the first time (no apps, no last sync), show a non-obstructive preloader
+        const isFirstSync = apps.value.length === 0 && !lastSyncTime.value;
+        if (isFirstSync) isSyncing.value = true;
+
         sync.sync()
             .then(() => dashboardStore.loadData(true))
-            .catch(err => console.error('Background sync failed', err));
+            .catch(err => console.error('Background sync failed', err))
+            .finally(() => {
+                if (isFirstSync) isSyncing.value = false;
+            });
     }
 });
 

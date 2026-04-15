@@ -35,7 +35,20 @@ class DashboardController extends Controller
         ];
 
         // 2. Apps List (User's Apps)
-        $appIds = $user->isSuperAdmin() ? App::withTrashed()->pluck('id') : $user->appMemberships->pluck('app_id');
+        if ($user->isSuperAdmin()) {
+            $appIds = App::withTrashed()->pluck('id');
+        } else {
+            // Get Direct Memberships
+            $directAppIds = $user->appMemberships()->pluck('app_id');
+
+            // Get Apps via Organization Membership
+            $orgAppIds = App::whereHas('organizations.members', function ($q) use ($user) {
+                $q->where('users.id', $user->id);
+            })->pluck('apps.id');
+
+            $appIds = $directAppIds->concat($orgAppIds)->unique();
+        }
+
         $appsQuery = App::whereIn('id', $appIds);
 
         if ($updatedSince) {

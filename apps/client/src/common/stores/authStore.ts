@@ -83,9 +83,13 @@ export const useAuthStore = defineStore('auth', {
                     log.info('Google Login successful');
                     this.setAuth(res.token, res.user);
                     
+                    // Specific Join Handoff: If backend returned joined_app, 
+                    // we can trigger an immediate sync or at least log it.
+                    if (res.joined_app) {
+                        log.info('Account joined app during login:', res.joined_app);
+                    }
+
                     // We only remove the pending token IF the login was successful.
-                    // If backend failed to join but login worked, we keep it for manual retry if needed,
-                    // but usually the backend handles it.
                     localStorage.removeItem('pending_join_token');
                     return true;
                 } else {
@@ -124,6 +128,20 @@ export const useAuthStore = defineStore('auth', {
             this.user = user;
             localStorage.setItem('auth_token', token);
             localStorage.setItem('auth_user', JSON.stringify(user));
+
+            // Force fresh sync on login to prevent stale/empty dashboard
+            log.info('Clearing sync checkpoints for fresh session');
+            const syncKeys = ['sync_global', 'sync_responses_all'];
+            syncKeys.forEach(key => localStorage.removeItem(key));
+            
+            // Also clear all assignment/response sync keys
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key?.startsWith('sync_assignments_') || key?.startsWith('sync_responses_')) {
+                    localStorage.removeItem(key);
+                }
+            }
+
             log.debug('Auth saved to LocalStorage');
         },
 

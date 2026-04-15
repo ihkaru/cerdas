@@ -42,7 +42,7 @@ class GoogleAuthController extends Controller
 
             $payload = $client->verifyIdToken($idToken);
 
-            if (!$payload) {
+            if (! $payload) {
                 // If verifyIdToken returns false, it failed.
                 // Sometimes it throws exception, sometimes false.
                 return response()->json(['message' => 'Invalid Google Token'], 401);
@@ -88,10 +88,10 @@ class GoogleAuthController extends Controller
             if ($request->filled('join_token')) {
                 Log::info('Processing Join Token during Google Login', [
                     'email' => $email,
-                    'token_preview' => substr($request->join_token, 0, 5) . '...'
+                    'token_preview' => substr($request->join_token, 0, 5).'...',
                 ]);
                 $membership = $user->joinAppWithToken($request->join_token);
-                if (!$membership) {
+                if (! $membership) {
                     Log::warning('Failed to join app with token during Google Login', ['email' => $email]);
                 }
             }
@@ -103,6 +103,11 @@ class GoogleAuthController extends Controller
                 'success' => true,
                 'token' => $token,
                 'user' => $user,
+                'joined_app' => isset($membership) && $membership ? [
+                    'id' => $membership->app->id,
+                    'name' => $membership->app->name,
+                    'slug' => $membership->app->slug,
+                ] : null,
             ]);
         } catch (\Exception $e) {
             Log::error('Google Login Check Failed', [
