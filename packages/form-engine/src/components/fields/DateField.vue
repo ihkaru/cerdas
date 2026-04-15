@@ -122,7 +122,6 @@ const openPicker = () => {
     backdrop: true,
     closeOnSelect: !isDateTime,
     timePicker: isDateTime,
-    timePicker24h: use24h.value,
     dateFormat: props.field.config?.format || (isDateTime ? 'yyyy-mm-dd HH:mm' : 'yyyy-mm-dd'),
     toolbarCloseText: 'Done',
     value: initialValue,
