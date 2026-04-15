@@ -42,6 +42,7 @@ services:
       start_period: 120s
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
       - "traefik.http.services.backend.loadbalancer.server.port=8080"
     networks:
       - coolify
@@ -81,6 +82,7 @@ services:
       start_period: 10s
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
       - "traefik.http.services.client.loadbalancer.server.port=80"
     networks:
       - coolify
@@ -120,6 +122,7 @@ services:
       start_period: 10s
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
       - "traefik.http.services.editor.loadbalancer.server.port=80"
     networks:
       - coolify

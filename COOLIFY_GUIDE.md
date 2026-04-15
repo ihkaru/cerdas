@@ -56,7 +56,7 @@ In the Coolify UI for the Docker Compose resource, you will see individual servi
 
 1.  **backend**:
     -   Domain: `https://api.dvlpid.my.id`
-    -   Port: `80`
+    -   Port: `8080`
 2.  **client**:
     -   Domain: `https://app.dvlpid.my.id`
     -   Port: `80`
