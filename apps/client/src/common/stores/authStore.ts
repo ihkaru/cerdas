@@ -19,6 +19,7 @@ interface AuthState {
 }
 
 import { useLogger } from '../utils/logger';
+import { databaseService } from '../database/DatabaseService';
 
 const log = useLogger('AuthStore');
 
@@ -56,7 +57,7 @@ export const useAuthStore = defineStore('auth', {
             // ApiClient returns the parsed JSON directly
             if (res && res.token && res.user) {
                 log.info('Login successful');
-                this.setAuth(res.token, res.user);
+                await this.setAuth(res.token, res.user);
                 localStorage.removeItem('pending_join_token');
                 return true;
             }
@@ -83,7 +84,7 @@ export const useAuthStore = defineStore('auth', {
                 
                 if (res && res.token && res.user) {
                     log.info('Google Login successful');
-                    this.setAuth(res.token, res.user);
+                    await this.setAuth(res.token, res.user);
                     
                     // Specific Join Handoff: If backend returned joined_app, 
                     // we can trigger an immediate sync or at least log it.
@@ -124,12 +125,17 @@ export const useAuthStore = defineStore('auth', {
             this.clearAuth();
         },
 
-        setAuth(token: string, user: User) {
+        async setAuth(token: string, user: User) {
             log.info('Setting Auth:', { tokenLength: token.length, userId: user.id });
             this.token = token;
             this.user = user;
             localStorage.setItem('auth_token', token);
             localStorage.setItem('auth_user', JSON.stringify(user));
+
+            // EXTREMELY IMPORTANT: Check for User Switch before any other initialization
+            // If the user logging in is DIFFERENT from the last one seen by SQLite, 
+            // the database will be purged to prevent data leakage.
+            await databaseService.checkUserSwitch(user.id.toString());
 
             // Force fresh sync on login to prevent stale/empty dashboard
             log.info('Clearing sync checkpoints for fresh session');

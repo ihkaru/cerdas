@@ -81,5 +81,11 @@ CREATE TABLE IF NOT EXISTS table_versions (
     PRIMARY KEY (table_id, version)
 );
 `;
+export const APP_META_TABLE = `
+CREATE TABLE IF NOT EXISTS app_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
+`;
 
-export const SCHEMA_VERSION = 14; // Renamed apps.views to apps.view_configs for Eloquent compat
+export const SCHEMA_VERSION = 15; // Added app_meta for user isolation anchoring

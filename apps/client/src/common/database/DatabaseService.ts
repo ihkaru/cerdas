@@ -2,7 +2,7 @@
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { Capacitor } from '@capacitor/core';
 import { useLogger } from '../utils/logger';
-import { APPS_TABLE, ASSIGNMENTS_TABLE, RESPONSES_TABLE, SCHEMA_VERSION, SYNC_QUEUE_TABLE, TABLE_VERSIONS_TABLE, TABLES_TABLE } from './schema';
+import { APPS_TABLE, APP_META_TABLE, ASSIGNMENTS_TABLE, RESPONSES_TABLE, SCHEMA_VERSION, SYNC_QUEUE_TABLE, TABLE_VERSIONS_TABLE, TABLES_TABLE } from './schema';
 
 const log = useLogger('DatabaseService');
 
@@ -159,7 +159,8 @@ export class DatabaseService {
                 'DROP TABLE IF EXISTS assignments', 
                 'DROP TABLE IF EXISTS responses',
                 'DROP TABLE IF EXISTS sync_queue',
-                'DROP TABLE IF EXISTS table_versions'
+                'DROP TABLE IF EXISTS table_versions',
+                'DROP TABLE IF EXISTS app_meta'
             ];
             
             for (const sql of dropStatements) {
@@ -182,7 +183,8 @@ export class DatabaseService {
             ASSIGNMENTS_TABLE,
             RESPONSES_TABLE,
             SYNC_QUEUE_TABLE,
-            TABLE_VERSIONS_TABLE
+            TABLE_VERSIONS_TABLE,
+            APP_META_TABLE
         ];
 
         for (const sql of tables) {
@@ -235,7 +237,8 @@ export class DatabaseService {
             'DROP TABLE IF EXISTS assignments', 
             'DROP TABLE IF EXISTS responses',
             'DROP TABLE IF EXISTS sync_queue',
-            'DROP TABLE IF EXISTS table_versions'
+            'DROP TABLE IF EXISTS table_versions',
+            'DROP TABLE IF EXISTS app_meta'
         ];
         
         if (this.db) {
@@ -260,6 +263,42 @@ export class DatabaseService {
         await this.save();
         
         log.info('Database reset and schema re-initialized complete.');
+    }
+
+    async checkUserSwitch(currentUserId: string): Promise<void> {
+        log.info(`[Auth Guard] Checking User Switch for: ${currentUserId}`);
+        const db = await this.getDB();
+        
+        try {
+            // 1. Fetch last_user_id from app_meta
+            const res = await db.query('SELECT value FROM app_meta WHERE key = ?', ['last_user_id']);
+            const lastUserId = res.values && res.values.length > 0 ? res.values[0].value : null;
+            
+            log.debug(`[Auth Guard] Comparison - Last: ${lastUserId} | Current: ${currentUserId}`);
+            
+            // 2. If different or null (first run), we might need logic.
+            // But specifically if it EXISTS and is DIFFERENT, we MUST purge.
+            if (lastUserId && lastUserId !== currentUserId) {
+                log.warn('[Auth Guard] User Swap Detected! Different account using this device. Purging local data...');
+                await this.resetDatabase();
+            } else if (!lastUserId) {
+                log.info('[Auth Guard] First login on this database or fresh reset.');
+            } else {
+                log.info('[Auth Guard] User identity verified. Preserving local data.');
+            }
+
+            // 3. Update/Set the current user as the last one
+            await db.run('INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)', ['last_user_id', currentUserId]);
+            
+            // 4. Persistence
+            await this.save();
+
+        } catch (e: any) {
+            log.error('[Auth Guard] Error checking user switch', e);
+            // If the table doesn't exist yet (first time after migration), it might throw.
+            // But createTables should have run already.
+            // We'll swallow this to not block login, but log it.
+        }
     }
 }
 
