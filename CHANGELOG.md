@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.61](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.60...cerdas-v0.1.61) (2026-04-15)
+
+
+### Bug Fixes
+
+* **client:** secure join flow against ghost login and double clicks ([31d4fbf](https://github.com/ihkaru/cerdas/commit/31d4fbf1218bffa4c4dddb0733bb64eb481b9ea0))
+
 ## [0.1.60](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.59...cerdas-v0.1.60) (2026-04-15)
 
 
