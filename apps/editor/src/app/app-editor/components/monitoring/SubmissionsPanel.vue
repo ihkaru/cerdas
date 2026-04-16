@@ -200,7 +200,7 @@ async function exportData() {
     if (!tableFilter.value) return;
 
     isExporting.value = true;
-    let toast = f7.toast.create({ text: 'Meminta export dari server...', closeTimeout: 0 }).open();
+    const toast = f7.toast.create({ text: 'Meminta export dari server...', closeTimeout: 0 }).open();
 
     try {
         const token = localStorage.getItem('auth_token');
@@ -256,7 +256,7 @@ async function exportData() {
  * Helper: Polling Export Job Status
  */
 async function pollExportStatus(jobId: string, baseUrl: string, token: string, toast: any) {
-    let isDone = false;
+    const isDone = false;
     while (!isDone) {
         await new Promise(r => setTimeout(r, 2000));
         
@@ -312,7 +312,9 @@ async function downloadExportFile(jobId: string, baseUrl: string, token: string,
             downloadToast.close();
             f7.toast.create({ text: '✅ Tersimpan!', closeTimeout: 2000 }).open();
             return;
-        } catch (e) { console.warn('Picker cancelled'); }
+        } catch (e) {
+            console.error('[Export Picker] Handled fallback after error/cancel:', e);
+        }
     }
 
     // Fallback
