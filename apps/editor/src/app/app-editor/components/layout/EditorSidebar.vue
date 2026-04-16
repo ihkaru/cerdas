@@ -25,11 +25,11 @@ const emit = defineEmits<{
 }>();
 
 const tabs = [
-    { id: 'data', label: 'Data', icon: 'database_fill', requiresForm: false },
+    { id: 'schema', label: 'Schema', icon: 'database_fill', requiresForm: false },
     { id: 'settings', label: 'Settings', icon: 'gear', requiresForm: false },
     { id: 'views', label: 'Views', icon: 'rectangle_3_offgrid', requiresForm: false },
+    { id: 'data_monitoring', label: 'Data & Monitoring', icon: 'eyeglasses', requiresForm: true },
     { id: 'actions', label: 'Actions', icon: 'bolt', requiresForm: true },
-    { id: 'assignments', label: 'Assign', icon: 'person_2', requiresForm: true },
     { id: 'code', label: 'Code', icon: 'chevron_left_slash_chevron_right', requiresForm: false },
 ];
 

@@ -15,6 +15,7 @@ import { useSearchAndFilter } from './app-shell/useSearchAndFilter';
 import { useTableLoader } from './app-shell/useTableLoader'; // Renamed import
 import { useAppShellActions } from './useAppShellActions';
 import { useAppShellSync } from './useAppShellSync';
+import { networkService } from '@/common/services/NetworkService';
 
 export function useAppShellLogic(contextId: string) { // Renamed formId to contextId
     const authStore = useAuthStore();
@@ -190,7 +191,7 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
 
     /** Handles recovery when a local schema is missing — syncs from server or redirects. Returns true if handled (caller should return). */
     const handleMissingSchema = async (targetTableId: string): Promise<boolean> => {
-        if (!navigator.onLine) return false;
+        if (!networkService.isOnline()) return false;
         log.warn(`[AppShell] No local schema for ${targetTableId}, triggering automatic initial sync...`);
         try {
             await syncApp(targetTableId);

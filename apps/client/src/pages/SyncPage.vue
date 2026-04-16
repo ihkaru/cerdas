@@ -9,9 +9,9 @@
         <f7-block-title>Sync Status</f7-block-title>
         <f7-block strong inset class="text-align-center">
             <div class="display-flex justify-content-center align-items-center flex-direction-column">
-                <f7-icon :f7="isOnline ? 'wifi' : 'wifi_slash'" size="48"
-                    :color="isOnline ? 'green' : 'gray'"></f7-icon>
-                <h3 class="no-margin-bottom">{{ isOnline ? 'Online' : 'Offline' }}</h3>
+                <f7-icon :f7="isOnline.connected ? 'wifi' : 'wifi_slash'" size="48"
+                    :color="isOnline.connected ? 'green' : 'gray'"></f7-icon>
+                <h3 class="no-margin-bottom">{{ isOnline.connected ? 'Online' : 'Offline' }}</h3>
                 <p class="text-color-gray no-margin">
                     {{ pendingItems.length }} items pending upload
                 </p>
@@ -63,12 +63,13 @@ import { f7 } from 'framework7-vue';
 import { onMounted, ref } from 'vue';
 import { useDatabase } from '../common/composables/useDatabase';
 import { useSync } from '../common/composables/useSync';
+import { networkService } from '../common/services/NetworkService';
 
 const db = useDatabase();
 const sync = useSync();
 const pendingItems = ref<any[]>([]);
 const isSyncing = ref(false);
-const isOnline = ref(navigator.onLine);
+const isOnline = networkService.status;
 
 const loadQueue = async () => {
     const conn = await db.getDB();
@@ -98,7 +99,5 @@ const formatDate = (dateStr: string) => {
 
 onMounted(() => {
     loadQueue();
-    window.addEventListener('online', () => isOnline.value = true);
-    window.addEventListener('offline', () => isOnline.value = false);
 });
 </script>

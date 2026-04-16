@@ -14,6 +14,11 @@
         <!-- CASE 0: Dynamic View Logic (from Navigation) -->
         <template v-if="currentViewConfig">
             <div class="page-content">
+                <!-- Offline Banner -->
+                <div v-if="!isOnline.connected" class="offline-banner">
+                    <f7-icon f7="wifi_slash" size="14"></f7-icon>
+                    OFFLINE MODE
+                </div>
                 <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
                 <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                     :counts="statusCounts" :active-filter-count="activeFilters.length" @open-sort="sortSheetOpen = true"
@@ -71,6 +76,11 @@
 
                     <!-- Only render content if active to save resources & prevent background map loads -->
                     <template v-if="activeView === item.view_id">
+                        <!-- Offline Banner -->
+                        <div v-if="!isOnline.connected" class="offline-banner">
+                            <f7-icon f7="wifi_slash" size="14"></f7-icon>
+                            OFFLINE MODE
+                        </div>
                         <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
                         <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                             :counts="statusCounts" :active-filter-count="activeFilters.length"
@@ -154,6 +164,12 @@
             <!-- Main Content -->
             <f7-page-content v-else :ptr="!isGroupingActive" @ptr:refresh="refresh"
                 class="app-content-area safe-area-bottom">
+
+                <!-- Offline Banner -->
+                <div v-if="!isOnline.connected" class="offline-banner">
+                    <f7-icon f7="wifi_slash" size="14"></f7-icon>
+                    OFFLINE MODE
+                </div>
 
                 <!-- Sync Pending Warning -->
                 <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
@@ -250,6 +266,9 @@ import { useAppShellPreview } from '../app/dashboard/composables/useAppShellPrev
 import { useDatabase } from '../common/composables/useDatabase';
 import { useAuthStore } from '../common/stores/authStore';
 import ViewRenderer from '../components/views/ViewRenderer.vue';
+import { networkService } from '../common/services/NetworkService';
+
+const isOnline = networkService.status;
 
 // Props
 
@@ -554,6 +573,22 @@ const handleAppNavClick = (item: Record<string, unknown>) => {
 </script>
 
 <style scoped>
+/* Offline Banner Styling */
+.offline-banner {
+    background: var(--f7-color-orange);
+    color: white;
+    text-align: center;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
 /* Page Content Spacing - Framework7 usually handles this with toolbar-bottom, 
    but we add overrides just to be safe if dynamic content pushes boundaries */
 .page-content {

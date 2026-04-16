@@ -2,6 +2,7 @@
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { defineStore } from 'pinia';
 import { apiClient } from '../api/ApiClient';
+import { networkService } from '../services/NetworkService';
 
 interface User {
     id: number;
@@ -130,7 +131,17 @@ export const useAuthStore = defineStore('auth', {
 
         async verifySession() {
             if (!this.token) return false;
-            if (this.isSessionVerified) return true; // Optimized!
+            
+            // If we already verified in this app session, skip network.
+            if (this.isSessionVerified) return true;
+
+            // INDUSTRY BEST PRACTICE 2026: 
+            // If offline, don't even try the network. Trust the local token optimistically.
+            if (!networkService.isOnline()) {
+                log.info('Offline detected. Skipping server session verification (Optimistic Mode)');
+                // We don't set isSessionVerified to true because we want to check as soon as we go back online
+                return true;
+            }
             
             try {
                 const res = await apiClient.get('/auth/me');
@@ -144,8 +155,20 @@ export const useAuthStore = defineStore('auth', {
                     return true;
                 }
             } catch (e: any) {
+                // Determine if this is a network failure or a 401
+                const isNetworkError = !e.response && (
+                    e.message?.includes('Failed to fetch') || 
+                    e.message?.includes('Network Error') ||
+                    e.message?.includes('Load failed')
+                );
+
+                if (isNetworkError) {
+                    log.warn('Network error during session verification. Assuming session is still valid (Offline First).');
+                    return true; // Optimistic return
+                }
+
                 // If ApiClient hit 401, it already cleared auth and redirected.
-                log.warn('Session verification failed', e);
+                log.warn('Session verification rejected by server', e);
             }
             return false;
         },

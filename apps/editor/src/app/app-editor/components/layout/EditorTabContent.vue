@@ -1,7 +1,7 @@
 <template>
     <div class="editor-tab-content h-full">
-        <!-- Data Tab (Sources + Fields merged) -->
-        <div v-show="activeTab === 'data'" class="tab-content">
+        <!-- Schema Tab (Sources + Fields merged) -->
+        <div v-show="activeTab === 'schema'" class="tab-content">
             <!-- Left: Data Sources List -->
             <div class="field-list-panel"
                 :style="{ width: panels.dataListWidth + 'px', minWidth: '250px', maxWidth: '500px' }">
@@ -93,27 +93,23 @@
         <!-- Actions Tab -->
         <div v-show="activeTab === 'actions'" class="tab-content">
             <EditorEmptyState v-if="!tableSelection.hasTableSelected" icon="bolt" title="No Data Source Selected"
-                action-label="Go to Data Sources" @action="$emit('update:activeTab', 'data')">
-                Select a data source from the <strong>Data</strong> tab to configure actions.
+                action-label="Go to Data Sources" @action="$emit('update:activeTab', 'schema')">
+                Select a data source from the <strong>Schema</strong> tab to configure actions.
             </EditorEmptyState>
             <ActionsPanel v-else />
         </div>
 
-        <!-- Assignments Tab -->
-        <div v-show="activeTab === 'assignments'" class="tab-content">
-            <EditorEmptyState v-if="!tableSelection.hasTableSelected" icon="person_2" title="No Data Source Selected"
-                action-label="Go to Data Sources" @action="$emit('update:activeTab', 'data')">
-                Select a data source from the <strong>Data</strong> tab to manage assignments.
-            </EditorEmptyState>
-            <AssignmentsPanel v-else />
+        <!-- Data & Monitoring (Submissions) Tab -->
+        <div v-show="activeTab === 'data_monitoring'" class="tab-content h-full">
+            <SubmissionsPanel />
         </div>
 
         <!-- Code Tab -->
         <div v-show="activeTab === 'code'" class="tab-content code-content">
             <EditorEmptyState v-if="!tableSelection.hasTableSelected" icon="chevron_left_slash_chevron_right"
                 title="No Data Source Selected" action-label="Go to Data Sources"
-                @action="$emit('update:activeTab', 'data')">
-                Select a data source from the <strong>Data</strong> tab to edit its JSON.
+                @action="$emit('update:activeTab', 'schema')">
+                Select a data source from the <strong>Schema</strong> tab to edit its JSON.
             </EditorEmptyState>
             <template v-else>
                 <div class="code-editor-panel"
@@ -146,7 +142,7 @@ import ResizableDivider from '../shared/ResizableDivider.vue';
 
 // Tab Components
 import ActionsPanel from '../actions/ActionsPanel.vue';
-import AssignmentsPanel from '../assignments/AssignmentsPanel.vue';
+import SubmissionsPanel from '../monitoring/SubmissionsPanel.vue';
 import CodeEditorTab from '../code/CodeEditorTab.vue';
 import TrashModal from '../data/TrashModal.vue';
 import FieldConfigPanel from '../field-config/FieldConfigPanel.vue';

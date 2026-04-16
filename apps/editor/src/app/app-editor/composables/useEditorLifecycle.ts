@@ -55,7 +55,7 @@ export function useEditorLifecycle(
                         await selectTable(singleTable.id);
                         await fetchNavigation();
                         await fetchAppViews();
-                        setActiveTab('data');
+                        setActiveTab('schema');
                         f7Instance.preloader.hide();
                         return;
                     }
@@ -67,7 +67,7 @@ export function useEditorLifecycle(
     
                     await fetchNavigation();
                     await fetchAppViews();
-                    setActiveTab('data');
+                    setActiveTab('schema');
                     f7Instance.preloader.hide();
                     return;
                 }
@@ -113,7 +113,7 @@ export function useEditorLifecycle(
                         closeTimeout: 3000,
                     }).open();
     
-                    setActiveTab('data');
+                    setActiveTab('schema');
                     initNewTable();
                 } else {
                     f7Instance.dialog.alert(e.message || 'Failed to load editor');

@@ -11,13 +11,11 @@ graph TD
     subgraph "Client Side (Local)"
         LocalDB[(SQLite Local DB)]
         
-        subgraph "Sync Service"
-            params[Sync Parameters]
-            note_params["Context: form_id (App ID)<br/>Filter responses by app_schema_id=form_id"]
-            
-            Push[Push Pending Data]
-            PullAssign["Pull Assignments<br/>(contains prelist_data)"]
-            PullResp["Pull Responses<br/>(contains response_data)"]
+        subgraph "Sync Service (Sequential)"
+            direction TB
+            Push[1. Push Pending Data]
+            PullAssign["2. Pull Assignments<br/>(using server_time)"]
+            PullResp["3. Pull Responses<br/>(using server_time)"]
         end
 
         subgraph "Data Loading Logic"
@@ -47,8 +45,10 @@ graph TD
     API_Resp --> PullResp
     
     Push --> ServerDB
+    ServerDB -- "Send Server Time" --> PullAssign
     PullAssign --> LocalDB
     PullResp --> LocalDB
+    LocalDB -- "Update Last Sync Time" --> params
 
     %% Opening Flow
     UserAction --> Query
@@ -75,10 +75,20 @@ graph TD
 
 ## Penjelasan Alur
 
-### 1. Sync Context (Parameterisasi)
+### 1. Sync Sequence (Priority)
+Untuk menjamin integritas data, aplikasi menggunakan pola **Push-Before-Pull**:
+-   **Step 1: Push**: Semua perubahan lokal diunggah terlebih dahulu. Jika terjadi konflik, server akan menangani (Last-Write-Wins).
+-   **Step 2: Pull**: Pengambilan data terbaru dari server hanya dilakukan SETELAH push berhasil atau sudah dipastikan tidak ada data yang menggantung.
+
+### 2. Time Authority (Clock Safety)
+Aplikasi tidak menggunakan waktu sistem HP (yang bisa salah/dimanipulasi) untuk menentukan delta sync.
+-   Server mengirimkan `server_time` pada setiap respons API.
+-   Aplikasi menyimpan `server_time` tersebut sebagai checkpoint `updated_since` untuk permintaan sinkronisasi berikutnya.
+
+### 3. Sync Context (Parameterisasi)
 Agar data yang diambil sesuai dengan aplikasi yang sedang dibuka, parameter context sangat penting saat melakukan permintaan ke server (API).
 *   **Assignments**: Menggunakan filter `form_id` (atau `app_schema_id`). Ini memastikan kita hanya mengambil tugas untuk aplikasi tersebut.
-*   **Responses**: Sangat penting untuk juga memfilter `responses` berdasarkan `app_schema_id`. Jika tidak, kita mungkin menarik ribuan jawaban dari aplikasi lain yang tidak relevan, yang memperlambat sync dan memenuhi memori.
+*   **Responses**: Sangat penting untuk juga memfilter `responses` berdasarkan `app_schema_id`.
 
 ### 2. Pengutamaan Data (Priority Strategy)
 Saat form dibuka (`FormView`), aplikasi harus menentukan data apa yang ditampilkan ke pengguna.

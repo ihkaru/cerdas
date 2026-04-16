@@ -4,6 +4,7 @@ import { useLogger } from '@/common/utils/logger';
 import type { Ref } from 'vue';
 import { ref } from 'vue';
 import { AppMetadataService } from '../../services/AppMetadataService';
+import { networkService } from '@/common/services/NetworkService';
 
 interface AuthStore {
     user: { role?: string | undefined } | null;
@@ -96,15 +97,15 @@ export function useAppMetadata(
 
     async function handleMetadataSync(conn: any, validAppId: string, isRefresh: boolean, loading: Ref<boolean>) {
         const hasLocalViews = Object.keys(appViewConfigs.value).length > 0 || appNavigation.value.length > 0;
-        const now = Date.now();
-        const shouldSync = isRefresh || (now - lastSyncTimestamp > SYNC_THROTTLE_MS);
+        const shouldSync = isRefresh || (Date.now() - lastSyncTimestamp > SYNC_THROTTLE_MS);
+        const isOnline = networkService.isOnline();
 
-        if (!navigator.onLine || !shouldSync) {
+        if (!isOnline || !shouldSync) {
             if (!isRefresh) loading.value = false;
             return;
         }
 
-        lastSyncTimestamp = now;
+        lastSyncTimestamp = Date.now();
         
         if (!hasLocalViews && !isRefresh) {
             log.info('[AppMetadata] No local views found. Awaiting remote metadata before rendering.');

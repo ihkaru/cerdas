@@ -13,6 +13,23 @@
 ### 1.2 Performance & Scalability
 1.  **High Volume**: Support 10,000+ users and millions of response rows.
 2.  **Optimized Sync**: Sync payloads MUST be minimized (Delta Sync). Large media (images) sync separately.
+3.  **Modern Execution**: Backend utilizes **FrankenPHP (Laravel Octane)** for high-concurrency processing and **Reverb (ReactPHP)** for real-time signaling.
+
+---
+
+## 2. Infrastructure & Real-time
+
+### 2.1 Role-Based Containerization
+The system is deployed using a Role-Based architecture where a single container image is assigned a specialized role at runtime:
+-   **API**: Standard Web/API requests (FrankenPHP).
+-   **Reverb**: Real-time WebSocket server (ReactPHP).
+-   **Worker**: Asynchronous background jobs (Redis/SQS).
+-   **Scheduler**: Periodic cron tasks.
+
+### 2.2 WebSocket Communication
+-   **Server**: Laravel Reverb running on Port **8081**.
+-   **Protocol**: Automatic discovery between `ws://` (development) and `wss://` (production/TLS).
+-   **Reliability**: Containers use custom healthchecks and `depends_on: service_healthy` to ensure cross-service stability.
 
 ---
 
@@ -38,11 +55,24 @@
 -   **Field Types**: `text`, `number`, `select`, `image` (camera), `gps` (geolocation), `signature`, `nested` (repeater groups).
 -   **Logic Engine**: Validation (`validation_js`), Visibility (`show_if_js`), and Editable (`editable_if_js`) logic are stored as **JavaScript Closures** stringified in the DB and executed safely on the Client.
 
-### 2.4 Assignment & Import (Prelist)
--   **Prelist**: Large datasets (Excel/CSV) imported by Admin to generate `Assignments`.
--   **Distribution**: Assignments are linked to specific `AppSchemaVersion` and `Enumerator`.
--   **Status Workflow**: `assigned` -> `in_progress` -> `completed` -> `synced`.
--   **Reference**: `app_schema_version_id` links to the specific form version used for data collection.
+### 2.4 Assignment & Modes (Workflows)
+The system supports two distinct operational modes per App:
+
+#### A. Simple Mode (Direct)
+Designed for flat hierarchies where individual enumerators are directly invited to the App.
+-   **Workflow**: `assigned` -> `in_progress` -> `completed` -> `synced` (Final).
+-   **Access**: Unassigned tasks can be picked up by any App member (unless restricted).
+
+#### B. Complex Mode (Hierarchical)
+Designed for large-scale census/surveys with organizational structures.
+-   **Workflow**: `assigned` -> `in_progress` -> `submitted` -> `approved` (Synced) / `rejected` (Back to `in_progress`).
+-   **Access**: Tasks are strictly assigned to specific Organizations/Supervisors.
+
+### 2.5 Status Dictionary
+-   **`assigned` (Pending)**: Task is available but not yet opened.
+-   **`in_progress` (Proses)**: Draft data exists on local device.
+-   **`completed` (Selesai)**: Finalized by Enumerator (Simple) or ready for Supervisor (Complex).
+-   **`synced` (Tersinkron)**: Data has safely reached the server and is archived.
 
 ### 2.5 Data Synchronization
 -   **Direction**:
@@ -211,12 +241,18 @@ sequenceDiagram
 
     %% 1. APP LAUNCH
     rect rgb(240, 248, 255)
-        note over User, UI: Flow 1: App Launch & Login
+        note over User, UI: Flow 1: App Launch & Login (Offline First)
         User->>UI: Open App
-        UI->>Store: Check Auth Token
-        alt Token Valid
+        UI->>Store: Check Auth Token (Local)
+        alt Token Exists (Offline Trust)
             Store-->>UI: Return User Profile
-            UI->>UI: Navigate to Home
+            UI->>UI: Navigate to Home (Immediate)
+            opt Background Verify (If Online)
+                UI->>API: GET /auth/me
+                alt Token Invalid
+                    UI->>UI: Force Logout / Redirect to Login
+                end
+            end
         else Token Missing/Expired
             UI->>UI: Navigate to Login
             User->>UI: Enter Email/Pass

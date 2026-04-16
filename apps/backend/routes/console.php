@@ -10,3 +10,9 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('app:clean-trash --days=30')->daily();
+
+// 2026 Best Practice: Auto-cleanup expired export files every hour
+Schedule::call(function () {
+    $count = \App\Models\ExportJob::cleanupExpired();
+    logger()->info("Export cleanup: {$count} files removed.");
+})->hourly();

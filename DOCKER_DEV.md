@@ -1,7 +1,7 @@
 # Docker Local Environment Setup
 
 ## Overview
-We have added a `docker-compose.dev.yml` file to support a full-stack local Docker environment, including a managed MariaDB service. This fixes the issue where the backend container would exit due to missing database connection.
+We utilize a robust `docker-compose.dev.yml` stack that mirrors production stability. It uses a **Role-Based Container Architecture** where the same backend image is repurposed for different services (API, Reverb, Worker, Scheduler) using the `CONTAINER_ROLE` environment variable.
 
 ## Prerequisites
 - Docker & Docker Compose
@@ -28,11 +28,11 @@ We have added a `docker-compose.dev.yml` file to support a full-stack local Dock
     - **Editor (Web)**: http://localhost:8001
     - **Database**: Port 33066 (user: `cerdas`, pass: `secret`, db: `cerdas`)
 
-## changes Made
-- Added `docker-compose.dev.yml` with `mariadb` service.
-- Added `.env.docker.example`.
-- Updated root `.dockerignore` to recursively exclude `node_modules` and `vendor`.
-- Added `apps/client/.dockerignore` and `apps/editor/.dockerignore`.
+## Architecture Changes
+- **Role-Based Entrypoint**: Uses `start-container.sh` to dynamically boot specialized services.
+- **Service Dependency**: Implemented `depends_on: service_healthy` to ensure the API and Reverb only start after the Database is ready.
+- **High Concurrency**: Development now uses **FrankenPHP + Laravel Octane** by default, ensuring dev-prod parity in execution speed and memory management.
+- **Real-time**: Dedicated `reverb` service running on Port **8081**.
 
 ## Troubleshooting
 - If `client` or `editor` build fails with "unknown file mode" or "symlink" errors, ensure your `.dockerignore` is correctly excluding `node_modules`.

@@ -2,7 +2,7 @@ import { ref } from 'vue';
 
 export function useEditorPanels() {
     // Local State
-    const activeTab = ref('data');
+    const activeTab = ref('schema');
 
     // Panel Widths (for resizable panels)
     const fieldListWidth = ref(350);

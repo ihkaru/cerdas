@@ -15,6 +15,38 @@ services:
       - mariadb
     volumes:
       - laravel_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ==========================================
+  # REALTIME (Laravel Reverb)
+  # ==========================================
+  reverb:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.prod
+    restart: always
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8081", "--debug"]
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env.docker
+    depends_on:
+      backend:
+        condition: service_healthy
+      mariadb:
+        condition: service_started
+    volumes:
+      - laravel_storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD", "php", "artisan", "reverb:start", "--help"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
 
   # ==========================================
   # DATABASE (MariaDB)
@@ -44,13 +76,14 @@ services:
         VITE_GOOGLE_CLIENT_ID: 133588067257-0huo4ja0kaavpg704si2htphl0kvgobt.apps.googleusercontent.com
         VITE_REVERB_APP_KEY: ${REVERB_APP_KEY:-reverb-app-key}
         VITE_REVERB_HOST: ${REVERB_HOST:-localhost}
-        VITE_REVERB_PORT: ${REVERB_PORT:-8080}
+        VITE_REVERB_PORT: ${REVERB_PORT:-8081}
         VITE_REVERB_SCHEME: ${REVERB_SCHEME:-http}
     restart: always
     ports:
       - "8000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   # ==========================================
   # EDITOR (Web Dashboard)
@@ -64,13 +97,14 @@ services:
         VITE_GOOGLE_CLIENT_ID: 133588067257-0huo4ja0kaavpg704si2htphl0kvgobt.apps.googleusercontent.com
         VITE_REVERB_APP_KEY: ${REVERB_APP_KEY:-reverb-app-key}
         VITE_REVERB_HOST: ${REVERB_HOST:-localhost}
-        VITE_REVERB_PORT: ${REVERB_PORT:-8080}
+        VITE_REVERB_PORT: ${REVERB_PORT:-8081}
         VITE_REVERB_SCHEME: ${REVERB_SCHEME:-http}
     restart: always
     ports:
       - "8001:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   # ==========================================
   # WORKER (Queue)
@@ -80,13 +114,12 @@ services:
       context: ./apps/backend
       dockerfile: Dockerfile.prod
     restart: always
-    entrypoint: ["php"]
-    command: ["artisan", "queue:work", "--tries=3", "--timeout=90"]
+    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90"]
     env_file:
       - .env.docker
     depends_on:
-      - backend
-      - mariadb
+      backend:
+        condition: service_healthy
     volumes:
       - laravel_storage:/var/www/html/storage
 
@@ -98,13 +131,12 @@ services:
       context: ./apps/backend
       dockerfile: Dockerfile.prod
     restart: always
-    entrypoint: ["php"]
-    command: ["artisan", "schedule:work"]
+    command: ["php", "artisan", "schedule:work"]
     env_file:
       - .env.docker
     depends_on:
-      - backend
-      - mariadb
+      backend:
+        condition: service_healthy
     volumes:
       - laravel_storage:/var/www/html/storage
 

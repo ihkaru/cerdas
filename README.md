@@ -45,30 +45,28 @@ Most no-code platforms come with **heavy restrictions**. Cerdas was born out of 
 
 ## Architecture
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│                    Monorepo (pnpm workspaces)            │
-├──────────────┬──────────────┬──────────────┬────────────┤
-│  apps/client │ apps/editor  │ apps/backend │  packages/ │
-│  Mobile PWA  │  Web Editor  │  Laravel API │  Shared    │
-│  Vue 3 + F7  │  Vue 3 + F7  │  Octane +    │  Libs      │
-│  Capacitor   │              │  FrankenPHP  │            │
-├──────────────┴──────────────┴──────┬───────┴────────────┤
-│           Docker Compose           │     GitHub Actions  │
-│    FrankenPHP · Redis · MySQL      │  APK Build · Audit  │
-└────────────────────────────────────┴─────────────────────┘
-```
+┌──────────────────────────────────────────────────────────┐
+│                    Monorepo (pnpm workspaces)             │
+├──────────────┬──────────────┬──────────────┬─────────────┤
+│  apps/client │ apps/editor  │ apps/backend │  packages/  │
+│  Mobile PWA  │  Web Editor  │  Laravel 12  │  Shared     │
+│  Vue 3 + F7  │  Vue 3 + F7  │  FrankenPHP  │  Libs       │
+├──────────────┴──────────────┴──────┬───────┴─────────────┤
+│           Docker Stack             │     GitHub Actions   │
+│   API · Reverb · Worker · Redis    │  APK Build · Audit   │
+└────────────────────────────────────┴──────────────────────┘
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | **API Server** | Laravel 12 + Octane + FrankenPHP | High-performance API (worker mode) |
+| **Real-time** | Laravel Reverb (ReactPHP) | Real-time signaling & notifications |
 | **Mobile Client** | Vue 3 + Framework7 + Capacitor | Offline-first PWA / Android APK |
 | **Form Editor** | Vue 3 + Framework7 | No-code visual form builder |
 | **Shared Packages** | TypeScript | Form engine, expression engine |
 | **Database** | MySQL (server) · SQLite (client) | Server-side + offline-first storage |
 | **Auth** | Laravel Sanctum + Google OAuth | Token-based API authentication |
 | **CI/CD** | GitHub Actions | APK builds, audits, quality checks |
-| **Deployment** | Docker Compose + Coolify | One-click self-hosted deployment |
+| **Deployment** | Docker Compose + Coolify | Role-based container deployments |
 
 ## Quick Start
 

@@ -13,6 +13,7 @@ dependencies {
     implementation project(':capacitor-app')
     implementation project(':capacitor-camera')
     implementation project(':capacitor-geolocation')
+    implementation project(':capacitor-network')
     implementation project(':codetrix-studio-capacitor-google-auth')
 
 }

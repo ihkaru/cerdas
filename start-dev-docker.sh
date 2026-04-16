@@ -23,7 +23,7 @@ sleep 2
 
 # 2. Start Docker Backend
 echo -e "\033[1;33m[2/5] Starting Docker Backend (Build & Up)...\033[0m"
-docker compose -f docker-compose.dev.yml up -d --build mariadb backend worker scheduler
+docker compose -f docker-compose.dev.yml up -d --build mariadb backend worker scheduler reverb
 
 echo -e "\033[0;37m  -> Waiting for Backend Health (10s)...\033[0m"
 sleep 10

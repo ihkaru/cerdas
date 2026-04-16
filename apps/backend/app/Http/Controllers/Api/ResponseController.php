@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\App;
 use App\Models\Assignment;
 use App\Models\Response;
 use App\Models\Table;
@@ -15,7 +16,123 @@ use Illuminate\Support\Str;
 class ResponseController extends Controller
 {
     /**
-     * Get responses for the current user's assignments (Sync Pull)
+     * Get responses for the Editor Monitoring Dashboard
+     */
+    public function indexForEditor(Request $request, string $id): JsonResponse
+    {
+        $app = \App\Models\App::findOrFail($id);
+        
+        // Scalability Optimization: Use table_id directly with whereIn instead of nested whereHas
+        $tableIds = Table::where('app_id', $id)->pluck('id');
+
+        $query = Assignment::query()
+            ->with(['enumerator', 'responses', 'tableVersion.table'])
+            ->whereIn('table_id', $tableIds);
+
+        // Filter by specific Table ID if requested
+        $tableIdFilter = $request->input('table_id');
+        if ($tableIdFilter) {
+            $query->where('table_id', $tableIdFilter);
+        }
+
+        // Search Filter (Search in prelist_data and enumerator name)
+        $search = $request->input('search');
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('prelist_data', 'like', "%{$search}%")
+                  ->orWhereHas('enumerator', function($uQ) use ($search) {
+                      $uQ->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Status Filter
+        $status = $request->input('status');
+        if ($status && $status !== 'all') {
+            switch ($status) {
+                case 'pending': // Review queue
+                    $query->whereIn('status', ['submitted', 'completed']);
+                    break;
+                case 'approved': // Synced
+                    $query->where('status', 'synced');
+                    break;
+                case 'rejected': // Returned
+                    $query->where('status', 'rejected');
+                    break;
+                case 'in_progress':
+                    $query->where('status', 'in_progress');
+                    break;
+                case 'assigned':
+                    $query->where('status', 'assigned');
+                    break;
+            }
+        }
+
+        $assignments = $query->latest('updated_at')->paginate($request->input('per_page', 20));
+
+        return response()->json([
+            'success' => true,
+            'data' => $assignments,
+        ]);
+    }
+
+    /**
+     * Approve a response (Complex Mode)
+     */
+    public function approve(Request $request, Response $response): JsonResponse
+    {
+        $user = $request->user();
+        $assignment = $response->assignment;
+
+        // Validation: Only supervisors/admins
+        if ($assignment->supervisor_id !== $user->id && !$user->isSuperAdmin()) {
+            return response()->json(['message' => 'Unauthorized to approve'], 403);
+        }
+
+        $assignment->update(['status' => 'synced']);
+
+        // TODO: Trigger Google Sheets Sync Job here
+
+        Log::info('Response Approved', ['response_id' => $response->id, 'approved_by' => $user->id]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Response approved successfully',
+            'status' => 'synced'
+        ]);
+    }
+
+    /**
+     * Reject a response (Complex Mode)
+     */
+    public function reject(Request $request, Response $response): JsonResponse
+    {
+        $user = $request->user();
+        $assignment = $response->assignment;
+
+        if ($assignment->supervisor_id !== $user->id && !$user->isSuperAdmin()) {
+            return response()->json(['message' => 'Unauthorized to reject'], 403);
+        }
+
+        $request->validate(['reason' => 'nullable|string']);
+
+        // Move status to rejected so we can explicitly filter for it
+        $assignment->update([
+            'status' => 'rejected',
+            'rejection_note' => $request->reason
+        ]);
+
+        Log::info('Response Rejected', ['response_id' => $response->id, 'rejected_by' => $user->id]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Response rejected and returned to enumerator',
+            'status' => 'in_progress'
+        ]);
+    }
+
+    /**
+     * Get responses for the current user's assignments (Sync Pull/PWA)
      */
     public function index(Request $request): JsonResponse
     {
