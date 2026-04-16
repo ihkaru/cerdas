@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.64](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.63...cerdas-v0.1.64) (2026-04-16)
+
+
+### Features
+
+* implement scalable async csv export with host-agnostic signed urls, data merging, and infrastructure hardening for 2026 standards (finalized & linted) ([2e5ca4f](https://github.com/ihkaru/cerdas/commit/2e5ca4f638ec2af16253fcc5968457a248fea418))
+
+
+### Bug Fixes
+
+* resolve final sonarjs lint error in SubmissionsPanel for CI/CD pass ([40ffbe1](https://github.com/ihkaru/cerdas/commit/40ffbe1ed291559172aad55a24f874ddc2041b67))
+
 ## [0.1.63](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.62...cerdas-v0.1.63) (2026-04-15)
 
 
