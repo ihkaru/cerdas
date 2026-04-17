@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.67](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.66...cerdas-v0.1.67) (2026-04-17)
+
+
+### Bug Fixes
+
+* final update system polish with hardened reload and native safety ([3f59698](https://github.com/ihkaru/cerdas/commit/3f5969848cd4fcc1979f37b9236e43f3975ea3b4))
+* resolve update loop by fixing version detection logic and adding logging ([d0f434d](https://github.com/ihkaru/cerdas/commit/d0f434d92f3d9b92e1c4deea52be4773bd799923))
+
 ## [0.1.66](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.65...cerdas-v0.1.66) (2026-04-17)
 
 
