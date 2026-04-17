@@ -58,6 +58,7 @@ class UpdateService {
       const currentVersion = __APP_VERSION__;
       
       logger.debug(`[UpdateService] Local: ${currentVersion}, Remote: ${remote.version}`);
+      logger.debug(`[UpdateService] Build Info: ${__BUILD_TIMESTAMP__}`);
 
       // If versions match, we're already up to date - stop here
       if (remote.version === currentVersion) {
@@ -125,13 +126,18 @@ class UpdateService {
   public getMetadata() { return this.metadata; }
 
   public performUpdate() {
-    if (this.state === 'required' && Capacitor.isNativePlatform()) {
+    logger.info(`[UpdateService] Executing update from ${__APP_VERSION__} to ${this.metadata?.version}`);
+
+    if (Capacitor.isNativePlatform()) {
       // Modern 2026 Redirect: GitHub Releases
       const githubUrl = 'https://github.com/ihkaru/cerdas/releases/latest';
       window.open(githubUrl, '_system', 'noopener');
     } else {
-      // PWA Refresh
-      window.location.reload();
+      // PWA Refresh with cache-busting
+      logger.info('[UpdateService] Reloading PWA with cache buster...');
+      const url = new URL(window.location.href);
+      url.searchParams.set('reload_v', Date.now().toString());
+      window.location.href = url.toString();
     }
   }
 
