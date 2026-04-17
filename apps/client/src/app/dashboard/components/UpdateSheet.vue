@@ -92,7 +92,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { f7, f7Sheet, f7Icon, f7Button } from 'framework7-vue';
-import { updateService, AppVersionMetadata, UpdateState } from '@/common/services/UpdateService';
+import { updateService } from '@/common/services/UpdateService';
+import type { AppVersionMetadata, UpdateState } from '@/common/services/UpdateService';
 import { syncService } from '@/common/services/SyncService';
 
 const isOpened = ref(false);

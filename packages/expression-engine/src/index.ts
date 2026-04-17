@@ -3,6 +3,7 @@ export interface ExpressionContext {
     row: Record<string, any>;
     user?: any;
     prelist?: any;
+    [key: string]: any;
 }
 
 export function evaluate(code: string, context: ExpressionContext): any {
@@ -23,8 +24,10 @@ export function evaluate(code: string, context: ExpressionContext): any {
         const body = code.includes('return') ? code : `return ${code};`;
         
         // Function(arg1, arg2, ..., body)
+        /* eslint-disable sonarjs/code-eval */
         const fn = new Function(...keys, body);
         return fn(...values);
+        /* eslint-enable sonarjs/code-eval */
     } catch (e) {
         console.error(`Expression error: ${code}`, e);
         return null;

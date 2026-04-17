@@ -80,7 +80,7 @@
                 <!-- Dynamic Tabs from App Navigation -->
                 <f7-tab v-for="item in appNavigation" :key="item.id" :id="`view-${item.view_id || item.view}`" class="page-content"
                     :tab-active="activeView === (item.view_id || item.view)"
-                    @tab:show="activeView = (item.view_id || item.view as string)"
+                    @tab:show="activeView = ((item.view_id || item.view) as string)"
                     infinite @infinite="loadMore">
 
                     <!-- Only render content if active to save resources & prevent background map loads -->
@@ -501,7 +501,7 @@ const handleRowAction = async ({ actionId, assignmentId }: { actionId: string, a
 };
 
 // --- 6. Lifecycle & Helpers ---
-const getViewData = (source?: string, isPaginated = true) => {
+const getViewData = (_source?: string, isPaginated = true) => {
     // Both 'assignments' and custom source names (like 'export-survey-final-summary')
     // should return the data managed by AppShellLogic, because AppShellLogic 
     // already switched the context to the correct table.

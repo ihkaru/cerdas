@@ -48,6 +48,7 @@ export function useAppMetadata(
     function autoSelectView(navigation: Record<string, unknown>[]) {
         if (!activeView.value && navigation.length > 0) {
             const firstItem = navigation[0];
+            if (!firstItem) return;
             const targetView = firstItem.view_id || firstItem.view;
             if (targetView) {
                 activeView.value = targetView as string;

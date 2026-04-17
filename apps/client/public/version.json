@@ -1,0 +1,10 @@
+{
+  "version": "0.1.64",
+  "build_id": "2tq8fc",
+  "timestamp": "2026-04-17T10:15:38.004Z",
+  "min_native_version": "0.1.0",
+  "changelog": [
+    "Optimisasi sinkronisasi data",
+    "Peningkatan stabilitas aplikasi"
+  ]
+}
