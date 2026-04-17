@@ -54,7 +54,17 @@ class UpdateService {
       this.metadata = remote;
 
       // 2. Local State
-      const currentVersion = (window as any).__APP_VERSION__ || '0.0.0';
+      // Vite replaces __APP_VERSION__ at build time with the string from package.json
+      const currentVersion = __APP_VERSION__;
+      
+      logger.debug(`[UpdateService] Local: ${currentVersion}, Remote: ${remote.version}`);
+
+      // If versions match, we're already up to date - stop here
+      if (remote.version === currentVersion) {
+        logger.debug('[UpdateService] App is already at the latest version.');
+        this.state = 'idle';
+        return remote;
+      }
       
       // 3. Logic: Binary (Native) Version Check for Capacitor
       if (Capacitor.isNativePlatform()) {

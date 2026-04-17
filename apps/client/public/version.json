@@ -1,7 +1,7 @@
 {
-  "version": "0.1.64",
-  "build_id": "2tq8fc",
-  "timestamp": "2026-04-17T10:15:38.004Z",
+  "version": "0.1.65",
+  "build_id": "c87kzk",
+  "timestamp": "2026-04-17T10:32:17.228Z",
   "min_native_version": "0.1.0",
   "changelog": [
     "Optimisasi sinkronisasi data",

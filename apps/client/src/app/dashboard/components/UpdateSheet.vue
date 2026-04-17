@@ -111,6 +111,10 @@ const handleUpdateDetected = async (event: any) => {
   // Refresh unsynced count when update appears
   unsyncedCount.value = await syncService.getUnsyncedCount();
   
+  if (updateService.getMetadata()?.version === __APP_VERSION__) {
+    isOpened.value = false;
+    return;
+  }
   isOpened.value = true;
 };
 
