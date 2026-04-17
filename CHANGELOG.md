@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.65](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.64...cerdas-v0.1.65) (2026-04-17)
+
+
+### Features
+
+* monorepo lint cleanup and final push for update system ([8148527](https://github.com/ihkaru/cerdas/commit/8148527947e1ab86560aa4086c065a2eadba09cc))
+
 ## [0.1.64](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.63...cerdas-v0.1.64) (2026-04-16)
 
 
