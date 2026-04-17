@@ -34,13 +34,9 @@ export const AssignmentQueryService = {
                 SUM(CASE WHEN assignments.status = 'completed' THEN 1 ELSE 0 END) as completed
             FROM assignments
             LEFT JOIN (
-                SELECT assignment_id, data, updated_at
-                FROM responses r1
-                WHERE r1.updated_at = (
-                    SELECT MAX(r2.updated_at) 
-                    FROM responses r2 
-                    WHERE r2.assignment_id = r1.assignment_id
-                )
+                SELECT assignment_id, data, MAX(updated_at)
+                FROM responses
+                GROUP BY assignment_id
             ) AS latest_response ON assignments.id = latest_response.assignment_id
             ${whereClause} 
             GROUP BY ${groupKeyExpr} 
@@ -171,13 +167,9 @@ export const AssignmentQueryService = {
                    latest_response.updated_at as response_updated_at
             FROM assignments
             LEFT JOIN (
-                SELECT assignment_id, data, created_at, updated_at
-                FROM responses r1
-                WHERE r1.updated_at = (
-                    SELECT MAX(r2.updated_at) 
-                    FROM responses r2 
-                    WHERE r2.assignment_id = r1.assignment_id
-                )
+                SELECT assignment_id, data, created_at, updated_at, MAX(updated_at)
+                FROM responses
+                GROUP BY assignment_id
             ) AS latest_response ON assignments.id = latest_response.assignment_id
             ${dynamicWhere}
             ORDER BY ${orderBy} LIMIT ${limit}
@@ -200,7 +192,6 @@ export const AssignmentQueryService = {
                 created_at: a.response_created_at || a.created_at,
                 updated_at: a.response_updated_at || a.updated_at
             }));
-
         }
         return [];
     },
@@ -224,13 +215,9 @@ export const AssignmentQueryService = {
                 SUM(CASE WHEN assignments.status = 'completed' THEN 1 ELSE 0 END) as completed
             FROM assignments
             LEFT JOIN (
-                SELECT assignment_id, data, updated_at
-                FROM responses r1
-                WHERE r1.updated_at = (
-                    SELECT MAX(r2.updated_at) 
-                    FROM responses r2 
-                    WHERE r2.assignment_id = r1.assignment_id
-                )
+                SELECT assignment_id, data, MAX(updated_at)
+                FROM responses
+                GROUP BY assignment_id
             ) AS latest_response ON assignments.id = latest_response.assignment_id
             ${whereClause}
         `;

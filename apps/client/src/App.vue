@@ -5,6 +5,7 @@
     <f7-view main url="/">
     </f7-view>
     <DebugMenuSheet />
+    <UpdateSheet />
   </f7-app>
 </template>
 
@@ -15,6 +16,9 @@ import { ref } from 'vue';
 import DebugMenuSheet from './common/components/DebugMenuSheet.vue';
 import { useLogger } from './common/utils/logger';
 import routes from './routes';
+import UpdateSheet from './app/dashboard/components/UpdateSheet.vue';
+import { updateService } from './common/services/UpdateService';
+import { onMounted } from 'vue';
 
 const log = useLogger('App');
 const isNative = Capacitor.isNativePlatform();
@@ -64,6 +68,11 @@ const f7params = ref<Framework7Parameters>({
     // Disable context menu interception
     disableContextMenu: false,
   },
+});
+
+onMounted(() => {
+  // Initialize Global Update Notification System
+  updateService.init();
 });
 </script>
 

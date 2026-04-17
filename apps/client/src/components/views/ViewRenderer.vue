@@ -2,6 +2,7 @@
     <div class="view-renderer">
         <!-- DECK VIEW -->
         <DeckView v-if="config.type === 'deck'" :config="config" :data="viewData" :actions="actions"
+            :contextId="contextId"
             :swipe-config="swipeConfig"
             @click="(item) => handleAction(config.options?.action || config.deck?.action || 'edit', item)"
             @action="(action, item) => handleAction(action, item)" />
@@ -27,6 +28,7 @@
 <script setup lang="ts">
 import { f7 } from 'framework7-vue'; // For navigation
 import { computed } from 'vue';
+import { resolvePath } from './map/utils/mapCoordinates';
 import DeckView from './DeckView.vue';
 import DetailView from './DetailView.vue';
 import FormView from './FormView.vue';
@@ -47,24 +49,17 @@ const viewData = computed(() => {
     if (props.config.filter) {
         const filters = props.config.filter;
         result = result.filter((item: any) => {
-            // Check all filter conditions
+            // Check all filter conditions using robust path resolution
             for (const key in filters) {
                 const requiredValue = filters[key];
-
-                // Handle special filter values if needed (e.g. 'me' for current user)
-                // For now, simple equality check
-                if (item[key] !== requiredValue) {
-                    // Check if item[key] is undefined/null, handle gracefully?
-                    // For now strict equality
+                const actualValue = resolvePath(item, key);
+                if (actualValue !== requiredValue) {
                     return false;
                 }
             }
             return true;
         });
     }
-
-    // 2. Sorting Logic (Optional Future Enhancement)
-    // if (props.config.sort) { ... }
 
     return result;
 });

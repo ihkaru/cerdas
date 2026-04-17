@@ -104,23 +104,20 @@ export function useAssignmentQueries(
                 countsClause = buildSearchClause(getContextId(), state.searchQuery.value, filters);
             }
 
-            // Fetch Status Counts
-            statusCounts.value = await AssignmentQueryService.getStatusCounts(conn, countsClause.where, countsClause.params);
-
-            // Fetch Data
+            // --- Parallel Query Execution ---
+            const queryLimit = options?.limit.value || 1000;
+            
+            // 1. Prepare Promises
+            const statusCountsPromise = AssignmentQueryService.getStatusCounts(conn, countsClause.where, countsClause.params);
+            
+            let dataPromise: Promise<any[]>;
             if (grouping.isGroupingActive.value) {
-                state.assignments.value = [];
                 const field = grouping.currentGroupField.value;
-                if (field) {
-                    state.groups.value = await AssignmentQueryService.getGroupedAssignments(conn, field, dataClause.where, dataClause.params);
-                }
+                dataPromise = field 
+                    ? AssignmentQueryService.getGroupedAssignments(conn, field, dataClause.where, dataClause.params)
+                    : Promise.resolve([]);
             } else {
-                state.groups.value = [];
-                const queryLimit = options?.limit.value || 1000;
-
-
-
-                state.assignments.value = await AssignmentQueryService.getAssignments(
+                dataPromise = AssignmentQueryService.getAssignments(
                     conn, 
                     dataClause.where, 
                     dataClause.params, 
@@ -129,7 +126,26 @@ export function useAssignmentQueries(
                     []
                 );
             }
-            state.totalAssignments.value = await AssignmentQueryService.getTotalAssignments(conn, getContextId());
+            
+            const totalCountPromise = AssignmentQueryService.getTotalAssignments(conn, getContextId());
+
+            // 2. Await all
+            const [counts, dataResults, total] = await Promise.all([
+                statusCountsPromise,
+                dataPromise,
+                totalCountPromise
+            ]);
+
+            // 3. Apply results
+            statusCounts.value = counts;
+            if (grouping.isGroupingActive.value) {
+                state.assignments.value = [];
+                state.groups.value = dataResults;
+            } else {
+                state.groups.value = [];
+                state.assignments.value = dataResults;
+            }
+            state.totalAssignments.value = total;
         } catch (e) {
             console.error('Failed to refresh data', e);
         }

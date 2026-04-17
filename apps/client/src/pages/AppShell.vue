@@ -13,7 +13,7 @@
 
         <!-- CASE 0: Dynamic View Logic (from Navigation) -->
         <template v-if="currentViewConfig">
-            <div class="page-content">
+            <div class="page-content" infinite @infinite="loadMore">
                 <!-- Offline Banner -->
                 <div v-if="!isOnline.connected" class="offline-banner">
                     <f7-icon f7="wifi_slash" size="14"></f7-icon>
@@ -41,9 +41,17 @@
 
                     <!-- Leaf Views (Assignments/Map/etc) -->
                     <div v-else-if="currentViewConfig && currentViewConfig.config" key="leaf">
-                        <ViewRenderer :config="currentViewConfig.config"
-                            :data="getViewData((currentViewConfig.config as any).source)" :contextId="contextId"
-                            :actions="rowActions" :swipe-config="swipeConfig" @action="handleRowAction" />
+                                    <ViewRenderer :config="currentViewConfig.config"
+                                        :data="getViewData(
+                                            (currentViewConfig.config as any).source,
+                                            currentViewConfig.type !== 'map'
+                                        )" :contextId="contextId"
+                                        :actions="rowActions" :swipe-config="swipeConfig" @action="handleRowAction" />
+                        
+                        <!-- Infinite Loader -->
+                        <div v-if="hasMore" class="padding text-align-center">
+                            <f7-preloader />
+                        </div>
                     </div>
 
                     <!-- Not Found / Fallback if no view found -->
@@ -61,8 +69,8 @@
             <f7-toolbar position="bottom" :tabbar="true" icons labels>
                 <f7-toolbar-pane>
                     <f7-link v-for="item in appNavigation" :key="`link-${item.id || item.label}`"
-                        :tab-link="item.type === 'view' ? `#view-${item.view_id}` : 'true'"
-                        :tab-link-active="activeView === item.view_id" @click="handleAppNavClick(item)"
+                        :tab-link="item.type === 'view' ? `#view-${item.view_id || item.view}` : 'true'"
+                        :tab-link-active="activeView === (item.view_id || item.view)" @click="handleAppNavClick(item)"
                         :text="item.label" :icon-f7="item.icon || 'square'"></f7-link>
                 </f7-toolbar-pane>
             </f7-toolbar>
@@ -70,12 +78,13 @@
             <!-- VIEW CONTENT - AFTER toolbar per F7 docs -->
             <f7-tabs animated>
                 <!-- Dynamic Tabs from App Navigation -->
-                <f7-tab v-for="item in appNavigation" :key="item.id" :id="`view-${item.view_id}`" class="page-content"
-                    :tab-active="activeView === (item.view_id as string)"
-                    @tab:show="activeView = (item.view_id as string)">
+                <f7-tab v-for="item in appNavigation" :key="item.id" :id="`view-${item.view_id || item.view}`" class="page-content"
+                    :tab-active="activeView === (item.view_id || item.view)"
+                    @tab:show="activeView = (item.view_id || item.view as string)"
+                    infinite @infinite="loadMore">
 
                     <!-- Only render content if active to save resources & prevent background map loads -->
-                    <template v-if="activeView === item.view_id">
+                    <template v-if="activeView === (item.view_id || item.view)">
                         <!-- Offline Banner -->
                         <div v-if="!isOnline.connected" class="offline-banner">
                             <f7-icon f7="wifi_slash" size="14"></f7-icon>
@@ -103,19 +112,29 @@
 
                             <!-- Leaf Views (Assignments/Map/etc) -->
                             <div v-else key="leaf">
-                                <ViewRenderer v-if="getAppViewConfig(item.view_id)"
-                                    :config="getAppViewConfig(item.view_id)"
-                                    :data="getViewData((getAppViewConfig(item.view_id)!.config as any).source)"
+                                <ViewRenderer v-if="getAppViewConfig(String(item.view_id || item.view))"
+                                    :config="getAppViewConfig(String(item.view_id || item.view))"
+                                    :data="getViewData(
+                                        (getAppViewConfig(String(item.view_id || item.view))!.config as any).source,
+                                        getAppViewConfig(String(item.view_id || item.view))?.type !== 'map'
+                                    )"
                                     :contextId="contextId" :actions="rowActions" :swipe-config="swipeConfig"
                                     @action="handleRowAction" />
+                                
+                                <!-- Infinite Loader -->
+                                <div v-if="hasMore" class="padding text-align-center">
+                                    <f7-preloader />
+                                </div>
+
                                 <!-- Only show error AFTER all loading is done — prevents flash during metadata init -->
-                                <div v-else-if="!loading && !isLoadingData"
+                                <div v-else-if="!loading && !isLoadingData && !getAppViewConfig(String(item.view_id || item.view))"
                                     class="padding text-align-center text-color-gray">
                                     <f7-icon f7="exclamationmark_circle" size="48" class="opacity-30 margin-bottom" />
                                     <p>View not configured.</p>
+                                    <pre v-if="currentUserRole === 'app_admin'" class="size-10">Target: {{ item.view_id || item.view }}</pre>
                                 </div>
                                 <!-- Skeleton fallback during any loading phase -->
-                                <div v-else class="padding">
+                                <div v-else-if="loading || isLoadingData" class="padding">
                                     <f7-skeleton-block v-for="i in 5" :key="i"
                                         style="height: 80px; border-radius: 12px;"
                                         class="margin-bottom skeleton-effect-wave" />
@@ -163,6 +182,7 @@
 
             <!-- Main Content -->
             <f7-page-content v-else :ptr="!isGroupingActive" @ptr:refresh="refresh"
+                infinite @infinite="loadMore"
                 class="app-content-area safe-area-bottom">
 
                 <!-- Offline Banner -->
@@ -199,6 +219,11 @@
                         <AssignmentList v-else :assignments="displayedAssignments" :total-count="totalAssignments"
                             :loading="isLoadingData" :row-actions="rowActions" :swipe-config="swipeConfig"
                             @open-assignment="handleShowPreview" @row-action="handleRowAction" />
+
+                        <!-- Infinite Loader -->
+                        <div v-if="hasMore" class="padding text-align-center">
+                            <f7-preloader />
+                        </div>
                     </div>
                 </transition>
             </f7-page-content>
@@ -214,27 +239,6 @@
 
         <AppShellFilterSheet v-model:opened="filterSheetOpen" v-model:modelValue="activeFilters"
             :fields="availableFields" />
-
-
-
-        <!-- Actions Sheet -->
-        <f7-actions :opened="actionsSheetOpen" @actions:closed="actionsSheetOpen = false">
-            <f7-actions-group>
-                <f7-actions-label>App Actions</f7-actions-label>
-                <f7-actions-button v-for="action in headerActions" :key="action.id" @click="executeAction(action)">
-                    <f7-icon v-if="action.icon" :f7="action.icon" size="20" class="margin-right-half"></f7-icon>
-                    {{ action.label }}
-                </f7-actions-button>
-            </f7-actions-group>
-            <f7-actions-group>
-                <f7-actions-button color="red">Cancel</f7-actions-button>
-            </f7-actions-group>
-            <!-- Version Indicator -->
-            <f7-actions-group>
-                <f7-actions-label>v{{ appVersion }} (Build {{ buildTimestamp }})</f7-actions-label>
-            </f7-actions-group>
-        </f7-actions>
-
     </f7-page>
 </template>
 
@@ -429,6 +433,13 @@ const refresh = async (done: () => void) => {
 // --- 4. Pagination / Infinite Scroll (Local) ---
 // Kept local as it's UI view logic
 const renderLimit = ref(50);
+const hasMore = computed(() => filteredAssignments.value.length > renderLimit.value);
+
+const loadMore = () => {
+    if (!hasMore.value) return;
+    renderLimit.value += 50;
+};
+
 watch(() => filteredAssignments.value.length, () => { renderLimit.value = 50; });
 const displayedAssignments = computed(() => filteredAssignments.value.slice(0, renderLimit.value));
 
@@ -490,12 +501,11 @@ const handleRowAction = async ({ actionId, assignmentId }: { actionId: string, a
 };
 
 // --- 6. Lifecycle & Helpers ---
-const getViewData = (source?: string) => {
-    const targetSource = source || 'assignments';
-    if (targetSource === 'assignments') {
-        return filteredAssignments.value;
-    }
-    return [];
+const getViewData = (source?: string, isPaginated = true) => {
+    // Both 'assignments' and custom source names (like 'export-survey-final-summary')
+    // should return the data managed by AppShellLogic, because AppShellLogic 
+    // already switched the context to the correct table.
+    return isPaginated ? displayedAssignments.value : filteredAssignments.value;
 };
 
 // Watchers
@@ -560,8 +570,9 @@ const getAppViewConfig = (viewId: string) => {
 };
 
 const handleAppNavClick = (item: Record<string, unknown>) => {
-    if (item.type === 'view' && item.view_id) {
-        activeView.value = String(item.view_id);
+    const targetView = item.view_id || item.view;
+    if (item.type === 'view' && targetView) {
+        activeView.value = String(targetView);
     } else if (item.type === 'link' && item.url) {
         window.open(String(item.url), '_blank');
     } else {

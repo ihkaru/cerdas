@@ -1,4 +1,4 @@
-import { maplibregl } from '@cerdas/form-engine';
+import { maplibregl, evaluate } from '@cerdas/form-engine';
 import { ref, toRaw, watch, type Ref, type ShallowRef } from 'vue';
 import { resolveColor } from '../utils/mapColorResolver';
 import { getCoordinates } from '../utils/mapCoordinates';
@@ -35,7 +35,10 @@ export function useMapGeoJson(
             }
 
             let index = 0;
+            // Create a shared context for this GeoJSON build pass
+            const evalContext = { items: rawLocations, cache: {} };
 
+            /* eslint-disable-next-line sonarjs/cognitive-complexity */
             const processChunk = () => {
                 if (signal.aborted) {
                     resolve(null);
@@ -53,12 +56,29 @@ export function useMapGeoJson(
                     const itemId = item.id || item.local_id;
 
                     // Style Marker
-                    let markerColor = '#2196f3';
+                    let markerColor = resolveColor('orange');
+                    let symbolIcon = '';
+
+                    const data = item.response_data || item.data || {};
+
+                    // 1. Check Format Rules (Simple UI)
+                    const rules = mapConfig.format_rules || [];
+                    for (const rule of rules) {
+                        try {
+                            if (evaluate(rule.condition, { row: data, item, ctx: evalContext })) {
+                                if (rule.style?.color) markerColor = resolveColor(rule.style.color);
+                                if (rule.style?.icon) symbolIcon = `marker-${rule.style.icon}`;
+                                break; // First match wins
+                            }
+                        } catch { /* ignore */ }
+                    }
+
+                    // 2. Override with markerStyleFn (Advanced JS) if exists
                     if (styleFn) {
                         try {
-                            const data = item.response_data || item.data || {};
-                            const result = styleFn(data, item);
-                            markerColor = resolveColor(result?.color || 'blue');
+                            const result = styleFn(data, item, evalContext);
+                            if (result?.color) markerColor = resolveColor(result.color);
+                            if (result?.icon) symbolIcon = `marker-${result.icon}`;
                         } catch { /* ignore */ }
                     }
 
@@ -71,6 +91,7 @@ export function useMapGeoJson(
                         properties: {
                             id: itemId,
                             markerColor,
+                            symbolIcon,
                         },
                     });
                 }

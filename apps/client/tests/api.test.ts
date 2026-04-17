@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // Vite/Vitest polyfills fetch in newer versions, but we might need to be explicit if using native node fetch
 // We'll use the ApiClient logic but instantiated manually or just raw fetch for independence.
 
+ 
+/* eslint-disable sonarjs/no-hardcoded-passwords */
 const BASE_URL = 'http://127.0.0.1:9999/api';
 let AUTH_TOKEN = 'test-token-123';
 

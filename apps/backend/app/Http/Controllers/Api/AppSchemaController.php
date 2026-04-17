@@ -178,7 +178,7 @@ class AppSchemaController extends Controller
             foreach ($data['views'] ?? [] as $viewKey => $viewData) {
                 // Find table by slug
                 $table = $app->tables->firstWhere('slug', $viewData['table']);
-                if (!$table) {
+                if (! $table) {
                     continue; // Skip if table not found
                 }
 
@@ -202,6 +202,16 @@ class AppSchemaController extends Controller
             // Delete removed views
             $viewsToDelete = array_diff($existingViewNames, $newViewNames);
             $app->views()->whereIn('name', $viewsToDelete)->delete();
+
+            // SYNC FIX: Ensure view_configs column on App model is in sync for Client Offline Sync
+            $viewConfigs = [];
+            foreach ($data['views'] ?? [] as $viewKey => $viewData) {
+                $table = $app->tables->firstWhere('slug', $viewData['table']);
+                $viewConfigs[$viewKey] = array_merge($viewData, [
+                    'table_id' => $table ? $table->id : null,
+                ]);
+            }
+            $app->update(['view_configs' => $viewConfigs]);
 
             DB::commit();
 
@@ -306,7 +316,7 @@ class AppSchemaController extends Controller
 
             foreach ($data['views'] ?? [] as $viewKey => $viewData) {
                 $table = $app->tables->firstWhere('slug', $viewData['table']);
-                if (!$table) {
+                if (! $table) {
                     continue;
                 }
 

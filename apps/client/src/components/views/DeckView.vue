@@ -1,13 +1,18 @@
 <template>
     <div class="deck-view-container height-100 overflow-auto">
-        <f7-list media-list>
-            <f7-list-item v-for="item in data" :key="item.id || item.local_id" :class="[`status-border-${item.status}`]"
-                :swipeout="hasSwipe" :title="resolvePath(item, options.title)"
-                :subtitle="resolvePath(item, options.subtitle)" @click="$emit('click', item)" link="#">
+        <f7-list media-list v-if="preparedData.length">
+            <f7-list-item v-for="item in preparedData" :key="item.id || item.local_id" :class="[`status-border-${item.status}`]"
+                :swipeout="hasSwipe" :title="item._resolvedTitle"
+                :subtitle="item._resolvedSubtitle" @click="$emit('click', item)" link="#">
                 <template #media v-if="options.image">
-                    <img v-if="resolvePath(item, options.image)" :src="getImageUrl(resolvePath(item, options.image))"
-                        width="44" height="44" style="border-radius: 4px; object-fit: cover;" />
-                    <!-- Empty White/Gray Box when no image -->
+                    <AsyncImage 
+                        v-if="item._resolvedImage" 
+                        :src="getImageUrl(item, item._resolvedImage)"
+                        :width="44" 
+                        :height="44" 
+                        loading="lazy" 
+                    />
+                    <!-- Fallback box if resolve path is truly empty -->
                     <div v-else
                         style="width: 44px; height: 44px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px;">
                     </div>
@@ -57,28 +62,22 @@
 :deep(.item-inner) {
     padding-left: 8px;
 }
-
-/* Ensure border is visible */
-:deep(.item-inner) {
-    padding-left: 8px;
-}
 </style>
 
 <script setup lang="ts">
 import { apiClient } from '@/common/api/ApiClient';
+import AsyncImage from '../common/AsyncImage.vue';
 import { computed } from 'vue';
 
 const props = defineProps<{
     config: any;
     data: any[];
+    contextId: string;
     actions?: any[];
     swipeConfig?: { left: string[]; right: string[] };
 }>();
 
 defineEmits(['click', 'action']);
-
-
-
 
 const getActionDef = (id: string) => {
     const action = props.actions?.find(a => a.id === id);
@@ -106,16 +105,57 @@ const hasSwipe = computed(() => leftSwipeActions.value.length > 0 || rightSwipeA
 
 // Normalize options to support both old and new config formats
 const options = computed(() => {
-    // Check if we received the full View Object (which has a .config property) OR just the config object
-    const realConfig = props.config?.config || props.config;
-
-    const deckConfig = realConfig?.deck || realConfig?.options || {};
-
-    return {
-        title: deckConfig.primaryHeaderField || deckConfig.title_column,
-        subtitle: deckConfig.secondaryHeaderField || deckConfig.subtitle_column,
-        image: deckConfig.imageField || deckConfig.image_column,
+    // Utility to find a block containing any of the target keys, digging into .config/options
+    const findBlock = (root: any, targetKeys: string[]): any => {
+        if (!root || typeof root !== 'object') return null;
+        if (targetKeys.some(k => k in root)) return root;
+        if (root.deck) return root.deck; // Fast path for deck
+        if (root.config) return findBlock(root.config, targetKeys);
+        if (root.options) return findBlock(root.options, targetKeys);
+        return null;
     };
+
+    const targetKeys = ['primaryHeaderField', 'title_column', 'imageField', 'image_column'];
+    const deck = findBlock(props.config, targetKeys) || {};
+
+    const title = deck.primaryHeaderField || deck.title_column;
+    const subtitle = deck.secondaryHeaderField || deck.subtitle_column;
+    const image = deck.imageField || deck.image_column;
+
+    return { title, subtitle, image };
+});
+
+/**
+ * PREPARED DATA PATTERN
+ * Parsing JSON and resolving paths once per data change, 
+ * instead of hundreds of times per render frame.
+ */
+const preparedData = computed(() => {
+    const opts = options.value;
+    console.log('[DIAGNOSTIC] DeckView Options:', opts);
+    console.log('[DIAGNOSTIC] DeckView First Raw Item:', props.data?.[0]);
+
+    const result = (props.data || []).map(item => {
+        // Memoize parsed objects
+        const responseData = ensureObject(item.response_data);
+        const prelistData = ensureObject(item.prelist_data);
+        
+        const resolvedTitle = resolvePath(item, responseData, prelistData, opts.title);
+        const resolvedSubtitle = resolvePath(item, responseData, prelistData, opts.subtitle);
+
+        // Return rich object with pre-resolved fields
+        return {
+            ...item,
+            _parsedResponse: responseData,
+            _parsedPrelist: prelistData,
+            _resolvedTitle: resolvedTitle,
+            _resolvedSubtitle: resolvedSubtitle,
+            _resolvedImage: resolvePath(item, responseData, prelistData, opts.image)
+        };
+    });
+
+    console.log('[DIAGNOSTIC] DeckView First Prepared Item:', result[0]);
+    return result;
 });
 
 // Helper to safely parse JSON if needed
@@ -130,38 +170,59 @@ const ensureObject = (data: any) => {
     return (typeof data === 'object' && data !== null) ? data : {};
 };
 
-// Helper to get nested data (e.g. 'prelist_data.name')
-const resolvePath = (obj: any, path: string) => {
+// Helper (Optimized to use already-parsed objects)
+const resolvePath = (obj: any, responseData: any, prelistData: any, path: string) => {
     if (!path) return '';
 
     // 0. Inner Helper for robust deep access
     const getDeep = (target: any, p: string) => {
-        if (!target) return undefined;
+        if (!target || !p) return undefined;
         return p.split('.').reduce((o, i) => (o ? o[i] : undefined), target);
     };
 
-    // 1. Try direct path lookup (e.g. 'status', 'id')
-    const directValue = getDeep(obj, path);
-    if (directValue !== undefined && directValue !== null) return directValue;
+    // Standard field prefixes
+    const prefixes = ['prelist_data.', 'response_data.', 'data.'];
+    let cleanPath = path;
+    for (const prefix of prefixes) {
+        if (path.startsWith(prefix)) {
+            cleanPath = path.substring(prefix.length);
+            break;
+        }
+    }
+
+    // 1. Try direct path lookup (e.g. 'status', 'id', or the clean path on the root)
+    const directValue = getDeep(obj, cleanPath);
+    if (directValue !== undefined && directValue !== null && directValue !== '') return directValue;
 
     // 2. Try searching in response_data (HIGHEST PRIORITY for form fields)
-    const responseData = ensureObject(obj.response_data);
-    const responseVal = getDeep(responseData, path);
-    if (responseVal !== undefined && responseVal !== null) return responseVal;
+    const responseVal = getDeep(responseData, cleanPath);
+    if (responseVal !== undefined && responseVal !== null && responseVal !== '') return responseVal;
 
     // 3. Try searching in prelist_data (Data source default)
-    const prelistData = ensureObject(obj.prelist_data);
-    const prelistVal = getDeep(prelistData, path);
-    if (prelistVal !== undefined && prelistVal !== null) return prelistVal;
+    const prelistVal = getDeep(prelistData, cleanPath);
+    if (prelistVal !== undefined && prelistVal !== null && prelistVal !== '') return prelistVal;
 
     return '';
 };
 
-const getImageUrl = (path: string) => {
+const getImageUrl = (item: any, path: string) => {
     if (!path) return '';
-    const url = apiClient.getAssetUrl(path);
-    // Don't append timestamp to data URIs or Blobs
-    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
-    return url + '?t=' + Date.now();
+    
+    // 1. If it's already a full URL or data URI, return as is
+    if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('blob:')) {
+        return path;
+    }
+
+    // 2. Smart Resolve for Response Images
+    // If the path doesn't contain a directory separator, it's likely a bare filename
+    // We need to prepend 'responses/{app_uuid}/{assignment_id}/'
+    let finalPath = path;
+    if (!path.includes('/')) {
+        // Use the contextId (which is the appId/uuid) and assignment uuid/id
+        const assignmentId = item.uuid || item.id;
+        finalPath = `responses/${props.contextId}/${assignmentId}/${path}`;
+    }
+
+    return apiClient.getAssetUrl(finalPath);
 };
 </script>

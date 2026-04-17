@@ -5,18 +5,17 @@
             <div class="toolbar-left">
                 <span class="code-label">
                     <f7-icon f7="chevron_left_slash_chevron_right" size="16" />
-                    {{ isAppLevel ? 'App Schema' : 'Table JSON' }}
+                    Application Schema
                 </span>
-                <span v-if="isAppLevel" class="schema-badge app">App</span>
-                <span v-else class="schema-badge table">Table</span>
+                <span class="schema-badge app">Holy Grail Mode</span>
                 <span v-if="hasChanges" class="changes-badge">Modified</span>
                 <span v-if="validationResult.valid && hasChanges" class="valid-badge">✓ Valid</span>
             </div>
             <div class="toolbar-right">
-                <label class="live-toggle">
-                    <input type="checkbox" v-model="livePreview" />
-                    <span>Live Preview</span>
-                </label>
+                <f7-button small outline @click="handleGenerateAIPrompt" :loading="isGeneratingPrompt" title="Copy AI Prompt Context">
+                    <f7-icon f7="sparkles" size="14" />
+                    AI Context
+                </f7-button>
                 <f7-button small @click="handleCopy" title="Copy to clipboard">
                     <f7-icon f7="doc_on_doc" size="14" />
                 </f7-button>
@@ -31,7 +30,7 @@
                     <f7-icon f7="arrow_counterclockwise" size="14" />
                     Reset
                 </f7-button>
-                <f7-button small fill @click="handleApply" :disabled="!hasChanges || hasError || livePreview">
+                <f7-button small fill @click="handleApply" :disabled="!hasChanges || hasError">
                     <f7-icon f7="checkmark" size="14" />
                     Apply Changes
                 </f7-button>
@@ -67,25 +66,19 @@
 import CodeEditor from '@/components/CodeEditor.vue';
 import { f7 } from 'framework7-vue';
 import { computed, ref, watch } from 'vue';
-import type { EditableFieldDefinition, LayoutConfig, TableSettings } from '../../types/editor.types';
-import { validateAppJson, validateTableJson, type ValidationResult } from '../../utils/jsonValidator';
+// No more table-specific props needed. Everything is in the App Schema.
+import { validateAppJson, type ValidationResult } from '../../utils/jsonValidator';
+import { ApiClient } from '@/common/api/ApiClient';
+import { useAppStore } from '@/stores/app.store';
 
 interface Props {
-    tableId: string | null;
-    tableName: string;
-    fields: Record<string, unknown>[];
-    layout: Record<string, unknown>;
-    settings: Record<string, unknown>;
+    // No more table-specific props needed. Everything is in the App Schema.
 }
 
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-    (e: 'apply', payload: {
-        fields: EditableFieldDefinition[];
-        layout: LayoutConfig;
-        settings: TableSettings;
-    }): void;
+    (e: 'generate-context'): void;
 }>();
 
 // Local state for the JSON code
@@ -93,8 +86,8 @@ const jsonCode = ref('');
 const originalJson = ref('');
 const syntaxError = ref('');
 const fileInput = ref<HTMLInputElement | null>(null);
-const livePreview = ref(false);
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+const isGeneratingPrompt = ref(false);
+const appStore = useAppStore();
 
 // Validation result from comprehensive validator
 const validationResult = ref<ValidationResult>({
@@ -107,16 +100,9 @@ const validationResult = ref<ValidationResult>({
 const hasChanges = computed(() => jsonCode.value !== originalJson.value);
 const hasError = computed(() => syntaxError.value !== '' || !validationResult.value.valid);
 const hasWarnings = computed(() => validationResult.value.warnings.length > 0);
+const isLoadingSchema = ref(false);
 
-// Detect if current JSON is App-level or Table-level
-const isAppLevel = computed(() => {
-    try {
-        const parsed = JSON.parse(jsonCode.value);
-        return parsed.app !== undefined && parsed.tables !== undefined;
-    } catch {
-        return false;
-    }
-});
+const isAppLevel = computed(() => true); // Unified App Mode
 
 // ============================================================================
 // Import/Export Handlers
@@ -133,9 +119,7 @@ function handleCopy() {
 }
 
 function handleDownload() {
-    const fileName = isAppLevel.value
-        ? `app-schema-${Date.now()}.json`
-        : `${props.tableName || 'table'}-${Date.now()}.json`;
+    const fileName = `app-schema-${Date.now()}.json`;
 
     const blob = new Blob([jsonCode.value], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -178,39 +162,123 @@ function handleFileSelected(event: Event) {
         }
     };
     reader.readAsText(file);
-
-    // Reset input for re-upload
-    input.value = '';
 }
 
-// Generate JSON representation from props
-function generateJson(): string {
-    const tableData = {
-        tableId: props.tableId,
-        tableName: props.tableName,
-        fields: props.fields.map(f => {
-            // Remove editor-specific properties for cleaner JSON
-            const { _editorId, _collapsed, ...fieldData } = f;
-            return fieldData;
-        }),
-        layout: props.layout,
-        settings: props.settings
-    };
-    return JSON.stringify(tableData, null, 2);
+async function fetchAppSchema() {
+    if (!appStore.currentApp?.id) return;
+    
+    isLoadingSchema.value = true;
+    try {
+        const res = await ApiClient.get(`/apps/${appStore.currentApp.id}/schema`);
+        const schema = res.data;
+        const json = JSON.stringify(schema, null, 2);
+        jsonCode.value = json;
+        originalJson.value = json;
+    } catch (e: any) {
+        console.error('Failed to fetch app schema', e);
+    } finally {
+        isLoadingSchema.value = false;
+    }
 }
 
-// Watch for external changes (from visual editor)
-watch(
-    () => [props.fields, props.layout, props.settings],
-    () => {
-        const newJson = generateJson();
-        // Only update if no local changes to preserve user edits
-        if (!hasChanges.value) {
-            jsonCode.value = newJson;
-            originalJson.value = newJson;
+async function handleGenerateAIPrompt() {
+    if (isGeneratingPrompt.value) return;
+    isGeneratingPrompt.value = true;
+    
+    const toast = f7.toast.create({ text: 'Assembling Super-Context (Technical Manual + Live Data)...', closeTimeout: 0 }).open();
+    
+    try {
+        let prompt = "# CERDAS AI ARCHITECT SUPER-CONTEXT v2.0\n"
+                   + "You are an expert AI Architect specializing in the 'Cerdas' low-code ecosystem. Your goal is to modify the provided Application Schema based on user instructions with 100% technical accuracy.\n\n"
+                                      + "## CHAPTER 1: THE CORE ARCHITECTURE\n"
+                    + "Cerdas is an offline-first survey engine. The Application Schema defines the entire system: structure, logic, and UI. Technical precision is mandatory.\n\n"
+
+                    + "## CHAPTER 2: LOGIC & EXPRESSIONS (CLOSURES)\n"
+                    + "Custom logic uses JS function strings in `*_fn` properties.\n"
+                    + "- **Signature**: `(row, ctx, utils)`\n"
+                    + "- **`ctx` Variable**:\n"
+                    + "  - `user`: { id, name, email, role ['app_admin', 'editor', 'enumerator', 'supervisor', 'viewer'] }\n"
+                    + "  - `app`: { id, mode ['simple', 'complex'] }\n"
+                    + "  - `assignment`: { id, status, prelist_data: {} } (Data for follow-up surveys).\n"
+                    + "  - `items`: All visible records.\n"
+                    + "- **`utils` Variable**: `now()`, `today()`, `sum(arr, key)`, `daysSince(date)`.\n\n"
+                    + "## CHAPTER 3: DATA MASTER (TABLES & FIELDS)\n"
+                    + "- **Field Types**: [text, number, date, time, select, radio, checkbox, gps, image, signature, html_block, nested_form, separator].\n"
+                    + "- **HTML Blocks**: Required `content` (HTML) and `blockStyle` (info|success|warning|danger).\n"
+                    + "- **Advanced Flags**: `pii` (sensitive), `preview` (show in map/list summaries), `searchable`.\n\n"
+
+                    + "## CHAPTER 4: USER INTERFACE (VIEWS & NAVIGATION)\n"
+                    + "- **Views**: Object keyed by View ID. Types: [deck, map, table, calendar].\n"
+                    + "- **Map Config**: `config.map: { gps_column, label, subtitle, marker_style_fn }`.\n"
+                    + "  - `marker_style_fn`: Must return `{ 'marker-color': string, 'marker-symbol': 'check'|'star'|'pin'|'circle' }`.\n"
+                    + "- **Navigation**: Array of `{ id, type: 'view', view: 'ViewID', label, icon }`.\n\n"
+
+                   + "## CHAPTER 5: ACTIVE SCHEMA CONTEXT\n"
+                   + "Below is the CURRENT state of the application. USE THIS AS YOUR BASE.\n"
+                   + "```json\n"
+                   + jsonCode.value + "\n"
+                   + "```\n\n"
+
+                   + "## CHAPTER 6: REAL-WORLD DATA SAMPLES\n"
+                   + "Use these real records to understand the data format and content:\n";
+        
+        let sampleDataPrompt = "";
+        for (const table of (appStore.currentApp?.tables || [])) {
+            try {
+                if (appStore.currentApp?.id) {
+                    const res = await ApiClient.get(`/apps/${appStore.currentApp.id}/responses`, {
+                        table_id: table.id,
+                        status: 'all',
+                        page: 1,
+                        per_page: 2
+                    });
+                    const responses = res.data?.data?.data || [];
+                    if (responses.length > 0) {
+                        sampleDataPrompt += `\n### Table: ${table.name} (${table.slug})\n` + "```json\n";
+                        for(const r of responses) {
+                            sampleDataPrompt += JSON.stringify(r.responses?.[0]?.data || r.prelist_data || {}, null, 2) + "\n";
+                        }
+                        sampleDataPrompt += "```\n";
+                    }
+                }
+            } catch {}
         }
+        
+        prompt += sampleDataPrompt;
+
+        prompt += "\n## CHAPTER 7: COMMON PATTERNS\n"
+                + "- **Pre-filling from Prelist**: `\"initial_value_fn\": \"return ctx.assignment?.prelist_data?.full_name;\"`.\n"
+                + "- **Aggregating Siblings**: `\"formula_fn\": \"return utils.sum(ctx.allRows, 'amount');\"`.\n"
+                + "- **Role-Based Row Action**: Show action only for supervisors: `\"show_if_fn\": \"return ctx.user.role === 'supervisor';\"`.\n"
+                + "- **Deep Parent Access**: `ctx.parents[0]` is always the root form data.\n";
+        
+        prompt += "\n## FINAL INSTRUCTION\n"
+                + "1. Output valid, strict JSON.\n"
+                + "2. Maintain slug consistency.\n"
+                + "3. Preserve existing `tableId` and `id` fields unless specifically asked to change them.\n"
+                + "4. Respond with ONLY the modified parts or the full JSON depending on the user's request.";
+                
+        await navigator.clipboard.writeText(prompt);
+        toast.close();
+        f7.toast.show({ text: 'Super-Context Copied! LLM is now fully briefed.', position: 'center', closeTimeout: 3000 });
+    } catch(e: any) {
+        toast.close();
+        f7.dialog.alert('Error: ' + e.message);
+    } finally {
+        isGeneratingPrompt.value = false;
+    }
+}
+
+function generateJson(): string {
+    return jsonCode.value; // Return the current state for download/copy
+}
+
+watch(
+    () => [appStore.currentApp?.id],
+    () => {
+        fetchAppSchema();
     },
-    { deep: true, immediate: true }
+    { immediate: true }
 );
 
 // Validate JSON as user types
@@ -236,25 +304,8 @@ watch(jsonCode, (newCode) => {
         return;
     }
 
-    // Auto-detect schema type and validate accordingly
-    const obj = parsed as Record<string, unknown>;
-    const isAppLevel = obj.app !== undefined && obj.tables !== undefined;
-
-    if (isAppLevel) {
-        // Use App-level validation
-        validationResult.value = validateAppJson(parsed);
-    } else {
-        // Use Table-level validation (backward compatible)
-        validationResult.value = validateTableJson(parsed);
-    }
-
-    // Live preview: auto-apply valid changes with debounce
-    if (livePreview.value && validationResult.value.valid && hasChanges.value) {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            applyChangesInternal();
-        }, 500);
-    }
+    // Force App-level validation
+    validationResult.value = validateAppJson(parsed);
 });
 
 function handleReset() {
@@ -269,33 +320,30 @@ function handleReset() {
     );
 }
 
-function handleApply() {
+async function handleApply() {
     if (hasError.value) return;
 
     try {
         const parsed = JSON.parse(jsonCode.value);
 
-        // Re-add editor IDs to fields
-        const fieldsWithIds = addEditorIds(parsed.fields || []);
-
+        // ALWAYS App Level Sync
         f7.dialog.confirm(
-            'Apply these changes to the visual editor? This will update all fields, layout, and settings.',
-            'Apply JSON Changes',
-            () => {
-                emit('apply', {
-                    fields: fieldsWithIds,
-                    layout: parsed.layout || props.layout,
-                    settings: parsed.settings || props.settings
-                });
-
-                // Update original to reflect applied state
-                originalJson.value = jsonCode.value;
-
-                f7.toast.show({
-                    text: 'Changes applied successfully',
-                    position: 'center',
-                    closeTimeout: 2000
-                });
+            'Perhatian! Mengaplikasikan App-Level JSON akan menimpa seluruh struktur aplikasi (tabel, view, navigasi). Lanjutkan?',
+            'Overwrite Full App Schema',
+            async () => {
+                f7.preloader.show();
+                try {
+                    if (!appStore.currentApp?.id) return;
+                    await ApiClient.put(`/apps/${appStore.currentApp.id}/schema`, parsed);
+                    f7.toast.show({ text: 'App Schema updated successfully!', position: 'center' });
+                    // Refresh everything
+                    await appStore.fetchApp(appStore.currentApp.id);
+                    originalJson.value = jsonCode.value;
+                } catch (e: any) {
+                    f7.dialog.alert('Failed to update app schema: ' + e.message);
+                } finally {
+                    f7.preloader.hide();
+                }
             }
         );
     } catch (e: any) {
@@ -303,43 +351,7 @@ function handleApply() {
     }
 }
 
-// Internal apply function for live preview (no confirmation)
-function applyChangesInternal() {
-    if (hasError.value) return;
 
-    try {
-        const parsed = JSON.parse(jsonCode.value);
-        const fieldsWithIds = addEditorIds(parsed.fields || []);
-
-        emit('apply', {
-            fields: fieldsWithIds,
-            layout: parsed.layout || props.layout,
-            settings: parsed.settings || props.settings
-        });
-
-        // Update original to track applied state
-        originalJson.value = jsonCode.value;
-    } catch {
-        // Silently ignore parse errors in live preview
-    }
-}
-
-// Recursively add _editorId to fields
-function addEditorIds(fields: any[]): EditableFieldDefinition[] {
-    return fields.map(field => {
-        const newField = {
-            ...field,
-            _editorId: field._editorId || crypto.randomUUID()
-        };
-
-        // Handle nested forms
-        if (field.type === 'nested_form' && Array.isArray(field.fields)) {
-            newField.fields = addEditorIds(field.fields);
-        }
-
-        return newField;
-    });
-}
 </script>
 
 <style scoped>

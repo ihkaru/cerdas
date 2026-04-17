@@ -16,5 +16,5 @@ export const COLOR_MAP: Record<string, string> = {
 };
 
 export const resolveColor = (colorName: string): string => {
-    return COLOR_MAP[colorName] ?? '#2196f3';
+    return COLOR_MAP[colorName] ?? colorName; // Allow hex directly or use fallback
 };

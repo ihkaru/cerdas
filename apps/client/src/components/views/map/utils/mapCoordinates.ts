@@ -39,36 +39,71 @@ export const parseLatLongArray = (val: any): [number, number] | null => {
     return null;
 };
 
-export const getDeep = (target: any, p: string) => {
-    if (!target) return undefined;
-    return p.split('.').reduce((acc, part) => acc && acc[part], target);
+export const getDeep = (target: any, p: string): any => {
+    if (!target || !p) return undefined;
+    
+    // Support both dot notation and simple keys
+    if (!p.includes('.')) return target[p];
+    
+    return p.split('.').reduce((acc, part) => {
+        if (acc === null || acc === undefined) return undefined;
+        return acc[part];
+    }, target);
 };
 
-export const resolvePrelist = (obj: any, path: string) => {
-    let prelist = obj.prelist_data;
-    if (typeof prelist === 'string') {
-        try { prelist = JSON.parse(prelist); } catch { /* ignore */ }
-    }
-    const val = getDeep(typeof prelist === 'object' ? prelist : obj, path.replace('prelist_data.', ''));
-    return val || '';
-};
-
-export const resolvePath = (obj: any, path: string) => {
+    /* eslint-disable-next-line sonarjs/cognitive-complexity */
+export const resolvePath = (obj: any, path: string): any => {
     if (!obj || !path) return '';
-    if (path.startsWith('prelist_data.')) {
-        return resolvePrelist(obj, path);
+
+    // Standard field prefixes
+    const prefixes = ['prelist_data.', 'response_data.', 'data.'];
+    let cleanPath = path;
+    for (const prefix of prefixes) {
+        if (path.startsWith(prefix)) {
+            const val = getDeep(obj, path);
+            if (val !== undefined && val !== null && val !== '') return val;
+            cleanPath = path.substring(prefix.length);
+        }
     }
-    const val = getDeep(obj, path) ||
-        getDeep(obj.response_data, path) ||
-        getDeep(obj.data, path) ||
-        getDeep(obj.prelist_data, path);
-    if (val !== undefined && val !== null && val !== '') return val;
-    return '';
+
+    // Helper to ensure we have an object to search in
+    const ensureObj = (val: any) => {
+        if (typeof val === 'string' && val.trim().startsWith('{')) {
+            try { return JSON.parse(val); } catch { return {}; }
+        }
+        return (typeof val === 'object' && val !== null) ? val : {};
+    };
+
+    const resp = ensureObj(obj.response_data || obj.data);
+    const prelist = ensureObj(obj.prelist_data);
+
+    const direct = getDeep(obj, cleanPath);
+    const respVal = getDeep(resp, cleanPath);
+    const prelistVal = getDeep(prelist, cleanPath);
+
+    // FIX: Avoid nested ternaries to satisfy sonarjs/no-nested-conditional
+    let result = (direct !== undefined && direct !== null && direct !== '') ? direct : '';
+    if (!result) {
+        result = (respVal !== undefined && respVal !== null && respVal !== '') ? respVal : '';
+    }
+    if (!result) {
+        result = (prelistVal !== undefined && prelistVal !== null && prelistVal !== '') ? prelistVal : '';
+    }
+
+
+    if (!result && path !== 'undefined') {
+        // Only log if potentially a real field we care about
+        console.log(`[DIAGNOSTIC] resolvePath FAILED: path=${path}, clean=${cleanPath}, found: direct=${!!direct}, resp=${!!respVal}, prelist=${!!prelistVal}`);
+    }
+
+    return result;
 };
 
 export const getCoordinates = (item: any, gpsCol: string): [number, number] | null => {
+    if (!item || !gpsCol) return null;
     const val = resolvePath(item, gpsCol);
     if (!val) return null;
+    
     return parseLatLongString(val) ||
         parseGeoCoords(val) ||
         parseLatLongObject(val) ||

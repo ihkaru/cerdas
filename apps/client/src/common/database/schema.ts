@@ -88,4 +88,10 @@ CREATE TABLE IF NOT EXISTS app_meta (
 );
 `;
 
-export const SCHEMA_VERSION = 15; // Added app_meta for user isolation anchoring
+// Indices for Performance
+export const ASSIGNMENTS_TABLE_ID_IDX = `CREATE INDEX IF NOT EXISTS idx_assignments_table_id ON assignments(table_id);`;
+export const ASSIGNMENTS_STATUS_IDX = `CREATE INDEX IF NOT EXISTS idx_assignments_status ON assignments(status);`;
+export const RESPONSES_LOOKUP_IDX = `CREATE INDEX IF NOT EXISTS idx_responses_lookup ON responses(assignment_id, updated_at DESC);`;
+export const RESPONSES_IS_SYNCED_IDX = `CREATE INDEX IF NOT EXISTS idx_responses_is_synced ON responses(is_synced);`;
+
+export const SCHEMA_VERSION = 16; 

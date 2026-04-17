@@ -129,10 +129,20 @@ const effectiveSchema = computed(() => {
 
 // Create enriched context for child FormRenderer
 // Allows nested closures to access parent data
+// Create enriched context for child FormRenderer
+// Allows nested closures to access parent data
 const childContext = computed(() => {
+    const parentCtx = props.context || {};
+    // Build a stack of parents for unlimited depth access
+    const parents = [...(parentCtx.parents || [])];
+    if (props.parentFormData) {
+        parents.push(props.parentFormData);
+    }
+
     return {
-        ...(props.context || {}),
-        parentRow: props.parentFormData || {},  // Access parent form data
+        ...parentCtx,
+        parentRow: props.parentFormData || {},  // Current immediate parent
+        parents,                                 // Full stack (parents[0] = root)
         rowIndex: currentEditingIndex.value,     // Current row index
         allRows: modelValue.value                // All nested rows
     };

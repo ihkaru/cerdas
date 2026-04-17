@@ -26,8 +26,6 @@
                 </template>
             </f7-list-item>
 
-
-
             <!-- Schema Reference -->
             <f7-list-item accordion-item title="Available Data (Click to Copy)">
                 <f7-icon slot="media" f7="briefcase" size="14" />
@@ -66,9 +64,64 @@
                 </f7-accordion-content>
             </f7-list-item>
 
+            <f7-list-item group-title>Format Rules (Simple)</f7-list-item>
+            <f7-block strong outline class="margin-vertical-half no-padding-horizontal">
+                <div v-for="(rule, index) in (mapConfig.format_rules || [])" :key="index"
+                    class="rule-item padding margin-bottom-half border-bottom">
+                    <div class="display-flex align-items-center justify-content-space-between margin-bottom-half">
+                        <span class="size-12 font-weight-bold">Rule #{{ index + 1 }}</span>
+                        <f7-link color="red" @click="removeRule(index)">
+                            <f7-icon f7="trash" size="14" />
+                        </f7-link>
+                    </div>
+
+                    <div class="display-flex flex-wrap gap-half">
+                        <!-- Condition Builder -->
+                        <div class="width-100 display-flex align-items-center gap-half margin-bottom-half">
+                            <select :value="getRulePart(rule.condition, 0)" class="rule-select flex-grow-1"
+                                @change="updateRuleCondition(index, $event.target.value, 0)">
+                                <option value="">Select Field...</option>
+                                <option v-for="f in fields" :key="f.id" :value="`row.${f.name}`">{{ f.label }}</option>
+                            </select>
+                            <select :value="getRulePart(rule.condition, 1)" class="rule-select" style="width: 80px;"
+                                @change="updateRuleCondition(index, $event.target.value, 1)">
+                                <option value="===">==</option>
+                                <option value="!==">!=</option>
+                                <option value="includes">contains</option>
+                            </select>
+                            <input type="text" :value="getRulePart(rule.condition, 2)" class="rule-input flex-grow-1"
+                                placeholder="Value..." @input="updateRuleCondition(index, $event.target.value, 2)" />
+                        </div>
+
+                        <!-- Style Picker -->
+                        <div class="width-100 display-flex align-items-center gap-half">
+                            <select :value="rule.style?.icon || 'circle'" class="rule-select"
+                                @change="updateRuleStyle(index, 'icon', $event.target.value)">
+                                <option v-for="icon in markerIcons" :key="icon" :value="icon">{{ icon }}</option>
+                            </select>
+                            <select :value="rule.style?.color || 'orange'" class="rule-select"
+                                @change="updateRuleStyle(index, 'color', $event.target.value)">
+                                <option v-for="color in markerColors" :key="color" :value="color">{{ color }}</option>
+                            </select>
+                            <f7-checkbox :checked="rule.style?.bold"
+                                @change="updateRuleStyle(index, 'bold', $event.target.checked)">
+                                <span class="size-11 margin-left-half">Bold</span>
+                            </f7-checkbox>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="padding">
+                    <f7-button small outline @click="addRule">
+                        <f7-icon f7="plus" size="14" class="margin-right-half" /> Add Format Rule
+                    </f7-button>
+                </div>
+            </f7-block>
+
             <f7-list-item group-title>Marker Styling (Advanced)</f7-list-item>
             <div class="padding-horizontal padding-bottom">
                 <CodeEditor :model-value="mapConfig.marker_style_fn || ''" language="javascript" height="120px"
+                    :schema-fields="fields"
                     placeholder="// return { icon: 'location_fill', color: 'blue' };"
                     @update:model-value="$emit('update', 'marker_style_fn', $event)" />
                 <div v-if="getSyntaxError(mapConfig.marker_style_fn)" class="text-color-red size-10 margin-top-half">
@@ -90,9 +143,76 @@ import FieldPicker from '../../../shared/FieldPicker.vue';
 
 const props = defineProps<MapConfigProps>();
 
-defineEmits<{
+const emit = defineEmits<{
     (e: 'update', key: string, value: any): void
 }>();
+
+// ============================================================================
+// Format Rules Logic
+// ============================================================================
+
+const markerIcons = ['circle', 'pin', 'star', 'flag', 'check'];
+const markerColors = ['orange', 'red', 'green', 'blue', 'purple', 'pink', 'yellow', 'teal', 'gray', 'black'];
+
+function addRule() {
+    const rules = [...(props.mapConfig.format_rules || [])];
+    rules.push({
+        condition: '',
+        style: { color: 'orange', icon: 'circle', bold: false }
+    });
+    emit('update', 'format_rules', rules);
+}
+
+function removeRule(index: number) {
+    const rules = [...(props.mapConfig.format_rules || [])];
+    rules.splice(index, 1);
+    emit('update', 'format_rules', rules);
+}
+
+function updateRuleStyle(index: number, key: string, value: any) {
+    const rules = JSON.parse(JSON.stringify(props.mapConfig.format_rules || []));
+    if (!rules[index].style) rules[index].style = {};
+    rules[index].style[key] = value;
+    emit('update', 'format_rules', rules);
+}
+
+function updateRuleCondition(index: number, value: string, partIndex: number) {
+    const rules = JSON.parse(JSON.stringify(props.mapConfig.format_rules || []));
+    const currentCondition = rules[index].condition || 'row.id === ""';
+    
+    // Simple parser for "row.field OP 'value'" or "row.field.includes('value')"
+    let field = getRulePart(currentCondition, 0) || 'row.id';
+    let op = getRulePart(currentCondition, 1) || '===';
+    let val = getRulePart(currentCondition, 2) || '';
+
+    if (partIndex === 0) field = value;
+    if (partIndex === 1) op = value;
+    if (partIndex === 2) val = value;
+
+    // Rebuild condition
+    if (op === 'includes') {
+        rules[index].condition = `${field}.includes('${val}')`;
+    } else {
+        const formattedVal = isNaN(Number(val)) || val === '' ? `'${val}'` : val;
+        rules[index].condition = `${field} ${op} ${formattedVal}`;
+    }
+    
+    emit('update', 'format_rules', rules);
+}
+
+function getRulePart(condition: string, partIndex: number): string {
+    if (!condition) return '';
+    if (condition.includes('.includes(')) {
+        if (partIndex === 0) return condition.split('.includes(')[0];
+        if (partIndex === 1) return 'includes';
+        if (partIndex === 2) return condition.split("'")[1] || '';
+    }
+    const parts = condition.split(' ');
+    if (partIndex === 0) return parts[0] || '';
+    if (partIndex === 1) return parts[1] || '';
+    if (partIndex === 2) return parts[2]?.replace(/'/g, '') || '';
+    return '';
+}
 
 // ============================================================================
 // Logic Helpers
@@ -190,5 +310,27 @@ function getFieldIcon(type: string) {
 }
 .schema-search {
     border: 1px solid #e5e7eb;
+}
+
+.rule-item {
+    background: #fafafa;
+}
+
+.rule-select, .rule-input {
+    height: 28px;
+    padding: 0 4px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 11px;
+    background: white;
+    outline: none;
+}
+
+.rule-select:focus, .rule-input:focus {
+    border-color: var(--f7-theme-color);
+}
+
+.gap-half {
+    gap: 8px;
 }
 </style>

@@ -126,9 +126,9 @@ const panelBaseWidth = ref(800);
 
 const { settings, updateSettings } = useTableEditor();
 
-const headerActions = computed(() => settings.value.actions.header);
-const rowActions = computed(() => settings.value.actions.row);
-const swipeActions = computed(() => settings.value.actions.swipe);
+const headerActions = computed(() => settings.value.actions?.header || []);
+const rowActions = computed(() => settings.value.actions?.row || []);
+const swipeActions = computed(() => settings.value.actions?.swipe || { left: [], right: [] });
 
 // ============================================================================
 // Local State
@@ -246,11 +246,12 @@ function onSortRowActions(event: any) {
 
 function updateSwipeLeft(event: Event) {
     const select = event.target as HTMLSelectElement;
+    const swipe = settings.value.actions?.swipe || { left: [], right: [] };
     updateSettings({
         actions: {
-            ...settings.value.actions,
+            ...(settings.value.actions || {}),
             swipe: {
-                ...settings.value.actions.swipe,
+                ...swipe,
                 left: select.value ? [select.value] : []
             }
         }
@@ -259,11 +260,12 @@ function updateSwipeLeft(event: Event) {
 
 function updateSwipeRight(event: Event) {
     const select = event.target as HTMLSelectElement;
+    const swipe = settings.value.actions?.swipe || { left: [], right: [] };
     updateSettings({
         actions: {
-            ...settings.value.actions,
+            ...(settings.value.actions || {}),
             swipe: {
-                ...settings.value.actions.swipe,
+                ...swipe,
                 right: select.value ? [select.value] : []
             }
         }

@@ -40,6 +40,7 @@ import { html } from '@codemirror/lang-html';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { createSchemaAutocomplete } from '@/composables/useSchemaAutocomplete';
 import { EditorView } from '@codemirror/view';
 import {
     f7Icon,
@@ -60,6 +61,8 @@ const props = defineProps<{
     autofocus?: boolean;
     dark?: boolean;
     label?: string;
+    /** Schema fields for autocomplete hints (row.field, data.field) */
+    schemaFields?: { id: string; name: string; label: string; type: string }[];
 }>();
 
 const emit = defineEmits<{
@@ -108,12 +111,16 @@ const extensions = computed(() => {
         exts.push(javascript());
     }
 
+    // Schema-aware autocomplete (only for JS when schemaFields are provided)
+    if (props.schemaFields && props.schemaFields.length > 0 && props.language !== 'html' && props.language !== 'json') {
+        exts.push(createSchemaAutocomplete(props.schemaFields));
+    }
+
     // Theme
     if (props.dark) {
         exts.push(oneDark);
     }
 
-    // Additional editor tweaks could go here (line numbers are on by default in basicSetup of vue-codemirror usually)
     return exts;
 });
 

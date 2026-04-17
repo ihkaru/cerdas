@@ -41,8 +41,8 @@ ENV VITE_REVERB_SCHEME=$VITE_REVERB_SCHEME
 # Limit memory usage to prevent OOM on server
 ENV NODE_OPTIONS="--max-old-space-size=1024"
 
-# Run build from root using filter (Skip vue-tsc for production build reliability)
-RUN pnpm --filter client exec vite build
+# Run build from root using filter
+RUN pnpm --filter client run build
 
 # Production Stage
 FROM nginx:stable-alpine as production-stage

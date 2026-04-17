@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "build": "npm run version-gen && vue-tsc -b && vite build",
+    "version-gen": "node -e \"const pkg=require('./package.json'); const fs=require('fs'); const data={version:pkg.version, build_id:Math.random().toString(36).substring(7), timestamp:new Date().toISOString(), min_native_version:'0.1.0', changelog:['Optimisasi sinkronisasi data', 'Peningkatan stabilitas aplikasi']}; fs.writeFileSync('./public/version.json', JSON.stringify(data, null, 2));\"",
     "preview": "vite preview",
     "test": "vitest",
     "lint": "eslint --config ../../eslint.config.js src/"

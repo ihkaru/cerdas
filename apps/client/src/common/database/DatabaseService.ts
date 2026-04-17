@@ -2,7 +2,7 @@
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { Capacitor } from '@capacitor/core';
 import { useLogger } from '../utils/logger';
-import { APPS_TABLE, APP_META_TABLE, ASSIGNMENTS_TABLE, RESPONSES_TABLE, SCHEMA_VERSION, SYNC_QUEUE_TABLE, TABLE_VERSIONS_TABLE, TABLES_TABLE } from './schema';
+import { APPS_TABLE, APP_META_TABLE, ASSIGNMENTS_STATUS_IDX, ASSIGNMENTS_TABLE, ASSIGNMENTS_TABLE_ID_IDX, RESPONSES_IS_SYNCED_IDX, RESPONSES_LOOKUP_IDX, RESPONSES_TABLE, SCHEMA_VERSION, SYNC_QUEUE_TABLE, TABLE_VERSIONS_TABLE, TABLES_TABLE } from './schema';
 
 const log = useLogger('DatabaseService');
 
@@ -176,18 +176,23 @@ export class DatabaseService {
             log.debug(`[Schema Check] Version OK (${storedVersion}), skipping migration`);
         }
 
-        // Create tables
-        const tables = [
-            TABLES_TABLE, // Renamed
+        // Create tables & Indices
+        const schemaStatements = [
+            TABLES_TABLE,
             APPS_TABLE,
             ASSIGNMENTS_TABLE,
             RESPONSES_TABLE,
             SYNC_QUEUE_TABLE,
             TABLE_VERSIONS_TABLE,
-            APP_META_TABLE
+            APP_META_TABLE,
+            // Indices
+            ASSIGNMENTS_TABLE_ID_IDX,
+            ASSIGNMENTS_STATUS_IDX,
+            RESPONSES_LOOKUP_IDX,
+            RESPONSES_IS_SYNCED_IDX
         ];
 
-        for (const sql of tables) {
+        for (const sql of schemaStatements) {
             await this.db.execute(sql);
         }
         

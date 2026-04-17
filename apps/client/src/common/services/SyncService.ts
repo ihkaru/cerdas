@@ -658,6 +658,21 @@ export class SyncService {
         return null;
     }
 
+    /**
+     * Checks how many records are currently unsynced.
+     * Used for smart update warnings.
+     */
+    async getUnsyncedCount(): Promise<number> {
+        try {
+            const db = await databaseService.getDB();
+            const res = await db.query(`SELECT count(*) as count FROM responses WHERE is_synced = 0`);
+            return res.values?.[0]?.count || 0;
+        } catch (e) {
+            logger.warn('Failed to get unsynced count', e);
+            return 0;
+        }
+    }
+
     async push() {
         const db = await databaseService.getDB();
         

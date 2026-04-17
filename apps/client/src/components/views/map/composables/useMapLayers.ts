@@ -1,10 +1,12 @@
 import { maplibregl } from '@cerdas/form-engine';
 import type { ShallowRef } from 'vue';
+import { MARKER_ICONS, getMarkerImage } from '../utils/mapMarkers';
 
 export const SOURCE_ID = 'markers-source';
 export const CLUSTER_LAYER = 'clusters';
 export const CLUSTER_COUNT_LAYER = 'cluster-count';
 export const UNCLUSTERED_LAYER = 'unclustered-point';
+export const UNCLUSTERED_ICON_LAYER = 'unclustered-icon';
 
 export function useMapLayers(mapRef: ShallowRef<maplibregl.Map | null>, callbacks: {
     updateGeoJsonSourceAsync: () => void,
@@ -14,6 +16,16 @@ export function useMapLayers(mapRef: ShallowRef<maplibregl.Map | null>, callback
     const addSourceAndLayers = () => {
         const map = mapRef.value;
         if (!map) return;
+
+        // Load icons if not already loaded
+        Object.entries(MARKER_ICONS).forEach(([iconName, _svg]) => {
+            const id = `marker-${iconName}`;
+            if (map.hasImage(id)) return;
+
+            const img = new Image();
+            img.src = getMarkerImage(iconName as any, '#ffffff'); // White icon on colored circle
+            img.onload = () => { if (!map.hasImage(id)) map.addImage(id, img); };
+        });
 
         // GeoJSON Source initial setup (empty first)
         map.addSource(SOURCE_ID, {
@@ -69,7 +81,7 @@ export function useMapLayers(mapRef: ShallowRef<maplibregl.Map | null>, callback
             },
         });
 
-        // Layer 3: Individual (unclustered) points
+        // Layer 3: Individual (unclustered) points (Circle Background)
         map.addLayer({
             id: UNCLUSTERED_LAYER,
             type: 'circle',
@@ -77,9 +89,30 @@ export function useMapLayers(mapRef: ShallowRef<maplibregl.Map | null>, callback
             filter: ['!', ['has', 'point_count']],
             paint: {
                 'circle-color': ['get', 'markerColor'],
-                'circle-radius': 7,
+                'circle-radius': [
+                    'case',
+                    ['==', ['get', 'symbolIcon'], ''], 7, // Default circle
+                    12 // Larger background for icons
+                ],
                 'circle-stroke-width': 2,
                 'circle-stroke-color': '#ffffff',
+            },
+        });
+
+        // Layer 4: Icons (Symbol)
+        map.addLayer({
+            id: UNCLUSTERED_ICON_LAYER,
+            type: 'symbol',
+            source: SOURCE_ID,
+            filter: [
+                'all',
+                ['!', ['has', 'point_count']],
+                ['!=', ['get', 'symbolIcon'], '']
+            ],
+            layout: {
+                'icon-image': ['get', 'symbolIcon'],
+                'icon-size': 0.6,
+                'icon-allow-overlap': true,
             },
         });
     };
@@ -120,7 +153,9 @@ export function useMapLayers(mapRef: ShallowRef<maplibregl.Map | null>, callback
         });
 
         // Click on individual point → show popup
-        map.on('click', UNCLUSTERED_LAYER, (e) => {
+        // Use both point and icon layers for click detection
+        const layers = [UNCLUSTERED_LAYER, UNCLUSTERED_ICON_LAYER];
+        map.on('click', layers, (e) => {
             if (!mapRef.value || !e.features?.length) return;
             const feature = e.features[0];
             if (!feature) return;
@@ -134,8 +169,12 @@ export function useMapLayers(mapRef: ShallowRef<maplibregl.Map | null>, callback
         // Cursor changes
         map.on('mouseenter', CLUSTER_LAYER, () => { if (mapRef.value) mapRef.value.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', CLUSTER_LAYER, () => { if (mapRef.value) mapRef.value.getCanvas().style.cursor = ''; });
-        map.on('mouseenter', UNCLUSTERED_LAYER, () => { if (mapRef.value) mapRef.value.getCanvas().style.cursor = 'pointer'; });
-        map.on('mouseleave', UNCLUSTERED_LAYER, () => { if (mapRef.value) mapRef.value.getCanvas().style.cursor = ''; });
+        
+        layers.forEach(layer => {
+            if (!map) return;
+            map.on('mouseenter', layer, () => { if (mapRef.value) mapRef.value.getCanvas().style.cursor = 'pointer'; });
+            map.on('mouseleave', layer, () => { if (mapRef.value) mapRef.value.getCanvas().style.cursor = ''; });
+        });
     };
 
     return {

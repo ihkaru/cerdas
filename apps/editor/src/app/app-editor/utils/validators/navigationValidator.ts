@@ -47,16 +47,17 @@ export function validateNavigation(
         }
 
         if (n.type === 'view') {
-            if (!n.view || typeof n.view !== 'string') {
+            const targetView = (n.view_id || n.view) as string;
+            if (!targetView || typeof targetView !== 'string') {
                 errors.push({
                     path: `${path}.view`,
-                    message: 'Navigation item with type="view" requires "view" reference',
+                    message: 'Navigation item with type="view" requires "view" or "view_id" reference',
                     severity: 'error'
                 });
-            } else if (!viewKeys.includes(n.view as string)) {
+            } else if (!viewKeys.includes(targetView)) {
                 errors.push({
-                    path: `${path}.view`,
-                    message: `Navigation references unknown view "${n.view}". Available: ${viewKeys.join(', ')}`,
+                    path: n.view_id ? `${path}.view_id` : `${path}.view`,
+                    message: `Navigation references unknown view "${targetView}". Available: ${viewKeys.join(', ')}`,
                     severity: 'error'
                 });
             }

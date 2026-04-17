@@ -46,8 +46,12 @@ export function useAppMetadata(
 
     /** Auto-select the first view if none is active */
     function autoSelectView(navigation: Record<string, unknown>[]) {
-        if (!activeView.value && navigation.length > 0 && navigation[0]?.view_id) {
-            activeView.value = navigation[0].view_id as string;
+        if (!activeView.value && navigation.length > 0) {
+            const firstItem = navigation[0];
+            const targetView = firstItem.view_id || firstItem.view;
+            if (targetView) {
+                activeView.value = targetView as string;
+            }
         }
     }
 
@@ -96,7 +100,9 @@ export function useAppMetadata(
     }
 
     async function handleMetadataSync(conn: any, validAppId: string, isRefresh: boolean, loading: Ref<boolean>) {
-        const hasLocalViews = Object.keys(appViewConfigs.value).length > 0 || appNavigation.value.length > 0;
+        const hasNav = appNavigation.value.length > 0;
+        const hasConfigs = Object.keys(appViewConfigs.value).length > 0;
+        const hasLocalViews = hasNav && hasConfigs;
         const shouldSync = isRefresh || (Date.now() - lastSyncTimestamp > SYNC_THROTTLE_MS);
         const isOnline = networkService.isOnline();
 

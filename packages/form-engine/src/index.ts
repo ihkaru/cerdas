@@ -3,3 +3,4 @@ export * from './types/schema';
 export * from './utils/geoUtils';
 export { createMap, destroyMap, maplibregl } from './utils/maplibreUtils';
 
+export { evaluate } from '@cerdas/expression-engine';

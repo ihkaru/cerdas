@@ -106,17 +106,11 @@
 
         <!-- Code Tab -->
         <div v-show="activeTab === 'code'" class="tab-content code-content">
-            <EditorEmptyState v-if="!tableSelection.hasTableSelected" icon="chevron_left_slash_chevron_right"
-                title="No Data Source Selected" action-label="Go to Data Sources"
-                @action="$emit('update:activeTab', 'schema')">
-                Select a data source from the <strong>Schema</strong> tab to edit its JSON.
-            </EditorEmptyState>
-            <template v-else>
+            <template v-if="true">
                 <div class="code-editor-panel"
                     :style="{ width: panels.codeEditorWidth + 'px', minWidth: '400px', maxWidth: '1000px' }">
-                    <CodeEditorTab :table-id="tableSelection.currentTableId" :table-name="tableEditor.tableName"
-                        :fields="tableEditor.tableForPreview.fields" :layout="tableEditor.state.layout"
-                        :settings="tableEditor.state.settings" @apply="(payload) => $emit('code-apply', payload)" />
+                    <CodeEditorTab 
+                        @apply="(payload) => $emit('code-apply', payload)" />
                 </div>
                 <ResizableDivider @resize-start="panels.codeEditorBaseWidth = panels.codeEditorWidth"
                     @resize="(delta) => panels.codeEditorWidth = Math.max(400, Math.min(1000, panels.codeEditorBaseWidth + delta))" />

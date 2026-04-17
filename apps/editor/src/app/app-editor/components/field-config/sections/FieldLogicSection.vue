@@ -49,6 +49,7 @@
                     <div class="logic-editor-group">
                         <div class="logic-label">Show If (JS)</div>
                         <CodeEditor :model-value="field.show_if_fn || ''" language="javascript" height="100px"
+                            :schema-fields="allFields"
                             placeholder="return ctx.row.other_field === 'value';"
                             @update:model-value="emit('update', { show_if_fn: $event })" />
                         <div v-if="getSyntaxError(field.show_if_fn)" class="text-color-red size-10 margin-top-half">
@@ -60,6 +61,7 @@
                     <div class="logic-editor-group">
                         <div class="logic-label">Required If (JS)</div>
                         <CodeEditor :model-value="field.required_if_fn || ''" language="javascript" height="100px"
+                            :schema-fields="allFields"
                             placeholder="return ctx.row.other_field !== '';"
                             @update:model-value="emit('update', { required_if_fn: $event })" />
                         <div v-if="getSyntaxError(field.required_if_fn)" class="text-color-red size-10 margin-top-half">
@@ -87,6 +89,7 @@
                             </div>
                         </div>
                         <CodeEditor :model-value="field.editable_if_fn || ''" language="javascript" height="100px"
+                            :schema-fields="allFields"
                             placeholder="return ctx.user.role === 'admin';"
                             @update:model-value="emit('update', { editable_if_fn: $event })" />
                         <div v-if="getSyntaxError(field.editable_if_fn)" class="text-color-red size-10 margin-top-half">
@@ -99,6 +102,7 @@
                     <div class="logic-editor-group">
                         <div class="logic-label">Formula (JS)</div>
                         <CodeEditor :model-value="field.formula_fn || ''" language="javascript" height="100px"
+                            :schema-fields="allFields"
                             placeholder="return ctx.row.a + ctx.row.b;"
                             @update:model-value="emit('update', { formula_fn: $event })" />
                         <div v-if="getSyntaxError(field.formula_fn)" class="text-color-red size-10 margin-top-half">
@@ -110,6 +114,7 @@
                     <div class="logic-editor-group">
                         <div class="logic-label">Warning (JS)</div>
                         <CodeEditor :model-value="field.warning_fn || ''" language="javascript" height="100px"
+                            :schema-fields="allFields"
                             placeholder="if (value < 0) return 'Value should be positive';"
                             @update:model-value="emit('update', { warning_fn: $event })" />
                         <div v-if="getSyntaxError(field.warning_fn)" class="text-color-red size-10 margin-top-half">
@@ -121,6 +126,7 @@
                     <div v-if="hasOptions" class="logic-editor-group">
                         <div class="logic-label">Dynamic Options (JS)</div>
                         <CodeEditor :model-value="field.options_fn || ''" language="javascript" height="100px"
+                            :schema-fields="allFields"
                             placeholder="return ctx.maps.cities[ctx.row.province] || [];"
                             @update:model-value="emit('update', { options_fn: $event })" />
                         <div v-if="getSyntaxError(field.options_fn)" class="text-color-red size-10 margin-top-half">
@@ -132,6 +138,7 @@
                     <div class="logic-editor-group">
                         <div class="logic-label">Initial Value (JS)</div>
                         <CodeEditor :model-value="field.initial_value_fn || ''" language="javascript" height="100px"
+                            :schema-fields="allFields"
                             placeholder="return new Date().toISOString();"
                             @update:model-value="emit('update', { initial_value_fn: $event })" />
                         <div v-if="getSyntaxError(field.initial_value_fn)"

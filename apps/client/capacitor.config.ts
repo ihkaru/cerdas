@@ -19,6 +19,7 @@ const config: CapacitorConfig = {
   ...(useLiveReload && {
     server: {
       // 10.0.2.2 is the special IP that Android Emulator uses to reach host machine
+      /* eslint-disable-next-line sonarjs/no-clear-text-protocols */
       url: 'http://10.0.2.2:9981',
       cleartext: true,
     },
