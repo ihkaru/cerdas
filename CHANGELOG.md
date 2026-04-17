@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.66](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.65...cerdas-v0.1.66) (2026-04-17)
+
+
+### Bug Fixes
+
+* monorepo build blockers and expression engine security suppression ([4cb7582](https://github.com/ihkaru/cerdas/commit/4cb75824c95a44e603462992c7ef96aa5c9a1445))
+
 ## [0.1.65](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.64...cerdas-v0.1.65) (2026-04-17)
 
 
