@@ -110,7 +110,7 @@ packages/types  - @cerdas/types (shared strict TS types)
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
-- **Version**: 0.1.1 (Updated due to significant bug fixes)
+- **Version**: 0.1.66 (Updated with Smart Update System & Version Syncing)
 
 **⚠️ CRITICAL**: Always use `.\stop-all.bat` to stop servers. NEVER use `taskkill` directly - it may close IDE!
 
@@ -850,3 +850,16 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
 - **Solution**: Decomposed the component into utilities (`mapCoordinates`, `mapStyles`, `mapColorResolver`), composables (`useMapUserLocation`, `useMapInstance`, `useMapGeoJson`, `useMapLayers`, `useMapPopup`), and sub-components (`MapContainer`, `MapListPanel`).
 - **Result**: `MapView.vue` operates purely as an orchestrator (~130 lines).
 - **Verified**: `vue-tsc --noEmit` passed (exit code 0) and local linting on the Map components reported 0 errors.
+
+### 17 April 2026 - Smart Update System & Version Synchronization
+- **Smart Update System (PWA & Android)**:
+    - **Logic**: Diimplementasikan `UpdateService` di `apps/client` yang melakukan polling ke `version.json` setiap 15 menit.
+    - **Build-Time Injection**: Menggunakan konstanta global `__APP_VERSION__` dan `__BUILD_TIMESTAMP__` via Vite `define` untuk identifikasi versi yang akurat (menghindari error property access `window`).
+    - **Hardened Reload**: Pada mode PWA, sistem menggunakan *cache-busting* (`?reload_v=timestamp`) saat melakukan reload aplikasi untuk memaksa browser mengambil `index.html` terbaru dari server.
+    - **Native Safety**: Mendeteksi platform via `Capacitor.isNativePlatform()`. Jika Native, update diarahkan ke GitHub Releases guna menghindari modifikasi URL internal yang berisiko pada mobile WebView.
+    - **Data Integrity**: Filter `SyncService.getUnsyncedCount()` ditambahkan pada `UpdateSheet.vue`. Update diblokir jika ada data lokal yang belum tersinkronisasi ke backend untuk mencegah data loss.
+- **Monorepo Version Syncing**:
+    - **Mechanism**: Menemukan & menguji `scripts/sync-version.mjs` sebagai jembatan sinkronisasi versi.
+    - **Release Please Fix**: Menyelaraskan disconnect antara Release Please (yang hanya mengubah `package.json`) dengan Android Native (`build.gradle`). Script sync ini kini menyamakan `versionName` dan `versionCode` secara otomatis di seluruh monorepo.
+- **Vite ESM Docker Fix**: Memperbarui script `version-gen` agar menggunakan `fs.readFileSync` (bukan `require`) supaya kompatibel dengan lingkungan production Docker ESM yang ketat.
+- **Build Hardening**: Menyelesaikan 9 error TS kritis termasuk *verbatimModuleSyntax*, null-safety pada `firstItem`, dan *index signature* pada `ExpressionContext`.
