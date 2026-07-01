@@ -1,18 +1,15 @@
-FROM dunglas/frankenphp:1-php8.4
+FROM debian:12-slim
 
-# Install PHP extensions required by Laravel
-RUN install-php-extensions \
-    pcntl \
-    gd \
-    zip \
-    intl \
-    bcmath \
-    pdo_mysql \
-    opcache
+# Install system dependencies (curl for healthcheck, unzip/git for composer)
+RUN apt-get update && apt-get install -y curl ca-certificates unzip git && rm -rf /var/lib/apt/lists/*
 
-# Install curl for healthcheck
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Copy pre-compiled FrankenPHP static binary
+ADD https://github.com/dunglas/frankenphp/releases/latest/download/frankenphp-linux-x86_64 /usr/local/bin/frankenphp
+RUN chmod +x /usr/local/bin/frankenphp
 
+# Create a wrapper script so 'php' executes 'frankenphp php-cli'
+RUN printf '#!/bin/sh\nexec /usr/local/bin/frankenphp php-cli "$@"\n' > /usr/local/bin/php && \
+    chmod +x /usr/local/bin/php
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -38,14 +35,10 @@ RUN composer dump-autoload --optimize --no-scripts
 RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache && \
     chown -R 1000:1000 storage bootstrap/cache
 
-# 1. Use the official PHP production configuration as the base
-RUN cp $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
+# Add custom overrides for php.ini
+RUN mkdir -p /usr/local/etc/php/conf.d
+COPY upload.ini /usr/local/etc/php/conf.d/99-upload.ini
 
-# 2. Add custom overrides (prefix 99- ensuring it loads last)
-COPY upload.ini $PHP_INI_DIR/conf.d/99-upload.ini
-
-
-# Explicitly set binary path for Octane
 # Copy startup script
 COPY start-container.sh /usr/local/bin/start-container
 RUN chmod +x /usr/local/bin/start-container
