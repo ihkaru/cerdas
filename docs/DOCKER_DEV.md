@@ -45,7 +45,7 @@ To run the Android app using the local Docker backend:
 1.  **Start Scripts**:
     Run the following batch script:
     ```cmd
-    start-android-docker.bat
+    scripts/start-android-docker.bat
     ```
     This script will:
     -   Stop existing servers.

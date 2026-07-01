@@ -3,6 +3,7 @@ import tsParser from '@typescript-eslint/parser';
 import sonarjs from 'eslint-plugin-sonarjs';
 import eslintPluginVue from 'eslint-plugin-vue';
 import vueParser from 'vue-eslint-parser';
+import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
   {
@@ -38,12 +39,17 @@ export default [
       '@typescript-eslint/no-non-null-assertion': 'warn',      // prevent user!.name crash
       '@typescript-eslint/prefer-nullish-coalescing': 'off',   // needs type-checked config, enforce via code review
 
-      // Vue consistency
+      // Vue consistency & best practices
       'vue/multi-word-component-names': 'off',
       'vue/no-unused-vars': 'warn',
       'vue/no-mutating-props': 'error',
       'vue/require-v-for-key': 'error',
       'vue/no-use-v-if-with-v-for': 'error',
+      'vue/component-api-style': ['error', ['script-setup', 'composition']], // Enforce composition API
+
+      // Cognitive Load Rules
+      'max-lines': ['warn', { max: 300, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': ['warn', { max: 50, skipBlankLines: true, skipComments: true }],
     },
   },
   // TypeScript files
@@ -69,7 +75,12 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',            // prevent lazy typing
       '@typescript-eslint/no-non-null-assertion': 'warn',      // prevent user!.name crash
       '@typescript-eslint/prefer-nullish-coalescing': 'off',   // needs type-checked config, enforce via code review
+
+      // Cognitive Load Rules (applies to ts files too for clean architecture)
+      'max-lines': ['warn', { max: 300, skipBlankLines: true, skipComments: true }],
     },
   },
+  // Disable conflicts with Prettier format rules (must be last)
+  eslintConfigPrettier,
 ];
 

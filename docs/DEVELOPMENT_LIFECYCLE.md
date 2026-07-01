@@ -13,8 +13,8 @@ Dokumen ini menjelaskan seluruh alur pengembangan (development lifecycle) untuk 
 
 | Aksi | Command | Port |
 |------|---------|------|
-| Start All Servers | `start-all.bat` | Backend:9980, Client:9981, Editor:9982 |
-| Stop All Servers | `stop-all.bat` | - |
+| Start All Servers | `scripts/start-all.bat` | Backend:8080, Client:9981, Editor:9982 |
+| Stop All Servers | `scripts/stop-all.bat` | - |
 | Open Android Studio | `npx cap open android` | - |
 | Sync Android | `npx cap sync android` | - |
 | Build Client | `pnpm build` (di apps/client) | - |
@@ -26,18 +26,18 @@ Dokumen ini menjelaskan seluruh alur pengembangan (development lifecycle) untuk 
 ```mermaid
 sequenceDiagram
     participant Dev as Developer
-    participant Bat as start-all.bat
-    participant Backend as Laravel Backend<br/>(Port 9980)
+    participant Bat as scripts/start-all.bat
+    participant Backend as Laravel Backend<br/>(Port 8080)
     participant Vite as Vite Dev Server<br/>(Port 9981)
     participant AVD as Android Emulator
     participant AS as Android Studio
 
     Note over Dev,AS: === FASE 1: STARTUP ===
     
-    Dev->>Bat: Run start-all.bat
-    Bat->>Backend: php artisan serve --host=0.0.0.0 --port=9980
+    Dev->>Bat: Run scripts/start-all.bat
+    Bat->>Backend: php artisan serve --host=0.0.0.0 --port=8080
     Bat->>Vite: pnpm dev --host --port 9981
-    Backend-->>Dev: ✅ API Ready at localhost:9980
+    Backend-->>Dev: ✅ API Ready at localhost:8080
     Vite-->>Dev: ✅ HMR Ready at localhost:9981
     
     Note over Dev,AS: === FASE 2: ANDROID SETUP (First Time Only) ===
@@ -77,7 +77,7 @@ sequenceDiagram
 
     Note over Dev,AS: === FASE 5: SHUTDOWN ===
     
-    Dev->>Bat: Run stop-all.bat
+    Dev->>Bat: Run scripts/stop-all.bat
     Bat->>Backend: taskkill php.exe
     Bat->>Vite: taskkill node.exe
     Backend-->>Dev: ✅ Stopped
@@ -92,7 +92,7 @@ sequenceDiagram
 
 ```batch
 # Dari root project
-c:\projects\cerdas\start-all.bat
+c:\projects\cerdas\scripts\start-all.bat
 ```
 
 **Output yang diharapkan:**
@@ -223,7 +223,7 @@ Di Android Studio:
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| `net::ERR_CONNECTION_REFUSED` | Backend not running | Run `start-all.bat` |
+| `net::ERR_CONNECTION_REFUSED` | Backend not running | Run `scripts/start-all.bat` |
 | `database not opened` | SQLite init failed (web) | Use Android emulator instead |
 | `Cannot read property of undefined` | Data not loaded | Check API response |
 | `CORS error` | Backend tidak allow origin | Check Laravel CORS config |
@@ -237,13 +237,13 @@ Sebelum melakukan `git push`, **WAJIB** menjalankan script verifikasi lokal untu
 ### 5.1 Run Verification Script
 
 ```powershell
-# Windows
-./verify-local.ps1
+# Windows (PowerShell)
+.\scripts\verify-local.ps1
 ```
 
 ```bash
 # Linux / Mac
-./verify-local.sh
+pnpm run verify
 ```
 
 Script ini akan melakukan:
@@ -268,7 +268,7 @@ git push origin main
 ### 5.1 Stop All Servers
 
 ```batch
-c:\projects\cerdas\stop-all.bat
+c:\projects\cerdas\scripts\stop-all.bat
 ```
 
 ### 5.2 Manual Cleanup (if needed)
@@ -351,8 +351,8 @@ VITE_API_URL=https://your-production-api.com/api
 
 Gunakan checklist ini setiap mulai session coding baru:
 
-- [ ] Run `start-all.bat`
-- [ ] Verify Backend: `curl http://localhost:9980/api/user`
+- [ ] Run `scripts/start-all.bat`
+- [ ] Verify Backend: `curl http://localhost:8080/api/user`
 - [ ] Verify Client: Open `http://localhost:9981` in browser
 - [ ] Open Android Studio: `npx cap open android`
 - [ ] Run app on emulator

@@ -63,7 +63,10 @@ export interface FieldDefinition {
     warning_js?: string;   // Legacy JS expression
 }
 
-export interface AppSchema {
+export interface TableSchema {
     id: string;
     fields: FieldDefinition[];
 }
+
+/** @deprecated Use TableSchema instead */
+export type AppSchema = TableSchema;

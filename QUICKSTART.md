@@ -44,7 +44,7 @@ cd ../..
 ### 4. Start Development Servers
 Run all services (Backend API, Web Editor, Mobile Client) in parallel:
 ```bash
-./start-all.bat
+.\scripts\start-all.bat
 ```
 *(Mac/Linux users: run `pnpm dev`)*
 

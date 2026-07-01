@@ -4,7 +4,7 @@ To build the Android app that connects to your new Coolify production server (`h
 
 ## Prerequisites
 - Android Studio installed.
-- Setup `COOLIFY_GUIDE.md` first (Deploy Backend & Database).
+- Setup [COOLIFY_GUIDE.md](COOLIFY_GUIDE.md) first (Deploy Backend & Database).
 
 ## Step 1: verifies Production Configuration
 1.  **Check `apps/client/capacitor.config.ts`**:
@@ -13,13 +13,14 @@ To build the Android app that connects to your new Coolify production server (`h
     -   Ensure `VITE_API_BASE_URL=https://api.dvlpid.my.id`.
 
 ## Step 2: Build Web Assets
-Open your terminal in `c:\projects\cerdas` (or root):
+Open your terminal in the root project directory:
 
-```powershell
-cd apps/client
-npm install
-# This uses .env.production automatically because of "tsc && vite build"
-npm run build
+```bash
+# Install dependencies for all workspaces via pnpm
+pnpm install
+
+# Build the client application for production
+pnpm --filter client build
 ```
 
 This will create a `dist` folder with the production assets pointing to your live API.

@@ -73,3 +73,12 @@ gradle_build.log
 !**/.env.docker-web
 
 dashboard_response.json
+
+# Diagnostic logs & SQL dumps
+*_report*.txt
+*_errors*.txt
+*_output*.txt
+*seed*.txt
+*.sql
+!schema-final.sql
+audit*.json

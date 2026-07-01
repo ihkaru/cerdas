@@ -14,19 +14,19 @@ How to handle issues reported in production.
 
 **🛡️ PRE-FLIGHT CHECK:**
 Before deployment, always run:
-`audit-deployment.bat`
+`scripts\audit-deployment.bat`
 *   Checks `docker-compose.prod.yml` for common errors (incorrect healthcheck, missing env vars, debug mode).*
 
 **🛡️ PRE-FLIGHT CHECK:**
 Before deployment, always run:
-`audit-deployment.bat`
+`scripts\audit-deployment.bat`
 *   Checks `docker-compose.prod.yml` for common errors (incorrect healthcheck, missing env vars).*
 
 ```mermaid
 sequenceDiagram
     participant User as End User
     participant Dev as Developer
-    participant Script as start-android-docker.bat
+    participant Script as scripts/start-android-docker.bat
     participant Docker as Docker Backend
     participant Client as Local Client
     participant Emu as Emulator
@@ -174,20 +174,20 @@ sequenceDiagram
     Note over Dev: Which mode do I need?
 
     alt Feature Dev (Full Stack)
-        Dev->>Script: start-android-docker.bat
+        Dev->>Script: scripts/start-android-docker.bat
         Script->>Docker: Start Backend & DB
         Script->>Client: Start Vite (Live Reload)
         Emu->>Docker: Connects to Local API
     else UI/Frontend Tweaks (Real Data)
-        Dev->>Script: start-android-remote.ps1
+        Dev->>Script: scripts/start-android-remote.ps1
         Script->>Client: Start Vite only
         Emu->>Prod: Connects to Production API
     else Legacy/Native Dev
-        Dev->>Script: start-android-local.ps1
+        Dev->>Script: scripts/start-android-local.ps1
         Script->>Docker: Start Backend (Host PHP)
         Emu->>Docker: Connects to Host API
     else Hybrid Web Dev (Experimental)
-        Dev->>Script: start-dev-docker.bat
+        Dev->>Script: scripts/start-dev-docker.bat
         Script->>Docker: Start Backend (Docker)
         Script->>Client: Start Vite (Localhost)
         Client->>Docker: Connects to Localhost:8080
@@ -199,7 +199,7 @@ sequenceDiagram
 **Use Case:** You want to work on the Frontend (Client/Editor) with fast Vite HMR, but you want a stable, isolated Backend environment (Docker) without managing local PHP/MySQL versions.
 
 **How to run:**
-1.  Run `start-dev-docker.bat`.
+1.  Run `scripts/start-dev-docker.bat`.
 2.  Wait for Docker to start (Backend at `localhost:8080`).
 3.  Client will open at `localhost:3000`.
 4.  Editor will open at `localhost:3001`.
@@ -258,11 +258,11 @@ sequenceDiagram
 | **APK connects to localhost** | Production | Ensure `capacitor.config.ts` uses `process.env.CAPACITOR_LIVE_RELOAD`. |
 | **Migration Failed** | Coolify | SSH/Console into container: `php artisan migrate --force`. |
 | **Push Rejected** | Git | Fix lint errors (`npm run lint`) or build errors (`pnpm build`). |
-| **502 / Deployment Error** | Prod | **Run `audit-deployment.bat`**. Check for misconfigured Env/Healthcheck. |
+| **502 / Deployment Error** | Prod | **Run `scripts\audit-deployment.bat`**. Check for misconfigured Env/Healthcheck. |
 | **Editor shows Client App** | Local | **Service Worker Ghosting**. Stop all servers -> Start all -> Use Incognito or Clear Site Data. |
 | **Preview App shows Editor UI** | Editor | **Missing `VITE_CLIENT_URL`**. Set `VITE_CLIENT_URL=http://localhost:9981` in `apps/editor/.env`. |
 | **API returns stale/wrong data** | Local | **Docker stealing port 8080**. Run `netstat -ano \| findstr :8080` then `tasklist /fi "PID eq <PID>"`. If `com.docker.backend.exe`, see Section 7. |
-| **Code changes not reflected** | Backend | **PHP-CGI doesn't auto-reload**. Must run `stop-all.bat` then `start-all.bat` to restart PHP-CGI process. |
+| **Code changes not reflected** | Backend | **PHP-CGI doesn't auto-reload**. Must run `scripts\stop-all.bat` then `scripts\start-all.bat` to restart PHP-CGI process. |
 | **Laravel Log::info not appearing** | Backend | PHP-CGI serves old bytecode. Restart PHP-CGI (see above). Also check `php artisan route:clear`. |
 | **New route returns 404** | Backend | Run `php artisan route:clear` then restart PHP-CGI. Verify with `php artisan route:list --path=<route>`. |
 
@@ -272,7 +272,7 @@ sequenceDiagram
 
 **Current Risk:**
 Our current workflow uses scripts to *modify* `.env` files (e.g., swapping `.env.local-dev` to `.env`).
-*   **Danger:** If you run `start-android-local.ps1` (setting API to `localhost`), and then immediately run a manual build (`pnpm build`), you might accidentally build a "Production" APK that points to `localhost`.
+*   **Danger:** If you run `scripts/start-android-local.ps1` (setting API to `localhost`), and then immediately run a manual build (`pnpm build`), you might accidentally build a "Production" APK that points to `localhost`.
 *   **Mitigation:** Always use the dedicated GitHub Action for Production builds (which guarantees a clean state).
 *   **Environment Isolation:** Local `.env` files in `apps/` directories are **git-ignored**. They control your local `pnpm dev` environment but are **NOT** used by GitHub Actions (which uses Secrets). This ensures your local "localhost" settings never leak into Production.
 
@@ -349,8 +349,8 @@ taskkill /F /PID <PID>
 # Right-click Docker tray icon → Quit Docker Desktop
 
 # Then restart local servers
-.\stop-all.bat
-.\start-all.bat
+.\scripts\stop-all.bat
+.\scripts\start-all.bat
 
 # Verify Caddy now holds port 8080
 netstat -ano | findstr :8080
@@ -358,9 +358,9 @@ tasklist /fi "PID eq <NEW_PID>"  # Should be caddy.exe
 ```
 
 ### Prevention
-- Always run `netstat -ano | findstr :8080` after `start-all.bat` to verify Caddy owns the port
+- Always run `netstat -ano | findstr :8080` after `scripts\start-all.bat` to verify Caddy owns the port
 - If using Docker for MariaDB (port 33066), Docker Desktop does NOT need to expose port 8080
-- Consider adding a port check to `start-all.bat`
+- Consider adding a port check to `scripts\start-all.bat`
 
 ---
 
@@ -372,7 +372,7 @@ tasklist /fi "PID eq <NEW_PID>"  # Should be caddy.exe
 ### What Gets Cached
 | Item | Cached? | How to Clear |
 | :--- | :--- | :--- |
-| PHP source code (controllers, models) | Yes (PHP-CGI process) | Restart PHP-CGI (`stop-all.bat` + `start-all.bat`) |
+| PHP source code (controllers, models) | Yes (PHP-CGI process) | Restart PHP-CGI (`scripts\stop-all.bat` + `scripts\start-all.bat`) |
 | Laravel route cache | Yes (file-based) | `php artisan route:clear` |
 | Laravel config cache | Yes (file-based) | `php artisan config:clear` |
 | Laravel application cache | Yes (file-based) | `php artisan cache:clear` |
@@ -386,8 +386,8 @@ php artisan route:clear && php artisan config:clear && php artisan cache:clear
 
 # Restart servers (required for PHP code changes)
 cd ..\..  
-.\stop-all.bat
-.\start-all.bat
+.\scripts\stop-all.bat
+.\scripts\start-all.bat
 ```
 
 ### Verifying Code Changes Are Active

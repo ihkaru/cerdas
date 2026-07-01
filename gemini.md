@@ -82,13 +82,13 @@ packages/types  - @cerdas/types (shared strict TS types)
 - `docs/DEVELOPMENT_LIFECYCLE.md` - **Development feedback loop & workflow**
 - `references/SCREEN_FLOW.md` - **User Screen Flow & Routing Guide (Happy/Unhappy Paths)**
 - `ROADMAP.md` - **Feature Roadmap & Progress Tracker (Live Status)**
-- [System Reference & Specification](file:///C:/Users/Admin/.gemini/antigravity/brain/6aa89f4f-fdf3-448d-8799-1234dfbcf31c/system_reference.md) - **Single Source of Truth** for Requirements, Features, and Entity Relationships.
+- **System Reference & Specification** (External specification) - **Single Source of Truth** for Requirements, Features, and Entity Relationships.
 
-### Process Management Scripts (Root)
-- `start-all.bat`: Starts Backend (9980), Client (9981), Editor (9982).
-- `stop-all.bat`: **Surgical Stop**. Kills only Cerdas windows & processes. Safe to use.
-- `restart-android.bat`: Restarts Android App & captures logs.
-- `save-android-log.bat`: Captures current Android logs to `logs/`.
+### Process Management Scripts (scripts/)
+- `scripts/start-all.bat`: Starts Backend (8080), Client (9981), Editor (9982).
+- `scripts/stop-all.bat`: **Surgical Stop**. Kills only Cerdas windows & processes. Safe to use.
+- `scripts/restart-android.bat`: Restarts Android App & captures logs.
+- `scripts/save-android-log.bat`: Captures current Android logs to `logs/`.
 
 - **Map View Fixes (2026-02-15)**:
   - **Dynamic Popups**: Fixed "Buka Detail" button to use canonical `/assignments/:id` route, resolving the "View not found" error.

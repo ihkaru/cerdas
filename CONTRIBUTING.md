@@ -27,7 +27,7 @@ Thank you for your interest in contributing to Cerdas! We welcome contributions 
 
 Run the development environment:
 ```bash
-./start-all.bat
+.\scripts\start-all.bat
 ```
 
 ## Pull Request Process

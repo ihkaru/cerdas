@@ -8,6 +8,9 @@
     "dev:editor": "pnpm --filter editor dev",
     "build:client": "pnpm --filter client build",
     "build:editor": "pnpm --filter editor build",
+    "dev:docker": "bash scripts/start-dev-docker.sh",
+    "verify": "bash scripts/verify-local.sh",
+    "verify:stack": "bash scripts/verify-stack.sh",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
@@ -20,6 +23,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-sonarjs": "^3.0.7",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",

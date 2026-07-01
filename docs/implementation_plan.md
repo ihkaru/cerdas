@@ -4,7 +4,7 @@
 > **Goal**: Self-hosted, offline-first, no-code app builder for data collection
 
 > [!NOTE]
-> **Reference Document**: Always consult [architecture_principles.md](file:///C:/Users/Admin/.gemini/antigravity/brain/6aa89f4f-fdf3-448d-8799-1234dfbcf31c/architecture_principles.md) before implementation.
+> **Reference Document**: Always consult [architecture_principles.md](architecture_principles.md) before implementation.
 
 ---
 

@@ -13,7 +13,7 @@
 [![Build APK](https://github.com/ihkaru/cerdas/actions/workflows/build-android.yml/badge.svg)](https://github.com/ihkaru/cerdas/actions/workflows/build-android.yml)
 [![Octane Audit](https://github.com/ihkaru/cerdas/actions/workflows/octane-audit.yml/badge.svg)](https://github.com/ihkaru/cerdas/actions/workflows/octane-audit.yml)
 
-[Download APK](https://github.com/ihkaru/cerdas/releases/latest) · [Quick Start](QUICKSTART.md) · [Documentation](docs/) · [Roadmap](ROADMAP.md)
+[Download APK](https://github.com/ihkaru/cerdas/releases/latest) · [Quick Start](QUICKSTART.md) · [Documentation](docs/) · [Terminology Guide](docs/TERMINOLOGY_DISAMBIGUATION.md) · [Roadmap](ROADMAP.md)
 
 </div>
 
@@ -85,7 +85,7 @@ git clone https://github.com/ihkaru/cerdas.git
 cd cerdas
 
 # Start all services (Backend + Client + Editor) in Docker
-./start-dev-docker.sh
+pnpm run dev:docker
 ```
 
 ### Option B — Local Setup
@@ -106,10 +106,7 @@ php artisan migrate
 cd ../..
 
 # Start all services (Windows)
-./start-all.bat
-
-# Start all services (Linux/Mac)
-./start-all.sh
+.\scripts\start-all.bat
 ```
 
 ### Verification
@@ -118,10 +115,10 @@ Run this before pushing to ensure the build is clean.
 
 ```bash
 # Linux / Mac
-./verify-local.sh
+pnpm run verify
 
 # Windows (PowerShell)
-./verify-local.ps1
+.\scripts\verify-local.ps1
 ```
 
 ### Production (Docker)
@@ -130,7 +127,7 @@ Run this before pushing to ensure the build is clean.
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-> See [Coolify Deployment Guide](COOLIFY_GUIDE.md) for managed hosting setup.
+> See [Coolify Deployment Guide](docs/COOLIFY_GUIDE.md) for managed hosting setup.
 
 ## Project Structure
 
@@ -144,7 +141,7 @@ cerdas/
 │   ├── form-engine/       # Shared form rendering library
 │   └── expression-engine/ # JS expression evaluator for dynamic field logic
 ├── scripts/               # Automation & audit scripts
-├── .github/workflows/     # CI/CD pipelines
+├── docs/                  # Project documentation & guidelines (including [Terminology Guide](docs/TERMINOLOGY_DISAMBIGUATION.md))
 └── docker-compose.prod.yml
 ```
 

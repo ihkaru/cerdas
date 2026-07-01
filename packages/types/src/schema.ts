@@ -94,6 +94,17 @@ export interface Field {
   parentFieldId: string | null;
 }
 
+export interface TableVersion {
+  id: string;
+  tableId: string;
+  version: number;
+  fields: Field[];
+  changelog: string | null;
+  createdAt: string;
+  publishedAt: string | null;
+}
+
+/** @deprecated Use TableVersion instead */
 export interface AppSchemaVersion {
   id: string;
   appSchemaId: string;
@@ -104,6 +115,19 @@ export interface AppSchemaVersion {
   publishedAt: string | null;
 }
 
+export interface Table {
+  id: string;
+  appId: string;
+  name: string;
+  slug: string;
+  currentVersion: number;
+  publishedAt: string | null;
+  settings: SchemaSettings;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** @deprecated Use Table instead */
 export interface AppSchema {
   id: string;
   projectId: string;
