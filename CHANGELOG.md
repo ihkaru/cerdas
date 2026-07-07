@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.5...cerdas-v0.2.6) (2026-07-07)
+
+
+### Bug Fixes
+
+* **sync:** upsert tables row to fix fresh android install showing no assignments ([8d4eaa0](https://github.com/ihkaru/cerdas/commit/8d4eaa0c07320c666ec2be9b11a4c0063bfedd94))
+
 ## [0.2.5](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.4...cerdas-v0.2.5) (2026-07-07)
 
 
