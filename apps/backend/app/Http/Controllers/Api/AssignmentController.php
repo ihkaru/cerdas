@@ -26,14 +26,14 @@ class AssignmentController extends Controller
         $query = Assignment::query()
             ->whereHas('tableVersion.table', function ($q) use ($user) {
                 // Filter by app access
-                $q->whereIn('app_id', $user->appMemberships->pluck('app_id'));
+                $q->whereIn('app_id', $user->getAccessibleAppIds());
             });
 
         // Filter based on role
         if (!$user->isSuperAdmin()) {
             // Determine which apps allow unassigned access
             // Logic: App Mode = 'simple' AND restrict_unassigned != true
-            $allowedAppIds = $user->apps()
+            $allowedAppIds = \App\Models\App::whereIn('id', $user->getAccessibleAppIds())
                 ->where('mode', 'simple')
                 ->get()
                 ->filter(fn ($app) => ($app->settings['restrict_unassigned'] ?? false) === false)

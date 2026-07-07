@@ -27,7 +27,7 @@ class TableController extends Controller
 
         if ($appId) {
             // Check app access via AppMembership
-            if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $appId)->exists()) {
+            if (! $user->hasAppAccess($appId)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Access denied to this app',
@@ -36,7 +36,7 @@ class TableController extends Controller
             $query->where('app_id', $appId);
         } else {
             // Return tables from all apps user has access to
-            $userAppIds = $user->appMemberships->pluck('app_id');
+            $userAppIds = $user->getAccessibleAppIds();
             $query->whereIn('app_id', $userAppIds);
         }
 
@@ -64,7 +64,7 @@ class TableController extends Controller
 
         $user = $request->user();
 
-        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $validated['app_id'])->exists()) {
+        if (! $user->hasAppAccess($validated['app_id'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied to this app',
@@ -115,7 +115,7 @@ class TableController extends Controller
         $user = $request->user();
 
         // Check access (super admin bypasses)
-        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->hasAppAccess($table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied to this table',
@@ -139,7 +139,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->hasAppAccess($table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -170,7 +170,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->hasAppAccess($table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -254,7 +254,7 @@ class TableController extends Controller
         $user = $request->user();
 
         // Check app access via AppMembership
-        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $app->id)->exists()) {
+        if (! $user->hasAppAccess($app->id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized or no access to this app',
@@ -282,7 +282,7 @@ class TableController extends Controller
 
         $table = Table::onlyTrashed()->with('app')->findOrFail($id);
 
-        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->hasAppAccess($table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized or no access to this table',
@@ -309,7 +309,7 @@ class TableController extends Controller
 
         $table = Table::onlyTrashed()->with('app')->findOrFail($id);
 
-        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->hasAppAccess($table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized or no access to this table',
@@ -333,7 +333,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->hasAppAccess($table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -373,7 +373,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->hasAppAccess($table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -408,7 +408,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->hasAppAccess($table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -464,7 +464,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->hasAppAccess($table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -521,7 +521,7 @@ class TableController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->isSuperAdmin() && ! $user->apps()->where('app_id', $table->app_id)->exists()) {
+        if (! $user->hasAppAccess($table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',

@@ -170,6 +170,28 @@ class User extends Authenticatable
     }
 
     /**
+     * Get all app IDs the user has access to (direct & organization-level)
+     */
+    public function getAccessibleAppIds(): array
+    {
+        if ($this->isSuperAdmin()) {
+            return \App\Models\App::pluck('id')->toArray();
+        }
+
+        $directAppIds = $this->appMemberships()
+            ->where('is_active', true)
+            ->pluck('app_id')
+            ->toArray();
+
+        $orgAppIds = \Illuminate\Support\Facades\DB::table('app_organizations')
+            ->whereIn('organization_id', $this->organizations()->pluck('organizations.id'))
+            ->pluck('app_id')
+            ->toArray();
+
+        return array_values(array_unique(array_merge($directAppIds, $orgAppIds)));
+    }
+
+    /**
      * Helper: Accept all pending App Invitations for this user
      */
     public function acceptPendingInvitations()
