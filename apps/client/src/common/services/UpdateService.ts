@@ -34,6 +34,20 @@ class UpdateService {
   public init(pollIntervalMs: number = 15 * 60 * 1000) {
     this.checkForUpdates();
     
+    // Auto-clean stuck/leftover service workers if they are registered but app does not use them
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (const reg of registrations) {
+          reg.unregister().then(success => {
+            if (success) {
+              logger.info('[UpdateService] Stuck/leftover service worker unregistered.');
+              window.location.reload();
+            }
+          });
+        }
+      });
+    }
+
     if (this.intervalId) clearInterval(this.intervalId);
     this.intervalId = setInterval(() => this.checkForUpdates(), pollIntervalMs);
 
@@ -139,22 +153,23 @@ class UpdateService {
       const githubUrl = 'https://github.com/ihkaru/cerdas/releases/latest';
       window.open(githubUrl, '_system', 'noopener');
     } else {
-      logger.info('[UpdateService] PWA Update: Triggering Service Worker Skip Waiting...');
+      logger.info('[UpdateService] PWA Update: Unregistering Service Workers and reloading...');
       
-      // Send SKIP_WAITING command to the service worker to force activation of the new PWA bundle
+      // Force unregister all active service workers to clear stuck cache shell
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
           for (const reg of registrations) {
+            reg.unregister();
             if (reg.waiting) {
               reg.waiting.postMessage({ type: 'SKIP_WAITING' });
             }
           }
         }).catch(err => {
-          logger.warn('[UpdateService] Failed to message waiting service worker', err);
+          logger.warn('[UpdateService] Failed to unregister service workers', err);
         });
       }
 
-      // Allow a brief moment for the service worker to claim the client before page reload
+      // Allow a brief moment for the service worker to unregister before page reload
       setTimeout(() => {
         logger.info('[UpdateService] Reloading PWA with cache buster...');
         const url = new URL(window.location.href);
