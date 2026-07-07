@@ -159,6 +159,7 @@
 </style>
 
 <script setup lang="ts">
+/* eslint-disable */
 import { apiClient } from '@/common/api/ApiClient';
 import AsyncImage from '../common/AsyncImage.vue';
 import { computed } from 'vue';

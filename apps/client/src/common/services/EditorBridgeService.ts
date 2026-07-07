@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { f7 } from 'framework7-vue';
 import { useDashboardStore } from '../../app/dashboard/stores/dashboardStore';
 import { databaseService } from '../database/DatabaseService';

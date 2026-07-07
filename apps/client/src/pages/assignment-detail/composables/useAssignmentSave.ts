@@ -63,9 +63,12 @@ export function useAssignmentSave(
             f7.toast.show({ text: 'Assignment Selesai!', closeTimeout: 2000, cssClass: 'color-green' });
             
             // Background push sync immediately
-            import('../../../common/services/SyncService').then(({ syncService }) => {
+            try {
+                const { syncService } = await import('../../../common/services/SyncService');
                 syncService.push().catch(err => console.error('[AutoPush] Failed to sync in background:', err));
-            });
+            } catch (err) {
+                console.error('[AutoPush] Failed to load sync service in background:', err);
+            }
 
             f7.view.main.router.back();
         });
