@@ -21,7 +21,7 @@ Tabel ini merinci representasi teknis dan visual dari 5 status canonical di semu
 | :--- | :--- | :---: | :--- | :---: | :---: | :---: | :---: |
 | **`assigned`** | Simple & Complex | **Pending** | `Pending` | Abu-abu | Terbuka (Edit) | *(Semua)* | **Assigned** (Abu-abu) |
 | **`in_progress`** | Simple & Complex | **Proses** | `Proses` | Biru | Terbuka (Edit) | **In Progress** | **In Progress** (Biru) |
-| **`submitted`** | Simple & Complex | **Selesai** | `Terkirim` (Simple) / `Menunggu Review` (Complex) | Oranye | **Terkunci (Read-only)** | **Pending Review** (Hanya Complex) / **Submitted** (Simple) | **Pending Review** / **Submitted** (Oranye) |
+| **`submitted`** | Simple & Complex | **Selesai** | `Terkirim` (Simple) / `Menunggu Review` (Complex) | Oranye | **Terkunci (Read-only)** pada Complex Mode / **Terbuka (Editable)** pada Simple Mode | **Pending Review** (Hanya Complex) / **Submitted** (Simple) | **Pending Review** / **Submitted** (Oranye) |
 | **`approved`** | Hanya Complex | **Selesai** | `Disetujui` | Teal (Hijau) | **Terkunci (Read-only)** | **Approved** | **Approved** (Teal) |
 | **`rejected`** | Hanya Complex | **Proses** | `Dikembalikan` | Merah | Terbuka (Edit Ulang) | **Returned** | **Returned** (Merah) |
 
@@ -33,7 +33,7 @@ Tabel ini merinci representasi teknis dan visual dari 5 status canonical di semu
 | :--- | :---: | :---: | :---: | :--- |
 | **Buka Form Pertama Kali** | Enumerator | `assigned` | `in_progress` | Diset otomatis di lokal. Server mendeteksi perubahan saat sync. |
 | **Simpan Draf Formulir** | Enumerator | `in_progress` | `in_progress` | Tersimpan sebagai draf offline. Status tidak berubah. |
-| **Menekan Tombol "Finish"** | Enumerator | `in_progress` | `submitted` | Form di HP terkunci (**Read-Only**). Data siap diunggah ke server. |
+| **Menekan Tombol "Finish"** | Enumerator | `in_progress` | `submitted` | Form di HP terkunci (**Read-Only**) pada Complex Mode / **Terbuka (Editable)** pada Simple Mode. Data diunggah ke server secara otomatis di latar belakang. |
 | **Proses Sinkronisasi (Sync Push)** | Sistem Client | `submitted` | *(Mengikuti Server)* | Data dikirim ke API server. Server mengubah status DB menjadi `submitted`. |
 | **Proses Sinkronisasi (Sync Pull)** | Sistem Client | *(Sembarang)* | *(Mengikuti Server)* | Client mengambil status terbaru dari server. SQLite lokal client di-update mengikuti keputusan server. |
 | **Menekan Tombol "Approve"** | Supervisor | `submitted` | `approved` | Data disetujui di server. Saat client melakukan sync pull berikutnya, status di HP enumerator akan berubah menjadi `Disetujui` (Tetap terkunci). |
