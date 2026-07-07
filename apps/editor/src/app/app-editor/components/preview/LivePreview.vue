@@ -176,47 +176,62 @@ watch([
     syncSchema();
 }, { deep: true });
 
-function handleMessage(event: MessageEvent) {
-    if (event.data?.type === 'EDITOR_CLIENT_READY') {
-        console.log('[LivePreview] Client Handshake Received (EDITOR_CLIENT_READY). Re-syncing context...');
-        syncAuth();
-        syncSchema();
-    } else if (event.data?.type === 'SELECT_FIELD_IN_EDITOR') {
-        const { fieldName } = event.data.payload;
-        console.log('[LivePreview] Remote select field:', fieldName);
-        if (editorState.fields) {
-            const fieldIndex = editorState.fields.findIndex((f: any) => f.name === fieldName);
-            if (fieldIndex !== -1) {
-                if (activeTab) {
-                    activeTab.value = 'schema';
-                }
-                selectField(String(fieldIndex));
-            }
-        }
-    } else if (event.data?.type === 'SELECT_TAB_IN_EDITOR') {
-        const { tab, viewId, navId, optionKey } = event.data.payload;
-        console.log('[LivePreview] Remote select tab:', tab, 'viewId:', viewId, 'navId:', navId, 'optionKey:', optionKey);
-        
-        if (activeTab) {
-            activeTab.value = (tab === 'navigation' ? 'views' : tab);
-        }
-        
-        if (tab === 'views' && viewId && selectedViewKey) {
-            selectedViewKey.value = viewId;
-            if (selectedNavKey) selectedNavKey.value = '';
-        } else if (tab === 'navigation' && navId && selectedNavKey) {
-            selectedNavKey.value = navId;
-            if (selectedViewKey) selectedViewKey.value = '';
-        }
+function handleEditorClientReady() {
+    console.log('[LivePreview] Client Handshake Received (EDITOR_CLIENT_READY). Re-syncing context...');
+    syncAuth();
+    syncSchema();
+}
 
-        if (optionKey && highlightedViewOption) {
-            highlightedViewOption.value = optionKey;
-            setTimeout(() => {
-                if (highlightedViewOption.value === optionKey) {
-                    highlightedViewOption.value = '';
-                }
-            }, 3500);
+function handleSelectFieldInEditor(payload: any) {
+    const { fieldName } = payload;
+    console.log('[LivePreview] Remote select field:', fieldName);
+    if (editorState.fields) {
+        const fieldIndex = editorState.fields.findIndex((f: any) => f.name === fieldName);
+        if (fieldIndex !== -1) {
+            if (activeTab) {
+                activeTab.value = 'schema';
+            }
+            selectField(String(fieldIndex));
         }
+    }
+}
+
+function handleSelectTabInEditor(payload: any) {
+    const { tab, viewId, navId, optionKey } = payload;
+    console.log('[LivePreview] Remote select tab:', tab, 'viewId:', viewId, 'navId:', navId, 'optionKey:', optionKey);
+    
+    if (activeTab) {
+        activeTab.value = (tab === 'navigation' ? 'views' : tab);
+    }
+    
+    if (tab === 'views' && viewId && selectedViewKey) {
+        selectedViewKey.value = viewId;
+        if (selectedNavKey) selectedNavKey.value = '';
+    } else if (tab === 'navigation' && navId && selectedNavKey) {
+        selectedNavKey.value = navId;
+        if (selectedViewKey) selectedViewKey.value = '';
+    }
+
+    if (optionKey && highlightedViewOption) {
+        highlightedViewOption.value = optionKey;
+        setTimeout(() => {
+            if (highlightedViewOption.value === optionKey) {
+                highlightedViewOption.value = '';
+            }
+        }, 3500);
+    }
+}
+
+function handleMessage(event: MessageEvent) {
+    const type = event.data?.type;
+    const payload = event.data?.payload;
+    
+    if (type === 'EDITOR_CLIENT_READY') {
+        handleEditorClientReady();
+    } else if (type === 'SELECT_FIELD_IN_EDITOR') {
+        handleSelectFieldInEditor(payload);
+    } else if (type === 'SELECT_TAB_IN_EDITOR') {
+        handleSelectTabInEditor(payload);
     }
 }
 
