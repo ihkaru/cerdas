@@ -50,7 +50,7 @@ class AppController extends Controller
         $slug = $baseSlug;
         $counter = 1;
 
-        while (App::where('slug', $slug)->exists()) {
+        while (App::withTrashed()->where('slug', $slug)->exists()) {
             $slug = $baseSlug.'-'.$counter++;
         }
 
@@ -615,5 +615,27 @@ class AppController extends Controller
                 'message' => $e->getMessage(),
             ], 400);
         }
+    }
+
+    /**
+     * Delete an app (Soft Delete)
+     */
+    public function destroy(Request $request, App $app): JsonResponse
+    {
+        $user = $request->user();
+
+        $membership = $user->getMembershipForApp($app->id);
+        if (! $membership || $membership->role !== 'app_admin') {
+            if (! $user->isSuperAdmin()) {
+                return response()->json(['success' => false, 'message' => 'Access denied. Admin privileges required.'], 403);
+            }
+        }
+
+        $app->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'App deleted successfully',
+        ]);
     }
 }

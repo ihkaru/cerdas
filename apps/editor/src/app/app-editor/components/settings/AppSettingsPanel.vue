@@ -30,6 +30,20 @@
             </f7-list-item>
         </f7-list>
 
+        <!-- App Access Status -->
+        <f7-list inset>
+            <f7-list-item group-title>App Access Status</f7-list-item>
+            <f7-list-item title="Active Status">
+                <template #after>
+                    <f7-toggle :checked="!!appStore.currentApp?.is_active" color="green"
+                        @toggle:change="toggleAppStatus" />
+                </template>
+                <div slot="footer" class="padding-top-half">
+                    Toggle to enable or disable client surveyors' access to this app.
+                </div>
+            </f7-list-item>
+        </f7-list>
+
         <!-- Public Enrollment (Shareable Link) -->
         <f7-list inset>
             <f7-list-item group-title>Public Enrollment</f7-list-item>
@@ -66,6 +80,21 @@
         </f7-list>
         <VersionHistory v-if="tableId" :table-id="tableId" :current-version="currentVersion"
             @rollback="handleRollback" />
+
+        <!-- Danger Zone -->
+        <f7-list inset class="danger-zone-list">
+            <f7-list-item group-title>Danger Zone</f7-list-item>
+            <f7-list-item>
+                <div class="display-flex flex-direction-column w-full padding-vertical-half gap-half">
+                    <div class="text-color-red font-bold">Delete Application</div>
+                    <div class="text-color-gray size-12">Once deleted, all data, tables, and surveyor submissions associated with this app will be permanently removed.</div>
+                    <f7-button fill color="red" @click="handleDeleteApp" class="margin-top">
+                        <f7-icon f7="trash_fill" class="margin-right-half" />
+                        Delete Application
+                    </f7-button>
+                </div>
+            </f7-list-item>
+        </f7-list>
 
         <!-- Icon Picker Dialog -->
         <f7-popup :opened="showIconPicker" @popup:closed="showIconPicker = false">
@@ -178,6 +207,44 @@ function selectIcon(icon: string) {
 function handleRollback(versionId: string, version: number) {
     emit('rollback', versionId, version);
 }
+
+async function toggleAppStatus(checkedState: boolean) {
+    if (!appStore.currentApp) return;
+    // Guard to prevent programmatic changes from triggering loop/requests
+    if (!!appStore.currentApp.is_active === checkedState) return;
+
+    try {
+        await appStore.updateApp(appStore.currentApp.id, { is_active: checkedState });
+        f7.toast.show({
+            text: checkedState ? 'App activated' : 'App deactivated',
+            closeTimeout: 1500,
+            color: checkedState ? 'green' : 'orange'
+        });
+    } catch (e: any) {
+        f7.dialog.alert('Failed to update app status: ' + e.message);
+    }
+}
+
+async function handleDeleteApp() {
+    if (!appStore.currentApp) return;
+    f7.dialog.confirm(
+        `Are you sure you want to delete "${appStore.currentApp.name}"? This action cannot be undone and will delete all tables and data.`,
+        'Delete Application',
+        async () => {
+            f7.dialog.preloader('Deleting application...');
+            try {
+                const appId = appStore.currentApp!.id;
+                await appStore.deleteApp(appId);
+                f7.dialog.close();
+                f7.toast.show({ text: 'Application deleted', position: 'center', closeTimeout: 2000 });
+                f7.views.main.router.navigate('/');
+            } catch (e: any) {
+                f7.dialog.close();
+                f7.dialog.alert('Delete failed: ' + e.message);
+            }
+        }
+    );
+}
 </script>
 
 <style scoped>
@@ -223,5 +290,19 @@ function handleRollback(versionId: string, version: number) {
     border-radius: 4px;
     font-size: 10px;
     text-transform: uppercase;
+}
+
+.danger-zone-list {
+    border: 1px solid var(--f7-color-red);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.gap-half {
+    gap: 8px;
+}
+
+.size-12 {
+    font-size: 12px;
 }
 </style>

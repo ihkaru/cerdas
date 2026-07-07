@@ -192,7 +192,7 @@ class ExcelImportController extends Controller
                 'version' => 1,
                 'fields' => $schema,
                 'layout' => null, // Set to null to trigger smart defaults in frontend
-                'published_at' => now(),
+                'published_at' => null,
             ]);
 
             DB::commit();

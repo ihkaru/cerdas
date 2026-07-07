@@ -1,6 +1,19 @@
 <template>
   <!-- Main Framework7 App component where we pass Framework7 params -->
   <f7-app v-bind="f7params">
+    <!-- Global Sidebar Panel (App Menu) -->
+    <f7-panel left cover resizable v-model:opened="globalPanelOpened">
+      <AppShellMenu v-if="activeMenuData"
+        :tables="activeMenuData.tables"
+        :navigation="activeMenuData.navigation"
+        :views="activeMenuData.views"
+        :current-table-id="activeMenuData.contextId"
+        :role="activeMenuData.currentUserRole"
+        :user="activeMenuData.user"
+        :app-version="activeMenuData.appVersion"
+        :build-timestamp="activeMenuData.buildTimestamp" />
+    </f7-panel>
+
     <!-- Main View - browserHistory disabled for mobile app -->
     <f7-view main url="/">
     </f7-view>
@@ -17,6 +30,8 @@ import DebugMenuSheet from './common/components/DebugMenuSheet.vue';
 import { useLogger } from './common/utils/logger';
 import routes from './routes';
 import UpdateSheet from './app/dashboard/components/UpdateSheet.vue';
+import AppShellMenu from './app/dashboard/components/AppShellMenu.vue';
+import { globalPanelOpened, activeMenuData } from './common/services/menuService';
 import { updateService } from './common/services/UpdateService';
 import { onMounted } from 'vue';
 

@@ -44,14 +44,26 @@ export const AppMetadataService = {
     },
 
     async _resolveRemotely(id: string): Promise<string | null> {
+        // 1. Try as Table ID
         try {
             const apiRes = await apiClient.get(`/tables/${id}`);
             if (apiRes.success && apiRes.data?.app_id) {
                 return apiRes.data.app_id;
             }
         } catch (e) {
-            console.warn('[AppMetadata] Remote fallback failed', e);
+            console.debug('[AppMetadata] Remote table resolution fallback failed (might be an App ID)', e);
         }
+
+        // 2. Try as App ID directly
+        try {
+            const apiRes = await apiClient.get(`/apps/${id}`);
+            if (apiRes.success && apiRes.data?.id) {
+                return String(apiRes.data.id);
+            }
+        } catch (e) {
+            console.warn('[AppMetadata] Remote app resolution fallback failed', e);
+        }
+
         return null;
     },
 

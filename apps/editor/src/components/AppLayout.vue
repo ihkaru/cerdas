@@ -122,7 +122,7 @@ const recentApps = computed(() => {
 
 // Hide header/sidebar on editor pages or login page
 const isFullscreenPage = computed(() => {
-    return currentPath.value.startsWith('/forms/') ||
+    return currentPath.value.startsWith('/tables/') ||
         currentPath.value === '/login' ||
         currentPath.value.startsWith('/editor/');
 });

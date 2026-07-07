@@ -76,6 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [AppController::class, 'store']);
         Route::get('/{app}', [AppController::class, 'show']);
         Route::put('/{app}', [AppController::class, 'update']);
+        Route::delete('/{app}', [AppController::class, 'destroy']);
         Route::get('/{app}/context', [AppController::class, 'context']); 
         Route::get('/{app}/responses', [ResponseController::class, 'indexForEditor']);
         

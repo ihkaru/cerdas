@@ -863,3 +863,26 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
     - **Release Please Fix**: Menyelaraskan disconnect antara Release Please (yang hanya mengubah `package.json`) dengan Android Native (`build.gradle`). Script sync ini kini menyamakan `versionName` dan `versionCode` secara otomatis di seluruh monorepo.
 - **Vite ESM Docker Fix**: Memperbarui script `version-gen` agar menggunakan `fs.readFileSync` (bukan `require`) supaya kompatibel dengan lingkungan production Docker ESM yang ketat.
 - **Build Hardening**: Menyelesaikan 9 error TS kritis termasuk *verbatimModuleSyntax*, null-safety pada `firstItem`, dan *index signature* pada `ExpressionContext`.
+
+### 07 July 2026 - Docker Rebuild Requirements, Vue Reactivity Loop & F7 Transition Safety
+- **Docker Backend Image Baking**:
+    - **Constraint**: `docker-compose.dev.yml` untuk `backend` didasarkan pada `Dockerfile.prod` dan tidak me-mount kode sumber PHP (`apps/backend`) ke dalam container secara dinamis.
+    - **Impact**: Perubahan kode lokal (seperti file routes `api.php` dan Controller) tidak akan tersinkronisasi otomatis ke container. Menjalankan request akan memicu `405 Method Not Allowed` atau `404 Not Found`.
+    - **Resolution**: Setiap kali melakukan perubahan kode backend, jalankan perintah rebuild: `docker compose -f docker-compose.dev.yml up -d --build backend`.
+- **Vue Watch Array Reference Trap**:
+    - **Reactivity Trap**: Menulis watcher seperti `watch(() => [appStore.currentApp?.id], ...)` akan membuat array baru di setiap daur evaluasi reaktivitas Vue.
+    - **Impact**: Perbandingan memori array yang selalu berbeda menyebabkan watcher terpicu secara rekursif tak terbatas (Infinite Request Loop).
+    - **Resolution**: Pantau variabel secara primitif langsung: `watch(() => appStore.currentApp?.id, ...)`.
+- **Framework7 Vue Transition Safety**:
+    - **Router Lock**: Memicu navigasi `router.navigate()` di dalam hook `onMounted` Vue saat halaman sedang melakukan transisi masuk dapat menyebabkan konflik transisi internal pada router Framework7, berujung pada loop unmount/remount halaman.
+    - **Resolution**: Jalankan navigasi pengalihan rute/redirect pada event **`onPageAfterIn`** (di mana halaman telah selesai bertransisi masuk dan status router sudah dalam keadaan idle/siap).
+
+- **Framework7 Vue Toggle Event Loop Gotcha**:
+    - **Reactivity Trap**: Komponen `<f7-toggle>` di Framework7 Vue memicu event `@toggle:change` (atau `@change`) baik saat pengguna melakukan klik interaktif maupun saat properti `:checked` diperbarui secara programatis (misal, saat inisialisasi state awal atau pembaruan store).
+    - **Impact**: Jika event handler melakukan pembaruan status ke server (via API `PUT`) yang kemudian memperbarui store dan properti `:checked` kembali, hal ini akan memicu event `@toggle:change` secara terus-menerus dalam putaran tak terbatas (Infinite Request Loop).
+    - **Resolution**: Selalu tambahkan kondisi pembanding (guard) di dalam event handler untuk keluar lebih awal (`return`) jika nilai event baru sama dengan status store/lokal saat ini: `if (!!storeValue === checkedState) return;`.
+
+- **Client Delta Sync App Deletion**:
+    - **Problem**: Saat aplikasi dihapus di backend (soft-delete), aplikasi tersebut tetap muncul di dashboard client setelah proses sinkronisasi (Sync).
+    - **Root Cause**: Backend menyertakan ID aplikasi yang dihapus ke dalam array `deleted_apps` pada respons API `/dashboard`. Namun, pada client, `SyncService.pullGlobal()` tidak meneruskan `deleted_apps` ke fungsi `cleanupOrphansAndTombstones()`, dan fungsi tersebut sendiri hanya menghapus data dari tabel `tables` (tidak menyentuh tabel `apps`, `assignments`, atau `responses`).
+    - **Resolution**: Mengubah `pullGlobal()` untuk meneruskan `res.deleted_apps`, dan memperbarui `cleanupOrphansAndTombstones()` untuk menghapus data aplikasi yang terdaftar di `deleted_apps` secara berjenjang (menghapus data di tabel `apps`, `tables`, `table_versions`, `assignments`, dan `responses` terkait) guna menghindari data yatim (*orphaned data*) di database lokal SQLite.

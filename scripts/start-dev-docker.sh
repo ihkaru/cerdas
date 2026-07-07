@@ -6,6 +6,9 @@
 # API calls go to: http://localhost:8090/api
 # =============================================================================
 
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
 PROJECT_ROOT=$(pwd)
 CLIENT_DIR="$PROJECT_ROOT/apps/client"
 EDITOR_DIR="$PROJECT_ROOT/apps/editor"

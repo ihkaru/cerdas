@@ -180,7 +180,13 @@ export class SyncService {
             await this.syncApps(db, res.data.apps || [], !lastSync);
 
             // 2. Cleanup Data (Orphans or Tombstones)
-            await this.cleanupOrphansAndTombstones(db, lastSync, res.data.tables || [], res.deleted_tables || []);
+            await this.cleanupOrphansAndTombstones(
+                db, 
+                lastSync, 
+                res.data.tables || [], 
+                res.deleted_tables || [],
+                res.deleted_apps || []
+            );
 
             // 3. Update Dashboard Stats & Cache
             this.syncDashboardUIState(res.data.stats, res.data.tables || []);
@@ -211,7 +217,13 @@ export class SyncService {
         }
     }
 
-    private async cleanupOrphansAndTombstones(db: any, lastSync: string | null, tables: any[], deletedTableIds: string[]) {
+    private async cleanupOrphansAndTombstones(
+        db: any, 
+        lastSync: string | null, 
+        tables: any[], 
+        deletedTableIds: string[],
+        deletedAppIds: string[] = []
+    ) {
         if (!lastSync) {
             // Initial Sync: Delete local tables NOT in server response
             const serverTableIds = tables.map((t: { id: string }) => t.id);
@@ -224,11 +236,64 @@ export class SyncService {
                 await db.run(`DELETE FROM assignments`);
                 logger.warn('[Sync] Server returned no tables, cleared all local data');
             }
-        } else if (deletedTableIds && deletedTableIds.length > 0) {
+        } else {
             // Delta Sync: Use exact tombstones returned from backend
-            const placeholders = deletedTableIds.map(() => '?').join(',');
-            await db.run(`DELETE FROM tables WHERE id IN (${placeholders})`, deletedTableIds);
-            logger.info(`[Sync] Delta cleanup: removed ${deletedTableIds.length} deleted tables`);
+            if (deletedTableIds && deletedTableIds.length > 0) {
+                const placeholders = deletedTableIds.map(() => '?').join(',');
+                
+                // Delete responses for assignments of the deleted tables
+                await db.run(
+                    `DELETE FROM responses WHERE assignment_id IN (SELECT id FROM assignments WHERE table_id IN (${placeholders}))`, 
+                    deletedTableIds
+                );
+                
+                // Delete assignments of the deleted tables
+                await db.run(`DELETE FROM assignments WHERE table_id IN (${placeholders})`, deletedTableIds);
+                
+                // Delete table versions of the deleted tables
+                await db.run(`DELETE FROM table_versions WHERE table_id IN (${placeholders})`, deletedTableIds);
+
+                // Delete the tables
+                await db.run(`DELETE FROM tables WHERE id IN (${placeholders})`, deletedTableIds);
+                logger.info(`[Sync] Delta cleanup: removed ${deletedTableIds.length} deleted tables and their assignments/responses`);
+            }
+
+            if (deletedAppIds && deletedAppIds.length > 0) {
+                const placeholders = deletedAppIds.map(() => '?').join(',');
+                
+                // Delete responses for assignments of the tables of the deleted apps
+                await db.run(
+                    `DELETE FROM responses WHERE assignment_id IN (
+                        SELECT id FROM assignments WHERE table_id IN (
+                            SELECT id FROM tables WHERE app_id IN (${placeholders})
+                        )
+                    )`, 
+                    deletedAppIds
+                );
+                
+                // Delete assignments of the tables of the deleted apps
+                await db.run(
+                    `DELETE FROM assignments WHERE table_id IN (
+                        SELECT id FROM tables WHERE app_id IN (${placeholders})
+                    )`, 
+                    deletedAppIds
+                );
+
+                // Delete table versions of the tables of the deleted apps
+                await db.run(
+                    `DELETE FROM table_versions WHERE table_id IN (
+                        SELECT id FROM tables WHERE app_id IN (${placeholders})
+                    )`, 
+                    deletedAppIds
+                );
+                
+                // Delete tables of the deleted apps
+                await db.run(`DELETE FROM tables WHERE app_id IN (${placeholders})`, deletedAppIds);
+                
+                // Delete the apps
+                await db.run(`DELETE FROM apps WHERE id IN (${placeholders})`, deletedAppIds);
+                logger.info(`[Sync] Delta cleanup: removed ${deletedAppIds.length} deleted apps and all related tables/assignments/responses`);
+            }
         }
     }
 

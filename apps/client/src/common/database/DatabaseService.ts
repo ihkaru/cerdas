@@ -261,6 +261,14 @@ export class DatabaseService {
         localStorage.removeItem('dashboard_stats');
         localStorage.removeItem('app_pending_counts');
         
+        // Clear all sync checkpoint keys and cached roles
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && (key === 'sync_global' || key.startsWith('sync_') || key.startsWith('app_role_'))) {
+                localStorage.removeItem(key);
+            }
+        }
+        
         // 3. Re-create the tables immediately so the connection remains usable
         await this.createTables();
 

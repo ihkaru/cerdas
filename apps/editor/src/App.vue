@@ -37,7 +37,6 @@ const currentPath = ref(window.location.pathname);
 // Determine if current page should be fullscreen (no sidebar/header)
 const isFullscreenPage = computed(() => {
   return currentPath.value === '/login' ||
-    currentPath.value.startsWith('/forms/') ||
     currentPath.value.startsWith('/tables/') ||
     currentPath.value.startsWith('/editor/');
 });

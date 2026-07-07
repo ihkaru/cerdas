@@ -219,6 +219,21 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
             // STEP 1: Load App Metadata FIRST (Resolves App Context)
             await metadata.loadAppMetadata(null, isRefresh, state.loading);
 
+            // Check if the app has no tables/forms at all
+            if (!metadata.appTables.value || metadata.appTables.value.length === 0) {
+                log.warn('[AppShell] This app has no tables configured.');
+                state.loading.value = false;
+                isLoadingApp.value = false;
+                f7.toast.show({
+                    text: 'Aplikasi ini belum memiliki tabel/form data. Silakan buat tabel terlebih dahulu di Editor.',
+                    position: 'bottom',
+                    closeTimeout: 4000,
+                    cssClass: 'color-red'
+                });
+                f7.views.main.router.navigate('/dashboard/', { reloadCurrent: true });
+                return;
+            }
+
             // STEP 2: Determine Target Table ID from App Context
             let targetTableId = contextId;
             

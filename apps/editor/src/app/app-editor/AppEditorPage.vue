@@ -96,7 +96,9 @@ const tableSelection = useTableSelection(
     {
         onTableLoaded: (...args) => loadTable(...args),
         showNewSourceModal: panels.showNewSourceModal,
-        showExcelImportModal: panels.showExcelImportModal
+        showExcelImportModal: panels.showExcelImportModal,
+        isGlobalDirty: () => isGlobalDirty.value,
+        handleSave: () => handleSave()
     }
 );
 const { hasTableSelected, selectTable, currentVersion, isPublished } = tableSelection;

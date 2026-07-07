@@ -3,8 +3,14 @@
         <f7-navbar :sliding="false">
             <f7-nav-title sliding>Dashboard</f7-nav-title>
             <f7-nav-right>
-                <f7-link icon-f7="arrow_2_circlepath" @click="handleSync" :class="{ 'syncing': isSyncing }"></f7-link>
-                <f7-link icon-f7="person_circle" @click="settingsOpen = true"></f7-link>
+                <f7-link @click="handleSync" :class="{ 'syncing': isSyncing }" class="sync-nav-link">
+                    <f7-icon f7="arrow_2_circlepath"></f7-icon>
+                    <span class="sync-label">Sync</span>
+                </f7-link>
+                <f7-link @click="settingsOpen = true" class="profile-nav-link">
+                    <f7-icon f7="person_circle"></f7-icon>
+                    <span class="profile-label">Profil</span>
+                </f7-link>
             </f7-nav-right>
         </f7-navbar>
 
@@ -117,6 +123,17 @@ const openApp = (id: string) => {
     animation: spin 1s infinite linear;
 }
 
+.sync-nav-link, .profile-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sync-label, .profile-label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
 @keyframes spin {
     from {
         transform: rotate(0deg);
@@ -124,6 +141,12 @@ const openApp = (id: string) => {
 
     to {
         transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 360px) {
+    .sync-label, .profile-label {
+        display: none;
     }
 }
 </style>

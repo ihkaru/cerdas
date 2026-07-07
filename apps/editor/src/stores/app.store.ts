@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { ApiClient } from '../common/api/ApiClient';
 
 export interface AppModel {
-    id: number;
+    id: number | string;
     name: string;
     description: string;
     slug: string;
@@ -16,6 +16,7 @@ export interface AppModel {
     views?: any[];
     navigation?: any[];
     mode?: 'simple' | 'complex';
+    is_active?: boolean;
 }
 
 export interface DashboardStats {
@@ -98,6 +99,7 @@ export const useAppStore = defineStore('app', () => {
         const cached = apps.value.find(a => 
             String(a.id) === String(idOrSlug) || a.slug === idOrSlug
         );
+
         if (cached) {
             currentApp.value = cached;
         } else {
@@ -131,6 +133,42 @@ export const useAppStore = defineStore('app', () => {
         }
     }
 
+    async function updateApp(idOrSlug: number | string, payload: any) {
+        loading.value = true;
+        try {
+            const res = await ApiClient.put(`/apps/${idOrSlug}`, payload);
+            if (currentApp.value && (String(currentApp.value.id) === String(idOrSlug) || currentApp.value.slug === idOrSlug)) {
+                currentApp.value = { ...currentApp.value, ...res.data.data };
+            }
+            const idx = apps.value.findIndex(a => String(a.id) === String(idOrSlug) || a.slug === idOrSlug);
+            if (idx !== -1) {
+                apps.value[idx] = { ...apps.value[idx], ...res.data.data };
+            }
+            return res.data.data;
+        } catch (e: any) {
+            error.value = e.message || 'Failed to update app';
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function deleteApp(idOrSlug: number | string) {
+        loading.value = true;
+        try {
+            await ApiClient.delete(`/apps/${idOrSlug}`);
+            apps.value = apps.value.filter(a => String(a.id) !== String(idOrSlug) && a.slug !== idOrSlug);
+            if (currentApp.value && (String(currentApp.value.id) === String(idOrSlug) || currentApp.value.slug === idOrSlug)) {
+                currentApp.value = null;
+            }
+        } catch (e: any) {
+            error.value = e.message || 'Failed to delete app';
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
+
     function resetCurrentApp() {
         currentApp.value = null;
     }
@@ -146,6 +184,8 @@ export const useAppStore = defineStore('app', () => {
         fetchDashboard,
         fetchApp,
         createApp,
+        updateApp,
+        deleteApp,
         resetCurrentApp
     };
 });

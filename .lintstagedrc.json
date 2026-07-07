@@ -1,8 +1,10 @@
 {
   "*.{js,ts,vue,json}": [
-    "eslint --fix"
+    "eslint --fix",
+    "node scripts/check-line-limit.mjs"
   ],
   "apps/backend/**/*.php": [
-    "php apps/backend/vendor/bin/pint"
+    "php apps/backend/vendor/bin/pint",
+    "node scripts/check-line-limit.mjs"
   ]
 }

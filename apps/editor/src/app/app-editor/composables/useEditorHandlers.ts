@@ -146,6 +146,20 @@ export function useEditorHandlers(
             // IMPORTANT: After publish, we MUST refresh the table structure 
             // set it's now immutable.
             await tableStore.fetchTable(pubId);
+
+            // Create a new draft version immediately so editor is not locked on a published immutable version
+            const newDraft = await tableStore.createDraft(pubId);
+            tableStore.currentVersion = newDraft;
+
+            tableEditor.loadTable(
+                String(newDraft.table_id || newDraft.id),
+                tableStore.currentTable?.name || 'Untitled',
+                newDraft.fields || [],
+                tableStore.currentTable?.description,
+                newDraft.layout?.settings,
+                newDraft.layout,
+                tableStore.currentTable?.app_id || ''
+            );
             
             f7.dialog.close();
             f7.toast.show({ text: `Versi ${currentVer.version} berhasil dipublikasi!`, position: 'center', closeTimeout: 2000 });

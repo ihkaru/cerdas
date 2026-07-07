@@ -38,6 +38,11 @@ export function useAppJoinLink(appIdProvider: () => string | null | undefined) {
         const appId = appIdProvider();
         if (!appId) return;
 
+        const currentActive = joinLink.value ? !!joinLink.value.is_active : false;
+        if (currentActive === !!isActive) {
+            return;
+        }
+
         try {
             const res = await ApiClient.post(`/apps/${appId}/join-link`, {
                 is_active: isActive,

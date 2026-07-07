@@ -1,11 +1,6 @@
 <template>
     <f7-page name="app-shell" :page-content="false" @page:afterin="onPageAfterIn">
-        <!-- Main Sidebar Panel (App Menu) -->
-        <f7-panel left cover resizable v-model:opened="panelOpened">
-            <AppShellMenu :tables="appTables" :navigation="appNavigation" :views="appViews"
-                :current-table-id="contextId" :role="currentUserRole" :user="authStore.user" :app-version="appVersion"
-                :build-timestamp="buildTimestamp" />
-        </f7-panel>
+
 
         <!-- navbar -->
         <AppShellNavbar :title="pageTitle" :actions="headerActions" @back="handleBackNav" @action="handleHeaderAction"
@@ -255,7 +250,7 @@ console.warn(`[AppShell] v${appClientVersion} Build: ${buildTimestamp}`);
 // Components
 import { getIcon } from '@/app/dashboard/utils/iconHelpers';
 import AppShellGroupList from '../app/dashboard/components/AppShellGroupList.vue';
-import AppShellMenu from '../app/dashboard/components/AppShellMenu.vue'; // Imported
+import { openMenu, globalPanelOpened } from '../common/services/menuService';
 import AppShellNavbar from '../app/dashboard/components/AppShellNavbar.vue';
 import AppShellPreviewSheet from '../app/dashboard/components/AppShellPreviewSheet.vue';
 import AppShellStatusFilter from '../app/dashboard/components/AppShellStatusFilter.vue';
@@ -410,10 +405,17 @@ const openAssignment = (id: string) => {
     }
 };
 
-const panelOpened = ref(false);
-
 const openMenuPanel = () => {
-    panelOpened.value = true;
+    openMenu({
+        tables: appTables.value,
+        navigation: appNavigation.value,
+        views: appViews.value,
+        contextId: contextId.value,
+        currentUserRole: currentUserRole.value,
+        user: authStore.user,
+        appVersion: appVersion.value,
+        buildTimestamp: buildTimestamp.value
+    });
 };
 
 const refresh = async (done: () => void) => {
@@ -517,7 +519,6 @@ watch(() => forceShowItems.value, () => refreshData());
 let justMounted = false;
 onMounted(() => {
     justMounted = true;
-    loadApp();
 });
 
 // Critical: close any open F7 overlays BEFORE the component is destroyed.
@@ -525,9 +526,9 @@ onMounted(() => {
 // causing `this.app.panel` to be undefined and breaking navigation.
 onBeforeUnmount(() => {
     try {
-        if (panelOpened.value) {
+        if (globalPanelOpened.value) {
             f7.panel.close('left', false); // false = no animation, immediate close
-            panelOpened.value = false;
+            globalPanelOpened.value = false;
         }
         if (actionsSheetOpen.value) {
             f7.actions.close('.actions-modal.modal-in', false);
@@ -539,7 +540,11 @@ onBeforeUnmount(() => {
 });
 
 const onPageAfterIn = () => {
-    if (justMounted) { justMounted = false; return; }
+    if (justMounted) { 
+        justMounted = false; 
+        loadApp();
+        return; 
+    }
     refreshData(); // Only refresh local data, do not sync metadata
 };
 

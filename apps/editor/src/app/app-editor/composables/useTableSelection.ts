@@ -19,6 +19,8 @@ export function useTableSelection(
         ) => void;
         showNewSourceModal: Ref<boolean>;
         showExcelImportModal: Ref<boolean>;
+        isGlobalDirty?: () => boolean;
+        handleSave?: () => Promise<void>;
     }
 ) {
     // State (Derived from tableStore)
@@ -31,9 +33,7 @@ export function useTableSelection(
     const hasTableSelected = computed(() => !!currentTableId.value);
 
     // Actions
-    async function selectTable(id: string | number) {
-        if (String(id) === String(currentTableId.value)) return;
-
+    async function doSelectTable(id: string | number) {
         f7.preloader.show();
         try {
             await tableStore.fetchTable(id);
@@ -70,6 +70,42 @@ export function useTableSelection(
             f7.dialog.alert(e.message);
         } finally {
             f7.preloader.hide();
+        }
+    }
+
+    async function selectTable(id: string | number) {
+        if (String(id) === String(currentTableId.value)) return;
+
+        if (callbacks.isGlobalDirty?.() && callbacks.handleSave) {
+            f7.dialog.create({
+                title: 'Simpan Perubahan?',
+                text: 'Ada perubahan yang belum disimpan. Apakah Anda ingin menyimpannya terlebih dahulu?',
+                buttons: [
+                    {
+                        text: 'Simpan & Pindah',
+                        onClick: async () => {
+                            try {
+                                await callbacks.handleSave!();
+                                await doSelectTable(id);
+                            } catch (e: any) {
+                                console.error('Save before switch failed', e);
+                            }
+                        }
+                    },
+                    {
+                        text: 'Abaikan & Pindah',
+                        onClick: async () => {
+                            await doSelectTable(id);
+                        }
+                    },
+                    {
+                        text: 'Batal',
+                        color: 'red'
+                    }
+                ]
+            }).open();
+        } else {
+            await doSelectTable(id);
         }
     }
 

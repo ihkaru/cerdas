@@ -274,7 +274,7 @@ function generateJson(): string {
 }
 
 watch(
-    () => [appStore.currentApp?.id],
+    () => appStore.currentApp?.id,
     () => {
         fetchAppSchema();
     },

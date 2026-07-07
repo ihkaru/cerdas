@@ -31,14 +31,20 @@ class UpdateService {
     return UpdateService.instance;
   }
 
-  /**
-   * Initialize and start polling
-   */
   public init(pollIntervalMs: number = 15 * 60 * 1000) {
     this.checkForUpdates();
     
     if (this.intervalId) clearInterval(this.intervalId);
     this.intervalId = setInterval(() => this.checkForUpdates(), pollIntervalMs);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', () => this.checkForUpdates());
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.checkForUpdates();
+        }
+      });
+    }
   }
 
   public async checkForUpdates(): Promise<AppVersionMetadata | null> {
