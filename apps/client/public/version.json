@@ -1,10 +1,12 @@
 {
-  "version": "0.2.1",
-  "build_id": "jqpwjm",
-  "timestamp": "2026-07-07T20:31:47.061Z",
+  "version": "0.2.3",
+  "build_id": "v3k9d4",
+  "timestamp": "2026-07-08T03:57:46.000Z",
   "min_native_version": "0.1.0",
   "changelog": [
     "Optimisasi sinkronisasi data",
-    "Peningkatan stabilitas aplikasi"
+    "Peningkatan stabilitas aplikasi",
+    "Optimisasi ekspor data besar (300k+ baris) ke ZIP",
+    "Pembersihan sisa service worker untuk mengatasi loop update"
   ]
 }
