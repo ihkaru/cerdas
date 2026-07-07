@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.68](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.67...cerdas-v0.1.68) (2026-07-07)
+
+
+### Features
+
+* **docker:** optimize backend with frankenphp static binary and fix port conflicts ([36a6112](https://github.com/ihkaru/cerdas/commit/36a6112d7908bfe4d021eec27b6ff8e9da626e3e))
+* unify status terms, add dynamic json filters, auto-sync push on complete, and fix layout overlaps ([21adf01](https://github.com/ihkaru/cerdas/commit/21adf01e3627e28e685bd9f2c4ec5eef6a086a13))
+
+
+### Bug Fixes
+
+* enforce anti-cache headers for index.html in nginx.conf ([b4ee206](https://github.com/ihkaru/cerdas/commit/b4ee206c9e0abf03599d92863f0dc4b4b9a1ff87))
+* resolve PWA update loop with SKIP_WAITING and fix TypeScript editor compile issues ([be55f5c](https://github.com/ihkaru/cerdas/commit/be55f5cd7852d1e41b7aeaddf44df36236ef52a6))
+* **sync,toggle:** fix infinite toggle loop and client app deletion sync ([018e373](https://github.com/ihkaru/cerdas/commit/018e3733d40660e10feeb9570207258d949c2085))
+
+
+### Performance Improvements
+
+* optimize backend (PHP 8.4, root JSON response) and sync versions ([56dca33](https://github.com/ihkaru/cerdas/commit/56dca33995333100faada82a7ba87a10658658c1))
+
 ## [0.1.67](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.66...cerdas-v0.1.67) (2026-04-17)
 
 
