@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.69](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.68...cerdas-v0.1.69) (2026-07-07)
+
+
+### Bug Fixes
+
+* resolve ESLint errors to pass GitHub Actions Code Quality checks ([97ca47c](https://github.com/ihkaru/cerdas/commit/97ca47c644bc97a20f07535557ea2c5782b0439c))
+
 ## [0.1.68](https://github.com/ihkaru/cerdas/compare/cerdas-v0.1.67...cerdas-v0.1.68) (2026-07-07)
 
 
