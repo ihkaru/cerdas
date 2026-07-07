@@ -887,3 +887,26 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
     - **Problem**: Saat aplikasi dihapus di backend (soft-delete), aplikasi tersebut tetap muncul di dashboard client setelah proses sinkronisasi (Sync).
     - **Root Cause**: Backend menyertakan ID aplikasi yang dihapus ke dalam array `deleted_apps` pada respons API `/dashboard`. Namun, pada client, `SyncService.pullGlobal()` tidak meneruskan `deleted_apps` ke fungsi `cleanupOrphansAndTombstones()`, dan fungsi tersebut sendiri hanya menghapus data dari tabel `tables` (tidak menyentuh tabel `apps`, `assignments`, atau `responses`).
     - **Resolution**: Mengubah `pullGlobal()` untuk meneruskan `res.deleted_apps`, dan memperbarui `cleanupOrphansAndTombstones()` untuk menghapus data aplikasi yang terdaftar di `deleted_apps` secara berjenjang (menghapus data di tabel `apps`, `tables`, `table_versions`, `assignments`, dan `responses` terkait) guna menghindari data yatim (*orphaned data*) di database lokal SQLite.
+
+### 08 July 2026 - PWA SW SkipWaiting, Nginx Anti-Cache, MySQL JSON Filters, Laravel Touch & Release Please Manifest Syncing
+- **PWA Update Loop & Service Worker SKIP_WAITING**:
+    - **Problem**: Pengguna mengklik tombol "Update & Restart" namun modal sheet update `0.2.x` terus-menerus muncul kembali (loop).
+    - **Root Cause**: Browser terus-menerus memuat berkas JS/HTML lama dari *Cache Storage* lokal yang dikontrol oleh Service Worker lama yang berstatus `waiting` (menunggu seluruh tab ditutup).
+    - **Resolution**: Memodifikasi `UpdateService.performUpdate()` untuk secara aktif mengirim pesan `{ type: 'SKIP_WAITING' }` ke Service Worker yang sedang menunggu (`reg.waiting`), memaksanya segera aktif dan mengklaim PWA client sebelum melakukan reload halaman.
+- **Nginx Anti-Cache for index.html (Best Practice 2026)**:
+    - **Problem**: Parameter reload PWA (`?reload_v=timestamp`) dilewati browser karena Chrome secara heuristik meng-cache file `index.html` jika tidak dilarang oleh server.
+    - **Resolution**: Menambahkan header `Cache-Control "no-cache, no-store, must-revalidate";` secara khusus pada lokasi root `/` di `apps/client/nginx.conf`. Hal ini menjamin file entry `index.html` selalu diperiksa keasliannya ke server, sementara aset JS/CSS hasil hashing Vite tetap aman di-cache selamanya.
+- **Advanced JSON Filtering (LOWER & CAST AS DECIMAL)**:
+    - **Feature**: Implementasi pencarian dinamis data pengisian (pada kolom JSON `prelist_data` atau `responses.data`) secara raw di backend MySQL.
+    - **Implementation Details**: 
+      - Menggunakan operator pointer database Laravel (`->`) untuk menyaring isi JSON.
+      - **Case-Insensitive Query**: Membungkus field json dengan fungsi **`LOWER()`** dan membandingkannya dengan `strtolower($value)` untuk pencarian teks yang fleksibel.
+      - **Numeric Casting Query**: Melakukan casting value string di dalam JSON menggunakan **`CAST(... AS DECIMAL(10,2))`** agar operator perbandingan angka (`>`, `<`) dievaluasi secara matematika presisi, bukan secara teks (alfabetis).
+- **Laravel Touch & Mass-Assignment Bypass**:
+    - **Problem**: Pemanggilan `$assignment->update(['updated_at' => now()])` gagal memperbarui kolom `updated_at` di database server secara diam-diam.
+    - **Root Cause**: Laravel memblokir pembaruan kolom `updated_at` via mass-assignment `update()` karena kolom tersebut tidak terdaftar di array properti `$fillable` model `Assignment.php`.
+    - **Resolution**: Gunakan method bawaan Eloquent **`$assignment->touch()`** (atau set properti langsung `$assignment->updated_at = now();` diikuti `$assignment->save()`) yang dirancang khusus untuk memintas (bypass) proteksi mass-assignment dan memaksa update timestamp database.
+- **Release Please Manifest Syncing**:
+    - **Problem**: Bot rilis otomatis `release-please` di GitHub Actions berhenti/menolak membuat Pull Request rilis baru secara otomatis.
+    - **Root Cause**: Terjadi ketidakcocokan (*version mismatch*) antara berkas `.release-please-manifest.json` yang masih mencatat versi lama (`0.1.68`) dengan berkas `package.json` lokal yang telah kita bump manual ke `0.2.x`.
+    - **Resolution**: Selalu selaraskan nomor versi di berkas manifest `.release-please-manifest.json` secara manual ketika melakukan bump versi paksa pada `package.json` agar Release Please dapat melanjutkan perhitungan rilis secara aman.
