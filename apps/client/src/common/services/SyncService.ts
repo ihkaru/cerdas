@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { apiClient } from '../api/ApiClient';
 import { databaseService } from '../database/DatabaseService';
 import { logger } from '../utils/logger';
-import { generateUUID } from '../utils/uuid';
+import { apiClient } from '../api/ApiClient';
+import { pullGlobal, pullTable, pullApp } from './sync/TableSyncHelpers';
+import { pullAssignments, pullResponses } from './sync/AssignmentSyncHelpers';
 
 export class SyncService {
 
@@ -11,7 +12,7 @@ export class SyncService {
     async syncGlobal() {
         try {
             await this.push(); // Priority: Always secure data first
-            await this.pullGlobal();
+            await pullGlobal();
             await databaseService.save(); // Persist changes (Web)
             return { success: true };
         } catch (error) {
@@ -24,20 +25,18 @@ export class SyncService {
     async syncTable(tableId: string, onProgress?: (phase: string, progress?: number) => void) {
         try {
             onProgress?.('Uploading pending data...', 10);
-            await this.push(); // Push before ensuring consistency
-            
+            await this.push();
+
             onProgress?.('Downloading table structure...', 20);
-            await this.pullTable(tableId);
-            
+            await pullTable(tableId);
+
             onProgress?.('Downloading assignments...', 30);
-            await this.pullAssignments(tableId, onProgress);
-            
+            await pullAssignments(tableId, onProgress);
+
             onProgress?.('Downloading responses...', 90);
-            await this.pullResponses(tableId); // Optimized to pull relevant responses
-            
+            await pullResponses(tableId);
+
             onProgress?.('Sync complete!', 100);
-            
-            
             await databaseService.save(); // Persist changes (Web)
             return { success: true };
         } catch (error) {
@@ -50,18 +49,16 @@ export class SyncService {
     async syncTableDataOnly(tableId: string, onProgress?: (phase: string, progress?: number) => void) {
         try {
             onProgress?.('Uploading pending data...', 10);
-            await this.push(); 
-            
+            await this.push();
+
             // SKIP pullTable() to keep the local draft schema
-            
-            // 3. Pull Assignments
+
             onProgress?.('Downloading assignments...', 30);
-            await this.pullAssignments(tableId, onProgress);
-            
-            // 4. Pull Responses
+            await pullAssignments(tableId, onProgress);
+
             onProgress?.('Downloading responses...', 90);
-            await this.pullResponses(tableId); 
-            
+            await pullResponses(tableId);
+
             onProgress?.('Sync complete!', 100);
             await databaseService.save(); // Persist changes (Web)
             return { success: true };
@@ -71,31 +68,30 @@ export class SyncService {
         }
     }
 
-    // NEW: Multi-Table Sync for App-level Views
+    // Multi-Table Sync for App-level Views
     async syncApp(appId: string, onProgress?: (phase: string, progress?: number) => void) {
         try {
             onProgress?.('Fetching app configuration...', 0);
-            
+
             // 1. Ensure we have the latest App Config (Views, Nav, etc)
-            let app = await this.pullApp(appId);
+            let app = await pullApp(appId);
             let isLegacyTable = false;
 
             if (!app) {
                 // Fallback 1: Local App Metadata
                 app = await this.getAppMetadata(appId);
             }
-            
+
             if (!app) {
                 // Fallback 2: Treat as Legacy Table ID
-                // If App ID is not found in apps table (server or local), it might be a direct Table ID (Legacy URL)
                 logger.info(`[SyncService] App ${appId} not found, treating as potential Table ID`);
                 isLegacyTable = true;
-                app = { id: appId }; // Pseudo-app object
+                app = { id: appId };
             }
 
             // 2. Identify ALL tables used by this App
             const tableIds = new Set<string>();
-            
+
             // A. Legacy/Default Table (App ID is often the Table ID in legacy apps)
             tableIds.add(String(appId));
 
@@ -109,30 +105,26 @@ export class SyncService {
 
             const uniqueTables = Array.from(tableIds);
             const totalTables = uniqueTables.length;
-            
             logger.info(`[SyncService] Syncing App ${appId} with tables: ${uniqueTables.join(', ')}`);
 
             // 3. Sync Each Table
             for (let i = 0; i < totalTables; i++) {
-                const tableId = uniqueTables[i]!;
+                const tableId = uniqueTables[i] ?? '';
                 const baseProgress = (i / totalTables) * 100;
                 const progressPerTable = 100 / totalTables;
 
                 try {
                     await this.syncTable(tableId, (phase, stepProgress) => {
-                         // Scale table progress to overall progress
-                         const currentTableContribution = ((stepProgress || 0) / 100) * progressPerTable;
-                         const total = Math.min(99, Math.round(baseProgress + currentTableContribution));
-                         onProgress?.(`Syncing ${tableId}: ${phase}`, total);
+                        const currentTableContribution = ((stepProgress || 0) / 100) * progressPerTable;
+                        const total = Math.min(99, Math.round(baseProgress + currentTableContribution));
+                        onProgress?.(`Syncing ${tableId}: ${phase}`, total);
                     });
                 } catch (tableError: any) {
-                    // If a specific table inside an app sync fails with 404, it might be an orphaned view config.
-                    // We shouldn't crash the entire App sync for this. Just log and skip.
+                    // Skip 404 orphaned tables; abort for other critical errors
                     if (tableError.message?.includes('404') || tableError.message?.includes('deleted')) {
                         logger.warn(`[SyncService] Skipping orphaned table ${tableId} during App Sync.`);
                         continue;
                     }
-                    // For other critical errors (like network drop), we should abort
                     throw tableError;
                 }
             }
@@ -146,577 +138,8 @@ export class SyncService {
         }
     }
 
-    private async pullApp(appId: string) {
-        try {
-            const res = await apiClient.get(`/apps/${appId}`);
-            if (res.success && res.data) {
-                const db = await databaseService.getDB();
-                await this.syncApps(db, [res.data]); // Re-use syncApps logic for single item
-                return res.data;
-            }
-        } catch (e: any) {
-            // Check if it's a 404 (Not Found) - expected for legacy table IDs
-            if (e.status === 404 || e.message?.includes('404')) {
-                logger.info(`[SyncService] App ${appId} not found (404), assuming Legacy Table ID.`);
-            } else {
-                logger.warn(`[SyncService] Failed to pull app ${appId}`, e);
-            }
-        }
-        return null;
-    }
+    // --- Local Queries ---
 
-    private async pullGlobal() {
-        const db = await databaseService.getDB();
-        const syncKey = 'sync_global';
-        const lastSync = localStorage.getItem(syncKey);
-        const url = lastSync ? `/dashboard?updated_since=${encodeURIComponent(lastSync)}` : '/dashboard';
-        
-        logger.info(`[Sync] Pulling Global Scope from: ${url}`);
-        const res = await apiClient.get(url);
-        
-        if (res.success && res.data) {
-            // 1. Sync Tables & Apps Metadata
-            await this.syncTablesMetadata(db, res.data.tables || []);
-            await this.syncApps(db, res.data.apps || [], !lastSync);
-
-            // 2. Cleanup Data (Orphans or Tombstones)
-            await this.cleanupOrphansAndTombstones(
-                db, 
-                lastSync, 
-                res.data.tables || [], 
-                res.deleted_tables || [],
-                res.deleted_apps || []
-            );
-
-            // 3. Update Dashboard Stats & Cache
-            this.syncDashboardUIState(res.data.stats, res.data.tables || []);
-            
-            // 4. Save Checkpoint
-            if (res.server_time) {
-                localStorage.setItem(syncKey, res.server_time);
-                logger.debug(`[Sync] Global checkpoint saved: ${res.server_time}`);
-            }
-        }
-    }
-
-    private async syncTablesMetadata(db: any, tables: any[]) {
-        for (const table of tables) {
-            const existing = await db.query(`SELECT version FROM tables WHERE id = ?`, [table.id]);
-            
-            if (existing.values && existing.values.length > 0) {
-                await db.run(
-                    `UPDATE tables SET name = ?, description = ?, version = ?, version_policy = ?, synced_at = ? WHERE id = ?`, 
-                    [table.name, table.description, table.version, table.version_policy || 'accept_all', new Date().toISOString(), table.id]
-                );
-            } else {
-                await db.run(
-                    `INSERT INTO tables (id, app_id, name, description, version, version_policy, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                    [table.id, table.app_id || table.id, table.name, table.description, table.version, table.version_policy || 'accept_all', new Date().toISOString()]
-                );
-            }
-        }
-    }
-
-    private async cleanupOrphansAndTombstones(
-        db: any, 
-        lastSync: string | null, 
-        tables: any[], 
-        deletedTableIds: string[],
-        deletedAppIds: string[] = []
-    ) {
-        if (!lastSync) {
-            // Initial Sync: Delete local tables NOT in server response
-            const serverTableIds = tables.map((t: { id: string }) => t.id);
-            if (serverTableIds.length > 0) {
-                const placeholders = serverTableIds.map(() => '?').join(',');
-                await db.run(`DELETE FROM tables WHERE id NOT IN (${placeholders})`, serverTableIds);
-                logger.info('[Sync] Orphan cleanup: removed tables not on server');
-            } else {
-                await db.run(`DELETE FROM tables`);
-                await db.run(`DELETE FROM assignments`);
-                logger.warn('[Sync] Server returned no tables, cleared all local data');
-            }
-        } else {
-            // Delta Sync: Use exact tombstones returned from backend
-            if (deletedTableIds && deletedTableIds.length > 0) {
-                const placeholders = deletedTableIds.map(() => '?').join(',');
-                
-                // Delete responses for assignments of the deleted tables
-                await db.run(
-                    `DELETE FROM responses WHERE assignment_id IN (SELECT id FROM assignments WHERE table_id IN (${placeholders}))`, 
-                    deletedTableIds
-                );
-                
-                // Delete assignments of the deleted tables
-                await db.run(`DELETE FROM assignments WHERE table_id IN (${placeholders})`, deletedTableIds);
-                
-                // Delete table versions of the deleted tables
-                await db.run(`DELETE FROM table_versions WHERE table_id IN (${placeholders})`, deletedTableIds);
-
-                // Delete the tables
-                await db.run(`DELETE FROM tables WHERE id IN (${placeholders})`, deletedTableIds);
-                logger.info(`[Sync] Delta cleanup: removed ${deletedTableIds.length} deleted tables and their assignments/responses`);
-            }
-
-            if (deletedAppIds && deletedAppIds.length > 0) {
-                const placeholders = deletedAppIds.map(() => '?').join(',');
-                
-                // Delete responses for assignments of the tables of the deleted apps
-                await db.run(
-                    `DELETE FROM responses WHERE assignment_id IN (
-                        SELECT id FROM assignments WHERE table_id IN (
-                            SELECT id FROM tables WHERE app_id IN (${placeholders})
-                        )
-                    )`, 
-                    deletedAppIds
-                );
-                
-                // Delete assignments of the tables of the deleted apps
-                await db.run(
-                    `DELETE FROM assignments WHERE table_id IN (
-                        SELECT id FROM tables WHERE app_id IN (${placeholders})
-                    )`, 
-                    deletedAppIds
-                );
-
-                // Delete table versions of the tables of the deleted apps
-                await db.run(
-                    `DELETE FROM table_versions WHERE table_id IN (
-                        SELECT id FROM tables WHERE app_id IN (${placeholders})
-                    )`, 
-                    deletedAppIds
-                );
-                
-                // Delete tables of the deleted apps
-                await db.run(`DELETE FROM tables WHERE app_id IN (${placeholders})`, deletedAppIds);
-                
-                // Delete the apps
-                await db.run(`DELETE FROM apps WHERE id IN (${placeholders})`, deletedAppIds);
-                logger.info(`[Sync] Delta cleanup: removed ${deletedAppIds.length} deleted apps and all related tables/assignments/responses`);
-            }
-        }
-    }
-
-    private syncDashboardUIState(stats: any, tables: any[]) {
-        if (stats) {
-            localStorage.setItem('dashboard_stats', JSON.stringify(stats));
-        }
-        
-        const pendingCounts = tables.reduce((acc: any, t: any) => ({ 
-            ...acc, 
-            [t.id]: t.pending_tasks || 0 
-        }), {});
-        
-        localStorage.setItem('app_pending_counts', JSON.stringify(pendingCounts));
-    }
-
-    private async syncApps(db: any, apps: any[], isInitialSync: boolean = true) {
-        for (const app of apps) {
-            // Check if exists
-            const existing = await db.query(`SELECT version FROM apps WHERE id = ?`, [app.id]);
-            
-            if (existing.values && existing.values.length > 0) {
-                await db.run(
-                    `UPDATE apps SET slug = ?, name = ?, description = ?, navigation = ?, view_configs = ?, version = ?, start_date = ?, end_date = ?, expired_behavior = ?, mode = ?, synced_at = ? WHERE id = ?`,
-                    [
-                        app.slug, 
-                        app.name, 
-                        app.description, 
-                        JSON.stringify(app.navigation || []), 
-                        JSON.stringify(app.view_configs || {}), 
-                        app.version || 1, 
-                        app.start_date || null,
-                        app.end_date || null,
-                        app.expired_behavior || 'read_only',
-                        app.mode || 'simple',
-                        new Date().toISOString(), 
-                        app.id
-                    ]
-                );
-            } else {
-                await db.run(
-                    `INSERT INTO apps (id, slug, name, description, navigation, view_configs, version, start_date, end_date, expired_behavior, mode, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [
-                        app.id, 
-                        app.slug, 
-                        app.name, 
-                        app.description, 
-                        JSON.stringify(app.navigation || []), 
-                        JSON.stringify(app.view_configs || {}), 
-                        app.version || 1, 
-                        app.start_date || null,
-                        app.end_date || null,
-                        app.expired_behavior || 'read_only',
-                        app.mode || 'simple',
-                        new Date().toISOString()
-                    ]
-                );
-            }
-        }
-
-        // Cleanup Apps
-        if (isInitialSync) {
-            const serverAppIds = apps.map((a: { id: string }) => a.id);
-            if (serverAppIds.length > 0) {
-                const placeholders = serverAppIds.map(() => '?').join(',');
-                await db.run(
-                    `DELETE FROM apps WHERE id NOT IN (${placeholders})`,
-                    serverAppIds
-                );
-                logger.info('[Sync] Orphan cleanup: removed apps not on server');
-            } else {
-                await db.run(`DELETE FROM apps`);
-                logger.warn('[Sync] Server returned no apps, cleared all local apps');
-            }
-        }
-    }
-
-    private async pullTable(tableId: string) {
-        const db = await databaseService.getDB();
-        
-        try {
-            const res = await apiClient.get(`/tables/${tableId}`);
-            if (res.success && res.data) {
-                const table = res.data;
-                this.logPullTableDebug(table);
-
-                const version = this.determineVersion(table);
-                
-                if (version) {
-                    await this.cacheAndSaveTable(db, table.id, version, table);
-                }
-            }
-        } catch (e: any) {
-            if (e.status === 404 || e.message?.includes('404')) {
-                logger.warn(`[SyncService] Table ${tableId} not found on server (404). Cleaning up local database.`);
-                await db.run('DELETE FROM tables WHERE id = ?', [tableId]);
-                await db.run('DELETE FROM assignments WHERE table_id = ?', [tableId]);
-                // We dispatch an event to tell the UI (AppShell) to exit if it's currently on this table
-                window.dispatchEvent(new CustomEvent('table-deleted-from-server', { detail: { tableId } }));
-                throw new Error(`Table ${tableId} has been deleted or is unavailable.`);
-            } else {
-                logger.error(`[SyncService] Failed to pull table ${tableId}`, e);
-                throw e; // re-throw so sync process knows it failed
-            }
-        }
-    }
-
-    private logPullTableDebug(table: any) {
-        logger.info(`[SyncService] 📥 Pulled Table ${table.id}`, {
-            serverTableId: table.id,
-            serverVersion: table.version,
-            updatedAt: table.updated_at,
-            versionsCount: table.versions?.length || 0,
-            hasCurrentModel: !!table.current_version_model,
-            currentModelVer: table.current_version_model?.version,
-            latestPubVer: table.latest_published_version?.version,
-            firstFallbackVer: table.versions?.[0]?.version
-        });
-    }
-
-    private determineVersion(table: any) {
-        // Use current_version_model from 'show' endpoint
-        const version = table.current_version_model || table.latest_published_version || (table.versions?.[0]);
-
-        let versionSource = 'versions[0] (fallback)';
-        if (table.current_version_model) versionSource = 'current_version_model';
-        else if (table.latest_published_version) versionSource = 'latest_published_version';
-
-        logger.info(`[SyncService] 🧐 Version Selection logic for ${table.id}:`, {
-            selectedVersion: version?.version,
-            source: versionSource
-        });
-        return version;
-    }
-
-    private async cacheAndSaveTable(db: any, tableId: string, version: any, table: any) {
-         // Check if 'schema' or 'fields' exists in version. Legacy support.
-         const fieldsData = version.fields || version.schema;
-         const layoutData = version.layout || {};
-         
-         logger.info(`[SyncService] Saving Table ${tableId}. Layout:`, {
-             hasLayout: !!version.layout,
-             layoutKeys: Object.keys(layoutData),
-             grouping: (layoutData as any).grouping ? 'YES' : 'NO'
-         });
-
-        // Cache current schema version before overwriting (for version pinning)
-        try {
-            const currentRow = await db.query(
-                'SELECT version, fields, layout FROM tables WHERE id = ?', [tableId]
-            );
-            const cur = currentRow.values?.[0];
-            if (cur?.version && cur?.fields) {
-                await db.run(
-                    `INSERT OR IGNORE INTO table_versions (table_id, version, fields, layout, cached_at) VALUES (?, ?, ?, ?, ?)`,
-                    [tableId, cur.version, cur.fields, cur.layout || '{}', new Date().toISOString()]
-                );
-                logger.info(`[SyncService] Cached schema v${cur.version} for table ${tableId}`);
-            }
-        } catch (cacheErr) {
-            logger.warn('[SyncService] Failed to cache schema version', cacheErr);
-        }
-
-        // Also cache the NEW version being pulled
-        try {
-            await db.run(
-                `INSERT OR IGNORE INTO table_versions (table_id, version, fields, layout, cached_at) VALUES (?, ?, ?, ?, ?)`,
-                [tableId, version.version, JSON.stringify(fieldsData), JSON.stringify(layoutData), new Date().toISOString()]
-            );
-        } catch (cacheErr) {
-            logger.warn('[SyncService] Failed to cache new schema version', cacheErr);
-        }
-
-        await db.run(
-            `UPDATE tables SET fields = ?, layout = ?, settings = ?, version = ?, synced_at = ? WHERE id = ?`,
-            [
-                JSON.stringify(fieldsData), 
-                JSON.stringify(layoutData),
-                JSON.stringify(table.settings || {}),
-                version.version,
-                new Date().toISOString(),
-                tableId
-            ]
-        );
-    }
-
-    // --- Assignment Sync Helpers ---
-
-    /** Build batch statements for UPSERT into local SQLite */
-    private buildAssignmentBatch(items: any[], stmtAssign: string, syncTimestamp: string) {
-        return items.map((assign: any) => ({
-            statement: stmtAssign,
-            values: [
-                assign.id,
-                assign.table_id || assign.form_id || assign.app_schema_id,
-                assign.organization_id,
-                assign.supervisor_id,
-                assign.enumerator_id,
-                JSON.stringify(assign.prelist_data),
-                assign.status,
-                syncTimestamp,
-                assign.external_id || null
-            ]
-        }));
-    }
-
-    /** Delete locally any assignments that were soft-deleted on server */
-    private async handleTombstones(db: any, deletedIds: string[]) {
-        if (!deletedIds || deletedIds.length === 0) return;
-        logger.info(`[Sync] Deleting ${deletedIds.length} tombstoned assignments locally`);
-        for (const id of deletedIds) {
-            await db.run(`DELETE FROM assignments WHERE id = ?`, [id]);
-            await db.run(`DELETE FROM responses WHERE assignment_id = ?`, [id]);
-        }
-    }
-
-    /** Remove local assignments not present on server (initial sync only) */
-    private async cleanupOrphanAssignments(db: any, tableId: string, fetchedIds: string[]) {
-        if (fetchedIds.length === 0) {
-            await db.run(`DELETE FROM assignments WHERE table_id = ?`, [tableId]);
-            logger.warn(`[Sync] No assignments from server for table ${tableId}, cleared local`);
-            return;
-        }
-
-        // FIX: The previous chunked NOT IN approach was destructive!
-        // Each chunk's DELETE would remove records from other chunks.
-        // Instead, query existing local IDs and compute the diff using a Set.
-        const localResult = await db.query(
-            'SELECT id FROM assignments WHERE table_id = ?', [tableId]
-        );
-        const localIds: string[] = (localResult.values || []).map((r: { id: string }) => r.id);
-
-        console.log(`[SyncService] Cleanup Orphans. Local: ${localIds.length}, Fetched: ${fetchedIds.length}`);
-
-        const fetchedSet = new Set(fetchedIds);
-        const orphanIds = localIds.filter((id: string) => !fetchedSet.has(id));
-
-        if (orphanIds.length > 0) {
-            console.log(`[Sync] Removing ${orphanIds.length} orphan assignments for table ${tableId}`);
-            for (const id of orphanIds) {
-                await db.run('DELETE FROM assignments WHERE id = ?', [id]);
-            }
-        } else {
-            console.log(`[Sync] No orphan assignments found for table ${tableId}`);
-        }
-    }
-
-    // 3. ASSIGNMENTS PULL (Delta-Sync Aware)
-    //
-    // Clock Safety: We NEVER use `new Date()` for sync timestamps.
-    // Instead, we use `server_time` from the API response. This protects against
-    // devices with incorrect date/time settings (e.g., auto-update disabled).
-    //
-
-    /** Process a single page: insert batch + handle tombstones. Returns count of items inserted. */
-    private async processAssignmentPage(
-        db: any, res: any, stmtAssign: string, syncTimestamp: string, trackIds: boolean, fetchedIds: string[]
-    ): Promise<number> {
-        const items = res.data?.data || [];
-        const batchSet = this.buildAssignmentBatch(items, stmtAssign, syncTimestamp);
-
-        if (trackIds) {
-            for (const a of items) fetchedIds.push(a.id);
-        }
-
-        let inserted = 0;
-        if (batchSet.length > 0) {
-            try { 
-
-                await db.executeSet(batchSet); 
-
-                inserted = batchSet.length; 
-                
-            }
-            catch (e) { 
-                console.error('[Sync] Assignment batch insert failed', e); 
-            }
-        }
-
-        await this.handleTombstones(db, res.deleted_ids);
-        return inserted;
-    }
-
-    /** Fetch all assignment pages via cursor pagination */
-    private async fetchAssignmentPages(
-        db: any, baseUrl: string, stmtAssign: string, trackIds: boolean,
-        onProgress?: (phase: string, progress?: number) => void
-    ) {
-        let cursor: string | null = null;
-        let totalItems = 0;
-        let serverTime = '';
-        const fetchedIds: string[] = [];
-        let pageNum = 0;
-
-        do {
-            pageNum++;
-            const cursorParam = cursor ? `&cursor=${encodeURIComponent(cursor)}` : '';
-            const res = await apiClient.get(`${baseUrl}${cursorParam}`);
-
-            if (!res.success) { logger.warn('[Sync] API failure, stopping'); break; }
-            if (!serverTime && res.server_time) serverTime = res.server_time;
-
-            const hasNext = !!res.data?.next_cursor;
-            const progress = hasNext ? 30 + Math.min(pageNum * 10, 55) : 85;
-            onProgress?.(hasNext ? `Downloading assignments (page ${pageNum})...` : 'Downloading assignments (final page)...', progress);
-
-            const syncTimestamp = serverTime || new Date().toISOString();
-            totalItems += await this.processAssignmentPage(db, res, stmtAssign, syncTimestamp, trackIds, fetchedIds);
-
-            cursor = res.data?.next_cursor || null;
-            await new Promise(resolve => setTimeout(resolve, 10));
-        } while (cursor);
-
-        return { totalItems, serverTime, fetchedIds };
-    }
-
-    private async pullAssignments(tableId: string, onProgress?: (phase: string, progress?: number) => void) {
-        const db = await databaseService.getDB();
-        const syncKey = `sync_assignments_${tableId}`;
-        const lastSync = localStorage.getItem(syncKey);
-        const isInitialSync = !lastSync;
-
-        logger.info('[Sync] pullAssignments START:', {
-            tableId, mode: isInitialSync ? 'INITIAL' : 'DELTA', lastSync: lastSync || 'never'
-        });
-
-        const stmtAssign = `INSERT OR REPLACE INTO assignments (id, table_id, organization_id, supervisor_id, enumerator_id, prelist_data, status, synced_at, external_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-        const baseParams = `table_id=${tableId}&per_page=2000&use_cursor=true`;
-        const deltaParams = lastSync
-            ? `&updated_since=${encodeURIComponent(lastSync)}&include_deleted=1`
-            : '';
-        const baseUrl = `/assignments?${baseParams}${deltaParams}`;
-
-        const { totalItems, serverTime, fetchedIds } = await this.fetchAssignmentPages(
-            db, baseUrl, stmtAssign, isInitialSync, onProgress
-        );
-
-        if (isInitialSync) {
-            await this.cleanupOrphanAssignments(db, tableId, fetchedIds);
-        }
-
-        // Save server_time as checkpoint (server-authoritative, clock-safe)
-        if (serverTime) {
-            localStorage.setItem(syncKey, serverTime);
-            logger.info(`[Sync] Checkpoint saved: ${syncKey} = ${serverTime}`);
-        }
-
-        logger.info('[Sync] pullAssignments END:', { tableId, totalItems, mode: isInitialSync ? 'INITIAL' : 'DELTA' });
-    }
-
-    // 4. RESPONSES PULL
-    private async pullResponses(tableId?: string) {
-        try {
-            const db = await databaseService.getDB();
-            
-            // Allow filtering by specific table ID if provided
-            let url = tableId ? `/responses?table_id=${tableId}` : '/responses';
-            const syncKey = tableId ? `sync_responses_${tableId}` : 'sync_responses_all';
-            const lastSync = localStorage.getItem(syncKey);
-            
-            if (lastSync) {
-                const separator = url.includes('?') ? '&' : '?';
-                url += `${separator}updated_since=${encodeURIComponent(lastSync)}`;
-            }
-
-            logger.info(`[Sync] Pulling responses from: ${url}`);
-
-            const responsesRes = await apiClient.get(url); 
-            
-            if (responsesRes.success && Array.isArray(responsesRes.data)) {
-                logger.info(`[Sync] Found ${responsesRes.data.length} responses from server.`);
-                
-                const stmtResponse = `INSERT OR REPLACE INTO responses (local_id, server_id, assignment_id, data, synced_at, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-                
-                const batchResponses = responsesRes.data.map((res: any) => ({
-                    statement: stmtResponse,
-                    values: [
-                        res.local_id || generateUUID(),
-                        res.id, // server_id
-                        res.assignment_id,
-                        typeof res.data === 'string' ? res.data : JSON.stringify(res.data),
-                        new Date().toISOString(),
-                        res.created_at,
-                        res.updated_at,
-                        1 // is_synced = true
-                    ]
-                }));
-
-                if (batchResponses.length > 0) {
-                    try {
-                        const fixedBatch = batchResponses.map((b: any) => ({
-                           statement: b.statement,
-                           values: [
-                               b.values[0],
-                               b.values[1],
-                               String(b.values[2]), 
-                               b.values[3],
-                               b.values[4],
-                               b.values[5],
-                               b.values[6],
-                               b.values[7]
-                           ]
-                        }));
-                        await db.executeSet(fixedBatch);
-                        logger.info(`[Sync] Imported ${fixedBatch.length} responses.`);
-                    } catch (e) {
-                         logger.error('[Sync] Failed to execute response batch', e);
-                    }
-                }
-                
-                if (responsesRes.server_time) {
-                    localStorage.setItem(syncKey, responsesRes.server_time);
-                    logger.debug(`[Sync] Responses checkpoint saved: ${syncKey} = ${responsesRes.server_time}`);
-                }
-            } 
-        } catch (e) {
-            logger.warn('Failed to pull responses', e);
-        }
-        return null;
-    }
-
-    // 6. GET LOCAL APP METADATA
     async getAppMetadata(appId: string) {
         const db = await databaseService.getDB();
         const res = await db.query(`SELECT * FROM apps WHERE id = ? OR slug = ?`, [appId, appId]);
@@ -731,10 +154,6 @@ export class SyncService {
         return null;
     }
 
-    /**
-     * Checks how many records are currently unsynced.
-     * Used for smart update warnings.
-     */
     async getUnsyncedCount(): Promise<number> {
         try {
             const db = await databaseService.getDB();
@@ -746,22 +165,21 @@ export class SyncService {
         }
     }
 
+    // --- Push (Upload unsynced responses) ---
+
     async push() {
         const db = await databaseService.getDB();
-        
-        // Get unsynced responses joined with assignments to get table_id
+
         const res = await db.query(`
-            SELECT r.*, a.table_id 
-            FROM responses r 
+            SELECT r.*, a.table_id
+            FROM responses r
             LEFT JOIN assignments a ON r.assignment_id = a.id
             WHERE r.is_synced = 0
         `);
         const unsynced = res.values || [];
-
         if (unsynced.length === 0) return;
 
         const BATCH_SIZE = 1;
-        
         for (let i = 0; i < unsynced.length; i += BATCH_SIZE) {
             const chunk = unsynced.slice(i, i + BATCH_SIZE);
             await this.processPushBatch(db, chunk);
@@ -769,7 +187,6 @@ export class SyncService {
     }
 
     private async processPushBatch(db: any, chunk: any[]) {
-        // Build payload with submitted_version from local table
         const payloadPromises = chunk.map(async (r: any) => {
             let submittedVersion: number | undefined;
             if (r.table_id) {
@@ -793,37 +210,41 @@ export class SyncService {
             logger.info('[SyncService] Pushing Payload:', payload);
             const response = await apiClient.post('/responses/sync', { responses: payload });
             logger.info('[SyncService] Push Result:', response);
-
             if (response.success) {
                 await this.handlePushResponse(db, response.data);
             }
         } catch (e) {
             logger.error('Push batch failed', e);
-            throw e; 
+            throw e;
         }
     }
 
-     
     private async handlePushResponse(db: any, items: any[]) {
-         for (const item of items) {
+        for (const item of items) {
             if (item.status === 'success') {
-                await db.run(`UPDATE responses SET is_synced = 1, server_id = ? WHERE local_id = ?`, [item.server_id, item.local_id]);
-
-                // Handle Ad-hoc Assignment Mapping (Swap UUID for Server ID)
+                await db.run(
+                    `UPDATE responses SET is_synced = 1, server_id = ? WHERE local_id = ?`,
+                    [item.server_id, item.local_id]
+                );
                 if (item.new_assignment_id) {
-                     const respRow = await db.query(`SELECT assignment_id FROM responses WHERE local_id = ?`, [item.local_id]);
-                     const oldAssignId = respRow.values?.[0]?.assignment_id;
-
-                     await db.run(`UPDATE responses SET assignment_id = ? WHERE local_id = ?`, [item.new_assignment_id, item.local_id]);
-                     
-                     if (oldAssignId && oldAssignId.length > 20) {
-                          await db.run(`UPDATE assignments SET id = ? WHERE id = ?`, [item.new_assignment_id, oldAssignId]);
-                     }
+                    const respRow = await db.query(
+                        `SELECT assignment_id FROM responses WHERE local_id = ?`,
+                        [item.local_id]
+                    );
+                    const oldAssignId = respRow.values?.[0]?.assignment_id;
+                    await db.run(
+                        `UPDATE responses SET assignment_id = ? WHERE local_id = ?`,
+                        [item.new_assignment_id, item.local_id]
+                    );
+                    if (oldAssignId && oldAssignId.length > 20) {
+                        await db.run(
+                            `UPDATE assignments SET id = ? WHERE id = ?`,
+                            [item.new_assignment_id, oldAssignId]
+                        );
+                    }
                 }
             } else if (item.status === 'version_rejected') {
-                // Keep item unsynced — user needs to update form version first
                 logger.warn('[SyncService] Version rejected:', item.message);
-                // Dispatch event so UI can show version gate
                 window.dispatchEvent(new CustomEvent('version-rejected', {
                     detail: { localId: item.local_id, requiredVersion: item.required_version, message: item.message }
                 }));
