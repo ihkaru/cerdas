@@ -321,3 +321,18 @@ input.code-input {
     background: var(--editor-primary);
     border-radius: 2px;
 }
+
+/* ============================================================================
+   Config Panel Field Tuning & Unification
+   Aligns list item titles and toggles inside config panels for premium typography.
+   ============================================================================ */
+.config-section .item-title {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: var(--editor-text-primary) !important;
+}
+
+.config-section .item-after {
+    font-size: 13px !important;
+    color: var(--editor-text-secondary) !important;
+}

@@ -106,17 +106,11 @@ class Assignment extends Model
         }
     }
 
-    public function markCompleted(): void
+    public function markApproved(): void
     {
-        if ($this->status !== 'synced') {
-            $this->update(['status' => 'completed']);
-        }
+        $this->update(['status' => 'approved']);
     }
 
-    public function markSynced(): void
-    {
-        $this->update(['status' => 'synced']);
-    }
 
     /**
      * Get the active TableVersion for this assignment's Table.

@@ -1,6 +1,6 @@
 <template>
     <f7-sheet class="preview-sheet" :opened="opened" @sheet:closed="$emit('update:opened', false)"
-        :swipe-to-close="true" :backdrop="true"
+        :swipe-to-close="false" :backdrop="true"
         style="height: auto; min-height: 50vh; border-top-left-radius: 16px; border-top-right-radius: 16px;">
         <div class="padding-horizontal padding-top" style="padding-bottom: 20px;">
             <div class="display-flex justify-content-between align-items-center margin-bottom">

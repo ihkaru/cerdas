@@ -56,9 +56,10 @@ const frameStyle = computed(() => {
     position: relative;
     background: #000;
     box-shadow:
-        0 0 0 2px #1a1a1a,
-        0 0 0 4px #333,
-        0 20px 60px rgba(0, 0, 0, 0.5);
+        0 0 0 3px #27272a,
+        0 0 0 6px #0f172a,
+        0 12px 24px rgba(15, 23, 42, 0.08),
+        0 4px 10px rgba(15, 23, 42, 0.04);
     overflow: hidden;
     transition: all 0.3s ease;
 }
@@ -85,8 +86,9 @@ const frameStyle = computed(() => {
     width: 100%;
     height: 100%;
     background: #fff;
-    overflow: auto;
+    overflow: hidden;
     border-radius: inherit;
+    box-sizing: border-box;
 }
 
 /* Add padding for notch area */

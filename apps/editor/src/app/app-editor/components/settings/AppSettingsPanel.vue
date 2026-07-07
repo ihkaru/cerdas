@@ -16,6 +16,17 @@
         <!-- Configuration -->
         <f7-list inset>
             <f7-list-item group-title>Configuration</f7-list-item>
+            
+            <f7-list-item title="App Mode" smart-select :smart-select-params="{ openIn: 'popover' }">
+                <select :value="appStore.currentApp?.mode || 'simple'" @change="e => updateAppField('mode', (e.target as HTMLSelectElement).value)">
+                    <option value="simple">Simple Mode (Tanpa Review)</option>
+                    <option value="complex">Complex Mode (Dengan Review)</option>
+                </select>
+                <div slot="footer" class="padding-top-half">
+                    Menentukan alur persetujuan pengisian data dari enumerator.
+                </div>
+            </f7-list-item>
+
             <f7-list-item title="Public Access">
                 <template #after>
                     <f7-toggle :checked="!!settings.public_access" color="green"
@@ -41,6 +52,36 @@
                 <div slot="footer" class="padding-top-half">
                     Toggle to enable or disable client surveyors' access to this app.
                 </div>
+            </f7-list-item>
+        </f7-list>
+
+        <!-- Availability & Schedule -->
+        <f7-list inset>
+            <f7-list-item group-title>Availability & Schedule</f7-list-item>
+            
+            <f7-list-input 
+                label="Start Date & Time (Open)" 
+                type="datetime-local" 
+                placeholder="Select start date"
+                :value="startDateVal" 
+                @input="updateAppField('start_date', ($event.target as HTMLInputElement).value)" 
+                clear-button
+            />
+            
+            <f7-list-input 
+                label="End Date & Time (Deadline)" 
+                type="datetime-local" 
+                placeholder="Select end date"
+                :value="endDateVal" 
+                @input="updateAppField('end_date', ($event.target as HTMLInputElement).value)" 
+                clear-button
+            />
+
+            <f7-list-item title="After Deadline Behavior" smart-select :smart-select-params="{ openIn: 'popover' }">
+                <select :value="expiredBehaviorVal" @change="e => updateAppField('expired_behavior', (e.target as HTMLSelectElement).value)">
+                    <option value="read_only">Kunci Form (Read Only)</option>
+                    <option value="hidden">Sembunyikan Form (Hidden)</option>
+                </select>
             </f7-list-item>
         </f7-list>
 
@@ -206,6 +247,39 @@ function selectIcon(icon: string) {
 
 function handleRollback(versionId: string, version: number) {
     emit('rollback', versionId, version);
+}
+
+const toLocalDatetimeString = (dateStr?: string | null) => {
+    if (!dateStr) return '';
+    try {
+        const d = new Date(dateStr);
+        const tzOffset = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+    } catch {
+        return '';
+    }
+};
+
+const startDateVal = computed(() => toLocalDatetimeString(appStore.currentApp?.start_date));
+const endDateVal = computed(() => toLocalDatetimeString(appStore.currentApp?.end_date));
+const expiredBehaviorVal = computed(() => appStore.currentApp?.expired_behavior || 'read_only');
+
+async function updateAppField(fieldName: string, value: any) {
+    if (!appStore.currentApp) return;
+    try {
+        let normalizedVal = value;
+        if (fieldName === 'start_date' || fieldName === 'end_date') {
+            normalizedVal = value ? new Date(value).toISOString() : null;
+        }
+        
+        // Prevent redundant API saves
+        const currentVal = (appStore.currentApp as any)[fieldName];
+        if (currentVal === normalizedVal) return;
+
+        await appStore.updateApp(appStore.currentApp.id, { [fieldName]: normalizedVal });
+    } catch (e: any) {
+        f7.dialog.alert('Failed to update app schedule: ' + e.message);
+    }
 }
 
 async function toggleAppStatus(checkedState: boolean) {

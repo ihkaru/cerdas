@@ -90,7 +90,7 @@
                         <f7-link popup-close>Cancel</f7-link>
                     </f7-nav-right>
                 </f7-navbar>
-                <f7-block>
+                <f7-block style="margin-bottom: 72px;">
                     <p>Enter the details for your new application.</p>
                     <f7-list strong-ios dividers-ios inset-ios>
                         <f7-list-input label="App Name" type="text" placeholder="e.g. Housing Survey 2026"
@@ -102,11 +102,45 @@
                             <option value="simple">Simple (Direct Membership)</option>
                             <option value="complex">Complex (Organization Based)</option>
                         </f7-list-input>
+                        
+                        <f7-list-item title="Collect Data Forever (No Deadline)">
+                            <template #after>
+                                <f7-toggle :checked="newApp.is_evergreen" color="green"
+                                    @toggle:change="newApp.is_evergreen = $event" />
+                            </template>
+                        </f7-list-item>
+
+                        <template v-if="!newApp.is_evergreen">
+                            <f7-list-input 
+                                label="Start Date & Time (Open)" 
+                                type="datetime-local" 
+                                placeholder="Select start date"
+                                :value="newApp.start_date" 
+                                @input="newApp.start_date = $event.target.value" 
+                                clear-button 
+                            />
+                            <f7-list-input 
+                                label="End Date & Time (Deadline)" 
+                                type="datetime-local" 
+                                placeholder="Select end date"
+                                :value="newApp.end_date" 
+                                @input="newApp.end_date = $event.target.value" 
+                                clear-button 
+                            />
+                            <f7-list-item title="After Deadline Behavior" smart-select :smart-select-params="{ openIn: 'popover' }">
+                                <select :value="newApp.expired_behavior" @change="e => newApp.expired_behavior = (e.target as HTMLSelectElement).value">
+                                    <option value="read_only">Kunci Form (Read Only)</option>
+                                    <option value="hidden">Sembunyikan Form (Hidden)</option>
+                                </select>
+                            </f7-list-item>
+                        </template>
                     </f7-list>
-                    <f7-button fill large @click="handleCreateApp" :loading="isCreating" :disabled="!newApp.name">
+                </f7-block>
+                <f7-toolbar bottom class="create-app-footer">
+                    <f7-button fill large @click="handleCreateApp" :loading="isCreating" :disabled="!newApp.name" style="width: 100%;">
                         Create App
                     </f7-button>
-                </f7-block>
+                </f7-toolbar>
             </f7-page>
         </f7-popup>
     </f7-page>
@@ -128,7 +162,11 @@ const isCreating = ref(false);
 const newApp = reactive({
     name: '',
     description: '',
-    mode: 'simple'
+    mode: 'simple',
+    is_evergreen: true,
+    start_date: '',
+    end_date: '',
+    expired_behavior: 'read_only'
 });
 
 const apps = computed(() => {
@@ -161,11 +199,16 @@ function showCreateDialog() {
 function resetCreateForm() {
     newApp.name = '';
     newApp.description = '';
+    newApp.mode = 'simple';
+    newApp.is_evergreen = true;
+    newApp.start_date = '';
+    newApp.end_date = '';
+    newApp.expired_behavior = 'read_only';
     isCreating.value = false;
 }
 
 function onPopupOpen() {
-    console.log('[AppsPage] popup:open EVENT FIRED, createPopupOpened:', createPopupOpened.value, new Error().stack);
+    console.log('[AppsPage] popup:open EVENT FIRED, createPopupOpened:', createPopupOpened.value);
 }
 
 async function handleCreateApp() {
@@ -173,11 +216,19 @@ async function handleCreateApp() {
 
     isCreating.value = true;
     try {
-        await appStore.createApp({
+        const payload: Record<string, any> = {
             name: newApp.name.trim(),
             description: newApp.description?.trim(),
             mode: newApp.mode
-        });
+        };
+        
+        if (!newApp.is_evergreen) {
+            payload.start_date = newApp.start_date ? new Date(newApp.start_date).toISOString() : null;
+            payload.end_date = newApp.end_date ? new Date(newApp.end_date).toISOString() : null;
+            payload.expired_behavior = newApp.expired_behavior;
+        }
+
+        await appStore.createApp(payload);
         f7.toast.show({ text: 'App created successfully', position: 'center', closeTimeout: 2000 });
         createPopupOpened.value = false;
     } catch (e: any) {
@@ -479,5 +530,15 @@ onBeforeUnmount(() => {
     font-size: 12px;
     color: #64748b;
     margin-top: 2px;
+}
+
+.create-app-footer {
+    background: #fff !important;
+    border-top: 1px solid #e2e8f0;
+    height: 64px !important;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
 }
 </style>

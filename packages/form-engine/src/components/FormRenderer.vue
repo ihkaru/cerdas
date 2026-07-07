@@ -62,6 +62,7 @@ const props = defineProps<{
   schema: AppSchema;
   initialData?: Record<string, any>;
   context?: Record<string, any>; // Extra context like user, assignment details
+  readonly?: boolean;
 }>();
 
 const emit = defineEmits(['update:data']);
@@ -115,7 +116,7 @@ const processedFields = computed(() => {
 
     return {
       ...field,
-      readonly: !isEditable,
+      readonly: props.readonly || !isEditable,
       required: isRequired,
       options: effectiveOptions
     };

@@ -18,6 +18,7 @@ export function useAssignmentLoader(assignmentId: string) {
     // Version Pinning State
     const pinnedSchemaVersion = ref<number | null>(null);
     const currentTableVersion = ref<number | null>(null);
+    const isReadOnly = ref(false);
 
     /**
      * Normalize raw fields into an AppSchema object.
@@ -109,6 +110,25 @@ export function useAssignmentLoader(assignmentId: string) {
             // 2. Load Schema (Preview Override or DB)
             if (!assignment.value.table_id) throw new Error('Assignment has no table ID');
 
+            const readOnlyCheck = await DashboardRepository.isTableReadOnly(conn, assignment.value.table_id);
+            
+            // Get app mode from SQLite local to determine locking behavior
+            const appRes = await conn.query(
+                `SELECT a.mode FROM apps a 
+                 JOIN tables t ON a.id = t.app_id 
+                 WHERE t.id = ?`, 
+                [assignment.value.table_id]
+            );
+            const appMode = appRes.values?.[0]?.mode || 'simple';
+            
+            // In simple mode, users can modify and submit response continuously.
+            // In complex mode, it locks once submitted or approved (until rejected).
+            const isFinalized = appMode === 'complex' && 
+                (assignment.value.status === 'submitted' || assignment.value.status === 'approved');
+                
+            isReadOnly.value = readOnlyCheck || isFinalized;
+
+
             let schemaToUse: AppSchema | null = null;
             let pinnedVer: number | null = null;
             let currentVer: number | null = null;
@@ -140,7 +160,8 @@ export function useAssignmentLoader(assignmentId: string) {
 
             log.info('[AssignmentDetail] Form data initialized', { 
                 formKeys: Object.keys(formData.value),
-                schemaFields: schema.value?.fields?.length 
+                schemaFields: schema.value?.fields?.length,
+                isReadOnly: isReadOnly.value
             });
 
         } catch (e: unknown) {
@@ -160,6 +181,7 @@ export function useAssignmentLoader(assignmentId: string) {
         formData,
         pinnedSchemaVersion,
         currentTableVersion,
+        isReadOnly,
         loadData
     };
 }

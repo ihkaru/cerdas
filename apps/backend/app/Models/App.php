@@ -44,6 +44,9 @@ class App extends Model
         'navigation',
         'view_configs',
         'settings',
+        'start_date',
+        'end_date',
+        'expired_behavior',
     ];
 
     protected $casts = [
@@ -51,6 +54,8 @@ class App extends Model
         'navigation' => 'array',
         'view_configs' => 'array',
         'settings' => 'array',
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
     ];
 
     // ========== Relationships ==========

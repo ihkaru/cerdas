@@ -29,10 +29,12 @@ class DashboardController extends Controller
             });
 
         $stats = [
-            'pending' => (clone $statsQuery)->where('status', 'assigned')->count(),
+            'assigned'    => (clone $statsQuery)->where('status', 'assigned')->count(),
             'in_progress' => (clone $statsQuery)->where('status', 'in_progress')->count(),
-            'completed' => (clone $statsQuery)->whereIn('status', ['submitted', 'approved', 'rejected'])->count(),
+            // 'submitted' and 'approved' represent finalized/submitted work
+            'completed'   => (clone $statsQuery)->whereIn('status', ['submitted', 'approved', 'synced', 'rejected'])->count(),
         ];
+
 
         // 2. Apps List (User's Apps)
         if ($user->isSuperAdmin()) {

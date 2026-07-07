@@ -52,6 +52,9 @@ export const DashboardRepository = {
             version: row.version,
             navigation: typeof row.navigation === 'string' ? JSON.parse(row.navigation) : row.navigation,
             view_configs: typeof row.view_configs === 'string' ? JSON.parse(row.view_configs) : row.view_configs,
+            start_date: row.start_date,
+            end_date: row.end_date,
+            expired_behavior: row.expired_behavior || 'read_only',
             synced_at: row.synced_at
         }));
     },
@@ -115,6 +118,33 @@ export const DashboardRepository = {
         return Array.from(statusMap.entries()).map(([status, count]) => ({ status, count }));
     },
 
+    /**
+     * Per-app assignment stats via JOIN: assignments → tables → app_id.
+     * Used for smart urgency sorting and badge display in AppGallery.
+     * Returns one row per app that has at least 1 assignment.
+     */
+    async getAppStats(db: SQLiteDBConnection): Promise<{ app_id: string; pending: number; in_progress: number; completed: number; total: number }[]> {
+        const res = await db.query(`
+            SELECT 
+                t.app_id,
+                SUM(CASE WHEN a.status = 'assigned' THEN 1 ELSE 0 END)               AS pending,
+                SUM(CASE WHEN a.status IN ('in_progress', 'rejected') THEN 1 ELSE 0 END) AS in_progress,
+                SUM(CASE WHEN a.status IN ('completed', 'synced', 'submitted', 'approved') THEN 1 ELSE 0 END) AS completed,
+                COUNT(*) AS total
+            FROM assignments a
+            JOIN tables t ON a.table_id = t.id
+            WHERE t.app_id IS NOT NULL
+            GROUP BY t.app_id
+        `);
+        return (res.values || []).map(row => ({
+            app_id: row.app_id,
+            pending:     Number(row.pending)     || 0,
+            in_progress: Number(row.in_progress) || 0,
+            completed:   Number(row.completed)   || 0,
+            total:       Number(row.total)        || 0,
+        }));
+    },
+
     async getAssignmentById(db: SQLiteDBConnection, id: string): Promise<Assignment | null> {
         // Use subquery to get only latest response (prevents duplicates)
         const res = await db.query(
@@ -152,7 +182,22 @@ export const DashboardRepository = {
             settings: typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings,
             fields: normalizeFields(row.fields)
         };
+    },    async isTableReadOnly(db: SQLiteDBConnection, tableId: string): Promise<boolean> {
+        const res = await db.query(`
+            SELECT a.end_date, a.expired_behavior 
+            FROM apps a
+            JOIN tables t ON a.id = t.app_id
+            WHERE t.id = ?
+        `, [tableId]);
+        if (!res.values || res.values.length === 0) return false;
+        const row = res.values[0];
+        if (!row.end_date) return false;
+        
+        const now = new Date();
+        const isExpired = now > new Date(row.end_date);
+        return isExpired && row.expired_behavior === 'read_only';
     },
+
 
     async getResponse(db: SQLiteDBConnection, assignmentId: string): Promise<{ data: Record<string, unknown>; schemaVersion: number | null } | null> {
         const res = await db.query(`SELECT data, schema_version FROM responses WHERE assignment_id = ?`, [assignmentId]);
@@ -184,22 +229,31 @@ export const DashboardRepository = {
         }
         
         if (!isDraft) {
-             const res = await db.run(`UPDATE assignments SET status = 'completed' WHERE id = ?`, [assignmentId]);
-             log.info('Updated (Finish) status COMPLETE:', { changes: res?.changes });
+             // Final submit: mark as submitted locally (server sync will transition it to synced/submitted)
+             const res = await db.run(`UPDATE assignments SET status = 'submitted' WHERE id = ?`, [assignmentId]);
+             log.info('Updated (Finish) status SUBMITTED:', { changes: res?.changes });
         } else {
              // Debug: Check current status to understand why update might fail
              const check = await db.query(`SELECT status FROM assignments WHERE id = ?`, [assignmentId]);
              const currentStatus = check.values?.[0]?.status;
              log.info('Draft Save - Current Assignment Status:', { id: assignmentId, status: currentStatus });
 
-             // Relaxed condition: Update to in_progress if it's NOT completed and NOT already in_progress
-             // This handles 'assigned', null, or other states
-             const res = await db.run(`UPDATE assignments SET status = 'in_progress' WHERE id = ? AND status NOT IN ('completed', 'in_progress')`, [assignmentId]);
+             // Relaxed condition: Update to in_progress if it's NOT submitted/synced and NOT already in_progress
+             const res = await db.run(`UPDATE assignments SET status = 'in_progress' WHERE id = ? AND status NOT IN ('submitted', 'synced', 'in_progress')`, [assignmentId]);
              log.info('Updated (Draft) status IN_PROGRESS:', { changes: res?.changes, assignmentId });
         }
     },
 
-    async getPendingUploadCount(db: SQLiteDBConnection): Promise<number> {
+    async getPendingUploadCount(db: SQLiteDBConnection, tableId?: string): Promise<number> {
+        if (tableId) {
+            const res = await db.query(`
+                SELECT COUNT(*) as count 
+                FROM responses r
+                JOIN assignments a ON r.assignment_id = a.id
+                WHERE r.is_synced = 0 AND a.table_id = ?
+            `, [tableId]);
+            return res.values?.[0]?.count || 0;
+        }
         const res = await db.query(`SELECT COUNT(*) as count FROM responses WHERE is_synced = 0`);
         return res.values?.[0]?.count || 0;
     },

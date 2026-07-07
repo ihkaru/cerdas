@@ -8,11 +8,11 @@
         </template>
 
         <template #sidebar>
-            <EditorSidebar v-model="panels.activeTab.value" :has-form-selected="hasTableSelected" />
+            <EditorSidebar v-model="activeTab" :has-form-selected="hasTableSelected" />
         </template>
 
         <template #main>
-            <EditorTabContent v-model:activeTab="panels.activeTab.value" :panels="panels" :table-editor="tableEditor"
+            <EditorTabContent v-model:activeTab="activeTab" :panels="panels" :table-editor="tableEditor"
                 :nav-management="navManagement" :table-selection="tableSelection"
                 :app-view-management="appViewManagement" @reset-field="handleFieldReset"
                 @code-apply="handleCodeApply" />
@@ -20,18 +20,18 @@
 
         <template #preview>
             <EditorPreviewPanel 
-                :app-views="appViewManagement.appViews.value" 
-                :views-version="appViewManagement.viewsVersion.value"
-                :selected-view-id="appViewManagement.selectedViewKey.value"
-                :navigation="navManagement.navigation.value"
+                :app-views="appViews" 
+                :views-version="viewsVersion"
+                :selected-view-id="selectedViewKey"
+                :navigation="navigation"
                 :is-dirty="isGlobalDirty"
             />
         </template>
 
         <template #modals>
-            <NewSourceModal v-model:opened="panels.showNewSourceModal.value"
+            <NewSourceModal v-model:opened="showNewSourceModal"
                 @select="tableSelection.handleSourceSelect" />
-            <ExcelImportModal v-if="appStore.currentApp" v-model:opened="panels.showExcelImportModal.value"
+            <ExcelImportModal v-if="appStore.currentApp" v-model:opened="showExcelImportModal"
                 :app-id="appStore.currentApp.id" @imported="tableSelection.handleExcelImported" />
             <PublishDialog :visible="showPublishDialog" @confirm="onPublishConfirm"
                 @cancel="showPublishDialog = false" />
@@ -42,7 +42,7 @@
 <script setup lang="ts">
 import { useAppStore, useTableStore } from '@/stores';
 import { f7 } from 'framework7-vue';
-import { computed, ref } from 'vue';
+import { computed, ref, provide } from 'vue';
 
 // Styles
 import './styles/app-editor.css';
@@ -76,6 +76,10 @@ const tableStore = useTableStore();
 
 // 1. Panels & UI State
 const panels = useEditorPanels();
+const { activeTab, showNewSourceModal, showExcelImportModal } = panels;
+provide('activeTab', activeTab);
+const highlightedViewOption = ref<string>('');
+provide('highlightedViewOption', highlightedViewOption);
 
 // 2. Core Editor Logic
 const tableEditor = useTableEditor();
@@ -83,11 +87,13 @@ const { tableName, selectedFieldPath, isDirty, selectedOriginalField, updateFiel
 
 // 3. Navigation Management
 const navManagement = useNavigationManagement(() => appStore.currentApp?.id ? String(appStore.currentApp.id) : null);
-const { isNavDirty, fetchNavigation } = navManagement;
+const { navigation, selectedNavKey, isNavDirty, fetchNavigation } = navManagement;
+provide('selectedNavKey', selectedNavKey);
 
 // 3b. App View Management (App-level views stored in apps.view_configs)
 const appViewManagement = useAppViewManagement(() => appStore.currentApp?.id ? String(appStore.currentApp.id) : null);
-const { isViewsDirty, fetchAppViews } = appViewManagement;
+const { appViews, viewsVersion, selectedViewKey, isViewsDirty, fetchAppViews } = appViewManagement;
+provide('selectedViewKey', selectedViewKey);
 
 // 4. Table Selection & CRUD
 const tableSelection = useTableSelection(
@@ -95,8 +101,8 @@ const tableSelection = useTableSelection(
     tableStore,
     {
         onTableLoaded: (...args) => loadTable(...args),
-        showNewSourceModal: panels.showNewSourceModal,
-        showExcelImportModal: panels.showExcelImportModal,
+        showNewSourceModal,
+        showExcelImportModal,
         isGlobalDirty: () => isGlobalDirty.value,
         handleSave: () => handleSave()
     }

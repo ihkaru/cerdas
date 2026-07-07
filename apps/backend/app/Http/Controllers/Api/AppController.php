@@ -41,6 +41,9 @@ class AppController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'mode' => 'nullable|string|in:simple,complex',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'expired_behavior' => 'nullable|string|in:read_only,hidden',
         ]);
 
         $user = $request->user();
@@ -60,6 +63,9 @@ class AppController extends Controller
             'description' => $validated['description'] ?? null,
             'mode' => $validated['mode'] ?? 'simple',
             'created_by' => $user->id,
+            'start_date' => $validated['start_date'] ?? null,
+            'end_date' => $validated['end_date'] ?? null,
+            'expired_behavior' => $validated['expired_behavior'] ?? 'read_only',
         ]);
 
         // Add user as Admin of the app
@@ -211,6 +217,9 @@ class AppController extends Controller
             'navigation' => 'nullable|array', // Allow saving navigation JSON
             'view_configs' => 'nullable|array', // View configs JSON (separate from views() relation)
             'is_active' => 'boolean',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'expired_behavior' => 'nullable|string|in:read_only,hidden',
         ]);
 
         \Illuminate\Support\Facades\Log::info('App Update Validated', [

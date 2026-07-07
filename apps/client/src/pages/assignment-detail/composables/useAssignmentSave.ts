@@ -61,6 +61,12 @@ export function useAssignmentSave(
         f7.dialog.confirm('Apakah Anda yakin ingin menyelesaikan assignment ini?', 'Selesaikan', async () => {
             await saveResponse(false);
             f7.toast.show({ text: 'Assignment Selesai!', closeTimeout: 2000, cssClass: 'color-green' });
+            
+            // Background push sync immediately
+            import('../../../common/services/SyncService').then(({ syncService }) => {
+                syncService.push().catch(err => console.error('[AutoPush] Failed to sync in background:', err));
+            });
+
             f7.view.main.router.back();
         });
     };

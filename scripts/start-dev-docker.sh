@@ -68,7 +68,14 @@ trap cleanup SIGINT SIGTERM
 # 5. Start Frontend Servers in background
 echo -e "\033[1;33m[5/5] Launching Frontend servers...\033[0m"
 
-# Attempt to load nvm if pnpm isn't found natively in the bash context
+# Attempt to load fnm or nvm if pnpm isn't found natively in the bash context
+if ! command -v pnpm &> /dev/null; then
+    if [ -x "$HOME/.local/bin/fnm" ]; then
+        export PATH="$HOME/.local/bin:$PATH"
+        eval "$(fnm env --shell=bash)"
+    fi
+fi
+
 if ! command -v pnpm &> /dev/null; then
     if [ -d "$HOME/.local/share/nvm" ] || [ -d "$HOME/.nvm" ]; then
         NVM_DIR="${HOME}/.nvm"

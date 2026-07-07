@@ -3,71 +3,19 @@
 
 
         <!-- navbar -->
-        <AppShellNavbar :title="pageTitle" :actions="headerActions" @back="handleBackNav" @action="handleHeaderAction"
-            @menu="openMenuPanel" />
-
-        <!-- CASE 0: Dynamic View Logic (from Navigation) -->
-        <template v-if="currentViewConfig">
-            <div class="page-content" infinite @infinite="loadMore">
-                <!-- Offline Banner -->
-                <div v-if="!isOnline.connected" class="offline-banner">
-                    <f7-icon f7="wifi_slash" size="14"></f7-icon>
-                    OFFLINE MODE
-                </div>
-                <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
-                <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
-                    :counts="statusCounts" :active-filter-count="activeFilters.length" @open-sort="sortSheetOpen = true"
-                    @open-filter="filterSheetOpen = true" />
-
-                <!-- Animated Transition between Grouping and Leaf Views -->
-                <transition name="view-fade" mode="out-in">
-                    <!-- Grouping UI (Folders) -->
-                    <div v-if="isGroupingActive" :key="`grouping-${currentGroupLevel}`">
-                        <AppShellGroupList :key="currentGroupLevel" :groups="filteredGroups" :config="groupByConfig"
-                            :current-level="currentGroupLevel" @enter-group="enterGroup"
-                            @show-all="forceShowItems = true" />
-                    </div>
-
-                    <!-- Skeleton while data loads -->
-                    <div v-else-if="isLoadingData" key="skeleton" class="padding">
-                        <f7-skeleton-block v-for="i in 5" :key="i" style="height: 80px; border-radius: 12px;"
-                            class="margin-bottom skeleton-effect-wave" />
-                    </div>
-
-                    <!-- Leaf Views (Assignments/Map/etc) -->
-                    <div v-else-if="currentViewConfig && currentViewConfig.config" key="leaf">
-                                    <ViewRenderer :config="currentViewConfig.config"
-                                        :data="getViewData(
-                                            (currentViewConfig.config as any).source,
-                                            currentViewConfig.type !== 'map'
-                                        )" :contextId="contextId"
-                                        :actions="rowActions" :swipe-config="swipeConfig" @action="handleRowAction" />
-                        
-                        <!-- Infinite Loader -->
-                        <div v-if="hasMore" class="padding text-align-center">
-                            <f7-preloader />
-                        </div>
-                    </div>
-
-                    <!-- Not Found / Fallback if no view found -->
-                    <div v-else key="empty" class="padding text-align-center">
-                        <f7-icon f7="search" size="48" color="gray" />
-                        <p class="text-color-gray">Konfigurasi view tidak ditemukan</p>
-                    </div>
-                </transition>
-            </div>
-        </template>
+        <AppShellNavbar :title="pageTitle" :actions="navbarActions" :is-syncing="isSyncing" :show-back="true" @back="handleBackNav" @action="handleHeaderAction"
+            @menu="openMenuPanel" data-inspect-target="settings" />
 
         <!-- CASE 1: App Level Tabs (Primary Navigation) -->
-        <template v-else-if="appNavigation && appNavigation.length > 0">
+        <template v-if="appNavigation && appNavigation.length > 0">
             <!-- TAB BAR (App Navigation) - BEFORE tabs per F7 docs -->
             <f7-toolbar position="bottom" :tabbar="true" icons labels>
-                <f7-toolbar-pane>
-                    <f7-link v-for="item in appNavigation" :key="`link-${item.id || item.label}`"
-                        :tab-link="item.type === 'view' ? `#view-${item.view_id || item.view}` : 'true'"
-                        :tab-link-active="activeView === (item.view_id || item.view)" @click="handleAppNavClick(item)"
-                        :text="item.label" :icon-f7="item.icon || 'square'"></f7-link>
-                </f7-toolbar-pane>
+                <f7-link v-for="item in appNavigation" :key="`link-${item.id || item.label}`"
+                    :tab-link="item.type === 'view' ? `#view-${item.view_id || item.view}` : 'true'"
+                    :tab-link-active="activeView === (item.view_id || item.view)" @click="handleAppNavClick(item)"
+                    :text="item.label" :icon-f7="item.icon || 'square'"
+                    data-inspect-target="navigation"
+                    :data-inspect-id="item.id"></f7-link>
             </f7-toolbar>
 
             <!-- VIEW CONTENT - AFTER toolbar per F7 docs -->
@@ -141,6 +89,71 @@
             </f7-tabs>
         </template>
 
+        <!-- CASE 0: Dynamic View Logic (from Navigation) -->
+        <template v-else-if="currentViewConfig">
+            <div class="page-content case-0-content-v3 safe-area-bottom" style="padding-top: 0px !important;" :infinite="hasMore" @infinite="loadMore">
+                <!-- Offline Banner -->
+                <div v-if="!isOnline.connected" class="offline-banner">
+                    <f7-icon f7="wifi_slash" size="14"></f7-icon>
+                    OFFLINE MODE
+                </div>
+                <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
+                <AppShellStatusFilter v-if="!isSchemaEmpty" v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
+                    :counts="statusCounts" :active-filter-count="activeFilters.length" @open-sort="sortSheetOpen = true"
+                    @open-filter="filterSheetOpen = true"
+                    data-inspect-target="views"
+                    :data-view-id="currentViewConfig?.id || 'default'" />
+
+                <!-- Animated Transition between Grouping and Leaf Views -->
+                <transition name="view-fade" mode="out-in">
+                    <!-- Unconfigured Empty State -->
+                    <div v-if="isSchemaEmpty && !loading && !isLoadingData" key="empty-schema" class="empty-schema-container">
+                        <div class="empty-schema-icon">
+                            <SvgIcon name="square" :size="48" class="icon-pulse" />
+                        </div>
+                        <h3 class="empty-schema-title">Formulir Belum Dibuat</h3>
+                        <p class="empty-schema-desc">
+                            Silakan tambahkan kolom (fields) baru di editor sebelah kiri untuk mulai merancang pratinjau formulir Anda di sini.
+                        </p>
+                    </div>
+
+                    <!-- Grouping UI (Folders) -->
+                    <div v-else-if="isGroupingActive" :key="`grouping-${currentGroupLevel}`">
+                        <AppShellGroupList :key="currentGroupLevel" :groups="filteredGroups" :config="groupByConfig"
+                            :current-level="currentGroupLevel" @enter-group="enterGroup"
+                            @show-all="forceShowItems = true" />
+                    </div>
+
+                    <!-- Skeleton while data loads -->
+                    <div v-else-if="isLoadingData" key="skeleton" class="padding">
+                        <f7-skeleton-block v-for="i in 5" :key="i" style="height: 80px; border-radius: 12px;"
+                            class="margin-bottom skeleton-effect-wave" />
+                    </div>
+
+                    <!-- Leaf Views (Assignments/Map/etc) -->
+                    <div v-else-if="currentViewConfig && currentViewConfig.config" key="leaf">
+                                    <ViewRenderer :config="currentViewConfig.config"
+                                        :data="getViewData(
+                                            (currentViewConfig.config as any).source,
+                                            currentViewConfig.type !== 'map'
+                                        )" :contextId="contextId"
+                                        :actions="rowActions" :swipe-config="swipeConfig" @action="handleRowAction" />
+                        
+                        <!-- Infinite Loader -->
+                        <div v-if="hasMore" class="padding text-align-center">
+                            <f7-preloader />
+                        </div>
+                    </div>
+
+                    <!-- Not Found / Fallback if no view found -->
+                    <div v-else key="empty" class="padding text-align-center">
+                        <f7-icon f7="search" size="48" color="gray" />
+                        <p class="text-color-gray">Konfigurasi view tidak ditemukan</p>
+                    </div>
+                </transition>
+            </div>
+        </template>
+
         <!-- CASE 2: Legacy Layout Navigation (Fallback) -->
         <template v-else-if="layout && layout.navigation">
             <!-- TAB BAR (Primary Navigation) - BEFORE tabs per F7 docs -->
@@ -176,8 +189,8 @@
             </div>
 
             <!-- Main Content -->
-            <f7-page-content v-else :ptr="!isGroupingActive" @ptr:refresh="refresh"
-                infinite @infinite="loadMore"
+            <f7-page-content v-else :ptr="!isGroupingActive && !isSchemaEmpty" @ptr:refresh="refresh"
+                :infinite="hasMore" @infinite="loadMore"
                 class="app-content-area safe-area-bottom">
 
                 <!-- Offline Banner -->
@@ -190,7 +203,9 @@
                 <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
 
                 <!-- Search Bar & Filters -->
-                <div class="search-filter-container sticky-top">
+                <div v-if="!isSchemaEmpty" class="search-filter-container sticky-top"
+                    data-inspect-target="views"
+                    :data-view-id="activeView || 'default'">
                     <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                         :counts="statusCounts" :active-filter-count="activeFilters.length"
                         @open-sort="sortSheetOpen = true" @open-filter="filterSheetOpen = true" />
@@ -198,8 +213,19 @@
 
                 <!-- Animated Transition between Grouping and Flat List -->
                 <transition name="view-fade" mode="out-in">
+                    <!-- Unconfigured Empty State -->
+                    <div v-if="isSchemaEmpty && !loading && !isLoadingData" key="empty-schema" class="empty-schema-container">
+                        <div class="empty-schema-icon">
+                            <SvgIcon name="square" :size="48" class="icon-pulse" />
+                        </div>
+                        <h3 class="empty-schema-title">Formulir Belum Dibuat</h3>
+                        <p class="empty-schema-desc">
+                            Silakan tambahkan kolom (fields) baru di editor sebelah kiri untuk mulai merancang pratinjau formulir Anda di sini.
+                        </p>
+                    </div>
+
                     <!-- CASE 1: GROUPING LIST (FOLDERS) -->
-                    <div v-if="isGroupingActive" :key="`grouping-${currentGroupLevel}`">
+                    <div v-else-if="isGroupingActive" :key="`grouping-${currentGroupLevel}`">
                         <AppShellGroupList :groups="filteredGroups" @enter-group="enterGroup"
                             @show-all="forceShowItems = true" />
                     </div>
@@ -234,6 +260,11 @@
 
         <AppShellFilterSheet v-model:opened="filterSheetOpen" v-model:modelValue="activeFilters"
             :fields="availableFields" />
+
+        <!-- Floating Action Button (FAB) for Create/Add Assignment -->
+        <f7-fab v-if="hasCreateAction && !isSchemaEmpty" position="right-bottom" slot="fixed" class="app-fab premium-fab" @click="triggerCreateAction">
+            <SvgIcon name="plus" :size="24" />
+        </f7-fab>
     </f7-page>
 </template>
 
@@ -251,6 +282,7 @@ console.warn(`[AppShell] v${appClientVersion} Build: ${buildTimestamp}`);
 import { getIcon } from '@/app/dashboard/utils/iconHelpers';
 import AppShellGroupList from '../app/dashboard/components/AppShellGroupList.vue';
 import { openMenu, globalPanelOpened } from '../common/services/menuService';
+import SvgIcon from '@/components/common/SvgIcon.vue';
 import AppShellNavbar from '../app/dashboard/components/AppShellNavbar.vue';
 import AppShellPreviewSheet from '../app/dashboard/components/AppShellPreviewSheet.vue';
 import AppShellStatusFilter from '../app/dashboard/components/AppShellStatusFilter.vue';
@@ -286,11 +318,31 @@ const {
     enterGroup, navigateUp, forceShowItems,
     isSyncing, syncProgress, syncMessage, pendingUploadCount, currentUserRole, appVersion,
     activeSort, activeFilters, availableFields,
-    isLoadingData
+    isLoadingData, schemaData
 } = useAppShellLogic(props.contextId);
 
 const sortSheetOpen = ref(false);
 const filterSheetOpen = ref(false);
+
+const isSchemaEmpty = computed(() => {
+    const table = schemaData.value;
+    return !table || !table.fields || table.fields.length === 0;
+});
+
+const navbarActions = computed(() => {
+    return headerActions.value.filter((action: any) => action.id !== 'create' && action.icon !== 'plus' && action.type !== 'create');
+});
+
+const createAction = computed(() => {
+    return headerActions.value.find((action: any) => action.id === 'create' || action.icon === 'plus' || action.type === 'create');
+});
+const hasCreateAction = computed(() => !!createAction.value);
+
+const triggerCreateAction = () => {
+    if (createAction.value) {
+        handleHeaderAction(createAction.value);
+    }
+};
 
 
 
@@ -299,11 +351,9 @@ const filterSheetOpen = ref(false);
 // ============================================================================
 const routeViewId = computed(() => props.f7route?.query?.view);
 const currentViewConfig = computed(() => {
-    const viewId = routeViewId.value;
-    if (!viewId) return null;
+    // If no view is selected in the URL, default to 'default'
+    const viewId = routeViewId.value || 'default';
 
-    // Use the logic from getAppViewConfig to ensure consistent structure {id, type, config}
-    
     // 1. Check App-level View Configs (co-located with navigation)
     if (appViewConfigs.value && appViewConfigs.value[viewId]) {
         return {
@@ -335,14 +385,37 @@ const currentViewConfig = computed(() => {
         };
     }
 
+    // 4. If viewId is 'default' and there are no views configured at all, generate a dynamic fallback view config
+    const hasAnyViews = (appViewConfigs.value && Object.keys(appViewConfigs.value).length > 0) || 
+                         (appViews.value && appViews.value.length > 0) ||
+                         (layout.value?.views && Object.keys(layout.value.views).length > 0);
+                         
+    if (viewId === 'default' && !hasAnyViews) {
+        return {
+            id: 'default',
+            label: appName.value || 'Assignments',
+            type: 'deck',
+            config: {
+                type: 'deck',
+                title: appName.value || 'Assignments',
+                groupBy: [],
+                deck: {
+                    primaryHeaderField: 'name',
+                    secondaryHeaderField: 'description',
+                    imageField: null,
+                    imageShape: 'square'
+                },
+                actions: ['open', 'delete']
+            }
+        };
+    }
+
     return null;
 });
 
 // Watch routeViewId to sync with activeView provided by useAppShellLogic
 watch(routeViewId, (newId) => {
-    if (newId) {
-        activeView.value = newId;
-    }
+    activeView.value = newId || 'default';
 }, { immediate: true });
 
 const pageTitle = computed(() => {
@@ -381,6 +454,16 @@ const handleBackNav = () => {
     if (!handled) {
         const router = props.f7router || f7.views.main.router;
 
+        // If we are at the root level of grouping/folders, go back to the Apps Catalog (/)
+        if (currentGroupLevel.value === 0) {
+            router.navigate('/', {
+                clearPreviousHistory: true,
+                force: true,
+                transition: 'f7-push-back'
+            });
+            return;
+        }
+
         // Check if we are in a view, go back to default form view?
         if (routeViewId.value) {
             // Go to root form without view param
@@ -410,11 +493,11 @@ const openMenuPanel = () => {
         tables: appTables.value,
         navigation: appNavigation.value,
         views: appViews.value,
-        contextId: contextId.value,
+        contextId: props.contextId,
         currentUserRole: currentUserRole.value,
         user: authStore.user,
         appVersion: appVersion.value,
-        buildTimestamp: buildTimestamp.value
+        buildTimestamp: buildTimestamp
     });
 };
 
@@ -605,12 +688,8 @@ const handleAppNavClick = (item: Record<string, unknown>) => {
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-/* Page Content Spacing - Framework7 usually handles this with toolbar-bottom, 
-   but we add overrides just to be safe if dynamic content pushes boundaries */
-.page-content {
-    /* Ensure bottom toolbar doesn't overlap content */
-    padding-bottom: calc(var(--f7-toolbar-height) + var(--f7-safe-area-bottom) + 20px) !important;
-}
+
+
 
 /* Transitions - Fade for basic view switch */
 .view-fade-enter-active,
@@ -641,5 +720,88 @@ const handleAppNavClick = (item: Record<string, unknown>) => {
     transform: scale(0.98);
     opacity: 0.8;
 }
+
+/* Empty Schema Placeholder */
+.empty-schema-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    height: 60vh;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.empty-schema-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(33, 150, 243, 0.05);
+    color: var(--f7-theme-color, #2196f3);
+    margin-bottom: 20px;
+}
+
+.empty-schema-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 6px 0;
+}
+
+.empty-schema-desc {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+    max-width: 260px;
+    margin: 0;
+}
+
+.icon-pulse {
+    animation: icon-pulse-anim 2s infinite ease-in-out;
+}
+
+@keyframes icon-pulse-anim {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.8; }
+}
+
+/* Base FAB token — shared with AssignmentDetail.vue */
+.app-fab {
+    transition: transform 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.app-fab:active {
+    transform: scale(0.9) !important;
+}
+
+/* Create FAB: primary action, strong blue shadow */
+/* Use --f7-fab-box-shadow so shadow applies to .fab > a (circular), not outer div */
+/* Positioning: same formula as .global-validation-fab in AssignmentDetail — 16px + safe area */
+.premium-fab {
+    --f7-fab-bg-color: var(--f7-theme-color, #2196f3);
+    --f7-fab-pressed-bg-color: #1976d2;
+    --f7-fab-box-shadow: 0 4px 14px rgba(33, 150, 243, 0.4);
+    bottom: calc(var(--f7-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 16px) !important;
+    right: calc(var(--f7-safe-area-right, env(safe-area-inset-right, 0px)) + 16px) !important;
+}
+
+.premium-fab:active {
+    --f7-fab-box-shadow: 0 2px 6px rgba(33, 150, 243, 0.2);
+}
 </style>
-```
+
+<style>
+.case-0-content-v3 {
+    padding-top: calc(var(--f7-navbar-height) + var(--f7-safe-area-top, 0px)) !important;
+}
+
+/* Fix double navbar offset spacing in Case 1 and Case 2 tabs */
+.tab.page-content {
+    padding-top: 0 !important;
+}
+</style>

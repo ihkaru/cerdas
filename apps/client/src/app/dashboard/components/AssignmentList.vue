@@ -12,15 +12,28 @@
     <f7-list v-else media-list strong-ios dividers-ios inset-ios class="assignment-list no-margin-top">
         <f7-list-item v-for="(assignment, idx) in assignments" :key="assignment.id" swipeout link="#" no-chevron
             class="no-ripple enter-animation" :style="{ animationDelay: `${idx * 0.03}s` }"
-            @click.prevent="$emit('open-assignment', assignment.id)" :title="assignment.prelist_data?.name || 'Unnamed'"
-            :subtitle="!assignment.enumerator_id ? 'Unassigned / Open' : (assignment.external_id || 'TASK')"
-            :text="assignment.prelist_data?.address || 'No Address'">
+            @click.prevent="$emit('open-assignment', assignment.id)">
             <!-- Status Indicator -->
             <template #media>
                 <div class="status-dot" :class="`bg-color-${statusColor(assignment.status)}`"></div>
             </template>
             <template #after>
                 <f7-badge v-if="!assignment.enumerator_id" color="blue">OPEN</f7-badge>
+            </template>
+            <template #title>
+                <span data-inspect-target="views" data-view-id="default" data-inspect-option="primaryHeaderField">
+                    {{ resolveTitle(assignment) }}
+                </span>
+            </template>
+            <template #subtitle>
+                <span data-inspect-target="views" data-view-id="default" data-inspect-option="secondaryHeaderField">
+                    {{ !assignment.enumerator_id ? 'Unassigned / Open' : (assignment.external_id || 'TASK') }}
+                </span>
+            </template>
+            <template #text>
+                <span data-inspect-target="views" data-view-id="default" data-inspect-option="secondaryHeaderField">
+                    {{ resolveText(assignment) }}
+                </span>
             </template>
 
             <!-- Swipe Left Actions (revealed when swiping RIGHT) -->
@@ -77,11 +90,37 @@ const emit = defineEmits<{
 
 const statusColor = (status: string) => {
     switch (status) {
-        case 'completed': return 'green';
+        case 'assigned':    return 'gray';
         case 'in_progress': return 'blue';
-        case 'synced': return 'teal';
-        default: return 'gray';
+        case 'submitted':   return 'orange';
+        case 'approved':    return 'teal';
+        case 'synced':      return 'teal';
+        case 'rejected':    return 'red';
+        default:            return 'gray';
     }
+};
+
+
+const ensureObject = (data: any) => {
+    if (typeof data === 'string') {
+        try { return JSON.parse(data); }
+        catch { return {}; }
+    }
+    return (typeof data === 'object' && data !== null) ? data : {};
+};
+
+const resolveTitle = (assignment: Assignment) => {
+    const prelist = ensureObject(assignment.prelist_data);
+    const response = ensureObject(assignment.response_data);
+    const data = { ...prelist, ...response };
+    return data.name || data.nama || data.title || data.judul || data.id || 'Unnamed';
+};
+
+const resolveText = (assignment: Assignment) => {
+    const prelist = ensureObject(assignment.prelist_data);
+    const response = ensureObject(assignment.response_data);
+    const data = { ...prelist, ...response };
+    return data.address || data.alamat || data.description || data.deskripsi || data.location || data.lokasi || 'No Address';
 };
 
 // Emit row action

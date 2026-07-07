@@ -120,6 +120,7 @@ packages/types  - @cerdas/types (shared strict TS types)
 - User gives standing permission for necessary actions
 - User wants strict TypeScript to catch errors early
 - Update gemini.md with important changes/progress
+- **FRAMEWORK7 VUE THEMING RULE**: Always follow [docs/framework7_vue_theming_best_practices.md](file:///home/ihza/Projects/cerdas/docs/framework7_vue_theming_best_practices.md) when designing custom themes, managing layout spacing offsets, or handling device notches. Use inline styles with `!important` on `<f7-page-content>` to safely override double-spacing bugs, and override standard F7 CSS variables in `:root` inside `style.css` for dynamic theme changes.
 - **CRITICAL UI DOCUMENTATION RULE**: Whenever developing, changing, or fixing UI navigation, routing, or screen states, I MUST ALWAYS update the `references/SCREEN_FLOW.md` document (including adding/updating Mermaid diagrams if relevant) to ensure it stays as the single source of truth across all future sessions.
 - **BROWSER TOOL USAGE**: NEVER use browser tool for ANY reason. User will verify manually. I am an agent for writing logic and code, not for clicking.
 - **CRITICAL VERSION RULE**: Always update the project version (currently 0.1.0) in `README.md`, `package.json`, and `composer.json` whenever significant progress is made (equivalent to a "push").

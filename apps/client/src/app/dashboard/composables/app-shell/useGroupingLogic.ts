@@ -133,9 +133,16 @@ export function useGroupingLogic(
 
         // Add Status filters (if passed to DB)
         if (statusFilterValue && statusFilterValue !== 'all') {
-            conditions.push(`status = ?`);
-            params.push(statusFilterValue);
+            if (statusFilterValue === 'in_progress') {
+                conditions.push(`status IN ('in_progress', 'rejected')`);
+            } else if (statusFilterValue === 'synced') {
+                conditions.push(`status IN ('approved', 'synced', 'submitted')`);
+            } else {
+                conditions.push(`status = ?`);
+                params.push(statusFilterValue);
+            }
         }
+
 
         const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
         

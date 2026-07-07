@@ -129,6 +129,7 @@ export function useTableSelection(
             try {
                 if (!appStore.currentApp?.id) throw new Error('No app context');
                 const newTable = await tableStore.createTable(appStore.currentApp.id, { name });
+                await appStore.fetchApp(appStore.currentApp.id);
                 await selectTable(newTable.id);
             } catch (e: any) {
                 f7.dialog.alert(e.message || 'Failed to create table');

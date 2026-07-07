@@ -49,6 +49,7 @@
                     :views-version="viewsVersion" 
                     :navigation="navigation"
                     :selected-view-id="selectedViewId"
+                    :is-dirty="isDirty"
                 />
             </DeviceFrame>
         </div>
@@ -140,12 +141,13 @@ function syncData() {
 
 .preview-header {
     height: 48px;
-    border-bottom: 1px solid #334155;
+    box-sizing: border-box;
+    border-bottom: 1px solid #e2e8f0;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    background: #1e293b;
+    background: #fff;
     gap: 16px;
 }
 
@@ -153,32 +155,35 @@ function syncData() {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #0f172a;
+    background: #f1f5f9;
     padding: 4px 12px;
     border-radius: 6px;
     height: 32px;
-    color: #94a3b8;
+    color: #475569;
+    border: 1px solid #e2e8f0;
 }
 
 .role-selector select {
     background: transparent;
     border: none;
-    color: #e2e8f0;
+    color: #0f172a;
     font-size: 13px;
+    font-weight: 500;
     outline: none;
     cursor: pointer;
 }
 
 .role-selector select option {
-    background: #1e293b;
-    color: #e2e8f0;
+    background: #fff;
+    color: #0f172a;
 }
 
 .device-toggles {
     display: flex;
-    background: #0f172a;
+    background: #f1f5f9;
     border-radius: 6px;
     padding: 2px;
+    border: 1px solid #e2e8f0;
 }
 
 .toggle-btn {
@@ -192,15 +197,18 @@ function syncData() {
     color: #64748b;
     border-radius: 4px;
     cursor: pointer;
+    transition: color 0.15s, background-color 0.15s, box-shadow 0.15s;
 }
 
 .toggle-btn:hover {
-    color: #94a3b8;
+    color: #334155;
 }
 
 .toggle-btn.active {
-    background: #334155;
-    color: #f8fafc;
+    background: #fff;
+    color: var(--f7-theme-color, #2196f3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    font-weight: 600;
 }
 
 .toggle-btn :deep(.icon) {
@@ -218,11 +226,19 @@ function syncData() {
     color: #64748b;
     border-radius: 4px;
     cursor: pointer;
+    transition: background 0.15s, color 0.15s;
 }
 
 .action-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #f8fafc;
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.preview-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
 }
 
 .preview-content {
@@ -232,7 +248,7 @@ function syncData() {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #1e293b;
+    background: #f8fafc; /* warm premium light gray */
     padding: 20px;
 }
 </style>

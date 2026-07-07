@@ -24,15 +24,15 @@
         </div>
 
         <div class="header-right">
-            <f7-button :fill="isDirty" :outline="!isDirty" @click="emit('save')" :disabled="!isDirty" 
-                :class="['save-btn', { 'dirty-active': isDirty }]">
+            <button class="hdr-btn hdr-btn--save" @click="emit('save')" :disabled="!isDirty"
+                :class="{ 'is-dirty': isDirty }">
                 <f7-icon f7="arrow_down_doc" />
                 Save Draft
-            </f7-button>
-            <f7-button fill class="publish-btn" @click="emit('publish')" :disabled="!canPublish">
+            </button>
+            <button class="hdr-btn hdr-btn--publish" @click="emit('publish')" :disabled="!canPublish">
                 <f7-icon f7="paperplane_fill" />
                 Publish
-            </f7-button>
+            </button>
             <div class="header-menu">
                 <f7-link icon-f7="ellipsis" popover-open=".editor-menu-popover" />
             </div>
@@ -196,38 +196,75 @@ const emit = defineEmits<{
     gap: 12px;
 }
 
-.save-btn {
-    --f7-button-outline-border-color: #e2e8f0;
-    color: #64748b;
-    transition: all 0.3s ease;
+/*
+ * Header action button tokens.
+ * Two variants: save (ghost → filled blue when dirty) and publish (always green).
+ * Both: height 32px, font-size 13px, border-radius 7px, gap 6px.
+ */
+.hdr-btn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    height: 32px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.1s;
 }
 
-.save-btn.dirty-active {
-    --f7-button-bg-color: #0284c7; /* Sky blue primary */
-    --f7-button-hover-bg-color: #0369a1;
+.hdr-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.hdr-btn:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+/* Save Draft: ghost when clean, solid blue + pulse when dirty */
+.hdr-btn--save {
+    border: 1.5px solid #e2e8f0;
+    color: #64748b;
+    background: transparent;
+}
+
+.hdr-btn--save:hover:not(:disabled) {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.hdr-btn--save.is-dirty {
+    background: #2563eb;
+    border-color: #2563eb;
     color: white;
-    font-weight: 600;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
     animation: pulse-save 2s infinite;
 }
 
+.hdr-btn--save.is-dirty:hover {
+    background: #1d4ed8;
+}
+
 @keyframes pulse-save {
-    0% {
-        box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.4);
-    }
-    70% {
-        box-shadow: 0 0 0 10px rgba(2, 132, 199, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(2, 132, 199, 0);
-    }
+    0%   { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+    70%  { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
 }
 
-.publish-btn {
-    --f7-button-bg-color: #16a34a;
+/* Publish: always solid green */
+.hdr-btn--publish {
+    background: #16a34a;
+    color: white;
+    border: 1.5px solid transparent;
 }
 
-.header-menu a {
-    color: #64748b;
+.hdr-btn--publish:hover:not(:disabled) {
+    background: #15803d;
 }
 </style>

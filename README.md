@@ -145,6 +145,25 @@ cerdas/
 └── docker-compose.prod.yml
 ```
 
+## Developer Guide
+
+Key documentation every contributor should read:
+
+| Document | Description |
+|----------|-------------|
+| [Terminology & Disambiguation](docs/TERMINOLOGY_DISAMBIGUATION.md) | **SSOT** for naming conventions across backend, frontend, and TypeScript types |
+| [↳ Assignment Status Canonical Values](docs/TERMINOLOGY_DISAMBIGUATION.md#23-assignment-status--canonical-values) | The 5 canonical assignment statuses (`assigned`, `in_progress`, `submitted`, `synced`, `rejected`), their flow per app mode, and which legacy aliases are removed |
+| [Assignment Status Flows Table](docs/STATUS_FLOWS.md) | **Tabel lengkap pemetaan status** antara SQLite lokal client dan database backend server untuk Simple & Complex Mode |
+| [Architecture Principles](docs/architecture_principles.md) | Core architectural decisions and patterns |
+| [Form Editor Workflow](docs/FORM_EDITOR_WORKFLOW.md) | How the schema editor and publish flow work |
+| [Development Lifecycle](docs/DEVELOPMENT_LIFECYCLE.md) | Branch strategy, versioning, and release process |
+| [Octane Safety Guide](docs/WORKFLOW_AND_DEBUGGING.md) | FrankenPHP/Octane-safe coding patterns |
+
+> [!TIP]
+> If you encounter a naming discrepancy (e.g., a field called `form_id` somewhere but `table_id` elsewhere, or a status labeled `'pending'` in old code), check **[TERMINOLOGY_DISAMBIGUATION.md](docs/TERMINOLOGY_DISAMBIGUATION.md)** first — it documents all known historical inconsistencies and their canonical replacements.
+
+
+
 ## CI/CD Pipelines
 
 | Workflow | Trigger | Purpose |

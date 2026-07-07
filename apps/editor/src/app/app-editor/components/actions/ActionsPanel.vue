@@ -298,16 +298,7 @@ function updateSwipeRight(event: Event) {
     color: var(--f7-list-item-subtitle-text-color);
 }
 
-.action-divider {
-    background: #f8fafc;
-    border-right: 1px solid #e2e8f0;
-    border-left: 1px solid #f1f5f9;
-}
-
-.action-divider:hover,
-.action-divider.dragging {
-    background: #e2e8f0;
-}
+/* action-divider overrides removed: ResizableDivider now has uniform styling built-in. */
 
 .action-icon-preview {
     width: 32px;

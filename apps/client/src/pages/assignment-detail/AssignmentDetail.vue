@@ -1,18 +1,18 @@
 <template>
     <f7-page name="assignment-detail" @page:beforeout="onPageBeforeOut" @page:afterin="onPageAfterIn">
-        <f7-navbar :sliding="false">
+        <f7-navbar :sliding="false" class="premium-navbar">
             <f7-nav-left>
-                <f7-link @click="handleBack">
-                    <f7-icon f7="arrow_left" />
+                <f7-link @click="handleBack" class="nav-icon-btn back-btn" aria-label="Kembali">
+                    <SvgIcon name="arrow_left" :size="22" />
                 </f7-link>
             </f7-nav-left>
-            <f7-nav-title>{{ pageTitle }}</f7-nav-title>
+            <f7-nav-title class="premium-title">{{ pageTitle }}</f7-nav-title>
             <f7-nav-right>
-                <div class="display-flex align-items-center margin-right-half">
-                    <f7-preloader v-if="saving" size="20" />
-                    <f7-chip v-else-if="isDirty" text="Belum Disimpan" color="orange" />
-                </div>
-                <f7-button fill round small color="green" @click="confirmSubmit">Finish</f7-button>
+                <span v-if="isReadOnly" class="nav-readonly-badge">Read Only</span>
+                <f7-link v-else-if="!saving" @click="confirmSubmit" class="nav-finish-btn" aria-label="Selesai">
+                    Finish
+                </f7-link>
+                <f7-preloader v-else size="20" class="margin-right" />
             </f7-nav-right>
         </f7-navbar>
 
@@ -31,24 +31,23 @@
         <VersionBanner :pinnedSchemaVersion="pinnedSchemaVersion" :currentTableVersion="currentTableVersion"
             :versionGate="versionGate" :migrating="migrating" @upgrade="handleMigrateVersion" />
 
-        <div v-if="schema && assignment" class="padding-bottom-xl">
-            <FormRenderer ref="formRenderer" :schema="schema" :initial-data="formData"
+        <div v-if="schema && assignment" class="padding-top padding-bottom-xl">
+            <FormRenderer ref="formRenderer" :schema="schema" :initial-data="formData" :readonly="isReadOnly"
                 :context="{ user: userContext, assignment: assignment, resolveAssetUrl: resolveAssetUrl }"
                 @update:data="handleUpdate" />
         </div>
 
         <!-- Validation Summary FAB - Teleported to body to float above everything -->
         <Teleport to="body">
-            <div class="global-validation-fab" v-if="fabVisible"
-                style="position: fixed; right: 20px; bottom: 20px; z-index: 12000;">
+            <div class="global-validation-fab" v-if="fabVisible && !isReadOnly">
                 <!-- Save Draft FAB (when dirty) -->
-                <f7-fab v-if="isDirty" position="right-bottom" color="green" @click="saveDraft"
-                    style="margin: 0; position: static;" class="fab-save-pulse">
+                <f7-fab v-if="isDirty" position="right-bottom" @click="saveDraft"
+                    style="margin: 0; position: static;" class="app-fab app-fab--save">
                     <f7-icon f7="floppy_disk"></f7-icon>
                 </f7-fab>
                 <!-- Validation FAB (when clean) -->
-                <f7-fab v-else position="right-bottom" color="blue" @click="openValidationSummary"
-                    style="margin: 0; position: static;">
+                <f7-fab v-else position="right-bottom" @click="openValidationSummary"
+                    style="margin: 0; position: static;" class="app-fab app-fab--validate">
                     <f7-icon f7="checkmark_shield"></f7-icon>
                     <f7-badge v-if="summaryBadgeCount > 0" color="red">{{ summaryBadgeCount }}</f7-badge>
                 </f7-fab>
@@ -63,6 +62,7 @@
 
 <script setup lang="ts">
 import { FormRenderer } from '@cerdas/form-engine';
+import SvgIcon from '@/components/common/SvgIcon.vue';
 import { f7 } from 'framework7-vue';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { apiClient } from '../../common/api/ApiClient';
@@ -97,7 +97,7 @@ const userContext = computed(() => ({
 // 1. Data Loading
 const {
     loading, error, assignment, schema, formData,
-    pinnedSchemaVersion, currentTableVersion, loadData
+    pinnedSchemaVersion, currentTableVersion, isReadOnly, loadData
 } = useAssignmentLoader(props.assignmentId);
 
 // 2. Dirty Tracking
@@ -195,6 +195,91 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ============================================================
+   Navbar — matches AppShellNavbar.vue design tokens exactly
+   ============================================================ */
+.premium-navbar {
+    background: transparent !important;
+}
+
+:deep(.navbar-bg) {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02) !important;
+}
+
+:deep(.navbar-inner) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    padding: 0 8px !important;
+}
+
+/* Centered title — same absolute-center trick as AppShellNavbar */
+.premium-title, :deep(.title) {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+    text-align: center;
+    font-weight: 600 !important;
+    font-size: 17px !important;
+    color: #111827 !important;
+    width: auto !important;
+    max-width: calc(100% - 130px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    pointer-events: none !important;
+    display: block !important;
+}
+
+/* Circular icon button — same as AppShellNavbar .nav-icon-btn */
+.nav-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: #4b5563 !important;
+    background: transparent;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+    margin: 0 2px;
+}
+
+.nav-icon-btn:active {
+    background-color: rgba(0, 0, 0, 0.06);
+    color: #111827 !important;
+    transform: scale(0.95);
+}
+
+/*
+ * nav-finish-btn: Lightweight text action — NOT a filled button.
+ * Primary submit action is the FAB (more prominent, thumb-friendly).
+ * This is a secondary affordance for users who look at the navbar.
+ */
+.nav-finish-btn {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    height: 40px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--f7-theme-color, #2196f3) !important;
+    border-radius: 8px;
+    transition: background 0.15s, opacity 0.15s;
+}
+
+.nav-finish-btn:active {
+    background: rgba(var(--f7-theme-color-rgb, 33, 150, 243), 0.08);
+    opacity: 0.8;
+}
+
 .warning-bg {
     background-color: #f44336;
     color: white;
@@ -205,19 +290,74 @@ onUnmounted(() => {
     border-radius: 12px;
 }
 
-.fab-save-pulse {
-    animation: fabPulse 1.5s ease-in-out infinite;
+/*
+ * global-validation-fab: Teleported FAB container for AssignmentDetail.
+ *
+ * Positioning rules match AppShell's .premium-fab exactly:
+ *   - 16px offset from edges (Material Design FAB standard)
+ *   - var(--f7-safe-area-bottom/right): Framework7 runtime safe-area insets
+ *   - env(safe-area-inset-*): CSS native safe-area fallback for older WebKit
+ *
+ * This ensures the FAB sits above the home indicator on iPhone X+ and
+ * is pixel-identical in position to the AppShell create FAB.
+ */
+.global-validation-fab {
+    position: fixed;
+    right: calc(var(--f7-safe-area-right, env(safe-area-inset-right, 0px)) + 16px);
+    bottom: calc(var(--f7-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 16px);
+    z-index: 12000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-@keyframes fabPulse {
 
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
-    }
+.app-fab {
+    transition: transform 0.18s ease, box-shadow 0.18s ease !important;
+}
 
-    50% {
-        box-shadow: 0 0 0 12px rgba(76, 175, 80, 0);
-    }
+.app-fab:active {
+    transform: scale(0.9) !important;
+}
+
+/* Save FAB: green with pulse ring — signals unsaved changes urgently */
+/* Use --f7-fab-box-shadow so shadow applies to .fab > a (circular), not outer div */
+.app-fab--save {
+    --f7-fab-bg-color: #16a34a;
+    --f7-fab-pressed-bg-color: #15803d;
+    --f7-fab-box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
+    animation: fabPulseGreen 1.5s ease-in-out infinite;
+}
+
+.app-fab--save:active {
+    --f7-fab-box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2);
+}
+
+@keyframes fabPulseGreen {
+    0%, 100% { --f7-fab-box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4); }
+    50%       { --f7-fab-box-shadow: 0 4px 14px rgba(22, 163, 74, 0.15); }
+}
+
+/* Validate FAB: theme blue — matches premium-fab in AppShell */
+.app-fab--validate {
+    --f7-fab-bg-color: var(--f7-theme-color, #2196f3);
+    --f7-fab-pressed-bg-color: #1976d2;
+    --f7-fab-box-shadow: 0 4px 14px rgba(33, 150, 243, 0.4);
+}
+
+.app-fab--validate:active {
+    --f7-fab-box-shadow: 0 2px 6px rgba(33, 150, 243, 0.2);
+}
+
+.nav-readonly-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-right: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 </style>

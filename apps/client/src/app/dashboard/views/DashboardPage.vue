@@ -1,22 +1,20 @@
 <template>
     <f7-page name="home" ptr @ptr:refresh="refresh" @page:afterin="onPageAfterIn">
-        <f7-navbar :sliding="false">
-            <f7-nav-title sliding>Dashboard</f7-nav-title>
+        <f7-navbar :sliding="false" class="premium-navbar">
+            <f7-nav-title class="premium-title">Dashboard</f7-nav-title>
             <f7-nav-right>
-                <f7-link @click="handleSync" :class="{ 'syncing': isSyncing }" class="sync-nav-link">
-                    <f7-icon f7="arrow_2_circlepath"></f7-icon>
-                    <span class="sync-label">Sync</span>
+                <f7-link @click="handleSync" class="nav-icon-btn action-btn" :class="{ 'spinning': isSyncing }" aria-label="Sync">
+                    <SvgIcon name="arrow_2_circlepath" :size="22" />
                 </f7-link>
-                <f7-link @click="settingsOpen = true" class="profile-nav-link">
-                    <f7-icon f7="person_circle"></f7-icon>
-                    <span class="profile-label">Profil</span>
+                <f7-link @click="settingsOpen = true" class="nav-icon-btn profile-btn" aria-label="Profil">
+                    <SvgIcon name="person_circle" :size="22" />
                 </f7-link>
             </f7-nav-right>
         </f7-navbar>
 
         <DashboardStats :stats="assignmentStats" :total="totalAssignments" :last-sync-time="lastSyncTime" />
 
-        <AppGallery :apps="apps" @open-app="openApp" />
+        <AppGallery :apps="appsWithStats" @open-app="openApp" />
 
         <!-- Settings / Profile Sheet -->
         <DashboardSettingsSheet v-model:opened="settingsOpen" :user="auth.user" :is-syncing="isSyncing"
@@ -28,6 +26,7 @@
 import { f7 } from 'framework7-vue';
 import { storeToRefs } from 'pinia';
 import { onMounted, ref } from 'vue';
+import SvgIcon from '@/components/common/SvgIcon.vue';
 import { useDatabase } from '../../../common/composables/useDatabase';
 import { useSync } from '../../../common/composables/useSync';
 import { useAuthStore } from '../../../common/stores/authStore';
@@ -42,7 +41,7 @@ const props = defineProps<{
 }>();
 
 const dashboardStore = useDashboardStore();
-const { apps, totalAssignments, assignmentStats, lastSyncTime } = storeToRefs(dashboardStore);
+const { apps, appsWithStats, totalAssignments, assignmentStats, lastSyncTime } = storeToRefs(dashboardStore);
 const sync = useSync();
 const auth = useAuthStore();
 const db = useDatabase();
@@ -119,34 +118,79 @@ const openApp = (id: string) => {
 </script>
 
 <style scoped>
-.syncing {
-    animation: spin 1s infinite linear;
+.premium-navbar {
+    background: transparent !important;
 }
 
-.sync-nav-link, .profile-nav-link {
+/* Glassmorphism backing via Framework7's navbar-bg element */
+:deep(.navbar-bg) {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02) !important;
+}
+
+:deep(.navbar-inner) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    padding: 0 8px !important;
+}
+
+/* Consistently Centered Title */
+.premium-title, :deep(.title) {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+    text-align: center;
+    font-weight: 600 !important;
+    font-size: 17px !important;
+    color: #111827 !important; /* Premium Neutral Dark */
+    width: auto !important;
+    max-width: calc(100% - 130px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    pointer-events: none !important;
+    display: block !important;
+}
+
+/* Modern Rounded Nav Buttons */
+.nav-icon-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: #4b5563 !important; /* Neutral slate */
+    background: transparent;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+    margin: 0 2px;
 }
 
-.sync-label, .profile-label {
-    font-size: 14px;
-    font-weight: 500;
+.nav-icon-btn:active {
+    background-color: rgba(0, 0, 0, 0.06);
+    color: #111827 !important;
+    transform: scale(0.95);
 }
 
-@keyframes spin {
+/* Micro animations for syncing rotation */
+.spinning {
+    animation: spin-refresh 1.2s linear infinite;
+    color: var(--f7-theme-color, #2196f3) !important;
+}
+
+@keyframes spin-refresh {
     from {
         transform: rotate(0deg);
     }
-
     to {
         transform: rotate(360deg);
-    }
-}
-
-@media (max-width: 360px) {
-    .sync-label, .profile-label {
-        display: none;
     }
 }
 </style>

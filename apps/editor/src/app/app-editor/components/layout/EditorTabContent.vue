@@ -7,13 +7,16 @@
                 :style="{ width: panels.dataListWidth + 'px', minWidth: '250px', maxWidth: '500px' }">
                 <div class="panel-header">
                     <span class="panel-title">Data Sources</span>
-                    <div style="display: flex; gap: 4px;">
-                        <f7-button small fill round color="orange" @click="showTrashModal = true" title="View Trash">
+                    <div class="panel-header-actions">
+                        <!-- Ghost icon button for secondary/destructive actions -->
+                        <button class="panel-icon-btn" @click="showTrashModal = true" title="View Trash">
                             <f7-icon f7="trash_slash" size="14" />
-                        </f7-button>
-                        <f7-button small fill round @click="tableSelection.createNewTable">
-                            <f7-icon f7="plus" size="14" /> New
-                        </f7-button>
+                        </button>
+                        <!-- Primary action button -->
+                        <button class="panel-primary-btn" @click="tableSelection.createNewTable">
+                            <f7-icon f7="plus" size="12" />
+                            New
+                        </button>
                     </div>
                 </div>
                 <div class="field-list-scroll">
@@ -35,9 +38,9 @@
                             <div v-if="tableSelection.currentTableId === table.id" class="active-check">
                                 <f7-icon f7="checkmark_circle_fill" size="16" />
                             </div>
-                            <div class="form-actions" @click.stop="tableSelection.handleDeleteTable(table)">
-                                <f7-icon f7="trash" size="16" class="text-color-gray" />
-                            </div>
+                            <button class="form-action-btn" @click.stop="tableSelection.handleDeleteTable(table)" title="Delete">
+                                <f7-icon f7="trash" size="14" />
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -49,15 +52,18 @@
             <!-- Right: Fields (inline when table selected) -->
             <template v-if="tableSelection.hasTableSelected">
                 <div class="field-list-panel"
-                    :style="{ width: panels.fieldListWidth + 'px', minWidth: '250px', maxWidth: '600px' }">
-                    <div class="field-list-scroll">
-                        <FieldList :fields="tableEditor.currentFields" :breadcrumbs="tableEditor.breadcrumbs"
-                            :selected-path="tableEditor.selectedFieldPath" @select="tableEditor.selectField"
-                            @add="(type, idx) => tableEditor.addFieldAtCurrentLevel(type, idx)"
-                            @delete="tableEditor.removeField" @duplicate="tableEditor.duplicateField"
-                            @reorder="tableEditor.reorderFieldsAtCurrentLevel" @drill-in="tableEditor.drillInto"
-                            @drill-up="tableEditor.drillUp" @drill-to="tableEditor.drillToPath" />
-                    </div>
+                    :style="{ 
+                        width: tableEditor.selectedFieldPath ? panels.fieldListWidth + 'px' : '100%', 
+                        flex: tableEditor.selectedFieldPath ? '0 0 auto' : '1 1 0%',
+                        minWidth: '250px', 
+                        maxWidth: tableEditor.selectedFieldPath ? '600px' : 'none' 
+                    }">
+                    <FieldList :fields="tableEditor.currentFields" :breadcrumbs="tableEditor.breadcrumbs"
+                        :selected-path="tableEditor.selectedFieldPath" @select="tableEditor.selectField"
+                        @add="(type, idx) => tableEditor.addFieldAtCurrentLevel(type, idx)"
+                        @delete="tableEditor.removeField" @duplicate="tableEditor.duplicateField"
+                        @reorder="tableEditor.reorderFieldsAtCurrentLevel" @drill-in="tableEditor.drillInto"
+                        @drill-up="tableEditor.drillUp" @drill-to="tableEditor.drillToPath" />
                 </div>
                 <ResizableDivider v-if="!!tableEditor.selectedFieldPath"
                     @resize-start="panels.fieldListBaseWidth = panels.fieldListWidth"
@@ -159,7 +165,9 @@ defineEmits<{
     'code-apply': [payload: any];
 }>();
 
-// Wrap props in reactive to unwrap refs for template usage
+// reactive() properly unwraps nested Refs inside composable return objects.
+// This is intentional: composables return plain objects of refs, and reactive()
+// unwraps them so child components receive plain values, not Ref<T> wrappers.
 const panels = reactive(props.panels);
 const tableEditor = reactive(props.tableEditor);
 const navManagement = reactive(props.navManagement);
@@ -169,3 +177,91 @@ const appViewManagement = props.appViewManagement;
 // Local UI State
 const showTrashModal = ref(false);
 </script>
+
+<style scoped>
+.panel-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/*
+ * panel-icon-btn: Ghost icon-only button for secondary/destructive header actions.
+ * Turns red on hover — signals destructive intent without dominating the header.
+ */
+.panel-icon-btn {
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    color: #64748b;
+    transition: background 0.15s, color 0.15s;
+}
+
+.panel-icon-btn:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+}
+
+/*
+ * panel-primary-btn: Filled pill for primary header actions.
+ * Consistent across all panel headers ("New", "Add Field", etc.).
+ */
+.panel-primary-btn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 10px;
+    height: 28px;
+    border-radius: 6px;
+    background: #3b82f6;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.panel-primary-btn:hover {
+    background: #2563eb;
+}
+
+.panel-primary-btn:active {
+    transform: scale(0.97);
+}
+
+/*
+ * form-action-btn: Hover-reveal destructive button inside list items.
+ * Invisible until parent .form-item is hovered.
+ */
+.form-action-btn {
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 5px;
+    color: #94a3b8;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+
+.form-item:hover .form-action-btn,
+.form-item.active .form-action-btn {
+    opacity: 1;
+}
+
+.form-action-btn:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+}
+</style>

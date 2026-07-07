@@ -15,7 +15,7 @@
             <f7-list inset strong class="!mt-0">
 
                 <!-- General Settings -->
-                <f7-list-item accordion-item title="General Settings" :opened="true">
+                <f7-list-item accordion-item title="General Settings" class="accordion-general" opened>
                     <f7-accordion-content>
                         <f7-list inset class="!my-0 !mx-0 no-hairlines-ul">
                             <!-- View Type Selector -->
@@ -53,7 +53,7 @@
                 </f7-list-item>
 
                 <!-- Data Configuration -->
-                <f7-list-item accordion-item title="Data Configuration">
+                <f7-list-item accordion-item title="Data Configuration" class="accordion-data">
                     <f7-accordion-content>
                         <f7-list inset class="!my-0 !mx-0 no-hairlines-ul">
                             <!-- Sort By -->
@@ -94,7 +94,7 @@
                 </f7-list-item>
 
                 <!-- View Specific Configuration -->
-                <f7-list-item accordion-item title="Layout Configuration" :opened="true">
+                <f7-list-item accordion-item title="Layout Configuration" class="accordion-layout" opened>
                     <f7-accordion-content>
                         <div class="px-0 pb-0">
                             <DeckViewConfig v-if="view.type === 'deck' && view.deck" :deck-config="view.deck"
@@ -112,7 +112,7 @@
                 </f7-list-item>
 
                 <!-- Actions -->
-                <f7-list-item accordion-item title="Actions">
+                <f7-list-item accordion-item title="Actions" class="accordion-actions">
                     <f7-accordion-content>
                         <div class="px-0 pb-0">
                             <ViewActionsSelector :selected-actions="view.actions || []" :available-actions="actions"
@@ -128,7 +128,8 @@
 
 <script setup lang="ts">
 
-import { computed } from 'vue';
+import { computed, inject, ref, watch, nextTick } from 'vue';
+import { f7 } from 'framework7-vue';
 import type { ViewConfigPanelProps } from '../../../types/view-config.types';
 import FieldPicker from '../../shared/FieldPicker.vue';
 import { getViewIcon } from '../utils/viewHelpers';
@@ -163,6 +164,47 @@ function updateProp(key: string, value: unknown) {
     const finalValue = (value instanceof Event) ? (value.target as HTMLSelectElement).value : value;
     emit('update:viewProp', key, finalValue);
 }
+
+// Auto-expand accordions using Framework7 JS API on inspect highlight
+const highlightedViewOption = inject<any>('highlightedViewOption', ref(''));
+
+watch(highlightedViewOption, async (newVal) => {
+    if (!newVal) return;
+    
+    console.log('[ViewConfigPanel] Option highlighted:', newVal);
+    
+    // Technical Debt Fix: Wait for Vue's nextTick DOM update
+    await nextTick();
+    
+    // Timing Race Condition Fix: Wait for Framework7 to finish mounting/binding accordion elements
+    setTimeout(() => {
+        const f7Instance = f7;
+        if (!f7Instance || !f7Instance.accordion) return;
+        
+        let targetSelector = '';
+        if (newVal === 'title' || newVal === 'type' || newVal === 'table_id') {
+            targetSelector = '.accordion-general';
+        } else if (newVal === 'sortBy' || newVal === 'sortOrder' || newVal === 'slice_filter' || newVal === 'groupBy') {
+            targetSelector = '.accordion-data';
+        } else if (
+            newVal === 'primaryHeaderField' || 
+            newVal === 'secondaryHeaderField' || 
+            newVal === 'imageField' || 
+            newVal === 'mapbox_style' || 
+            newVal.startsWith('deck') || 
+            newVal.startsWith('map')
+        ) {
+            targetSelector = '.accordion-layout';
+        } else if (newVal === 'actions') {
+            targetSelector = '.accordion-actions';
+        }
+        
+        if (targetSelector) {
+            console.log('[ViewConfigPanel] Opening accordion DOM element:', targetSelector);
+            f7Instance.accordion.open(targetSelector);
+        }
+    }, 200);
+}, { immediate: true });
 </script>
 
 <style scoped>

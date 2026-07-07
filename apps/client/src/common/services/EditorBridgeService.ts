@@ -83,6 +83,72 @@ export class EditorBridgeService {
         this.log.info('Handshake: Sending EDITOR_CLIENT_READY to parent');
         window.parent.postMessage({ type: 'EDITOR_CLIENT_READY' }, '*');
         
+        // Add styling indicator for CSS hover highlights inside Editor
+        document.body.classList.add('in-iframe-editor');
+
+        // Listen for field element clicks and notify Editor
+        window.addEventListener('click', (event) => {
+            const target = event.target as HTMLElement;
+            
+            // Prioritize form fields
+            const fieldWrapper = target.closest('[data-field-name]');
+            if (fieldWrapper) {
+                const fieldName = fieldWrapper.getAttribute('data-field-name');
+                if (fieldName) {
+                    const rect = fieldWrapper.getBoundingClientRect();
+                    const clickX = event.clientX - rect.left;
+                    const clickY = event.clientY - rect.top;
+                    
+                    // Check if click was in the top-right corner (on the pencil icon)
+                    const isPencilClick = (clickX > rect.width - 40 && clickY < 40);
+                    
+                    if (isPencilClick) {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        this.log.debug(`Pencil clicked on field: "${fieldName}". Notifying Editor.`);
+                        window.parent.postMessage({
+                            type: 'SELECT_FIELD_IN_EDITOR',
+                            payload: { fieldName }
+                        }, '*');
+                        return; // Exit early to prevent parent handler click triggers
+                    }
+                }
+            }
+
+            // General inspector targets
+            const inspectTarget = target.closest('[data-inspect-target]');
+            if (inspectTarget) {
+                const targetPanel = inspectTarget.getAttribute('data-inspect-target');
+                const viewId = inspectTarget.getAttribute('data-view-id');
+                const optionKey = inspectTarget.getAttribute('data-inspect-option');
+                const inspectId = inspectTarget.getAttribute('data-inspect-id');
+                if (targetPanel) {
+                    const rect = inspectTarget.getBoundingClientRect();
+                    const clickX = event.clientX - rect.left;
+                    const clickY = event.clientY - rect.top;
+                    
+                    // Check if click was in the top-right corner (on the pencil icon)
+                    const isPencilClick = (clickX > rect.width - 40 && clickY < 40);
+                    
+                    if (isPencilClick) {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        this.log.debug(`Pencil clicked on target: "${targetPanel}", viewId: "${viewId}", navId: "${inspectId}", option: "${optionKey}". Notifying Editor.`);
+                        window.parent.postMessage({
+                            type: 'SELECT_TAB_IN_EDITOR',
+                            payload: { 
+                                tab: targetPanel, 
+                                viewId, 
+                                navId: targetPanel === 'navigation' ? inspectId : undefined,
+                                optionKey 
+                            }
+                        }, '*');
+                        return; // Exit early to prevent parent handler click triggers
+                    }
+                }
+            }
+        }, true);
+
         this.isInitialized = true;
     }
 
@@ -170,14 +236,31 @@ export class EditorBridgeService {
             await db.run(sql, values);
             this.log.info('Schema successfully saved to SQLite');
 
-            // 3. Handle App View Configs
-            if (payload.viewConfigs && payload.appId) {
-                this.log.debug('Persisting app view configs', { appId: payload.appId });
-                await db.run(`UPDATE apps SET view_configs = ? WHERE id = ?`, 
-                    [JSON.stringify(payload.viewConfigs), payload.appId]);
+            // 3. Handle App View Configs and Navigation
+            if (payload.appId) {
+                this.log.debug('Persisting app view configs and navigation', { appId: payload.appId });
+                const updates: string[] = [];
+                const params: any[] = [];
+                
+                if (payload.viewConfigs) {
+                    updates.push('view_configs = ?');
+                    params.push(JSON.stringify(payload.viewConfigs));
+                }
+                
+                if (payload.navigation) {
+                    updates.push('navigation = ?');
+                    params.push(JSON.stringify(payload.navigation));
+                }
+                
+                if (updates.length > 0) {
+                    params.push(payload.appId);
+                    await db.run(`UPDATE apps SET ${updates.join(', ')} WHERE id = ?`, params);
+                }
                 
                 (window as any).__SCHEMA_OVERRIDE[`APP_${payload.appId}`] = {
-                    viewConfigs: payload.viewConfigs
+                    viewConfigs: payload.viewConfigs,
+                    navigation: payload.navigation,
+                    isDirty: payload.isDirty
                 };
             }
 

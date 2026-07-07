@@ -67,6 +67,10 @@ CREATE TABLE IF NOT EXISTS apps (
     navigation TEXT, -- JSON
     view_configs TEXT, -- JSON (view configs co-located with navigation)
     version INTEGER,
+    start_date TEXT, -- NULL or ISO datetime string
+    end_date TEXT, -- NULL or ISO datetime string
+    expired_behavior TEXT DEFAULT 'read_only', -- read_only | hidden
+    mode TEXT DEFAULT 'simple',
     synced_at TEXT
 );
 `;
@@ -94,4 +98,4 @@ export const ASSIGNMENTS_STATUS_IDX = `CREATE INDEX IF NOT EXISTS idx_assignment
 export const RESPONSES_LOOKUP_IDX = `CREATE INDEX IF NOT EXISTS idx_responses_lookup ON responses(assignment_id, updated_at DESC);`;
 export const RESPONSES_IS_SYNCED_IDX = `CREATE INDEX IF NOT EXISTS idx_responses_is_synced ON responses(is_synced);`;
 
-export const SCHEMA_VERSION = 16; 
+export const SCHEMA_VERSION = 18; 

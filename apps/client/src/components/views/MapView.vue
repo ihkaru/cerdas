@@ -1,5 +1,8 @@
 <template>
-    <div class="map-view-container display-flex flex-direction-column height-100">
+    <div class="map-view-container display-flex flex-direction-column height-100"
+        data-inspect-target="views"
+        :data-view-id="config?.id || 'default'"
+        data-inspect-option="mapbox_style">
         <MapContainer :mapId="mapId" :mapLoading="mapLoading" :isProcessing="isProcessing"
             :processProgress="processProgress" :validLocations="validLocations" :currentStyle="currentStyle"
             :locating="locating" @toggle-style="toggleMapStyle" @locate="locateUser" />

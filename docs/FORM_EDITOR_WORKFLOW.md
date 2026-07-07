@@ -855,45 +855,51 @@ if (serverRecord.updated_at > clientRecord.updated_at) {
 
 ### 10.1 Status Transitions
 
+**Simple Mode:**
 ```
-┌──────────┐     Start      ┌─────────────┐     Save      ┌───────────┐
-│ assigned │ ────────────▶ │ in_progress │ ────────────▶ │ completed │
-└──────────┘               └─────────────┘               └───────────┘
-                                  │                            │
-                                  │ (auto on first edit)       │ Sync
-                                  │                            ▼
-                                  │                      ┌──────────┐
-                                  └──────────────────────│  synced  │
-                                                         └──────────┘
+┌──────────┐     Start      ┌─────────────┐     Submit      ┌──────────┐
+│ assigned │ ────────────▶ │ in_progress │ ─────────────▶ │  synced  │
+└──────────┘               └─────────────┘              └──────────┘
+```
+
+**Complex Mode:**
+```
+┌──────────┐     Start      ┌─────────────┐     Submit      ┌───────────┐
+│ assigned │ ────────────▶ │ in_progress │ ─────────────▶ │ submitted │
+└──────────┘               └─────────────┘              └───────────┘
+                                  ▲                            │
+                                  │          Reject            │ Approve
+                                  └────────────────────────────┼──────────┐
+                                                               │          ▼
+                                                               │     ┌──────────┐
+                                                               └────▶│  synced  │
+                                                                     └──────────┘
 ```
 
 ### 10.2 Status Definitions
 
-| Status | Description | Editable | Syncable |
-|--------|-------------|----------|----------|
-| **assigned** | Freshly assigned, not opened | ✅ | ❌ |
-| **in_progress** | Opened/edited, not submitted | ✅ | ❌ |
-| **completed** | Submitted locally, pending sync | ❌ | ✅ |
-| **synced** | Successfully synced to server | ❌ | ❌ |
+| Status | Description | Editable? | Syncable? | Modes |
+|--------|-------------|:---:|:---:|---|
+| **assigned** | Freshly assigned, not opened | ✅ | ❌ | Simple & Complex |
+| **in_progress** | Opened/edited, not submitted | ✅ | ❌ | Simple & Complex |
+| **submitted** | Finalized by enumerator, waiting for review | ❌ | ✅ | Complex Only |
+| **synced** | Successfully synced & approved on server | ❌ | ❌ | Simple & Complex |
+| **rejected** | Returned by supervisor for correction | ✅ | ❌ | Complex Only |
 
 ### 10.3 Status Change Rules
 
-```typescript
-// Assignment model methods
-markInProgress(): void {
-    if (this.status === 'assigned') {
-        this.update({ status: 'in_progress' });
+```php
+// Assignment model helpers (Backend: app/Models/Assignment.php)
+public function markInProgress(): void
+{
+    if ($this->status === 'assigned') {
+        $this->update(['status' => 'in_progress']);
     }
 }
 
-markCompleted(): void {
-    if (this.status !== 'synced') {
-        this.update({ status: 'completed' });
-    }
-}
-
-markSynced(): void {
-    this.update({ status: 'synced' });
+public function markSynced(): void
+{
+    $this->update(['status' => 'synced']);
 }
 ```
 

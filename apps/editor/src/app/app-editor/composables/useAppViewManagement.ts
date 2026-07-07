@@ -8,14 +8,56 @@
 
 import { ApiClient } from '@/common/api/ApiClient';
 import { f7 } from 'framework7-vue';
-import { ref } from 'vue';
-import { createDefaultView, generateViewId } from '../components/views/utils/viewHelpers';
+import { ref, watch } from 'vue';
+import { createDefaultView, generateViewId, getSmartViewFields } from '../components/views/utils/viewHelpers';
 import type { ViewDefinition } from '../types/editor.types';
+import { useTableStore } from '@/stores';
 
 export function useAppViewManagement(appId: () => string | null) {
     const appViews = ref<Record<string, ViewDefinition>>({});
     const isViewsDirty = ref(false);
     const selectedViewKey = ref<string>('');
+
+    // Watch for selectedViewKey selection of unconfigured view keys
+    watch(selectedViewKey, (newKey) => {
+        if (newKey && !appViews.value[newKey]) {
+            const tableStore = useTableStore();
+            const firstTable = tableStore.tables[0];
+            const firstTableId = firstTable?.id;
+            const tableName = firstTable?.name || 'Default View';
+            const fields = tableStore.currentVersion?.fields || [];
+            
+            console.log('[useAppViewManagement] Auto-creating view config for key:', newKey, 'with table ID:', firstTableId, 'tableName:', tableName);
+
+            const newView = createDefaultView(newKey === 'default' ? tableName : newKey, fields);
+            if (firstTableId) {
+                newView.table_id = String(firstTableId);
+            }
+            appViews.value[newKey] = newView;
+            isViewsDirty.value = true;
+            saveAppViews();
+        }
+    });
+
+    // Watch for fields to load later (resolving initial loading race condition)
+    watch(() => {
+        const tableStore = useTableStore();
+        return tableStore.currentVersion?.fields;
+    }, (newFields) => {
+        if (newFields && newFields.length > 0) {
+            // Sync default view configs if they are using stale 'name' or empty values
+            const defaultView = appViews.value['default'];
+            if (defaultView && defaultView.deck && 
+                (defaultView.deck.primaryHeaderField === 'name' || defaultView.deck.primaryHeaderField === '')) {
+                console.log('[useAppViewManagement] Asynchronously updating default view columns based on loaded table fields');
+                const smart = getSmartViewFields(newFields);
+                defaultView.deck.primaryHeaderField = smart.primaryHeaderField;
+                defaultView.deck.secondaryHeaderField = smart.secondaryHeaderField;
+                isViewsDirty.value = true;
+                saveAppViews();
+            }
+        }
+    });
 
     // ========================================================================
     // API
@@ -36,6 +78,25 @@ export function useAppViewManagement(appId: () => string | null) {
             const data = res.data.data;
             appViews.value = data.view_configs || {};
             isViewsDirty.value = false;
+
+            // Auto-initialize default view named after the app name if completely empty
+            if (Object.keys(appViews.value).length === 0) {
+                const appName = data.name || 'Default View';
+                const tableStore = useTableStore();
+                const firstTable = tableStore.tables[0];
+                const firstTableId = firstTable?.id;
+                const fields = tableStore.currentVersion?.fields || [];
+
+                console.log('[useAppViewManagement] Auto-initializing empty app views with default view name:', appName);
+
+                const newView = createDefaultView(appName, fields);
+                if (firstTableId) {
+                    newView.table_id = String(firstTableId);
+                }
+                appViews.value['default'] = newView;
+                isViewsDirty.value = true;
+                await saveAppViews();
+            }
         } catch (e) {
             console.error('[useAppViewManagement] Failed to fetch views', e);
         }
@@ -64,7 +125,14 @@ export function useAppViewManagement(appId: () => string | null) {
         f7.dialog.prompt('Enter view name', (title) => {
             if (!title) return;
             const id = generateViewId(title);
-            const newView = createDefaultView(title);
+
+            // Schema-aware: Pass fields of the matching active table if possible
+            const tableStore = useTableStore();
+            const fields = (tableId && String(tableStore.currentTable?.id) === String(tableId))
+                ? (tableStore.currentVersion?.fields || [])
+                : [];
+
+            const newView = createDefaultView(title, fields);
 
             if (tableId) {
                 newView.table_id = tableId;

@@ -106,7 +106,7 @@ const fieldMeta = computed(() => {
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: var(--editor-bg, #f8fafc);
+    background: #ffffff;
 }
 
 /* Header */
@@ -114,7 +114,9 @@ const fieldMeta = computed(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 0 16px;
+    height: 48px;
+    box-sizing: border-box;
     border-bottom: 1px solid var(--editor-border, #e2e8f0);
     background: var(--editor-surface, #ffffff);
     flex-shrink: 0;

@@ -60,17 +60,30 @@ export function useAppMetadata(
     async function loadLocalMetadata(conn: any, appId: string) {
         try {
             const { navigation, viewConfigs, version } = await AppMetadataService.getLocalAppMetadata(conn, appId);
-            log.info(`Local Metadata loaded: ${navigation?.length || 0} nav items, ${Object.keys(viewConfigs || {}).length} view configs, v${version}`);
+            
+            // Check memory overrides first (for Live Preview in Editor)
+            const overrideKey = `APP_${appId}`;
+            const override = (window as any).__SCHEMA_OVERRIDE?.[overrideKey];
+            
+            const finalNavigation = override?.navigation || navigation;
+            const finalViewConfigs = override?.viewConfigs || viewConfigs;
+
+            log.info(`Local Metadata loaded: ${finalNavigation?.length || 0} nav items, ${Object.keys(finalViewConfigs || {}).length} view configs, v${version}`);
             
             if (version) appVersion.value = version;
-            if (navigation?.length) {
-                appNavigation.value = navigation;
-                autoSelectView(navigation);
+            if (finalNavigation && finalNavigation.length > 0) {
+                appNavigation.value = finalNavigation;
+                autoSelectView(finalNavigation);
+            } else {
+                appNavigation.value = [];
             }
-            if (viewConfigs && Object.keys(viewConfigs).length) {
-                appViewConfigs.value = viewConfigs;
+            if (finalViewConfigs && Object.keys(finalViewConfigs).length) {
+                appViewConfigs.value = finalViewConfigs;
                 // Sync appViews array for search/find logic
-                appViews.value = Object.entries(viewConfigs).map(([id, cfg]: [string, any]) => ({ id, ...cfg }));
+                appViews.value = Object.entries(finalViewConfigs).map(([id, cfg]: [string, any]) => ({ id, ...cfg }));
+            } else {
+                appViewConfigs.value = {};
+                appViews.value = [];
             }
             appTables.value = await AppMetadataService.getSiblingTables(conn, appId);
         } catch (e) {
@@ -85,13 +98,26 @@ export function useAppMetadata(
             const result: any = await AppMetadataService.syncAppMetadata(conn, validAppId);
             await fetchAppContext(validAppId);
             
+            // Check memory overrides first (for Live Preview in Editor)
+            const overrideKey = `APP_${validAppId}`;
+            const override = (window as any).__SCHEMA_OVERRIDE?.[overrideKey];
+
             if (result?.appData) {
                 log.info(`Remote Metadata synced. ViewConfigs: ${Object.keys(result.appData.viewConfigs || {}).length}`);
-                appNavigation.value = result.appData.navigation || [];
-                appViewConfigs.value = result.appData.viewConfigs || {};
+                
+                const finalNavigation = override?.navigation || result.appData.navigation || [];
+                const finalViewConfigs = override?.viewConfigs || result.appData.viewConfigs || {};
+                
+                appNavigation.value = finalNavigation;
+                appViewConfigs.value = finalViewConfigs;
                 // Sync appViews array
                 appViews.value = Object.entries(appViewConfigs.value).map(([id, cfg]: [string, any]) => ({ id, ...cfg }));
                 if (result.appData.version) appVersion.value = result.appData.version;
+                autoSelectView(appNavigation.value);
+            } else if (override) {
+                appNavigation.value = override.navigation || [];
+                appViewConfigs.value = override.viewConfigs || {};
+                appViews.value = Object.entries(appViewConfigs.value).map(([id, cfg]: [string, any]) => ({ id, ...cfg }));
                 autoSelectView(appNavigation.value);
             }
             if (result?.tables) appTables.value = result.tables;

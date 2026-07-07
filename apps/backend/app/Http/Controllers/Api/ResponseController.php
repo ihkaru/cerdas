@@ -46,17 +46,53 @@ class ResponseController extends Controller
             });
         }
 
-        // Status Filter
+        // Advanced JSON Filtering (Robust & Dynamic fields/nested forms)
+        $filtersJson = $request->input('filters');
+        if ($filtersJson) {
+            $filters = is_string($filtersJson) ? json_decode($filtersJson, true) : $filtersJson;
+            if (is_array($filters)) {
+                foreach ($filters as $f) {
+                    $field = $f['field'] ?? null;
+                    $operator = $f['operator'] ?? 'equals';
+                    $val = $f['value'] ?? null;
+                    
+                    if (!$field || $val === null || $val === '') continue;
+
+                    $query->where(function ($subQ) use ($field, $operator, $val) {
+                        // 1. Search in assignments.prelist_data (static prelist)
+                        $subQ->where(function ($q) use ($field, $operator, $val) {
+                            $this->applyJsonFilter($q, 'prelist_data', $field, $operator, $val);
+                        })
+                        // 2. Or search in responses.data (dynamic responses)
+                        ->orWhereHas('responses', function ($rQ) use ($field, $operator, $val) {
+                            $this->applyJsonFilter($rQ, 'data', $field, $operator, $val);
+                        });
+                    });
+                }
+            }
+        }
+
+        // Status Filter — uses canonical status values matching the Assignment model
         $status = $request->input('status');
         if ($status && $status !== 'all') {
             switch ($status) {
-                case 'pending': // Review queue
-                    $query->whereIn('status', ['submitted', 'completed']);
+                case 'submitted':
+                    // Pending Review (Complex mode only)
+                    if ($app->mode === 'complex') {
+                        $query->where('status', 'submitted');
+                    } else {
+                        $query->whereRaw('1 = 0'); // Empty for simple mode
+                    }
                     break;
-                case 'approved': // Synced
-                    $query->where('status', 'synced');
+                case 'approved':
+                case 'synced': // Backward compatibility support
+                    if ($app->mode === 'simple') {
+                        $query->where('status', 'submitted');
+                    } else {
+                        $query->whereIn('status', ['approved', 'synced']);
+                    }
                     break;
-                case 'rejected': // Returned
+                case 'rejected':
                     $query->where('status', 'rejected');
                     break;
                 case 'in_progress':
@@ -89,7 +125,7 @@ class ResponseController extends Controller
             return response()->json(['message' => 'Unauthorized to approve'], 403);
         }
 
-        $assignment->update(['status' => 'synced']);
+        $assignment->update(['status' => 'approved']);
 
         // TODO: Trigger Google Sheets Sync Job here
 
@@ -98,7 +134,7 @@ class ResponseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Response approved successfully',
-            'status' => 'synced'
+            'status' => 'approved'
         ]);
     }
 
@@ -419,31 +455,17 @@ class ResponseController extends Controller
                 $existing = Response::where('local_id', $respData['local_id'])->first();
 
                 if ($existing) {
-                    // Check if update is needed (client timestamp is newer)
-                    $clientTime = \Carbon\Carbon::parse($respData['updated_at'] ?? now());
-                    $serverTime = $existing->updated_at;
-
-                    if ($clientTime->greaterThan($serverTime)) {
-                        $existing->update([
-                            'data' => $cleanData,
-                            'synced_at' => now(),
-                            'updated_at' => $respData['updated_at'] ?? now(),
-                        ]);
-                        $response = $existing;
-                        Log::info('Response Updated', [
-                            'server_id' => $response->id,
-                            'local_id' => $respData['local_id'],
-                            'data_keys' => array_keys($cleanData),
-                        ]);
-                    } else {
-                        // Client data is older or same, skip update but confirm sync
-                        $response = $existing;
-                        Log::info('Response Update Skipped (Older)', [
-                            'server_id' => $response->id,
-                            'client_time' => $clientTime,
-                            'server_time' => $serverTime,
-                        ]);
-                    }
+                    $existing->update([
+                        'data' => $cleanData,
+                        'synced_at' => now(),
+                        'updated_at' => $respData['updated_at'] ?? now(),
+                    ]);
+                    $response = $existing;
+                    Log::info('Response Updated', [
+                        'server_id' => $response->id,
+                        'local_id' => $respData['local_id'],
+                        'data_keys' => array_keys($cleanData),
+                    ]);
                 } else {
                     $responsePayload = [
                         'assignment_id' => $assignment->id,
@@ -467,10 +489,22 @@ class ResponseController extends Controller
                         'data_keys' => array_keys($cleanData),
                     ]);
 
-                    if ($assignment->status === 'assigned') {
-                        $assignment->update(['status' => 'in_progress']);
-                    }
                 }
+
+                // Auto-transition assignment status on response sync (for both new response and response updates)
+                if ($assignment->status === 'assigned') {
+                    $assignment->status = 'in_progress';
+                }
+
+                $assignment->loadMissing('tableVersion.table.app');
+                $app = $assignment->tableVersion?->table?->app ?? null;
+                if ($app) {
+                    $assignment->status = 'submitted';
+                }
+
+                $assignment->save();
+                $assignment->touch(); // Explicitly touch updated_at to bypass mass-assignment protection and force db timestamp update
+
 
                 $resItem = [
                     'local_id' => $respData['local_id'],
@@ -499,5 +533,44 @@ class ResponseController extends Controller
             'data' => $results,
             'message' => 'Sync processed',
         ]);
+    }
+
+    /**
+     * Helper to apply dynamic JSON operators in SQL query
+     */
+    private function applyJsonFilter($query, string $column, string $field, string $operator, $value): void
+    {
+        // Sanitize field path to prevent SQL injection in whereRaw
+        $sanitizedField = preg_replace('/[^a-zA-Z0-9_\.\-]/', '', $field);
+        if (empty($sanitizedField)) return;
+
+        // Support nested fields via JSON query syntax (e.g. 'address.city' or repeat groups)
+        // Laravel JSON syntax: column->field
+        $jsonField = "{$column}->" . str_replace('.', '->', $sanitizedField);
+        $lowerValue = strtolower($value);
+
+        switch ($operator) {
+            case 'equals':
+                $query->whereRaw("LOWER({$jsonField}) = ?", [$lowerValue]);
+                break;
+            case 'contains':
+                $query->whereRaw("LOWER({$jsonField}) like ?", ["%{$lowerValue}%"]);
+                break;
+            case 'starts_with':
+                $query->whereRaw("LOWER({$jsonField}) like ?", ["{$lowerValue}%"]);
+                break;
+            case 'ends_with':
+                $query->whereRaw("LOWER({$jsonField}) like ?", ["%{$lowerValue}"]);
+                break;
+            case 'greater_than':
+                $query->whereRaw("CAST(JSON_UNQUOTE({$jsonField}) AS DECIMAL(10,2)) > ?", [$value]);
+                break;
+            case 'less_than':
+                $query->whereRaw("CAST(JSON_UNQUOTE({$jsonField}) AS DECIMAL(10,2)) < ?", [$value]);
+                break;
+            default:
+                $query->whereRaw("LOWER({$jsonField}) = ?", [$lowerValue]);
+                break;
+        }
     }
 }

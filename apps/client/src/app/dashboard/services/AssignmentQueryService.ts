@@ -30,8 +30,8 @@ export const AssignmentQueryService = {
                 ${groupKeyExpr} as group_key, 
                 COUNT(*) as count,
                 SUM(CASE WHEN assignments.status = 'assigned' THEN 1 ELSE 0 END) as assigned,
-                SUM(CASE WHEN assignments.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
-                SUM(CASE WHEN assignments.status = 'completed' THEN 1 ELSE 0 END) as completed
+                SUM(CASE WHEN assignments.status IN ('in_progress', 'rejected') THEN 1 ELSE 0 END) as in_progress,
+                SUM(CASE WHEN assignments.status IN ('submitted', 'approved', 'synced') THEN 1 ELSE 0 END) as synced
             FROM assignments
             LEFT JOIN (
                 SELECT assignment_id, data, MAX(updated_at)
@@ -211,8 +211,8 @@ export const AssignmentQueryService = {
             SELECT 
                 COUNT(*) as all_count,
                 SUM(CASE WHEN assignments.status = 'assigned' THEN 1 ELSE 0 END) as assigned,
-                SUM(CASE WHEN assignments.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
-                SUM(CASE WHEN assignments.status = 'completed' THEN 1 ELSE 0 END) as completed
+                SUM(CASE WHEN assignments.status IN ('in_progress', 'rejected') THEN 1 ELSE 0 END) as in_progress,
+                SUM(CASE WHEN assignments.status IN ('submitted', 'approved', 'synced') THEN 1 ELSE 0 END) as synced
             FROM assignments
             LEFT JOIN (
                 SELECT assignment_id, data, MAX(updated_at)
@@ -227,7 +227,8 @@ export const AssignmentQueryService = {
             all: row.all_count || 0,
             assigned: row.assigned || 0,
             in_progress: row.in_progress || 0,
-            completed: row.completed || 0
+            synced: row.synced || 0
         };
+
     }
 };

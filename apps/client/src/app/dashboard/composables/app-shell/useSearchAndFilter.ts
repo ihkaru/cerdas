@@ -13,8 +13,15 @@ export function useSearchAndFilter(
         // Search is now handled SERVER-SIDE (DB) in refreshData
         // But we keep client-side Status filter just in case
         if (statusFilter.value && statusFilter.value !== 'all') {
-            res = res.filter(a => a.status === statusFilter.value);
+            if (statusFilter.value === 'in_progress') {
+                res = res.filter(a => a.status === 'in_progress' || a.status === 'rejected');
+            } else if (statusFilter.value === 'synced') {
+                res = res.filter(a => a.status === 'approved' || a.status === 'synced' || a.status === 'submitted');
+            } else {
+                res = res.filter(a => a.status === statusFilter.value);
+            }
         }
+
         
         return res;
     });

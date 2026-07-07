@@ -14,14 +14,14 @@
                 <div class="stat-card-inner">
                     <f7-icon f7="arrow_right_circle_fill" size="16" class="stat-icon"></f7-icon>
                     <div class="stat-value">{{ getStatCount('in_progress') }}</div>
-                    <div class="stat-label">In Progress</div>
+                    <div class="stat-label">Proses</div>
                 </div>
             </div>
             <div class="stat-card stat-card--done">
                 <div class="stat-card-inner">
                     <f7-icon f7="checkmark_circle_fill" size="16" class="stat-icon"></f7-icon>
                     <div class="stat-value">{{ completedCount }}</div>
-                    <div class="stat-label">Completed</div>
+                    <div class="stat-label">Selesai</div>
                 </div>
             </div>
         </div>
@@ -29,21 +29,25 @@
         <!-- Progress Section -->
         <div class="progress-section">
             <div class="progress-header">
-                <span class="progress-label">Overall Progress</span>
-                <span class="progress-pct">{{ progressPercent }}%</span>
+                <span class="progress-label">Kemajuan Pengerjaan</span>
+                <span class="progress-pct" :class="{
+                    'pct--zero': progressPercent === 0,
+                    'pct--done': progressPercent === 100,
+                    'pct--active': progressPercent > 0 && progressPercent < 100
+                }">{{ progressPercent }}%</span>
             </div>
             <div class="progress-track">
                 <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
             </div>
             <div class="progress-footer">
-                <span>{{ completedCount }} of {{ total }} completed</span>
+                <span>{{ completedCount }} dari {{ total }} selesai</span>
             </div>
         </div>
 
         <!-- Last Sync -->
         <div v-if="lastSyncTime" class="sync-info">
             <div class="sync-dot"></div>
-            <span>Synced {{ lastSyncTime }}</span>
+            <span>Tersinkron {{ lastSyncTime }}</span>
         </div>
 
     </f7-block>
@@ -62,9 +66,11 @@ const getStatCount = (status: string): number => {
     return props.stats.find(s => s.status === status)?.count ?? 0;
 };
 
+// Unified completed count: synced + submitted (waiting review) + completed (legacy)
 const completedCount = computed(() =>
-    getStatCount('completed') + getStatCount('synced')
+    getStatCount('synced') + getStatCount('submitted') + getStatCount('completed')
 );
+
 
 const progressPercent = computed(() => {
     if (props.total === 0) return 0;
@@ -148,9 +154,9 @@ const progressPercent = computed(() => {
 
 .stat-label {
     font-size: 10px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--f7-label-color);
-    opacity: 0.7;
+    opacity: 0.6;
     text-transform: uppercase;
     letter-spacing: 0.6px;
     margin-top: 2px;
@@ -173,17 +179,16 @@ const progressPercent = computed(() => {
 }
 
 .progress-label {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--f7-text-color);
-    opacity: 0.7;
 }
 
-.progress-pct {
-    font-size: 13px;
-    font-weight: 700;
-    color: #34C759;
-}
+/* Progress percentage: semantic color based on value */
+.progress-pct { font-size: 13px; font-weight: 700; }
+.pct--zero   { color: #94a3b8; }  /* gray: no progress yet */
+.pct--active { color: #2563eb; }  /* blue: in progress */
+.pct--done   { color: #16a34a; }  /* green: complete */
 
 .progress-track {
     width: 100%;

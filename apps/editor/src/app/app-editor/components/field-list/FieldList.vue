@@ -18,9 +18,10 @@
         <div class="field-list-header">
             <h3 class="header-title">{{ breadcrumbs && breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length -
                 1]!.label : 'Fields' }}</h3>
-            <f7-button small fill round icon-f7="plus" @click="showAddFieldSheet = true">
+            <button class="panel-primary-btn" @click="showAddFieldSheet = true">
+                <f7-icon f7="plus" size="12" />
                 Add Field
-            </f7-button>
+            </button>
         </div>
 
         <!-- Empty State -->
@@ -173,26 +174,58 @@ function handleDelete(index: number) {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--f7-page-bg-color);
+    background: #ffffff;
 }
 
-/* Header */
+/* Header — matches .panel-header token from app-editor.css */
 .field-list-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px;
-    border-bottom: 1px solid var(--f7-list-border-color);
-    background: var(--f7-bars-bg-color);
+    padding: 0 14px;
+    height: 48px;
+    box-sizing: border-box;
+    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
     position: sticky;
     top: 0;
     z-index: 10;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .header-title {
     margin: 0;
-    font-size: 18px;
+    font-size: 13px;
     font-weight: 600;
+    color: #1e293b;
+    letter-spacing: 0.01em;
+}
+
+/* Shared primary button token (matches panel-primary-btn in EditorTabContent) */
+.panel-primary-btn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 10px;
+    height: 28px;
+    border-radius: 6px;
+    background: #3b82f6;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.panel-primary-btn:hover {
+    background: #2563eb;
+}
+
+.panel-primary-btn:active {
+    transform: scale(0.97);
 }
 
 /* Empty State */
@@ -230,6 +263,8 @@ function handleDelete(index: number) {
 .field-list-content {
     flex: 1;
     overflow-y: auto;
+    padding: 12px;
+    box-sizing: border-box;
 }
 
 /* Transition */
@@ -275,7 +310,7 @@ function handleDelete(index: number) {
     align-items: center;
     padding: 12px 16px;
     background: white;
-    border-bottom: 1px solid var(--f7-list-border-color);
+    border-bottom: 1px solid #e2e8f0;
     gap: 8px;
 }
 

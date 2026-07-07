@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch, inject } from 'vue';
 import { useTableEditor } from '../../composables/useTableEditor';
 
 const props = defineProps<{
@@ -22,13 +22,20 @@ const props = defineProps<{
     viewsVersion?: number;
     navigation?: any[];
     selectedViewId?: string;
+    isDirty?: boolean;
 }>();
 
 const {
     tableId: schemaId,
     tableForPreview: schemaForPreview,
     state: editorState,
+    selectField
 } = useTableEditor();
+
+const activeTab = inject<any>('activeTab', null);
+const selectedViewKey = inject<any>('selectedViewKey', null);
+const selectedNavKey = inject<any>('selectedNavKey', null);
+const highlightedViewOption = inject<any>('highlightedViewOption', null);
 
 const iframeRef = ref<HTMLIFrameElement | null>(null);
 const isSyncing = ref(false);
@@ -163,7 +170,8 @@ watch([
     () => editorState.layout, 
     () => props.appViews, 
     () => props.viewsVersion,
-    () => props.navigation
+    () => props.navigation,
+    () => props.isDirty
 ], () => {
     syncSchema();
 }, { deep: true });
@@ -173,6 +181,42 @@ function handleMessage(event: MessageEvent) {
         console.log('[LivePreview] Client Handshake Received (EDITOR_CLIENT_READY). Re-syncing context...');
         syncAuth();
         syncSchema();
+    } else if (event.data?.type === 'SELECT_FIELD_IN_EDITOR') {
+        const { fieldName } = event.data.payload;
+        console.log('[LivePreview] Remote select field:', fieldName);
+        if (editorState.fields) {
+            const fieldIndex = editorState.fields.findIndex((f: any) => f.name === fieldName);
+            if (fieldIndex !== -1) {
+                if (activeTab) {
+                    activeTab.value = 'schema';
+                }
+                selectField(String(fieldIndex));
+            }
+        }
+    } else if (event.data?.type === 'SELECT_TAB_IN_EDITOR') {
+        const { tab, viewId, navId, optionKey } = event.data.payload;
+        console.log('[LivePreview] Remote select tab:', tab, 'viewId:', viewId, 'navId:', navId, 'optionKey:', optionKey);
+        
+        if (activeTab) {
+            activeTab.value = (tab === 'navigation' ? 'views' : tab);
+        }
+        
+        if (tab === 'views' && viewId && selectedViewKey) {
+            selectedViewKey.value = viewId;
+            if (selectedNavKey) selectedNavKey.value = '';
+        } else if (tab === 'navigation' && navId && selectedNavKey) {
+            selectedNavKey.value = navId;
+            if (selectedViewKey) selectedViewKey.value = '';
+        }
+
+        if (optionKey && highlightedViewOption) {
+            highlightedViewOption.value = optionKey;
+            setTimeout(() => {
+                if (highlightedViewOption.value === optionKey) {
+                    highlightedViewOption.value = '';
+                }
+            }, 3500);
+        }
     }
 }
 

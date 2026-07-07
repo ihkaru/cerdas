@@ -317,7 +317,7 @@ export class SyncService {
             
             if (existing.values && existing.values.length > 0) {
                 await db.run(
-                    `UPDATE apps SET slug = ?, name = ?, description = ?, navigation = ?, view_configs = ?, version = ?, synced_at = ? WHERE id = ?`,
+                    `UPDATE apps SET slug = ?, name = ?, description = ?, navigation = ?, view_configs = ?, version = ?, start_date = ?, end_date = ?, expired_behavior = ?, mode = ?, synced_at = ? WHERE id = ?`,
                     [
                         app.slug, 
                         app.name, 
@@ -325,13 +325,17 @@ export class SyncService {
                         JSON.stringify(app.navigation || []), 
                         JSON.stringify(app.view_configs || {}), 
                         app.version || 1, 
+                        app.start_date || null,
+                        app.end_date || null,
+                        app.expired_behavior || 'read_only',
+                        app.mode || 'simple',
                         new Date().toISOString(), 
                         app.id
                     ]
                 );
             } else {
                 await db.run(
-                    `INSERT INTO apps (id, slug, name, description, navigation, view_configs, version, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO apps (id, slug, name, description, navigation, view_configs, version, start_date, end_date, expired_behavior, mode, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         app.id, 
                         app.slug, 
@@ -340,6 +344,10 @@ export class SyncService {
                         JSON.stringify(app.navigation || []), 
                         JSON.stringify(app.view_configs || {}), 
                         app.version || 1, 
+                        app.start_date || null,
+                        app.end_date || null,
+                        app.expired_behavior || 'read_only',
+                        app.mode || 'simple',
                         new Date().toISOString()
                     ]
                 );

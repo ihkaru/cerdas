@@ -41,11 +41,18 @@ function buildSearchClause(
 
     // Append status if not 'all'
     if (statusFilter && statusFilter !== 'all') {
-        where += ` AND assignments.status = ?`;
-        params.push(statusFilter);
+        if (statusFilter === 'in_progress') {
+            where += ` AND assignments.status IN ('in_progress', 'rejected')`;
+        } else if (statusFilter === 'synced') {
+            where += ` AND assignments.status IN ('approved', 'synced', 'submitted')`;
+        } else {
+            where += ` AND assignments.status = ?`;
+            params.push(statusFilter);
+        }
     }
 
     return { where, params };
+
 }
 
 export function useAssignmentQueries(
@@ -78,7 +85,7 @@ export function useAssignmentQueries(
     // Resolve contextId helper
     const getContextId = () => typeof contextId === 'string' ? contextId : contextId.value;
     
-    const statusCounts = ref({ assigned: 0, in_progress: 0, completed: 0, all: 0 });
+    const statusCounts = ref({ assigned: 0, in_progress: 0, synced: 0, all: 0 });
 
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -89,7 +96,7 @@ export function useAssignmentQueries(
             // Fetch Pending Uploads
             try {
                 // @ts-ignore
-                state.pendingUploadCount.value = await DashboardRepository.getPendingUploadCount(conn);
+                state.pendingUploadCount.value = await DashboardRepository.getPendingUploadCount(conn, getContextId());
             } catch (e) {
                 console.warn('Could not fetch pending uploads', e);
             }

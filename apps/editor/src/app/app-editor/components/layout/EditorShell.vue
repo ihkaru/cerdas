@@ -73,39 +73,10 @@ const previewBaseWidth = ref(420);
     min-width: 0; /* Prevent flex container from growing beyond bounds */
 }
 
-.preview-divider {
-    background: #f1f5f9;
-    /* Light gray background to separate Main from Preview */
-    border-left: 1px solid #e2e8f0;
-    border-right: 1px solid #334155;
-    /* Dark border on right to match preview */
-}
-
-.preview-divider:hover,
-.preview-divider.dragging {
-    background: #e2e8f0;
-}
-
-.preview-divider :deep(.divider-handle) {
-    background: #cbd5e1;
-    /* Visible gray handle */
-}
-
-.preview-divider:hover :deep(.divider-handle),
-.preview-divider.dragging :deep(.divider-handle) {
-    background: #3b82f6;
-    /* Blue on hover */
-}
-
-.preview-divider :deep(.handle-dots span) {
-    background: #64748b;
-}
-
 .preview-panel {
     min-width: 320px;
     max-width: 800px;
-    /* Increased max width */
-    background: #1e293b;
+    background: #ffffff;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;

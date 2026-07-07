@@ -29,7 +29,9 @@
 
             <!-- Navigation Items (Custom Menu) -->
             <f7-list-item v-for="(item, index) in navigation" :key="'nav-' + index" link="#" :title="item.label"
-                @click="handleNavClick(item)">
+                @click="handleNavClick(item)"
+                data-inspect-target="navigation"
+                :data-inspect-id="item.id">
                 <template #media>
                     <div class="menu-icon">
                         <f7-icon :f7="item.icon || 'circle'" />
@@ -42,7 +44,8 @@
 
             <!-- Tables List (Sibling Tables) -->
             <f7-list-item v-for="table in tables" :key="'table-' + table.id" link="#" :title="table.name"
-                :after="table.id === currentTableId ? 'Current' : ''" @click="handleTableClick(table)">
+                :after="table.id === currentTableId ? 'Current' : ''" @click="handleTableClick(table)"
+                data-inspect-target="schema">
                 <template #media>
                     <div class="menu-icon">
                         <f7-icon :f7="table.icon || 'doc_text'" />

@@ -2,19 +2,30 @@
     <div class="deck-view-container height-100 overflow-auto">
         <f7-list media-list v-if="preparedData.length">
             <f7-list-item v-for="item in preparedData" :key="item.id || item.local_id" :class="[`status-border-${item.status}`]"
-                :swipeout="hasSwipe" :title="item._resolvedTitle"
-                :subtitle="item._resolvedSubtitle" @click="$emit('click', item)" link="#">
+                :swipeout="hasSwipe" @click="$emit('click', item)" link="#">
+                <template #title>
+                    <span data-inspect-target="views" :data-view-id="config.id || 'default'" data-inspect-option="primaryHeaderField">
+                        {{ item._resolvedTitle }}
+                    </span>
+                </template>
+                <template #subtitle>
+                    <span data-inspect-target="views" :data-view-id="config.id || 'default'" data-inspect-option="secondaryHeaderField">
+                        {{ item._resolvedSubtitle }}
+                    </span>
+                </template>
                 <template #media v-if="options.image">
-                    <AsyncImage 
-                        v-if="item._resolvedImage" 
-                        :src="getImageUrl(item, item._resolvedImage)"
-                        :width="44" 
-                        :height="44" 
-                        loading="lazy" 
-                    />
-                    <!-- Fallback box if resolve path is truly empty -->
-                    <div v-else
-                        style="width: 44px; height: 44px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px;">
+                    <div data-inspect-target="views" :data-view-id="config.id || 'default'" data-inspect-option="imageField" style="display: inline-block;">
+                        <AsyncImage 
+                            v-if="item._resolvedImage" 
+                            :src="getImageUrl(item, item._resolvedImage)"
+                            :width="44" 
+                            :height="44" 
+                            loading="lazy" 
+                        />
+                        <!-- Fallback box if resolve path is truly empty -->
+                        <div v-else
+                            style="width: 44px; height: 44px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
                     </div>
                 </template>
 
@@ -35,22 +46,45 @@
                 </f7-swipeout-actions>
             </f7-list-item>
         </f7-list>
+        
+        <div v-else class="empty-state-wrapper animate-fade-in">
+            <div class="empty-state-card">
+                <div class="empty-state-icon-bg">
+                    <f7-icon f7="square_list" size="28" />
+                </div>
+                <h3>Belum Ada Daftar Isian</h3>
+                <p>Belum ada penugasan atau daftar isian data yang ditugaskan ke Anda saat ini.</p>
+            </div>
+        </div>
     </div>
 </template>
 
 <style scoped>
 /* Status Indicators */
 .status-border-assigned :deep(.item-content) {
-    border-left: 4px solid var(--f7-color-orange);
+    border-left: 4px solid var(--f7-color-gray);
 }
 
 .status-border-in_progress :deep(.item-content) {
     border-left: 4px solid var(--f7-color-blue);
 }
 
-.status-border-completed :deep(.item-content) {
-    border-left: 4px solid var(--f7-color-green);
+.status-border-submitted :deep(.item-content) {
+    border-left: 4px solid var(--f7-color-orange);
 }
+
+.status-border-approved :deep(.item-content),
+.status-border-synced :deep(.item-content),
+.status-border-completed :deep(.item-content) {
+    border-left: 4px solid var(--f7-color-teal);
+}
+
+.status-border-rejected :deep(.item-content) {
+    border-left: 4px solid var(--f7-color-red);
+}
+
+
+
 
 /* Fallback for unknown/other */
 :deep(.item-content) {
@@ -62,12 +96,74 @@
 :deep(.item-inner) {
     padding-left: 8px;
 }
+
+/* Empty State Styling */
+.empty-state-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 350px;
+    padding: 32px 16px;
+    box-sizing: border-box;
+}
+
+.empty-state-card {
+    text-align: center;
+    max-width: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.empty-state-icon-bg {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.empty-state-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #334155;
+    margin: 0 0 8px 0;
+}
+
+.empty-state-card p {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 </style>
 
 <script setup lang="ts">
 import { apiClient } from '@/common/api/ApiClient';
 import AsyncImage from '../common/AsyncImage.vue';
 import { computed } from 'vue';
+import { statusLabel } from '@/app/dashboard/utils/statusHelpers';
+
 
 const props = defineProps<{
     config: any;
@@ -192,17 +288,38 @@ const resolvePath = (obj: any, responseData: any, prelistData: any, path: string
 
     // 1. Try direct path lookup (e.g. 'status', 'id', or the clean path on the root)
     const directValue = getDeep(obj, cleanPath);
-    if (directValue !== undefined && directValue !== null && directValue !== '') return directValue;
+    if (directValue !== undefined && directValue !== null && directValue !== '') {
+        return cleanPath === 'status' ? statusLabel(String(directValue)) : directValue;
+    }
 
     // 2. Try searching in response_data (HIGHEST PRIORITY for form fields)
     const responseVal = getDeep(responseData, cleanPath);
-    if (responseVal !== undefined && responseVal !== null && responseVal !== '') return responseVal;
+    if (responseVal !== undefined && responseVal !== null && responseVal !== '') {
+        return cleanPath === 'status' ? statusLabel(String(responseVal)) : responseVal;
+    }
 
-    // 3. Try searching in prelist_data (Data source default)
-    const prelistVal = getDeep(prelistData, cleanPath);
-    if (prelistVal !== undefined && prelistVal !== null && prelistVal !== '') return prelistVal;
+    // 4. Try smart fallbacks for standard unconfigured/default keys
+    const lowerPath = cleanPath.toLowerCase();
+    if (lowerPath === 'name' || lowerPath === 'title' || lowerPath === 'nama' || lowerPath === 'judul') {
+        const headerCandidates = ['name', 'nama', 'title', 'judul', 'label', 'id'];
+        for (const candidate of headerCandidates) {
+            if (candidate === cleanPath) continue; // Skip already tried
+            const val = getDeep(responseData, candidate) ?? getDeep(prelistData, candidate) ?? getDeep(obj, candidate);
+            if (val !== undefined && val !== null && val !== '') return val;
+        }
+    } else if (lowerPath === 'description' || lowerPath === 'deskripsi' || lowerPath === 'address' || lowerPath === 'alamat') {
+        const bodyCandidates = ['description', 'deskripsi', 'address', 'alamat', 'location', 'lokasi', 'status'];
+        for (const candidate of bodyCandidates) {
+            if (candidate === cleanPath) continue; // Skip already tried
+            const val = getDeep(responseData, candidate) ?? getDeep(prelistData, candidate) ?? getDeep(obj, candidate);
+            if (val !== undefined && val !== null && val !== '') {
+                return candidate === 'status' ? statusLabel(String(val)) : val;
+            }
+        }
+    }
 
     return '';
+
 };
 
 const getImageUrl = (item: any, path: string) => {

@@ -39,12 +39,52 @@ The table below maps how core concepts are named across different layers of the 
 > [!WARNING]
 > Do not rely on numeric comparison (`id === 0` or similar) for entities. Always treat IDs as string UUIDs.
 
-### 2.3. Assignment Status Mapping
-* **Database & Eloquent Model:** The `status` enum accepts `'assigned' | 'in_progress' | 'completed' | 'synced'`.
-* **Client App UI (`apps/client`):** Maps the database `'assigned'` status to `'pending'` in the UI view state. The `Assignment` interface defines it as:
-  ```typescript
-  status: 'pending' | 'in_progress' | 'completed' | 'synced';
-  ```
+### 2.3. Assignment Status — Canonical Values
+
+> [!IMPORTANT]
+> **Canonical status values** are the single source of truth for `assignments.status` across the entire stack. All frontend components, API filters, and TypeScript types **must** use these exact strings. Legacy aliases (`'pending'`, `'approved'`, `'completed'`) have been removed as of July 2026.
+
+#### Status Flow Diagram
+
+**Simple Mode** (no supervisor review — data goes directly from enumerator to synced):
+```
+assigned → in_progress → synced
+```
+
+**Complex Mode** (supervisor review required before data is accepted):
+```
+assigned → in_progress → submitted → synced
+                                   ↘ rejected → (enumerator revises) → in_progress → submitted
+```
+
+#### Canonical Status Reference Table
+
+| Status | Who Sets It | Description | Simple? | Complex? |
+| :--- | :--- | :--- | :---: | :---: |
+| `assigned` | System / Supervisor | Assignment created but enumerator hasn't started yet | ✅ | ✅ |
+| `in_progress` | System (auto on first sync) | Enumerator has submitted at least one response | ✅ | ✅ |
+| `submitted` | System (auto after `in_progress`) | Data sent to server and waiting for supervisor review | ❌ | ✅ |
+| `synced` | System (simple) / Supervisor (complex) | Final accepted state — data is fully synchronized | ✅ | ✅ |
+| `rejected` | Supervisor | Submission rejected and returned to the enumerator for revision | ❌ | ✅ |
+
+#### Layer Consistency Map
+
+| Layer | File | Canonical Values Used |
+| :--- | :--- | :--- |
+| **Database** | `assignments` table (enum column) | `assigned`, `in_progress`, `submitted`, `synced`, `rejected` |
+| **Backend Model** | `Assignment.php` | `markInProgress()`, `markCompleted()`, `markSynced()` helpers |
+| **Backend API Filter** | `ResponseController.php` | `submitted`, `synced`, `rejected`, `in_progress`, `assigned` |
+| **Backend Stats** | `DashboardController.php` | Uses canonical values directly in queries |
+| **TypeScript Type** | `apps/client/src/app/dashboard/types/index.ts` | `'assigned' \| 'in_progress' \| 'submitted' \| 'synced' \| 'rejected'` |
+| **Status Helpers** | `statusHelpers.ts` | All 5 values mapped for color + label |
+| **Monitoring Panel** | `SubmissionsPanel.vue` | Filter buttons conditioned by `appMode` |
+| **Assignment List** | `AssignmentList.vue` | `statusColor()` covers all 5 values |
+
+> [!CAUTION]
+> The following legacy aliases are **deprecated and removed**. Do not use them anywhere in the codebase:
+> - ~~`'pending'`~~ → use `'assigned'`
+> - ~~`'approved'`~~ → use `'synced'`
+> - ~~`'completed'`~~ → this was a transitional state; `'synced'` is the terminal state in simple mode, `'submitted'` is the pre-review state in complex mode
 
 ---
 

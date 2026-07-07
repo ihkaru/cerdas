@@ -13,7 +13,7 @@
         <!-- Main Content Wrapper: Config Panel + Divider + Spacer -->
         <div class="flex-1 flex flex-row overflow-hidden bg-gray-50 bg-opacity-50" v-if="selectedItemKey">
             <!-- Config Content (Resizable) -->
-            <div class="view-config flex flex-col overflow-y-auto bg-white border-r border-gray-200"
+            <div class="view-config flex flex-col overflow-y-auto bg-white"
                 :style="{ width: configPanelWidth + 'px' }">
 
                 <!-- View Configuration Mode -->
@@ -402,33 +402,6 @@ watch(() => props.selectedNavKey, (newVal) => {
     color: #3b82f6;
 }
 
-.sidebar-divider {
-    background: #f8fafc;
-    border-right: 1px solid #e2e8f0;
-}
-
-.sidebar-divider:hover,
-.sidebar-divider.dragging {
-    background: #e2e8f0;
-}
-
-.sidebar-divider :deep(.divider-handle) {
-    background: #cbd5e1;
-}
-
-.sidebar-divider:hover :deep(.divider-handle),
-.sidebar-divider.dragging :deep(.divider-handle) {
-    background: #3b82f6;
-}
-
-.config-divider {
-    background: #f8fafc;
-    border-right: 1px solid #e2e8f0;
-    border-left: 1px solid #f1f5f9;
-}
-
-.config-divider:hover,
-.config-divider.dragging {
-    background: #e2e8f0;
-}
+/* sidebar-divider and config-divider overrides removed:
+   ResizableDivider now has uniform styling built-in. */
 </style>

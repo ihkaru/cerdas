@@ -60,19 +60,21 @@ The system supports two distinct operational modes per App:
 
 #### A. Simple Mode (Direct)
 Designed for flat hierarchies where individual enumerators are directly invited to the App.
--   **Workflow**: `assigned` -> `in_progress` -> `completed` -> `synced` (Final).
+-   **Workflow**: `assigned` -> `in_progress` -> `synced` (Final).
 -   **Access**: Unassigned tasks can be picked up by any App member (unless restricted).
 
 #### B. Complex Mode (Hierarchical)
 Designed for large-scale census/surveys with organizational structures.
--   **Workflow**: `assigned` -> `in_progress` -> `submitted` -> `approved` (Synced) / `rejected` (Back to `in_progress`).
+-   **Workflow**: `assigned` -> `in_progress` -> `submitted` -> `synced` (Final after supervisor approval) / `rejected` (Back to `in_progress`).
 -   **Access**: Tasks are strictly assigned to specific Organizations/Supervisors.
 
 ### 2.5 Status Dictionary
--   **`assigned` (Pending)**: Task is available but not yet opened.
--   **`in_progress` (Proses)**: Draft data exists on local device.
--   **`completed` (Selesai)**: Finalized by Enumerator (Simple) or ready for Supervisor (Complex).
+-   **`assigned` (Pending)**: Task is available but not yet opened by the enumerator.
+-   **`in_progress` (Proses)**: Draft data exists on local device (being filled).
+-   **`submitted` (Menunggu Review)**: Finalized by Enumerator in complex mode, waiting for supervisor approval.
 -   **`synced` (Tersinkron)**: Data has safely reached the server and is archived.
+-   **`rejected` (Dikembalikan)**: Supervisor rejected the submission, returning it to `in_progress` for the enumerator to edit.
+
 
 ### 2.5 Data Synchronization
 -   **Direction**:
@@ -301,7 +303,7 @@ sequenceDiagram
         User->>UI: Click "Submit/Finish"
         UI->>UI: Run Full Validation
         alt Valid
-            UI->>Store: Save Status = 'completed'
+            UI->>Store: Save Status = 'synced' (or 'submitted' in complex)
             UI->>UI: Navigate Home
             note right of UI: Ready to Sync
         end

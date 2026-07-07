@@ -1,21 +1,27 @@
 <template>
-    <f7-sheet class="filter-sheet" :opened="opened" @sheet:closed="$emit('update:opened', false)" swipe-to-close
-        backdrop style="height: 80vh; border-top-left-radius: 16px; border-top-right-radius: 16px;">
-        <f7-toolbar>
+    <f7-sheet class="filter-sheet app-sheet" :opened="opened" @sheet:closed="$emit('update:opened', false)"
+        swipe-to-close backdrop>
+
+        <!-- Drag Handle -->
+        <div class="sheet-drag-handle"></div>
+
+        <!-- Toolbar with centered title -->
+        <f7-toolbar class="sheet-toolbar" no-shadow>
             <div class="left">
-                <f7-link @click="clearAll" color="red">Clear All</f7-link>
+                <f7-link @click="clearAll" class="sheet-clear-btn">Clear All</f7-link>
+            </div>
+            <div class="center">
+                <span class="sheet-title">Filter</span>
             </div>
             <div class="right">
-                <f7-link sheet-close>Done</f7-link>
+                <f7-link sheet-close class="sheet-done-btn">Done</f7-link>
             </div>
         </f7-toolbar>
 
         <f7-page-content class="filter-sheet-content">
 
             <!-- Active Filters -->
-            <f7-block-title>Active Filters</f7-block-title>
-
-            <f7-list v-if="localFilters.length > 0" media-list>
+            <f7-list v-if="localFilters.length > 0" media-list class="active-filters-list">
                 <f7-list-item v-for="(filter, idx) in localFilters" :key="idx" swipeout>
                     <template #title>
                         <span class="filter-item-field">{{ getLabel(filter.field) }}</span>
@@ -38,7 +44,9 @@
             </f7-block>
 
             <!-- Add New Filter -->
-            <f7-block-title class="margin-top-lg">Add New Filter</f7-block-title>
+            <div class="filter-section-divider">
+                <span>Add New Filter</span>
+            </div>
 
             <f7-list no-hairlines-md>
                 <f7-list-item title="Field" smart-select :smart-select-params="{
@@ -69,11 +77,9 @@
                     @input="newFilter.value = ($event.target as HTMLInputElement).value" clear-button></f7-list-input>
             </f7-list>
 
-            <div class="filter-add-btn-wrapper">
-                <f7-button fill :disabled="!isValidNewFilter" @click="addNewFilter">
-                    Add Filter
-                </f7-button>
-            </div>
+            <button class="sheet-action-btn" :disabled="!isValidNewFilter" @click="addNewFilter">
+                Add Filter
+            </button>
 
         </f7-page-content>
     </f7-sheet>
@@ -157,8 +163,34 @@ const getOperatorLabel = (op: string) => OPERATOR_LABELS[op] ?? op;
 </style>
 
 <style scoped>
+/* Max height for content-heavy filter sheet */
+.filter-sheet {
+    height: 80vh;
+}
+
 .filter-sheet-content {
-    padding-bottom: 32px;
+    padding-bottom: 0;
+}
+
+/* Section divider: replaces f7-block-title for "Add New Filter" */
+.filter-section-divider {
+    display: flex;
+    align-items: center;
+    padding: 16px 16px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    gap: 10px;
+}
+
+.filter-section-divider::before,
+.filter-section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
 }
 
 /* Empty state */
@@ -170,6 +202,7 @@ const getOperatorLabel = (op: string) => OPERATOR_LABELS[op] ?? op;
     padding: 24px 16px;
     color: var(--f7-label-color);
     opacity: 0.6;
+    margin: 0;
 }
 
 .filter-empty-state p {
@@ -181,14 +214,13 @@ const getOperatorLabel = (op: string) => OPERATOR_LABELS[op] ?? op;
     opacity: 0.5;
 }
 
-/* Active filter item */
+/* Active filter list */
+.active-filters-list {
+    margin-top: 0;
+}
+
 .filter-item-field {
     font-size: 12px;
     color: var(--f7-label-color);
-}
-
-/* Add button */
-.filter-add-btn-wrapper {
-    padding: 8px 16px 0;
 }
 </style>

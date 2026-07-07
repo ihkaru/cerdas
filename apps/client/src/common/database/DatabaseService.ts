@@ -198,6 +198,19 @@ export class DatabaseService {
         
         // Store current version
         localStorage.setItem('db_schema_version', currentVersion.toString());
+
+        // Dynamic Data Migration: Convert legay completed -> submitted, synced -> approved
+        try {
+            const completedCountRes = await this.db.execute(`UPDATE assignments SET status = 'submitted' WHERE status = 'completed'`);
+            const syncedCountRes = await this.db.execute(`UPDATE assignments SET status = 'approved' WHERE status = 'synced'`);
+            const migratedTotal = (completedCountRes.changes?.changes || 0) + (syncedCountRes.changes?.changes || 0);
+            if (migratedTotal > 0) {
+                log.info(`[Migration] Migrated ${migratedTotal} assignments to new status terminology`);
+            }
+        } catch (e) {
+            log.warn('Failed to run data migration for assignment statuses', e);
+        }
+
         log.debug('Schema version stored:', currentVersion);
     }
 

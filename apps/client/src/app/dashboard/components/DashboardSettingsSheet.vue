@@ -1,8 +1,8 @@
 <template>
-    <f7-sheet :opened="opened" @sheet:closed="$emit('update:opened', false)" swipe-to-close bottom>
+    <f7-sheet class="settings-sheet app-sheet" :opened="opened" @sheet:closed="$emit('update:opened', false)" swipe-to-close backdrop>
         <f7-page-content>
-            <!-- Handle bar -->
-            <div class="sheet-handle"></div>
+            <!-- Drag Handle -->
+            <div class="sheet-drag-handle"></div>
 
             <!-- Profile Header -->
             <div class="profile-header">
@@ -96,17 +96,8 @@ const onResetDatabase = () => {
 </script>
 
 <style scoped>
-:deep(.sheet-modal) {
-    border-radius: 16px 16px 0 0;
-}
+/* .sheet-drag-handle is defined globally in style.css */
 
-.sheet-handle {
-    width: 36px;
-    height: 4px;
-    background: var(--f7-input-placeholder-color, #ccc);
-    border-radius: 2px;
-    margin: 12px auto 4px;
-}
 
 /* Profile */
 .profile-header {

@@ -1,18 +1,31 @@
+// Canonical assignment statuses (matches backend Assignment model):
+// assigned → in_progress → submitted (complex only) → synced
+//                                                    ↘ rejected (complex only)
+
 export const statusChipColor = (status: string) => {
     switch (status) {
-        case 'completed': return 'green';
+        case 'assigned':   return 'gray';
         case 'in_progress': return 'blue';
-        case 'synced': return 'teal';
-        default: return 'gray';
+        case 'submitted':  return 'orange';   // waiting for review / terminal simple
+        case 'approved':   return 'teal';     // final: data accepted (complex)
+        case 'synced':     return 'teal';     // fallback compatibility
+        case 'rejected':   return 'red';      // complex: returned by supervisor
+        default:           return 'gray';
     }
 };
 
-export const statusLabel = (status: string) => {
+export const statusLabel = (status: string, mode?: 'simple' | 'complex' | string) => {
     switch (status) {
-        case 'completed': return 'Selesai';
+        case 'assigned':   return 'Pending';
         case 'in_progress': return 'Proses';
-        case 'synced': return 'Tersinkron';
-        case 'assigned': return 'Pending';
+        case 'submitted':
+            if (mode === 'simple') return 'Terkirim';
+            if (mode === 'complex') return 'Menunggu Review';
+            return 'Terkirim'; // Default friendly term
+        case 'approved':   return 'Disetujui';
+        case 'synced':     return 'Disetujui'; // Fallback compatibility
+        case 'rejected':   return 'Dikembalikan';
         default: return status || 'Unknown';
     }
 };
+

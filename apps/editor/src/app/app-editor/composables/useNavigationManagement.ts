@@ -18,8 +18,24 @@ export function useNavigationManagement(appId: () => string | null) {
         if (!id || id === 'undefined' || id === 'null') return;
         try {
             const res = await ApiClient.get(`/apps/${id}`);
-            navigation.value = res.data.data.navigation || [];
-            isNavDirty.value = false; // Reset dirty state on fetch
+            const nav = res.data.data.navigation || [];
+            
+            if (nav.length === 0) {
+                const appName = res.data.data.name || 'Home';
+                const defaultNavItem: NavigationItem = {
+                    id: 'default_nav_' + Date.now(),
+                    type: 'view',
+                    label: appName,
+                    icon: 'house_fill',
+                    view_id: 'default'
+                };
+                navigation.value = [defaultNavItem];
+                isNavDirty.value = true;
+                await saveNavigation();
+            } else {
+                navigation.value = nav;
+                isNavDirty.value = false;
+            }
         } catch (e) {
             console.error('Failed to fetch navigation', e);
         }
