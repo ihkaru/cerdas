@@ -212,6 +212,35 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
         return false;
     };
 
+    const resolveTargetTableId = (currentContextId: string): string => {
+        let targetTableId = currentContextId;
+        
+        if (metadata.activeView.value) {
+            const viewConfig = metadata.appViews.value.find((v: unknown) => (v as Record<string, unknown>).id === metadata.activeView.value) as Record<string, unknown> | undefined;
+            const viewTableId = viewConfig?.table_id || viewConfig?.form_id;
+            
+            log.debug('[AppShell] Checking Active View for Table Context:', {
+                activeView: metadata.activeView.value,
+                foundConfig: !!viewConfig,
+                viewTableId,
+                currentContext: currentContextId
+            });
+
+            if (viewTableId) {
+                targetTableId = String(viewTableId);
+            }
+        }
+
+        if (targetTableId === currentContextId && metadata.appTables.value && metadata.appTables.value.length > 0) {
+             const exactTable = metadata.appTables.value.find((t: unknown) => (t as Record<string, unknown>).id === currentContextId);
+             if (!exactTable) {
+                 targetTableId = (metadata.appTables.value[0] as Record<string, unknown>).id as string;
+             }
+        }
+
+        return targetTableId;
+    };
+
     const loadApp = async (isRefresh = false) => {
         if (!isRefresh) state.loading.value = true;
         isLoadingApp.value = true;
@@ -235,31 +264,7 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
             }
 
             // STEP 2: Determine Target Table ID from App Context
-            let targetTableId = contextId;
-            
-            if (metadata.activeView.value) {
-                const viewConfig = metadata.appViews.value.find((v: unknown) => (v as Record<string, unknown>).id === metadata.activeView.value) as Record<string, unknown> | undefined;
-                const viewTableId = viewConfig?.table_id || viewConfig?.form_id;
-                
-                log.debug('[AppShell] Checking Active View for Table Context:', {
-                    activeView: metadata.activeView.value,
-                    foundConfig: !!viewConfig,
-                    viewTableId,
-                    currentContext: contextId
-                });
-
-                if (viewTableId) {
-                    targetTableId = String(viewTableId);
-                }
-            }
-
-            if (targetTableId === contextId && metadata.appTables.value && metadata.appTables.value.length > 0) {
-                 const exactTable = metadata.appTables.value.find((t: unknown) => (t as Record<string, unknown>).id === contextId);
-                 if (!exactTable) {
-                     targetTableId = (metadata.appTables.value[0] as Record<string, unknown>).id as string;
-                 }
-            }
-
+            const targetTableId = resolveTargetTableId(contextId);
             resolvedTableId.value = targetTableId;
 
             // STEP 3: Load Table Schema (Layout + groupByConfig)
