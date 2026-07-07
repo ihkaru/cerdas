@@ -419,7 +419,9 @@ async function pollExportStatus(jobId: string, baseUrl: string, token: string, t
         const { status, total_rows, error_message } = res.data;
 
         if (status === 'processing') {
-            toast.setText('Sedang memproses (OOM-Safe lazy-load)...');
+            if (toast && toast.$el) {
+                toast.$el.find('.toast-text').text('Sedang memproses (OOM-Safe lazy-load)...');
+            }
         } else if (status === 'completed') {
             return { success: true, totalRows: total_rows };
         } else if (status === 'failed') {
