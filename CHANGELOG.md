@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.5](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.4...cerdas-v0.2.5) (2026-07-07)
+
+
+### Bug Fixes
+
+* **backend:** use hasAppAccess and getAccessibleAppIds to support organization app access on tables, assignments, and dashboard ([17e7ac3](https://github.com/ihkaru/cerdas/commit/17e7ac36535aafcf998ba7a71ecb5bcce491b442))
+* **client:** sync using resolvedAppId instead of contextId to resolve table vs app id mismatch ([97d36f5](https://github.com/ihkaru/cerdas/commit/97d36f57c8134abfaf9cbc92aebb44d5fa869947))
+
 ## [0.2.4](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.3...cerdas-v0.2.4) (2026-07-07)
 
 
