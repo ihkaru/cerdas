@@ -23,7 +23,7 @@ export class HealthCheckService {
      */
     public async checkApi(): Promise<boolean> {
         const baseUrl = this.apiClient.baseUrl;
-        const pingUrl = `${baseUrl}/ping`;
+        const pingUrl = `${baseUrl}/up`;
         
         logger.info('[HealthCheck] Starting comprehensive API check', { 
             pingUrl,

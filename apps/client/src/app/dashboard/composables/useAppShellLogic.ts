@@ -269,7 +269,12 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
             if (!schema && !isRefresh) {
                 state.loading.value = false;
                 isLoadingApp.value = false;
-                await handleMissingSchema(targetTableId);
+                
+                // Do not auto-sync on missing schema if we are running in the Editor Preview iframe
+                const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+                if (!isInIframe) {
+                    await handleMissingSchema(targetTableId);
+                }
                 return;
             }
 
