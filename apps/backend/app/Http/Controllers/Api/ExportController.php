@@ -90,12 +90,14 @@ class ExportController extends Controller
             return response()->json(['message' => 'File not ready or expired.'], 404);
         }
 
-        $fileName = "Export_" . preg_replace('/[^a-zA-Z0-9_]/', '_', $table->name) . ".csv";
+        $extension = pathinfo($job->file_path, PATHINFO_EXTENSION) ?: 'csv';
+        $fileName = "Export_" . preg_replace('/[^a-zA-Z0-9_]/', '_', $table->name) . "." . $extension;
         $filePath = Storage::path($job->file_path);
         $fileSize = Storage::size($job->file_path);
+        $contentType = $extension === 'zip' ? 'application/zip' : 'text/csv; charset=UTF-8';
 
         return response()->download($filePath, $fileName, [
-            "Content-Type" => "text/csv; charset=UTF-8",
+            "Content-Type" => $contentType,
             "Content-Length" => $fileSize,
             "Content-Disposition" => "attachment; filename=\"$fileName\"",
             "Access-Control-Expose-Headers" => "Content-Disposition, Content-Length",
@@ -148,11 +150,13 @@ class ExportController extends Controller
             return response()->json(['message' => 'File not ready or expired.'], 404);
         }
 
-        $fileName = "Export_" . preg_replace('/[^a-zA-Z0-9_]/', '_', $table->name) . ".csv";
+        $extension = pathinfo($job->file_path, PATHINFO_EXTENSION) ?: 'csv';
+        $fileName = "Export_" . preg_replace('/[^a-zA-Z0-9_]/', '_', $table->name) . "." . $extension;
         $filePath = Storage::path($job->file_path);
+        $contentType = $extension === 'zip' ? 'application/zip' : 'text/csv; charset=UTF-8';
         
         return response()->download($filePath, $fileName, [
-            "Content-Type" => "text/csv; charset=UTF-8",
+            "Content-Type" => $contentType,
         ]);
     }
 }

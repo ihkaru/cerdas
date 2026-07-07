@@ -51,14 +51,14 @@ class ProcessAsyncExport implements ShouldQueue
             $baseUrl = rtrim(config('app.url'), '/');
 
             // Set up local temp file to write to. OOM safe approach.
-            $tmpFileName = 'export_' . $this->exportJob->id . '.csv';
-            $storagePath = 'exports/' . $tmpFileName;
+            $tmpFileName = 'temp_export_' . $this->exportJob->id . '.csv';
+            $tempStoragePath = 'exports/' . $tmpFileName;
             
             // Ensure directory exists
             Storage::makeDirectory('exports');
-            $fullPath = Storage::path($storagePath);
+            $fullPathCsv = Storage::path($tempStoragePath);
 
-            $file = fopen($fullPath, 'w');
+            $file = fopen($fullPathCsv, 'w');
             
             // Add UTF-8 BOM
             fputs($file, "\xEF\xBB\xBF");
@@ -66,16 +66,16 @@ class ProcessAsyncExport implements ShouldQueue
             $csvHeaders = array_merge(['Assignment ID', 'Status', 'Submitted Version', 'Created At'], $fieldNames);
             fputcsv($file, $csvHeaders);
 
-            // Fetch all ASSIGNMENTS via cursor to ensure we see the full project scope (monitoring)
+            // Fetch all ASSIGNMENTS via lazy to ensure we see the full project scope (monitoring)
             // Even if an assignment hasn't been filled yet, it will appear in the CSV.
-            $assignmentsCursor = Assignment::where('table_id', $table->id)
+            $assignmentsLazy = Assignment::where('table_id', $table->id)
                 ->with(['responses' => function($query) {
                     $query->latest(); // Get latest response if multiple exist
                 }])
-                ->cursor();
+                ->lazy(1000);
 
             $totalRows = 0;
-            foreach ($assignmentsCursor as $assignment) {
+            foreach ($assignmentsLazy as $assignment) {
                 // Take the latest response if available
                 $response = $assignment->responses->first();
                 
@@ -145,8 +145,25 @@ class ProcessAsyncExport implements ShouldQueue
 
             fclose($file);
 
-            // Mark job success
-            $this->exportJob->markCompleted($storagePath, $totalRows);
+            // Create ZIP archive
+            $zipFileName = 'export_' . $this->exportJob->id . '.zip';
+            $zipStoragePath = 'exports/' . $zipFileName;
+            $fullPathZip = Storage::path($zipStoragePath);
+
+            $zip = new \ZipArchive();
+            if ($zip->open($fullPathZip, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true) {
+                $csvInsideName = "Export_" . preg_replace('/[^a-zA-Z0-9_]/', '_', $table->name) . ".csv";
+                $zip->addFile($fullPathCsv, $csvInsideName);
+                $zip->close();
+
+                // Delete the temporary CSV file
+                Storage::delete($tempStoragePath);
+
+                // Mark job success with the ZIP file path
+                $this->exportJob->markCompleted($zipStoragePath, $totalRows);
+            } else {
+                throw new \Exception("Could not create ZIP archive for export.");
+            }
 
         } catch (Throwable $e) {
             \Illuminate\Support\Facades\Log::error("[ExportJob] Failed", [

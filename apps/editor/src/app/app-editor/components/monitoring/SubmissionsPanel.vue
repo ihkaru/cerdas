@@ -419,7 +419,7 @@ async function pollExportStatus(jobId: string, baseUrl: string, token: string, t
         const { status, total_rows, error_message } = res.data;
 
         if (status === 'processing') {
-            toast.setText('Sedang memproses (OOM-Safe cursor)...');
+            toast.setText('Sedang memproses (OOM-Safe lazy-load)...');
         } else if (status === 'completed') {
             return { success: true, totalRows: total_rows };
         } else if (status === 'failed') {
@@ -451,13 +451,21 @@ async function downloadExportFile(jobId: string, baseUrl: string, token: string,
     const downloadRes = await axios.get(finalUrl, { responseType: 'blob' });
     const blob = downloadRes.data;
 
+    // Determine the actual filename and type from blob type
+    const isZip = blob.type === 'application/zip';
+    const finalFileName = isZip ? fileName.replace(/\.csv$/, '.zip') : fileName;
+
     // 4. Save (Native Picker or Legacy)
     if ('showSaveFilePicker' in window) {
         try {
-            const handle = await (window as any).showSaveFilePicker({
-                suggestedName: fileName,
+            const options: any = isZip ? {
+                suggestedName: finalFileName,
+                types: [{ description: 'ZIP Archive', accept: {'application/zip': ['.zip']} }],
+            } : {
+                suggestedName: finalFileName,
                 types: [{ description: 'CSV File', accept: {'text/csv': ['.csv']} }],
-            });
+            };
+            const handle = await (window as any).showSaveFilePicker(options);
             const writable = await handle.createWritable();
             await writable.write(blob);
             await writable.close();
@@ -473,7 +481,7 @@ async function downloadExportFile(jobId: string, baseUrl: string, token: string,
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
-    link.download = fileName;
+    link.download = finalFileName;
     link.click();
     downloadToast.close();
 }
