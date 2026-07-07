@@ -37,7 +37,7 @@ export const useTableStore = defineStore('table', () => {
     const error = ref<string | null>(null);
 
     // Fetch tables for an app
-    async function fetchTables(appId: number) {
+    async function fetchTables(appId: string | number) {
         loading.value = true;
         try {
             const res = await ApiClient.get('/tables', { app_id: appId });

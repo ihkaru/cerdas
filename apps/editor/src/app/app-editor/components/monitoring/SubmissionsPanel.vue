@@ -243,7 +243,7 @@ const appTables = computed(() => appStore.currentApp?.tables || []);
 // Schema fields resolution from active table
 const schemaFields = computed(() => {
     if (!tableFilter.value) return [];
-    const table = tableStore.tables.find(t => t.id === tableFilter.value);
+    const table = tableStore.tables.find(t => t.id === tableFilter.value) as any;
     if (!table) return [];
     
     // Check multiple potential locations of fields (root property, latest version, or current version relation)

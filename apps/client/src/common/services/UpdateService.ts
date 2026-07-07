@@ -132,18 +132,35 @@ class UpdateService {
   public getMetadata() { return this.metadata; }
 
   public performUpdate() {
-    logger.info(`[UpdateService] Executing update from ${__APP_VERSION__} to ${this.metadata?.version}`);
+    logger.info(`[UpdateService] Executing PWA update from ${__APP_VERSION__} to ${this.metadata?.version}`);
 
     if (Capacitor.isNativePlatform()) {
       // Modern 2026 Redirect: GitHub Releases
       const githubUrl = 'https://github.com/ihkaru/cerdas/releases/latest';
       window.open(githubUrl, '_system', 'noopener');
     } else {
-      // PWA Refresh with cache-busting
-      logger.info('[UpdateService] Reloading PWA with cache buster...');
-      const url = new URL(window.location.href);
-      url.searchParams.set('reload_v', Date.now().toString());
-      window.location.href = url.toString();
+      logger.info('[UpdateService] PWA Update: Triggering Service Worker Skip Waiting...');
+      
+      // Send SKIP_WAITING command to the service worker to force activation of the new PWA bundle
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (const reg of registrations) {
+            if (reg.waiting) {
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+          }
+        }).catch(err => {
+          logger.warn('[UpdateService] Failed to message waiting service worker', err);
+        });
+      }
+
+      // Allow a brief moment for the service worker to claim the client before page reload
+      setTimeout(() => {
+        logger.info('[UpdateService] Reloading PWA with cache buster...');
+        const url = new URL(window.location.href);
+        url.searchParams.set('reload_v', Date.now().toString());
+        window.location.href = url.toString();
+      }, 250);
     }
   }
 
