@@ -312,7 +312,7 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
     
     // Wrapper to ensure we sync the RESOLVED table ID (UUID), preventing slug mismatches
     const syncApp = (overrideId?: string) => {
-        return innerSyncApp(overrideId || resolvedTableId.value);
+        return innerSyncApp(overrideId || metadata.resolvedAppId.value || resolvedTableId.value);
     };
 
     // Listener for real-time updates from Editor

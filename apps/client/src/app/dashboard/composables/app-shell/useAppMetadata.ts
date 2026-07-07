@@ -150,11 +150,13 @@ export function useAppMetadata(
         }
     }
 
+    const resolvedAppId = ref<string>('');
+
     const loadAppMetadata = async (schemaData: Record<string, unknown> | null, isRefresh: boolean, loading: Ref<boolean>) => {
         try {
             const conn = await db.getDB();
-            const appId = schemaData?.app_id as string | undefined;
-            const validAppId = await AppMetadataService.resolveAppId(conn, contextId, appId);
+            const schemaAppId = schemaData?.app_id as string | undefined;
+            const validAppId = await AppMetadataService.resolveAppId(conn, contextId, schemaAppId);
             log.debug('Resolved validAppId:', validAppId);
 
             if (!validAppId) {
@@ -162,6 +164,8 @@ export function useAppMetadata(
                 if (!isRefresh) loading.value = false;
                 return;
             }
+
+            resolvedAppId.value = validAppId;
 
             restoreCachedRole(validAppId);
             await loadLocalMetadata(conn, validAppId);
@@ -181,6 +185,7 @@ export function useAppMetadata(
     }
 
     return {
+        resolvedAppId,
         appNavigation,
         appViews,
         appViewConfigs,
