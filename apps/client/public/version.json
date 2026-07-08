@@ -1,7 +1,7 @@
 {
-  "version": "0.2.5",
-  "build_id": "p15al8",
-  "timestamp": "2026-07-08T00:33:42.469Z",
+  "version": "0.2.7",
+  "build_id": "pupztc",
+  "timestamp": "2026-07-08T00:56:41.748Z",
   "min_native_version": "0.1.0",
   "changelog": [
     "Optimisasi sinkronisasi data",

@@ -2,7 +2,7 @@
     <f7-page name="home" ptr @ptr:refresh="refresh" @page:afterin="onPageAfterIn">
         <f7-navbar :sliding="false" class="premium-navbar">
             <f7-nav-title class="premium-title" style="user-select: none;">
-                <span @click="handleTitleTap" style="cursor: pointer; display: inline-block; padding: 4px 8px; margin: -4px -8px;">Dashboard</span>
+                <span @click="handleTitleTap" style="cursor: pointer; display: inline-block; padding: 12px 24px; margin: -12px -24px; position: relative; z-index: 99999; pointer-events: auto;">Dashboard</span>
             </f7-nav-title>
             <f7-nav-right>
                 <f7-link @click="handleSync" class="nav-icon-btn action-btn" :class="{ 'spinning': isSyncing }" aria-label="Sync">

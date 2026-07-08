@@ -47,7 +47,7 @@
             </f7-list>
 
             <!-- Version -->
-            <div class="version-label">{{ versionText }}</div>
+            <div class="version-label" @click="handleVersionTap" style="cursor: pointer; user-select: none; padding: 12px; margin-top: 10px;">{{ versionText || 'v0.2.7' }}</div>
         </f7-page-content>
     </f7-sheet>
 </template>
@@ -71,6 +71,24 @@ const emit = defineEmits<{
 }>();
 
 const versionText = computed(() => props.appVersion ? `v${props.appVersion}` : '');
+
+let versionTapCount = 0;
+let versionTapTimer: any = null;
+
+const handleVersionTap = () => {
+    versionTapCount++;
+    console.log(`[Debug] Version tapped: ${versionTapCount}/5`);
+    if (versionTapTimer) clearTimeout(versionTapTimer);
+    versionTapTimer = setTimeout(() => { versionTapCount = 0; }, 2000);
+
+    if (versionTapCount >= 5) {
+        console.log('[Debug] Triggering open-debug-menu event from settings');
+        window.dispatchEvent(new CustomEvent('open-debug-menu'));
+        versionTapCount = 0;
+        if (versionTapTimer) clearTimeout(versionTapTimer);
+        close();
+    }
+};
 
 const close = () => emit('update:opened', false);
 
