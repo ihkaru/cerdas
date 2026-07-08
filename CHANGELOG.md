@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.7](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.6...cerdas-v0.2.7) (2026-07-08)
+
+
+### Features
+
+* **client:** add SQLite diagnostics console and improve sync logging ([befea63](https://github.com/ihkaru/cerdas/commit/befea63f0709e89bbc0fb3ca593080785eba3702))
+
 ## [0.2.6](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.5...cerdas-v0.2.6) (2026-07-07)
 
 
