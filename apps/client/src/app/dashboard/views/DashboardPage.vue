@@ -1,7 +1,7 @@
 <template>
     <f7-page name="home" ptr @ptr:refresh="refresh" @page:afterin="onPageAfterIn">
         <f7-navbar :sliding="false" class="premium-navbar">
-            <f7-nav-title class="premium-title">Dashboard</f7-nav-title>
+            <f7-nav-title class="premium-title" @click="handleTitleTap" style="cursor: pointer; user-select: none;">Dashboard</f7-nav-title>
             <f7-nav-right>
                 <f7-link @click="handleSync" class="nav-icon-btn action-btn" :class="{ 'spinning': isSyncing }" aria-label="Sync">
                     <SvgIcon name="arrow_2_circlepath" :size="22" />
@@ -47,6 +47,21 @@ const auth = useAuthStore();
 const db = useDatabase();
 const isSyncing = ref(false);
 const settingsOpen = ref(false);
+
+let titleTapCount = 0;
+let titleTapTimer: any = null;
+
+const handleTitleTap = () => {
+    titleTapCount++;
+    if (titleTapTimer) clearTimeout(titleTapTimer);
+    titleTapTimer = setTimeout(() => { titleTapCount = 0; }, 2000);
+
+    if (titleTapCount >= 5) {
+        window.dispatchEvent(new CustomEvent('open-debug-menu'));
+        titleTapCount = 0;
+        if (titleTapTimer) clearTimeout(titleTapTimer);
+    }
+};
 
 onMounted(async () => {
     await dashboardStore.loadData();

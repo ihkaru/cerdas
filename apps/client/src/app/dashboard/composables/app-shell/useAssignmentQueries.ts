@@ -1,4 +1,5 @@
 import { useDatabase } from '@/common/composables/useDatabase';
+import { useLogger } from '@/common/utils/logger';
 import type { Ref } from 'vue';
 import { ref } from 'vue';
 import { DashboardRepository } from '../../repositories/DashboardRepository';
@@ -81,6 +82,7 @@ export function useAssignmentQueries(
 ) {
 
     const db = useDatabase();
+    const log = useLogger('UseAssignmentQueries');
     
     // Resolve contextId helper
     const getContextId = () => typeof contextId === 'string' ? contextId : contextId.value;
@@ -98,7 +100,7 @@ export function useAssignmentQueries(
                 // @ts-ignore
                 state.pendingUploadCount.value = await DashboardRepository.getPendingUploadCount(conn, getContextId());
             } catch (e) {
-                console.warn('Could not fetch pending uploads', e);
+                log.warn('Could not fetch pending uploads', e);
             }
 
             const filters = filterSort?.filters.value;
@@ -154,7 +156,7 @@ export function useAssignmentQueries(
             }
             state.totalAssignments.value = total;
         } catch (e) {
-            console.error('Failed to refresh data', e);
+            log.error('Failed to refresh data', e);
         }
     };
 

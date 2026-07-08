@@ -1,15 +1,10 @@
 {
   "version": "0.2.5",
-  "build_id": "k8x2r9",
-  "timestamp": "2026-07-08T04:47:14.000Z",
+  "build_id": "p15al8",
+  "timestamp": "2026-07-08T00:33:42.469Z",
   "min_native_version": "0.1.0",
   "changelog": [
     "Optimisasi sinkronisasi data",
-    "Peningkatan stabilitas aplikasi",
-    "Optimisasi ekspor data besar (300k+ baris) ke ZIP",
-    "Pembersihan sisa service worker untuk mengatasi loop update",
-    "Perbaikan auto-sync 403 saat memuat awal iframe preview di Editor",
-    "Perbaikan health check ping endpoint ke /api/up",
-    "Perbaikan sinkronisasi data dengan me-resolve App ID yang valid untuk query sync"
+    "Peningkatan stabilitas aplikasi"
   ]
 }

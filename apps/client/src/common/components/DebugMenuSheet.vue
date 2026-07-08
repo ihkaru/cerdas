@@ -7,117 +7,132 @@
         </template>
       </f7-navbar>
 
-      <f7-block strong inset>
+      <f7-segmented raised class="margin-horizontal margin-top">
+        <f7-button :active="activeTab === 'system'" @click="activeTab = 'system'">System Logs</f7-button>
+        <f7-button :active="activeTab === 'database'" @click="activeTab = 'database'">Database Explorer</f7-button>
+      </f7-segmented>
 
-        <!-- App Info -->
-        <div class="dbg-section">
-          <div class="dbg-label">App</div>
-          <div class="dbg-value">Cerdas Client v{{ appVersion }}</div>
-          <div class="dbg-sub">Build: {{ buildTime }} | Platform: {{ platform }}</div>
-        </div>
+      <f7-block strong inset style="margin-top: 10px;">
+        <!-- TAB 1: SYSTEM LOGS -->
+        <div v-show="activeTab === 'system'">
+          <!-- App Info -->
+          <div class="dbg-section">
+            <div class="dbg-label">App</div>
+            <div class="dbg-value">Cerdas Client v{{ appVersion }}</div>
+            <div class="dbg-sub">Build: {{ buildTime }} | Platform: {{ platform }}</div>
+          </div>
 
-        <!-- Auth State -->
-        <div class="dbg-section">
-          <div class="dbg-label">Auth State</div>
-          <div class="dbg-row">
-            <span>Logged In:</span>
-            <strong :style="{ color: authState.hasToken ? '#4caf50' : '#f44336' }">
-              {{ authState.hasToken ? '✅ Yes' : '❌ No' }}
-            </strong>
-          </div>
-          <div v-if="authState.userEmail" class="dbg-row">
-            <span>User:</span>
-            <strong>{{ authState.userEmail }}</strong>
-          </div>
-          <div class="dbg-row">
-            <span>Token:</span>
-            <span class="dbg-mono">{{ authState.tokenInfo }}</span>
-          </div>
-        </div>
-
-        <!-- Connection -->
-        <div class="dbg-section">
-          <div class="dbg-label">Connection</div>
-          <div class="dbg-row">
-            <span>API Server:</span>
-            <strong v-if="checking" style="color: #999;">checking...</strong>
-            <strong v-else :style="{ color: apiStatus ? '#4caf50' : '#f44336' }">
-              {{ apiStatus ? '✅ Connected' : '❌ Failed' }}
-            </strong>
-          </div>
-          <div class="dbg-row">
-            <span>Reverb:</span>
-            <strong v-if="reverbStatus === null" style="color: #999;">N/A</strong>
-            <strong v-else :style="{ color: reverbStatus ? '#4caf50' : '#f44336' }">
-              {{ reverbStatus ? '✅ Connected' : '❌ Failed' }}
-            </strong>
-          </div>
-          <div class="dbg-row">
-            <span>Network:</span>
-            <strong :style="{ color: isOnline ? '#4caf50' : '#f44336' }">
-              {{ isOnline ? '✅ Online' : '❌ Offline' }}
-            </strong>
-          </div>
-          <div v-if="apiLatency !== null" class="dbg-row">
-            <span>Latency:</span>
-            <strong :style="{ color: apiLatency < 500 ? '#4caf50' : apiLatency < 2000 ? '#ff9800' : '#f44336' }">
-              {{ apiLatency }}ms
-            </strong>
-          </div>
-          <div v-if="apiError" class="dbg-row">
-            <span>Error:</span>
-            <span style="color: #f44336; font-size: 12px;">{{ apiError }}</span>
-          </div>
-        </div>
-
-        <!-- Environment -->
-        <div class="dbg-section">
-          <div class="dbg-label">Environment</div>
-          <div class="dbg-row"><span>API URL:</span></div>
-          <div class="dbg-mono" style="font-size: 11px; word-break: break-all;">{{ envVars.apiUrl || 'NOT SET' }}</div>
-          <div class="dbg-row"><span>Reverb Host:</span> <span class="dbg-mono">{{ envVars.reverbHost || 'NOT SET'
-              }}</span>
-          </div>
-          <div class="dbg-row"><span>Reverb Key:</span> <span class="dbg-mono">{{ envVars.reverbKey }}</span></div>
-          <div class="dbg-row"><span>Google Client:</span> <span class="dbg-mono">{{ envVars.googleClientId }}</span>
-          </div>
-        </div>
-
-        <!-- Recent Logs -->
-        <div class="dbg-section">
-          <div class="dbg-label" style="display: flex; justify-content: space-between;">
-            <span>Recent Logs ({{ logEntries.length }})</span>
-            <a href="#" @click.prevent="refreshLogs" style="font-size: 12px;">↻ Refresh</a>
-          </div>
-          <div class="dbg-log-box">
-            <div v-if="logEntries.length === 0" style="color: #888; text-align: center; padding: 12px;">
-              No log entries
+          <!-- Auth State -->
+          <div class="dbg-section">
+            <div class="dbg-label">Auth State</div>
+            <div class="dbg-row">
+              <span>Logged In:</span>
+              <strong :style="{ color: authState.hasToken ? '#4caf50' : '#f44336' }">
+                {{ authState.hasToken ? '✅ Yes' : '❌ No' }}
+              </strong>
             </div>
-            <div v-for="(entry, i) in logEntries" :key="i" class="dbg-log-entry"
-              :class="`dbg-log-${entry.level.toLowerCase()}`">
-              <span class="dbg-log-time">{{ entry.time }}</span>
-              <span class="dbg-log-level">{{ entry.level }}</span>
-              <span class="dbg-log-ctx">{{ entry.context }}</span>
-              <div class="dbg-log-msg">{{ entry.message }}</div>
-              <div v-if="entry.data" class="dbg-log-data">{{ entry.data }}</div>
+            <div v-if="authState.userEmail" class="dbg-row">
+              <span>User:</span>
+              <strong>{{ authState.userEmail }}</strong>
+            </div>
+            <div class="dbg-row">
+              <span>Token:</span>
+              <span class="dbg-mono">{{ authState.tokenInfo }}</span>
             </div>
           </div>
+
+          <!-- Connection -->
+          <div class="dbg-section">
+            <div class="dbg-label">Connection</div>
+            <div class="dbg-row">
+              <span>API Server:</span>
+              <strong v-if="checking" style="color: #999;">checking...</strong>
+              <strong v-else :style="{ color: apiStatus ? '#4caf50' : '#f44336' }">
+                {{ apiStatus ? '✅ Connected' : '❌ Failed' }}
+              </strong>
+            </div>
+            <div class="dbg-row">
+              <span>Reverb:</span>
+              <strong v-if="reverbStatus === null" style="color: #999;">N/A</strong>
+              <strong v-else :style="{ color: reverbStatus ? '#4caf50' : '#f44336' }">
+                {{ reverbStatus ? '✅ Connected' : '❌ Failed' }}
+              </strong>
+            </div>
+            <div class="dbg-row">
+              <span>Network:</span>
+              <strong :style="{ color: isOnline ? '#4caf50' : '#f44336' }">
+                {{ isOnline ? '✅ Online' : '❌ Offline' }}
+              </strong>
+            </div>
+            <div v-if="apiLatency !== null" class="dbg-row">
+              <span>Latency:</span>
+              <strong :style="{ color: apiLatency < 500 ? '#4caf50' : apiLatency < 2000 ? '#ff9800' : '#f44336' }">
+                {{ apiLatency }}ms
+              </strong>
+            </div>
+            <div v-if="apiError" class="dbg-row">
+              <span>Error:</span>
+              <span style="color: #f44336; font-size: 12px;">{{ apiError }}</span>
+            </div>
+          </div>
+
+          <!-- Environment -->
+          <div class="dbg-section">
+            <div class="dbg-label">Environment</div>
+            <div class="dbg-row"><span>API URL:</span></div>
+            <div class="dbg-mono" style="font-size: 11px; word-break: break-all;">{{ envVars.apiUrl || 'NOT SET' }}</div>
+            <div class="dbg-row"><span>Reverb Host:</span> <span class="dbg-mono">{{ envVars.reverbHost || 'NOT SET'
+                }}</span>
+            </div>
+            <div class="dbg-row"><span>Reverb Key:</span> <span class="dbg-mono">{{ envVars.reverbKey }}</span></div>
+            <div class="dbg-row"><span>Google Client:</span> <span class="dbg-mono">{{ envVars.googleClientId }}</span>
+            </div>
+          </div>
+
+          <!-- Recent Logs -->
+          <div class="dbg-section">
+            <div class="dbg-label" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Recent Logs ({{ logEntries.length }})</span>
+              <div style="display: flex; gap: 12px;">
+                <a href="#" @click.prevent="copyLogsOnly" style="font-size: 12px;">📋 Copy Logs</a>
+                <a href="#" @click.prevent="refreshLogs" style="font-size: 12px;">↻ Refresh</a>
+              </div>
+            </div>
+            <div class="dbg-log-box">
+              <div v-if="logEntries.length === 0" style="color: #888; text-align: center; padding: 12px;">
+                No log entries
+              </div>
+              <div v-for="(entry, i) in logEntries" :key="i" class="dbg-log-entry"
+                :class="`dbg-log-${entry.level.toLowerCase()}`">
+                <span class="dbg-log-time">{{ entry.time }}</span>
+                <span class="dbg-log-level">{{ entry.level }}</span>
+                <span class="dbg-log-ctx">{{ entry.context }}</span>
+                <div class="dbg-log-msg">{{ entry.message }}</div>
+                <div v-if="entry.data" class="dbg-log-data">{{ entry.data }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Device -->
+          <div class="dbg-section">
+            <div class="dbg-label">Device</div>
+            <div class="dbg-row"><span>Screen:</span> <span>{{ screenInfo.width }}x{{ screenInfo.height }} @{{
+              screenInfo.dpr
+                }}x</span></div>
+            <div class="dbg-row"><span>Language:</span> <span>{{ browserLang }}</span></div>
+            <div class="dbg-sub" style="word-break: break-all;">{{ userAgent }}</div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display: flex; gap: 8px; margin-top: 16px;">
+            <f7-button fill color="gray" @click="copyInfo" style="flex: 1;">📋 Copy All</f7-button>
+            <f7-button outline color="blue" @click="runChecks" style="flex: 1;">🔄 Re-check</f7-button>
+          </div>
         </div>
 
-        <!-- Device -->
-        <div class="dbg-section">
-          <div class="dbg-label">Device</div>
-          <div class="dbg-row"><span>Screen:</span> <span>{{ screenInfo.width }}x{{ screenInfo.height }} @{{
-            screenInfo.dpr
-              }}x</span></div>
-          <div class="dbg-row"><span>Language:</span> <span>{{ browserLang }}</span></div>
-          <div class="dbg-sub" style="word-break: break-all;">{{ userAgent }}</div>
-        </div>
-
-        <!-- Actions -->
-        <div style="display: flex; gap: 8px; margin-top: 16px; padding-bottom: 24px;">
-          <f7-button fill color="gray" @click="copyInfo" style="flex: 1;">📋 Copy All</f7-button>
-          <f7-button outline color="blue" @click="runChecks" style="flex: 1;">🔄 Re-check</f7-button>
+        <!-- TAB 2: DATABASE EXPLORER -->
+        <div v-show="activeTab === 'database'">
+          <DbExplorerSection ref="dbExplorerRef" />
         </div>
       </f7-block>
     </f7-page>
@@ -130,6 +145,7 @@ import { f7 } from 'framework7-vue';
 import { onMounted, reactive, ref } from 'vue';
 import { healthCheck } from '../services/HealthCheckService';
 import { getLogBuffer, type LogEntry } from '../utils/logger';
+import DbExplorerSection from './DbExplorerSection.vue';
 
 const isOpened = ref(false);
 const checking = ref(false);
@@ -192,6 +208,18 @@ function refreshLogs() {
   logEntries.value = [...getLogBuffer()].reverse();
 }
 
+const copyLogsOnly = () => {
+  const text = getLogBuffer()
+    .map(e => `[${e.time}] ${e.level} [${e.context}] ${e.message}${e.data ? ' | ' + e.data : ''}`)
+    .join('\n');
+  navigator.clipboard.writeText(text);
+  f7.toast.show({ text: '📋 Logs copied to clipboard!', closeTimeout: 2000 });
+};
+
+// --- DATABASE DIAGNOSTICS & EXPLORER ---
+const activeTab = ref('system');
+const dbExplorerRef = ref<any>(null);
+
 onMounted(() => {
   window.addEventListener('open-debug-menu', () => {
     isOpened.value = true;
@@ -199,6 +227,11 @@ onMounted(() => {
     refreshAuth();
     refreshLogs();
     runChecks();
+    
+    // Refresh DB stats in child component
+    setTimeout(() => {
+      dbExplorerRef.value?.refreshDbStats();
+    }, 100);
   });
   window.addEventListener('online', () => { isOnline.value = true; });
   window.addEventListener('offline', () => { isOnline.value = false; });

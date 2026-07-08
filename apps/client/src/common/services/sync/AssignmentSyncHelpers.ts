@@ -83,7 +83,7 @@ export async function processAssignmentPage(
             await db.executeSet(batchSet);
             inserted = batchSet.length;
         } catch (e) {
-            console.error('[Sync] Assignment batch insert failed', e);
+            logger.error('[Sync] Assignment batch insert failed', e);
         }
     }
 
