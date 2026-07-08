@@ -31,23 +31,11 @@ class AppSchemaController extends Controller
         // Load all relationships
         $app->load(['tables.latestVersion', 'views']);
 
-        // Build the schema structure
-        $schema = [
-            'app' => [
-                'name' => $app->name,
-                'slug' => $app->slug,
-                'description' => $app->description ?? '',
-                'mode' => $app->mode ?? 'simple',
-            ],
-            'tables' => [],
-            'views' => [],
-            'navigation' => $app->navigation ?? [],
-        ];
-
+        $tables = [];
         // Add tables
         foreach ($app->tables as $table) {
             $version = $table->latestVersion;
-            $schema['tables'][$table->slug] = [
+            $tables[$table->slug] = [
                 'name' => $table->name,
                 'description' => $table->description ?? '',
                 'source_type' => $table->source_type ?? 'internal',
@@ -64,13 +52,14 @@ class AppSchemaController extends Controller
             ];
         }
 
+        $views = [];
         // Add views
         foreach ($app->views as $view) {
             // Find the table slug for this view
             $table = $app->tables->firstWhere('id', $view->table_id);
             $tableSlug = $table ? $table->slug : 'unknown';
 
-            $schema['views'][$view->name] = [
+            $views[$view->name] = [
                 'table' => $tableSlug,
                 'name' => $view->name,
                 'type' => $view->type ?? 'deck',
@@ -78,6 +67,19 @@ class AppSchemaController extends Controller
                 'config' => $view->config ?? [],
             ];
         }
+
+        // Build the schema structure
+        $schema = [
+            'app' => [
+                'name' => $app->name,
+                'slug' => $app->slug,
+                'description' => $app->description ?? '',
+                'mode' => $app->mode ?? 'simple',
+            ],
+            'tables' => empty($tables) ? (object) [] : $tables,
+            'views' => empty($views) ? (object) [] : $views,
+            'navigation' => $app->navigation ?? [],
+        ];
 
         return response()->json($schema);
     }
