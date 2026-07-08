@@ -61,8 +61,18 @@ class DashboardController extends Controller
         }
 
         $allQueriedApps = $appsQuery->get();
-        $activeApps = $allQueriedApps->whereNull('deleted_at');
-        $deletedAppIds = $allQueriedApps->whereNotNull('deleted_at')->pluck('id')->values()->all();
+
+        if (!$user->isSuperAdmin()) {
+            // For surveyors, inactive apps are treated as deleted/inaccessible
+            $activeApps = $allQueriedApps->whereNull('deleted_at')->where('is_active', true);
+            $deletedApps = $allQueriedApps->filter(function ($app) {
+                return $app->deleted_at !== null || !$app->is_active;
+            });
+            $deletedAppIds = $deletedApps->pluck('id')->values()->all();
+        } else {
+            $activeApps = $allQueriedApps->whereNull('deleted_at');
+            $deletedAppIds = $allQueriedApps->whereNotNull('deleted_at')->pluck('id')->values()->all();
+        }
 
         $apps = $activeApps->map(function ($app) {
             // In future, calculate stats per app here
@@ -103,8 +113,23 @@ class DashboardController extends Controller
         }
 
         $allQueriedTables = $tablesQuery->get();
-        $activeTables = $allQueriedTables->whereNull('deleted_at');
-        $deletedTableIds = $allQueriedTables->whereNotNull('deleted_at')->pluck('id')->values()->all();
+
+        if (!$user->isSuperAdmin()) {
+            // For surveyors, exclude tables belonging to inactive apps
+            $activeAppIds = App::whereIn('id', $appIds)->where('is_active', true)->pluck('id')->toArray();
+            
+            $activeTables = $allQueriedTables->whereNull('deleted_at')->filter(function ($table) use ($activeAppIds) {
+                return in_array($table->app_id, $activeAppIds);
+            });
+            
+            $deletedTables = $allQueriedTables->filter(function ($table) use ($activeAppIds) {
+                return $table->deleted_at !== null || !in_array($table->app_id, $activeAppIds);
+            });
+            $deletedTableIds = $deletedTables->pluck('id')->values()->all();
+        } else {
+            $activeTables = $allQueriedTables->whereNull('deleted_at');
+            $deletedTableIds = $allQueriedTables->whereNotNull('deleted_at')->pluck('id')->values()->all();
+        }
 
         $allTables = $activeTables->map(function ($table) {
             return [
