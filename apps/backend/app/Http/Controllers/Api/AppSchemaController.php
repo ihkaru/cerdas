@@ -64,6 +64,11 @@ class AppSchemaController extends Controller
                     $tableSlug = $table ? $table->slug : 'unknown';
                 }
                 
+                // Fallback: If table_slug is still unknown, default to the first table of the app
+                if ($tableSlug === 'unknown' && $app->tables->isNotEmpty()) {
+                    $tableSlug = $app->tables->first()->slug;
+                }
+                
                 $views[$viewKey] = [
                     'table' => $tableSlug,
                     'name' => $viewData['name'] ?? $viewKey,
