@@ -27,7 +27,7 @@
 <script setup lang="ts">
 import { f7 } from 'framework7-vue';
 import { storeToRefs } from 'pinia';
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import SvgIcon from '@/components/common/SvgIcon.vue';
 import { useDatabase } from '../../../common/composables/useDatabase';
 import { useSync } from '../../../common/composables/useSync';
@@ -67,8 +67,19 @@ const handleTitleTap = () => {
     }
 };
 
+const handleAppsDeactivated = (event: Event) => {
+    const detail = (event as CustomEvent).detail;
+    if (detail && detail.names) {
+        f7.dialog.alert(
+            `Aplikasi (${detail.names}) telah dinonaktifkan oleh administrator. Seluruh data lokal aplikasi tersebut telah dibersihkan demi keamanan.`, 
+            'Aplikasi Dinonaktifkan'
+        );
+    }
+};
+
 onMounted(async () => {
     await dashboardStore.loadData();
+    window.addEventListener('apps-deactivated', handleAppsDeactivated);
 
     if (navigator.onLine) {
         // If it's the first time (no apps, no last sync), show a non-obstructive preloader
@@ -82,6 +93,10 @@ onMounted(async () => {
                 if (isFirstSync) isSyncing.value = false;
             });
     }
+});
+
+onUnmounted(() => {
+    window.removeEventListener('apps-deactivated', handleAppsDeactivated);
 });
 
 const onPageAfterIn = () => {

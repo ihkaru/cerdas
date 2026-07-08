@@ -289,6 +289,17 @@ export async function pullGlobal() {
     const res = await apiClient.get(url);
 
     if (res.success && res.data) {
+        let deactivatedAppNames = '';
+        if (res.deleted_apps && res.deleted_apps.length > 0) {
+            try {
+                const placeholders = res.deleted_apps.map(() => '?').join(',');
+                const appsToDelete = await db.query(`SELECT name FROM apps WHERE id IN (${placeholders})`, res.deleted_apps);
+                deactivatedAppNames = (appsToDelete.values || []).map((a: any) => a.name).join(', ');
+            } catch (err) {
+                logger.warn('[Sync] Failed to query deactivated app names', err);
+            }
+        }
+
         await syncTablesMetadata(db, res.data.tables || []);
         await syncApps(db, res.data.apps || [], !lastSync);
         await cleanupOrphansAndTombstones(
@@ -298,6 +309,13 @@ export async function pullGlobal() {
             res.deleted_tables || [],
             res.deleted_apps || []
         );
+
+        if (deactivatedAppNames) {
+            window.dispatchEvent(new CustomEvent('apps-deactivated', {
+                detail: { names: deactivatedAppNames }
+            }));
+        }
+
         syncDashboardUIState(res.data.stats, res.data.tables || []);
         if (res.server_time) {
             localStorage.setItem(syncKey, res.server_time);

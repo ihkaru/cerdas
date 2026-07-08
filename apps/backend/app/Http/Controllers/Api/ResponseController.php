@@ -358,6 +358,18 @@ class ResponseController extends Controller
                 $isSimpleShared = false;
                 $assignment->loadMissing('tableVersion.table.app');
                 $app = $assignment->tableVersion->table->app ?? null;
+
+                // Enforce active status: Block response uploads if App is deactivated/inactive (non-admin only)
+                if ($app && !$app->is_active && !$user->isSuperAdmin()) {
+                    Log::warning('Sync rejected: App is inactive', ['user_id' => $user->id, 'app_id' => $app->id]);
+                    $results[] = [
+                        'local_id' => $respData['local_id'],
+                        'status' => 'error',
+                        'message' => 'Application is deactivated/inactive',
+                    ];
+                    continue;
+                }
+
                 if ($app && $app->mode === 'simple') {
                     $isSimpleShared = true;
                 }
