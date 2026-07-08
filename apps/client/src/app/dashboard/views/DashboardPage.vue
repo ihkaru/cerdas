@@ -1,7 +1,9 @@
 <template>
     <f7-page name="home" ptr @ptr:refresh="refresh" @page:afterin="onPageAfterIn">
         <f7-navbar :sliding="false" class="premium-navbar">
-            <f7-nav-title class="premium-title" @click="handleTitleTap" style="cursor: pointer; user-select: none;">Dashboard</f7-nav-title>
+            <f7-nav-title class="premium-title" style="user-select: none;">
+                <span @click="handleTitleTap" style="cursor: pointer; display: inline-block; padding: 4px 8px; margin: -4px -8px;">Dashboard</span>
+            </f7-nav-title>
             <f7-nav-right>
                 <f7-link @click="handleSync" class="nav-icon-btn action-btn" :class="{ 'spinning': isSyncing }" aria-label="Sync">
                     <SvgIcon name="arrow_2_circlepath" :size="22" />
@@ -53,10 +55,12 @@ let titleTapTimer: any = null;
 
 const handleTitleTap = () => {
     titleTapCount++;
+    console.log(`[Debug] Dashboard title tapped: ${titleTapCount}/5`);
     if (titleTapTimer) clearTimeout(titleTapTimer);
     titleTapTimer = setTimeout(() => { titleTapCount = 0; }, 2000);
 
     if (titleTapCount >= 5) {
+        console.log('[Debug] Triggering open-debug-menu event');
         window.dispatchEvent(new CustomEvent('open-debug-menu'));
         titleTapCount = 0;
         if (titleTapTimer) clearTimeout(titleTapTimer);
