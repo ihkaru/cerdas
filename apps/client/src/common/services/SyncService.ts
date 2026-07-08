@@ -69,17 +69,16 @@ export class SyncService {
     }
 
     // Multi-Table Sync for App-level Views
-    async syncApp(appId: string, onProgress?: (phase: string, progress?: number) => void) {
+    async syncApp(
+        appId: string, 
+        onProgress?: (phase: string, progress?: number) => void,
+        options?: { dataOnly?: boolean }
+    ) {
         try {
             onProgress?.('Fetching app configuration...', 0);
 
             // 1. Ensure we have the latest App Config (Views, Nav, etc)
-            let app = await pullApp(appId);
-
-            if (!app) {
-                // Fallback 1: Local App Metadata
-                app = await this.getAppMetadata(appId);
-            }
+            const app = await this.resolveAppMetadata(appId, options);
 
             if (!app) {
                 throw new Error(`Application ${appId} not found or is unavailable.`);
@@ -88,7 +87,7 @@ export class SyncService {
             // 2. Identify ALL tables used by this App
             const uniqueTables = this.getAppTableIds(app);
             const totalTables = uniqueTables.length;
-            logger.info(`[SyncService] Syncing App ${appId} with tables: ${uniqueTables.join(', ')}`);
+            logger.info(`[SyncService] Syncing App ${appId} with tables: ${uniqueTables.join(', ')} (Data Only: ${!!options?.dataOnly})`);
 
             // 3. Sync Each Table
             for (let i = 0; i < totalTables; i++) {
@@ -97,11 +96,17 @@ export class SyncService {
                 const progressPerTable = 100 / totalTables;
 
                 try {
-                    await this.syncTable(tableId, (phase, stepProgress) => {
+                    const syncCallback = (phase: string, stepProgress?: number) => {
                         const currentTableContribution = ((stepProgress || 0) / 100) * progressPerTable;
                         const total = Math.min(99, Math.round(baseProgress + currentTableContribution));
                         onProgress?.(`Syncing ${tableId}: ${phase}`, total);
-                    });
+                    };
+
+                    if (options?.dataOnly) {
+                        await this.syncTableDataOnly(tableId, syncCallback);
+                    } else {
+                        await this.syncTable(tableId, syncCallback);
+                    }
                 } catch (tableError: any) {
                     // Skip 404 orphaned tables; abort for other critical errors
                     if (tableError.message?.includes('404') || tableError.message?.includes('deleted')) {
@@ -119,6 +124,19 @@ export class SyncService {
             logger.error(`App Sync failed for ${appId}`, error);
             throw error;
         }
+    }
+
+    private async resolveAppMetadata(appId: string, options?: { dataOnly?: boolean }) {
+        if (options?.dataOnly) {
+            // In data-only sync (Preview Mode), prioritize local metadata to avoid overwriting drafts
+            const localApp = await this.getAppMetadata(appId);
+            if (localApp) return localApp;
+            return await pullApp(appId);
+        }
+        
+        const remoteApp = await pullApp(appId);
+        if (remoteApp) return remoteApp;
+        return await this.getAppMetadata(appId);
     }
 
     private getAppTableIds(app: any): string[] {
