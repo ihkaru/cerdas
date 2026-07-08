@@ -1,9 +1,10 @@
 import { useSync } from '@/common/composables/useSync';
 import { f7 } from 'framework7-vue';
-import { ref } from 'vue';
+import { ref, type Ref } from 'vue';
 
 export function useAppShellSync(
     contextId: string, 
+    resolvedTableId: Ref<string> | (() => string),
     refreshCallback: (full?: boolean) => Promise<void>,
     onSyncStart?: () => void
 ) {
@@ -31,8 +32,10 @@ export function useAppShellSync(
             try {
                 if (isPreview) {
                     f7.toast.show({ text: 'Preview Mode: Syncing data only...', closeTimeout: 2000 });
+                    
+                    const tableId = typeof resolvedTableId === 'function' ? resolvedTableId() : resolvedTableId.value;
                     // Use new Data-Only Sync to preserve Schema Draft
-                    await sync.syncTableDataOnly(targetId, (phase: string, progress?: number) => {
+                    await sync.syncTableDataOnly(tableId || targetId, (phase: string, progress?: number) => {
                         syncMessage.value = phase;
                         if (progress !== undefined) syncProgress.value = progress;
                     });
