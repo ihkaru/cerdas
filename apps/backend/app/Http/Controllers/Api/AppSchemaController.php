@@ -53,19 +53,40 @@ class AppSchemaController extends Controller
         }
 
         $views = [];
-        // Add views
-        foreach ($app->views as $view) {
-            // Find the table slug for this view
-            $table = $app->tables->firstWhere('id', $view->table_id);
-            $tableSlug = $table ? $table->slug : 'unknown';
+        // Add views: prioritize view_configs JSON column (UI Editor source of truth)
+        $viewConfigs = $app->view_configs ?? [];
+        if (!empty($viewConfigs)) {
+            foreach ($viewConfigs as $viewKey => $viewData) {
+                $tableId = $viewData['table_id'] ?? $viewData['form_id'] ?? null;
+                $tableSlug = 'unknown';
+                if ($tableId) {
+                    $table = $app->tables->firstWhere('id', $tableId);
+                    $tableSlug = $table ? $table->slug : 'unknown';
+                }
+                
+                $views[$viewKey] = [
+                    'table' => $tableSlug,
+                    'name' => $viewData['name'] ?? $viewKey,
+                    'type' => $viewData['type'] ?? 'deck',
+                    'description' => $viewData['description'] ?? '',
+                    'config' => $viewData['config'] ?? [],
+                ];
+            }
+        } else {
+            // Fallback: SQL views table relation
+            foreach ($app->views as $view) {
+                // Find the table slug for this view
+                $table = $app->tables->firstWhere('id', $view->table_id);
+                $tableSlug = $table ? $table->slug : 'unknown';
 
-            $views[$view->name] = [
-                'table' => $tableSlug,
-                'name' => $view->name,
-                'type' => $view->type ?? 'deck',
-                'description' => $view->description ?? '',
-                'config' => $view->config ?? [],
-            ];
+                $views[$view->name] = [
+                    'table' => $tableSlug,
+                    'name' => $view->name,
+                    'type' => $view->type ?? 'deck',
+                    'description' => $view->description ?? '',
+                    'config' => $view->config ?? [],
+                ];
+            }
         }
 
         // Build the schema structure
