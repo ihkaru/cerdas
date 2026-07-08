@@ -271,7 +271,7 @@ export async function pullApp(appId: string) {
         }
     } catch (e: any) {
         if (e.status === 404 || e.message?.includes('404')) {
-            logger.info(`[SyncService] App ${appId} not found (404), assuming Legacy Table ID.`);
+            logger.warn(`[SyncService] App ${appId} not found on server (404)`);
         } else {
             logger.warn(`[SyncService] Failed to pull app ${appId}`, e);
         }

@@ -75,7 +75,6 @@ export class SyncService {
 
             // 1. Ensure we have the latest App Config (Views, Nav, etc)
             let app = await pullApp(appId);
-            let isLegacyTable = false;
 
             if (!app) {
                 // Fallback 1: Local App Metadata
@@ -83,14 +82,11 @@ export class SyncService {
             }
 
             if (!app) {
-                // Fallback 2: Treat as Legacy Table ID
-                logger.info(`[SyncService] App ${appId} not found, treating as potential Table ID`);
-                isLegacyTable = true;
-                app = { id: appId };
+                throw new Error(`Application ${appId} not found or is unavailable.`);
             }
 
             // 2. Identify ALL tables used by this App
-            const uniqueTables = this.getAppTableIds(app, isLegacyTable);
+            const uniqueTables = this.getAppTableIds(app);
             const totalTables = uniqueTables.length;
             logger.info(`[SyncService] Syncing App ${appId} with tables: ${uniqueTables.join(', ')}`);
 
@@ -125,21 +121,17 @@ export class SyncService {
         }
     }
 
-    private getAppTableIds(app: any, isLegacyTable: boolean): string[] {
+    private getAppTableIds(app: any): string[] {
         const tableIds = new Set<string>();
 
-        if (isLegacyTable && app.id) {
-            tableIds.add(String(app.id));
-        }
-
-        if (!isLegacyTable && app.view_configs) {
+        if (app.view_configs) {
             const views = typeof app.view_configs === 'string' ? JSON.parse(app.view_configs) : app.view_configs;
             Object.values(views).forEach((v: any) => {
                 if (v.table_id) tableIds.add(String(v.table_id));
             });
         }
 
-        if (!isLegacyTable && app.tables && Array.isArray(app.tables)) {
+        if (app.tables && Array.isArray(app.tables)) {
             app.tables.forEach((t: any) => {
                 if (t.id) tableIds.add(String(t.id));
             });
