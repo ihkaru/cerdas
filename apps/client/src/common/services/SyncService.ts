@@ -90,20 +90,7 @@ export class SyncService {
             }
 
             // 2. Identify ALL tables used by this App
-            const tableIds = new Set<string>();
-
-            // A. Legacy/Default Table (App ID is often the Table ID in legacy apps)
-            tableIds.add(String(appId));
-
-            // B. Tables from View Configs (Only for real Apps)
-            if (!isLegacyTable && app.view_configs) {
-                const views = typeof app.view_configs === 'string' ? JSON.parse(app.view_configs) : app.view_configs;
-                Object.values(views).forEach((v: any) => {
-                    if (v.table_id) tableIds.add(String(v.table_id));
-                });
-            }
-
-            const uniqueTables = Array.from(tableIds);
+            const uniqueTables = this.getAppTableIds(app, isLegacyTable);
             const totalTables = uniqueTables.length;
             logger.info(`[SyncService] Syncing App ${appId} with tables: ${uniqueTables.join(', ')}`);
 
@@ -138,6 +125,29 @@ export class SyncService {
         }
     }
 
+    private getAppTableIds(app: any, isLegacyTable: boolean): string[] {
+        const tableIds = new Set<string>();
+
+        if (isLegacyTable && app.id) {
+            tableIds.add(String(app.id));
+        }
+
+        if (!isLegacyTable && app.view_configs) {
+            const views = typeof app.view_configs === 'string' ? JSON.parse(app.view_configs) : app.view_configs;
+            Object.values(views).forEach((v: any) => {
+                if (v.table_id) tableIds.add(String(v.table_id));
+            });
+        }
+
+        if (!isLegacyTable && app.tables && Array.isArray(app.tables)) {
+            app.tables.forEach((t: any) => {
+                if (t.id) tableIds.add(String(t.id));
+            });
+        }
+
+        return Array.from(tableIds);
+    }
+
     // --- Local Queries ---
 
     async getAppMetadata(appId: string) {
@@ -145,10 +155,12 @@ export class SyncService {
         const res = await db.query(`SELECT * FROM apps WHERE id = ? OR slug = ?`, [appId, appId]);
         if (res.values && res.values.length > 0) {
             const row = res.values[0];
+            const tablesRes = await db.query(`SELECT * FROM tables WHERE app_id = ?`, [row.id]);
             return {
                 ...row,
                 navigation: row.navigation ? JSON.parse(row.navigation) : [],
-                views: row.views ? JSON.parse(row.views) : []
+                view_configs: row.view_configs ? JSON.parse(row.view_configs) : {},
+                tables: tablesRes.values || []
             };
         }
         return null;
