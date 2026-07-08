@@ -61,7 +61,7 @@
 
                             <!-- Case B: Attachment Image / Signature -->
                             <div v-else-if="(field.type === 'image' || field.type === 'signature') && isImageUrl(submissionData[field.name])" class="attachment-preview">
-                                <img :src="String(submissionData[field.name])" class="attachment-img" @click="previewFullImage(String(submissionData[field.name]))" />
+                                <img :src="getImageUrl(submissionData[field.name])" class="attachment-img" @click="previewFullImage(getImageUrl(submissionData[field.name]))" />
                                 <span class="img-hint">Ketuk untuk memperbesar</span>
                             </div>
 
@@ -104,7 +104,7 @@
                                 </div>
                             </div>
                             <div v-else-if="isImageUrl(val)" class="attachment-preview">
-                                <img :src="String(val)" class="attachment-img" @click="previewFullImage(String(val))" />
+                                <img :src="getImageUrl(val)" class="attachment-img" @click="previewFullImage(getImageUrl(val))" />
                             </div>
                             <div v-else class="flat-field-value">
                                 {{ val !== null ? val : '-' }}
@@ -223,6 +223,11 @@ function isNestedData(val: any): boolean {
 function isImageUrl(val: any): boolean {
     if (typeof val !== 'string') return false;
     return val.startsWith('http') || val.startsWith('/storage') || val.startsWith('data:image');
+}
+
+function getImageUrl(val: any): string {
+    if (typeof val !== 'string') return '';
+    return ApiClient.getAssetUrl(val);
 }
 
 function previewFullImage(url: string) {

@@ -2,6 +2,9 @@
 import { Capacitor } from '@capacitor/core';
 import { logger } from '../utils/logger';
 
+/* eslint-disable-next-line sonarjs/no-hardcoded-ip */
+const ANDROID_LOOPBACK = '10.0.2.2';
+
 export class ApiClient {
     private _baseUrl: string;
     private rootUrl: string;
@@ -28,9 +31,6 @@ export class ApiClient {
         
         let url = import.meta.env.VITE_API_BASE_URL || envUrl || 'http://localhost:8080/api';
         
-        // 10.0.2.2 is the special IP for Android emulator to access host localhost
-/* eslint-disable-next-line sonarjs/no-hardcoded-ip */
-const ANDROID_LOOPBACK = '10.0.2.2';
         if (!isActuallyWeb && url.includes('localhost')) {
             url = url.replace('localhost', ANDROID_LOOPBACK);
         }
@@ -125,23 +125,35 @@ const ANDROID_LOOPBACK = '10.0.2.2';
     }
     getAssetUrl(path: string) {
         if (!path) return '';
-        if (path.startsWith('http') || path.startsWith('data:')) return path;
+        if (path.startsWith('data:')) return path;
+        
+        let finalPath = path;
+        
+        if (finalPath.startsWith('http')) {
+            if (finalPath.includes('editor.dvlpid.my.id')) {
+                finalPath = finalPath.replace(/https?:\/\/editor\.dvlpid\.my\.id/, '');
+            } else if (finalPath.includes('localhost') && this.rootUrl.includes(ANDROID_LOOPBACK)) {
+                finalPath = finalPath.replace(/https?:\/\/localhost(:\d+)?/, '');
+            } else {
+                return finalPath;
+            }
+        }
         
         // Transform /storage/xyz -> /media/xyz
         // This routes through the Laravel Proxy which adds 'Cross-Origin-Resource-Policy: cross-origin' header
         // Required because the Editor uses 'Cross-Origin-Embedder-Policy: require-corp'
-        let proxyPath = path;
-        if (path.startsWith('/storage/')) {
-            proxyPath = '/media/' + path.substring('/storage/'.length);
-        } else if (path.startsWith('storage/')) {
-            proxyPath = '/media/' + path.substring('storage/'.length);
+        let proxyPath = finalPath;
+        if (finalPath.startsWith('/storage/')) {
+            proxyPath = '/media/' + finalPath.substring('/storage/'.length);
+        } else if (finalPath.startsWith('storage/')) {
+            proxyPath = '/media/' + finalPath.substring('storage/'.length);
         } else {
              // Fallback for non-storage paths (unlikely in this context)
              // If path doesn't start with /storage, just append it.
              // But if it's meant to be static, it might fail. 
              // Assuming all user content is in /storage.
-             if (!path.startsWith('/')) proxyPath = '/' + path;
-             if (!path.startsWith('/media')) proxyPath = '/media' + proxyPath;
+             if (!finalPath.startsWith('/')) proxyPath = '/' + finalPath;
+             if (!finalPath.startsWith('/media')) proxyPath = '/media' + proxyPath;
         }
 
         // Use rootUrl instead of baseUrl to avoid attaching /api suffix to assets

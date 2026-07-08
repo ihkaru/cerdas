@@ -53,4 +53,33 @@ export const ApiClient = {
     post: <T = any>(url: string, data?: any, config?: any) => api.post<T>(url, data, config),
     put: <T = any>(url: string, data?: any, config?: any) => api.put<T>(url, data, config),
     delete: <T = any>(url: string) => api.delete<T>(url),
+    getAssetUrl: (path: string) => {
+        if (!path) return '';
+        if (path.startsWith('data:')) return path;
+        
+        let finalPath = path;
+        const rootUrl = API_URL.replace(/\/api\/?$/, '');
+        
+        // Rewrite incorrect domain configurations
+        if (finalPath.startsWith('http')) {
+            if (finalPath.includes('editor.dvlpid.my.id')) {
+                finalPath = finalPath.replace(/https?:\/\/editor\.dvlpid\.my\.id/, '');
+            } else {
+                return finalPath;
+            }
+        }
+        
+        // Transform /storage/ -> /media/ (proxied via API to support CORS/CORP headers)
+        let proxyPath = finalPath;
+        if (finalPath.startsWith('/storage/')) {
+            proxyPath = '/media/' + finalPath.substring('/storage/'.length);
+        } else if (finalPath.startsWith('storage/')) {
+            proxyPath = '/media/' + finalPath.substring('storage/'.length);
+        } else {
+             if (!finalPath.startsWith('/')) proxyPath = '/' + finalPath;
+             if (!finalPath.startsWith('/media')) proxyPath = '/media' + proxyPath;
+        }
+
+        return `${rootUrl}${proxyPath}`;
+    }
 };
