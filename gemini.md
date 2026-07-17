@@ -305,12 +305,18 @@ Logs saved to: `logs/android.log` → I can read this file directly for debuggin
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
-- **Version**: 0.2.19 (Code Quality ESLint Fix)
+- **Version**: 0.2.20 (FAB Root Cause Fix — DashboardController)
 
 - **Code Quality Fix (2026-07-17)**:
   - **Error**: `sonarjs/pseudo-random` di `excelImportService.ts` baris 65 — penggunaan `Math.random()` sebagai fallback UUID dianggap tidak aman oleh SonarJS.
   - **Fix**: Hapus fallback `Math.random()`, gunakan `crypto.randomUUID()` langsung — didukung penuh di semua target browser (Chrome 92+, Android 10+).
   - **Dampak**: CI/CD Code Quality check kini lulus tanpa error.
+
+- **FAB Root Cause Fix — DashboardController (2026-07-17)**:
+  - **[ROOT CAUSE SESUNGGUHNYA]**: `DashboardController` tidak pernah menyertakan `fields`, `layout`, dan `settings` dalam payload `/dashboard` response untuk tabel. API hanya mengirim: `id`, `name`, `version`, dll — sehingga `syncTablesMetadata` di client selalu menyimpan `settings = {}` ke SQLite.
+  - **Fix**: Eager load `latestVersion` di query tabel, lalu sertakan `fields`, `layout`, dan `settings` (dari `layout.settings` schema version) dalam setiap item tabel di response `/dashboard`.
+  - **Dampak**: Setelah user melakukan Sync Data, SQLite lokal Android akan memiliki `settings.actions.header` yang berisi action `create` → `hasCreateAction = true` → **FAB muncul** ✅.
+  - **APK tidak perlu direbuild** — cukup Sync Data sekali di APK yang sudah ada.
 
 
 - **Android Mobile FAB Spacing Offset Fix (2026-07-17)**:
