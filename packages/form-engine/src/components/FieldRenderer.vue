@@ -32,6 +32,7 @@ import NumberField from './fields/NumberField.vue';
 import RadioField from './fields/RadioField.vue';
 import SelectField from './fields/SelectField.vue';
 import TextField from './fields/TextField.vue';
+import UrlField from './fields/UrlField.vue';
 
 // Async import for larger components
 const NestedFormField = defineAsyncComponent(() => import('./fields/NestedFormField.vue'));
@@ -65,6 +66,7 @@ const componentMap: Partial<Record<FieldType | string, any>> = {
   gps_location: GpsField,
   location: GpsField,
   signature: SignatureField,
+  url: UrlField,
 };
 </script>
 

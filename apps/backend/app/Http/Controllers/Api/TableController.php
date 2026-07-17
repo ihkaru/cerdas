@@ -11,9 +11,7 @@ use Illuminate\Support\Str;
 
 class TableController extends Controller
 {
-    /**
-     * List all tables for an app
-     */
+    // List all tables for an app
     public function index(Request $request): JsonResponse
     {
         $request->validate([
@@ -48,9 +46,7 @@ class TableController extends Controller
         ]);
     }
 
-    /**
-     * Create a new table
-     */
+    // Create a new table
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -107,9 +103,7 @@ class TableController extends Controller
         ], 201);
     }
 
-    /**
-     * Get a specific table with its current version
-     */
+    // Get a specific table with its current version
     public function show(Request $request, Table $table): JsonResponse
     {
         $user = $request->user();
@@ -132,9 +126,49 @@ class TableController extends Controller
         ]);
     }
 
-    /**
-     * Update table metadata (not fields)
-     */
+    // Get paginated records for a table (used by Editor Data Preview Panel)
+    public function records(Request $request, Table $table): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user->hasAppAccess($table->app_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied to this table',
+            ], 403);
+        }
+
+        $perPage = min((int) $request->get('per_page', 50), 200);
+        $page = max((int) $request->get('page', 1), 1);
+
+        $query = \App\Models\AppRecord::where('table_id', $table->id)
+            ->whereNull('deleted_at');
+
+        $total = $query->count();
+        $records = $query->latest()
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
+            ->get(['id', 'data', 'created_at']);
+
+        // Build column list from latest version fields
+        $version = $table->latestPublishedVersion ?? $table->currentVersionModel;
+        $columns = collect($version?->fields ?? [])->map(fn ($f) => [
+            'key' => $f['name'] ?? '',
+            'label' => $f['label'] ?? $f['name'] ?? '',
+            'type' => $f['type'] ?? 'text',
+        ])->filter(fn ($c) => $c['key'] !== '')->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $records->map(fn ($r) => array_merge(['_id' => $r->id], $r->data ?? [])),
+            'columns' => $columns,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+        ]);
+    }
+
+    // Update table metadata (not fields)
     public function update(Request $request, Table $table): JsonResponse
     {
         $user = $request->user();
@@ -163,9 +197,7 @@ class TableController extends Controller
         ]);
     }
 
-    /**
-     * Delete a table (soft delete)
-     */
+    // Delete a table (soft delete)
     public function destroy(Request $request, Table $table): JsonResponse
     {
         $user = $request->user();
@@ -366,9 +398,7 @@ class TableController extends Controller
         ]);
     }
 
-    /**
-     * Get a specific version
-     */
+    // Get a specific version
     public function showVersion(Request $request, Table $table, int $version): JsonResponse
     {
         $user = $request->user();
@@ -401,9 +431,7 @@ class TableController extends Controller
         ]);
     }
 
-    /**
-     * Update a version's fields/layout (Editor Save)
-     */
+    // Update a version's fields/layout (Editor Save)
     public function updateVersion(Request $request, Table $table, int $version): JsonResponse
     {
         $user = $request->user();
@@ -457,9 +485,7 @@ class TableController extends Controller
         ]);
     }
 
-    /**
-     * Publish a version (makes it immutable)
-     */
+    // Publish a version (makes it immutable)
     public function publishVersion(Request $request, Table $table, int $version): JsonResponse
     {
         $user = $request->user();
@@ -514,9 +540,7 @@ class TableController extends Controller
         ]);
     }
 
-    /**
-     * Create a new draft version based on latest published or specific version
-     */
+    // Create a new draft version based on latest published or specific version
     public function createDraftVersion(Request $request, Table $table): JsonResponse
     {
         $user = $request->user();

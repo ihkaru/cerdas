@@ -114,8 +114,8 @@ export async function fetchAssignmentPages(
         const progress = hasNext ? 30 + Math.min(pageNum * 10, 55) : 85;
         onProgress?.(
             hasNext
-                ? `Downloading assignments (page ${pageNum})...`
-                : 'Downloading assignments (final page)...',
+                ? `Mengunduh penugasan (halaman ${pageNum})...`
+                : 'Mengunduh penugasan (halaman terakhir)...',
             progress
         );
 

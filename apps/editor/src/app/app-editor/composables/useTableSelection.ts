@@ -21,6 +21,8 @@ export function useTableSelection(
         showExcelImportModal: Ref<boolean>;
         isGlobalDirty?: () => boolean;
         handleSave?: () => Promise<void>;
+        /** Called after a successful Excel/CSV import with the new table_id */
+        onImportSuccess?: (tableId: string) => void;
     }
 ) {
     // State (Derived from tableStore)
@@ -142,11 +144,18 @@ export function useTableSelection(
     async function handleExcelImported(payload?: { table_id?: string }) {
         if (appStore.currentApp?.id) {
             try {
+                // Refresh app state to include the newly imported table
                 await appStore.fetchApp(appStore.currentApp.id);
+
                 if (payload?.table_id) {
-                    setTimeout(() => {
-                        selectTable(payload!.table_id!);
-                    }, 500);
+                    // FIXED: await selectTable so fields are fully loaded BEFORE
+                    // fetchAppViews runs. This prevents the race condition where
+                    // smart field detection falls back to empty ['name', 'description'].
+                    await doSelectTable(payload.table_id);
+
+                    // Trigger UI callback to switch to Data Preview sub-tab
+                    // and show guidance toast
+                    callbacks.onImportSuccess?.(payload.table_id);
                 }
             } catch (e) {
                 console.error('[AppEditor] Import handling error:', e);

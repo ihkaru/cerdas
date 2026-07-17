@@ -308,7 +308,8 @@ export class EditorBridgeService {
             // Only navigate if we are not already on that view query
             if (currentRoute.query.view !== viewId) {
                 f7.view.main.router.navigate(newUrl, {
-                    reloadCurrent: true,
+                    reloadCurrent: false,
+                    animate: false,
                     ignoreCache: true
                 });
             }

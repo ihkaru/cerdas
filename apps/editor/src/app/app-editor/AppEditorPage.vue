@@ -12,7 +12,7 @@
         </template>
 
         <template #main>
-            <EditorTabContent v-model:activeTab="activeTab" :panels="panels" :table-editor="tableEditor"
+            <EditorTabContent ref="editorTabContentRef" v-model:activeTab="activeTab" :panels="panels" :table-editor="tableEditor"
                 :nav-management="navManagement" :table-selection="tableSelection"
                 :app-view-management="appViewManagement" @reset-field="handleFieldReset"
                 @code-apply="handleCodeApply" />
@@ -81,6 +81,9 @@ provide('activeTab', activeTab);
 const highlightedViewOption = ref<string>('');
 provide('highlightedViewOption', highlightedViewOption);
 
+// Ref to EditorTabContent for programmatic sub-tab switching
+const editorTabContentRef = ref<InstanceType<typeof EditorTabContent> | null>(null);
+
 // 2. Core Editor Logic
 const tableEditor = useTableEditor();
 const { tableName, selectedFieldPath, isDirty, selectedOriginalField, updateField, loadTable } = tableEditor;
@@ -104,7 +107,18 @@ const tableSelection = useTableSelection(
         showNewSourceModal,
         showExcelImportModal,
         isGlobalDirty: () => isGlobalDirty.value,
-        handleSave: () => handleSave()
+        handleSave: () => handleSave(),
+        onImportSuccess: (_tableId: string) => {
+            // Switch to Data Preview sub-tab so creator sees their data immediately
+            editorTabContentRef.value?.switchToDataPreview?.();
+            // Guidance toast
+            f7.toast.show({
+                text: '✓ Data berhasil diimport! Lihat data di tab <b>Data Preview</b> di samping, lalu buka <b>Views</b> untuk mengatur tampilan.',
+                position: 'bottom',
+                closeTimeout: 5000,
+                closeButton: true,
+            });
+        }
     }
 );
 const { hasTableSelected, selectTable, currentVersion, isPublished } = tableSelection;

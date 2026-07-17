@@ -24,13 +24,13 @@ export function useAppShellSync(
         const executeSync = async () => {
             isSyncing.value = true;
             syncProgress.value = 0;
-            syncMessage.value = 'Initializing sync...';
+            syncMessage.value = 'Memulai sinkronisasi...';
             
             if (onSyncStart) onSyncStart();
 
             try {
                 if (isPreview) {
-                    f7.toast.show({ text: 'Preview Mode: Syncing data only...', closeTimeout: 2000 });
+                    f7.toast.show({ text: 'Mode Pratinjau: Hanya menyinkronkan data...', closeTimeout: 2000 });
                     // Use App Sync with dataOnly option to sync ALL app tables while preserving drafts
                     await sync.syncApp(targetId, (phase: string, progress?: number) => {
                         syncMessage.value = phase;
@@ -44,11 +44,11 @@ export function useAppShellSync(
                     });
                 }
                 
-                syncMessage.value = 'Reloading data...';
+                syncMessage.value = 'Memuat ulang data...';
                 // Force reload but keep override if present (loadApp handles this)
                 await refreshCallback(true);
                 
-                f7.toast.show({ text: 'App updated', closeTimeout: 2000 });
+                f7.toast.show({ text: 'Aplikasi diperbarui', closeTimeout: 2000 });
             } catch (e: any) {
                 // Special handling for 404 in Preview Mode
                 if (isPreview && String(e).includes('404')) {
@@ -57,7 +57,7 @@ export function useAppShellSync(
                         'Skema Belum Disimpan'
                     );
                 } else {
-                    f7.dialog.alert('Sync failed - ' + e.message, 'Error');
+                    f7.dialog.alert('Sinkronisasi gagal - ' + e.message, 'Error');
                 }
             } finally {
                 setTimeout(() => {

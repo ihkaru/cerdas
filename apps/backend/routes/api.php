@@ -5,13 +5,13 @@ use App\Http\Controllers\Api\AppSchemaController;
 use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ExcelImportController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\GoogleAuthController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ResponseController;
 use App\Http\Controllers\Api\TableController;
-use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\ExcelImportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
@@ -30,7 +30,7 @@ Route::get('/up', function () {
 // Broadcasting Auth Route
 Route::post('/broadcasting/auth', function (Request $request) {
     // Return 401 for unauthenticated requests
-    if (!$request->user()) {
+    if (! $request->user()) {
         return response()->json(['error' => 'Unauthenticated'], 401);
     }
     try {
@@ -71,7 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Impersonation for Editor Preview (Super Admin Only)
     Route::post('/auth/impersonate', function (Request $request) {
         $user = $request->user();
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -93,7 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 break;
         }
 
-        if (!$targetUser) {
+        if (! $targetUser) {
             return response()->json(['message' => 'Target user not found for this role'], 404);
         }
 
@@ -120,9 +120,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{app}', [AppController::class, 'show']);
         Route::put('/{app}', [AppController::class, 'update']);
         Route::delete('/{app}', [AppController::class, 'destroy']);
-        Route::get('/{app}/context', [AppController::class, 'context']); 
+        Route::get('/{app}/context', [AppController::class, 'context']);
         Route::get('/{app}/responses', [ResponseController::class, 'indexForEditor']);
-        
+
         // App Schema Operations
         Route::get('/{app}/schema', [AppSchemaController::class, 'getSchema']);
         Route::put('/{app}/schema', [AppSchemaController::class, 'updateSchema']);
@@ -142,7 +142,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{app}/join-link', [AppController::class, 'toggleJoinLink']);
         Route::delete('/{app}/join-link', [AppController::class, 'regenerateJoinLink']);
     });
-    
+
     Route::post('/apps/import', [AppSchemaController::class, 'importSchema']);
 
     // Organizations
@@ -173,13 +173,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{table}', [TableController::class, 'destroy']);
         Route::put('/{table}/restore', [TableController::class, 'restore']);
         Route::delete('/{table}/force', [TableController::class, 'forceDestroy']);
-        
+
+        // Editor Data Preview — paginated raw records for a table
+        Route::get('/{table}/records', [TableController::class, 'records']);
+
         // Export Logic
         Route::post('/{table}/export/request', [ExportController::class, 'requestAsync']);
         Route::get('/{table}/export/status/{job}', [ExportController::class, 'checkStatus']);
         Route::get('/{table}/export/download/{job}', [ExportController::class, 'downloadAsync']);
         Route::get('/{table}/export/get-download-url/{job}', [ExportController::class, 'getDownloadUrl']);
-        
+
         // Versions
         Route::get('/{table}/versions', [TableController::class, 'listVersions']);
         Route::get('/{table}/versions/{version}', [TableController::class, 'showVersion']);

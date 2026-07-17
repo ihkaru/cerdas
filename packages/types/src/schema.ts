@@ -5,6 +5,7 @@
 export type FieldType =
   | 'text'
   | 'number'
+  | 'url'
   | 'date'
   | 'time'
   | 'datetime'

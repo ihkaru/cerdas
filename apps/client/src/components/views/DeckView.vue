@@ -299,6 +299,12 @@ const resolvePath = (obj: any, responseData: any, prelistData: any, path: string
         return cleanPath === 'status' ? statusLabel(String(responseVal)) : responseVal;
     }
 
+    // 3. Try searching in prelist_data (For prefilled/imported columns)
+    const prelistVal = getDeep(prelistData, cleanPath);
+    if (prelistVal !== undefined && prelistVal !== null && prelistVal !== '') {
+        return cleanPath === 'status' ? statusLabel(String(prelistVal)) : prelistVal;
+    }
+
     // 4. Try smart fallbacks for standard unconfigured/default keys
     const lowerPath = cleanPath.toLowerCase();
     if (lowerPath === 'name' || lowerPath === 'title' || lowerPath === 'nama' || lowerPath === 'judul') {

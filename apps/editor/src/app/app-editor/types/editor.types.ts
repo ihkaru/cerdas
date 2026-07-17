@@ -293,6 +293,15 @@ export const FIELD_TYPE_META: Record<FieldType, FieldTypeMeta> = {
     supportsFormula: true,
     category: 'basic',
   },
+  url: {
+    type: 'url',
+    label: 'URL / Hyperlink',
+    icon: 'link',
+    description: 'Interactive web hyperlink',
+    hasOptions: false,
+    supportsFormula: true,
+    category: 'basic',
+  },
   date: {
     type: 'date',
     label: 'Date',

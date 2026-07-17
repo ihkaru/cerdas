@@ -8,7 +8,7 @@
                     <div class="sync-ripple"></div>
                 </div>
 
-                <h2 class="sync-title">Syncing Data...</h2>
+                <h2 class="sync-title">Menyinkronkan Data...</h2>
                 <p class="sync-message">{{ message }}</p>
 
                 <!-- Progress Bar -->
@@ -17,7 +17,7 @@
                         <div class="progress-fill" :style="{ width: progress + '%' }"></div>
                     </div>
                     <div class="progress-labels">
-                        <span>Progress</span>
+                        <span>Kemajuan</span>
                         <span>{{ Math.round(progress) }}%</span>
                     </div>
                 </div>
@@ -25,7 +25,7 @@
                 <!-- Info Text -->
                 <p class="sync-info">
                     <f7-icon f7="info_circle_fill" size="14" class="sync-info-icon"></f7-icon>
-                    Please do not close the app
+                    Mohon jangan tutup aplikasi
                 </p>
             </div>
         </f7-page-content>
@@ -136,7 +136,8 @@ const progress = computed(() => Math.min(Math.max(props.progress, 0), 100));
 
 .progress-fill {
     height: 100%;
-    background: var(--f7-theme-color);
+    background: linear-gradient(90deg, var(--f7-theme-color) 0%, #60a5fa 100%);
+    box-shadow: 0 2px 6px rgba(var(--f7-theme-color-rgb), 0.4);
     border-radius: 99px;
     transition: width 0.3s ease;
 }

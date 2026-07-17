@@ -49,26 +49,48 @@
             <ResizableDivider @resize-start="panels.dataListBaseWidth = panels.dataListWidth"
                 @resize="(delta) => panels.dataListWidth = Math.max(250, Math.min(500, panels.dataListBaseWidth + delta))" />
 
-            <!-- Right: Fields (inline when table selected) -->
+            <!-- Right: Fields / Data Preview (sub-tab when table selected) -->
             <template v-if="tableSelection.hasTableSelected">
-                <div class="field-list-panel"
+                <!-- Sub-tab bar -->
+                <div class="schema-subtab-wrapper"
                     :style="{ 
-                        width: tableEditor.selectedFieldPath ? panels.fieldListWidth + 'px' : '100%', 
-                        flex: tableEditor.selectedFieldPath ? '0 0 auto' : '1 1 0%',
+                        width: tableEditor.selectedFieldPath && activeSchemaSubTab === 'fields' ? panels.fieldListWidth + 'px' : '100%', 
+                        flex: tableEditor.selectedFieldPath && activeSchemaSubTab === 'fields' ? '0 0 auto' : '1 1 0%',
                         minWidth: '250px', 
-                        maxWidth: tableEditor.selectedFieldPath ? '600px' : 'none' 
+                        maxWidth: tableEditor.selectedFieldPath && activeSchemaSubTab === 'fields' ? '600px' : 'none',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden'
                     }">
-                    <FieldList :fields="tableEditor.currentFields" :breadcrumbs="tableEditor.breadcrumbs"
-                        :selected-path="tableEditor.selectedFieldPath" @select="tableEditor.selectField"
-                        @add="(type, idx) => tableEditor.addFieldAtCurrentLevel(type, idx)"
-                        @delete="tableEditor.removeField" @duplicate="tableEditor.duplicateField"
-                        @reorder="tableEditor.reorderFieldsAtCurrentLevel" @drill-in="tableEditor.drillInto"
-                        @drill-up="tableEditor.drillUp" @drill-to="tableEditor.drillToPath" />
+                    <!-- Sub-tab header -->
+                    <div class="schema-subtab-bar">
+                        <button class="schema-subtab-btn" :class="{ active: activeSchemaSubTab === 'fields' }"
+                            @click="activeSchemaSubTab = 'fields'; tableEditor.clearSelection?.()">
+                            <f7-icon f7="list_bullet" size="11" />
+                            Fields
+                        </button>
+                        <button class="schema-subtab-btn" :class="{ active: activeSchemaSubTab === 'data' }"
+                            @click="activeSchemaSubTab = 'data'">
+                            <f7-icon f7="table_badge_more" size="11" />
+                            Data Preview
+                        </button>
+                    </div>
+                    <!-- Sub-tab content -->
+                    <div style="flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;">
+                        <FieldList v-if="activeSchemaSubTab === 'fields'"
+                            :fields="tableEditor.currentFields" :breadcrumbs="tableEditor.breadcrumbs"
+                            :selected-path="tableEditor.selectedFieldPath" @select="tableEditor.selectField"
+                            @add="(type, idx) => tableEditor.addFieldAtCurrentLevel(type, idx)"
+                            @delete="tableEditor.removeField" @duplicate="tableEditor.duplicateField"
+                            @reorder="tableEditor.reorderFieldsAtCurrentLevel" @drill-in="tableEditor.drillInto"
+                            @drill-up="tableEditor.drillUp" @drill-to="tableEditor.drillToPath" />
+                        <DataPreviewPanel v-else style="flex:1; min-height:0;" />
+                    </div>
                 </div>
-                <ResizableDivider v-if="!!tableEditor.selectedFieldPath"
+                <ResizableDivider v-if="!!tableEditor.selectedFieldPath && activeSchemaSubTab === 'fields'"
                     @resize-start="panels.fieldListBaseWidth = panels.fieldListWidth"
                     @resize="(delta) => panels.fieldListWidth = Math.max(250, Math.min(600, panels.fieldListBaseWidth + delta))" />
-                <div v-if="!!tableEditor.selectedFieldPath" class="field-config-panel">
+                <div v-if="!!tableEditor.selectedFieldPath && activeSchemaSubTab === 'fields'" class="field-config-panel">
                     <FieldConfigPanel :field="tableEditor.selectedField"
                         :original-field="tableEditor.selectedOriginalField" :all-fields="tableEditor.currentFields"
                         @close="tableEditor.clearSelection" @reset="$emit('reset-field')"
@@ -116,7 +138,7 @@
                 <div class="code-editor-panel"
                     :style="{ width: panels.codeEditorWidth + 'px', minWidth: '400px', maxWidth: '1000px' }">
                     <CodeEditorTab 
-                        @apply="(payload) => $emit('code-apply', payload)" />
+                        @apply="(payload: any) => $emit('code-apply', payload)" />
                 </div>
                 <ResizableDivider @resize-start="panels.codeEditorBaseWidth = panels.codeEditorWidth"
                     @resize="(delta) => panels.codeEditorWidth = Math.max(400, Math.min(1000, panels.codeEditorBaseWidth + delta))" />
@@ -144,6 +166,7 @@ import ResizableDivider from '../shared/ResizableDivider.vue';
 import ActionsPanel from '../actions/ActionsPanel.vue';
 import SubmissionsPanel from '../monitoring/SubmissionsPanel.vue';
 import CodeEditorTab from '../code/CodeEditorTab.vue';
+import DataPreviewPanel from '../data/DataPreviewPanel.vue';
 import TrashModal from '../data/TrashModal.vue';
 import FieldConfigPanel from '../field-config/FieldConfigPanel.vue';
 import FieldList from '../field-list/FieldList.vue';
@@ -176,6 +199,14 @@ const appViewManagement = props.appViewManagement;
 
 // Local UI State
 const showTrashModal = ref(false);
+// Sub-tab for schema panel right side: 'fields' | 'data'
+const activeSchemaSubTab = ref<'fields' | 'data'>('fields');
+
+// Expose so parent (AppEditorPage) can switch to data preview after import
+function switchToDataPreview() {
+    activeSchemaSubTab.value = 'data';
+}
+defineExpose({ switchToDataPreview });
 </script>
 
 <style scoped>
@@ -263,5 +294,44 @@ const showTrashModal = ref(false);
 .form-action-btn:hover {
     background: rgba(239, 68, 68, 0.08);
     color: #ef4444;
+}
+
+/* ── Schema Sub-tab Bar (Fields | Data Preview) ── */
+.schema-subtab-bar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    flex-shrink: 0;
+}
+
+.schema-subtab-btn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #64748b;
+    border-radius: 6px 6px 0 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    margin-bottom: -1px;
+}
+
+.schema-subtab-btn:hover {
+    color: #334155;
+    background: #e2e8f0;
+}
+
+.schema-subtab-btn.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+    background: #fff;
+    font-weight: 600;
 }
 </style>

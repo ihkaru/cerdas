@@ -110,7 +110,25 @@ packages/types  - @cerdas/types (shared strict TS types)
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
-- **Version**: 0.1.66 (Updated with Smart Update System & Version Syncing)
+- **Version**: 0.2.10 (Interactive URL / Hyperlink Field Type)
+
+- **URL / Hyperlink Field Type (2026-07-17)**:
+  - **Tipe Data Terpusat**: Menambahkan `'url'` ke daftar `FieldType` global di `@cerdas/types`.
+  - **UrlField.vue (NEW)**: Komponen input URL khusus di `@cerdas/form-engine` dengan fitur:
+    - **Mode Edit**: `<input type="url">` dengan asisten `📋 Tempel` clipboard cepat dan tombol `↗ Tes Tautan` verifikasi tautan.
+    - **Mode Read-Only**: Blok tombol tautan berikon yang bersih dengan dukungan `config.display_label` kustom untuk menyembunyikan URL panjang.
+  - **Editor App Integration**: Mendaftarkan tipe data `'url'` di `FIELD_TYPE_META` editor agar muncul di dropdown tipe kolom Schema Editor.
+
+
+- **UX Post-Import "Aha Moment" (2026-07-17)**:
+  - **Root Cause**: Preview iframe adalah Client App yang hanya menampilkan *assignment* (penugasan), bukan *rekaman data*. Data CSV yang baru diimport tidak pernah ter-assign → selalu kosong. Ini mismatch arsitektur yang menciptakan dead end.
+  - **Backend**: Tambah endpoint `GET /tables/{id}/records?page=1&per_page=50` di `TableController::records()` — query `AppRecord` berdasarkan `table_id`, return data + metadata kolom dari versi field aktual.
+  - **DataPreviewPanel.vue (NEW)**: Komponen grid data premium di dalam editor. Dark sticky header, striped rows, loading skeleton, pagination 50 rows/page, auto-reload saat tabel berubah. Menampilkan data langsung dari API tanpa iframe Client App.
+  - **Sub-tab "Fields | Data Preview"**: Menambahkan sub-tab bar di panel kanan Schema tab. Creator bisa switch antara melihat field config dan melihat data aktual tanpa ganti tab utama.
+  - **Race Condition Fix**: `handleExcelImported()` sebelumnya menggunakan `setTimeout(500)` yang menyebabkan `fetchAppViews()` berjalan sebelum fields ter-load → smart view detection fallback ke kolom kosong. Diperbaiki dengan `await doSelectTable()` — fields pasti tersedia sebelum view default dibuat.
+  - **onImportSuccess Callback**: Setelah import selesai, editor otomatis switch ke sub-tab "Data Preview" dan menampilkan guidance toast 5 detik: "✓ Data berhasil diimport! Lihat data di tab **Data Preview**, lalu buka **Views** untuk mengatur tampilan."
+  - **DeckView Fix (Client App)**: Memperbaiki masalah kolom kustom (seperti `nama_kk` atau `wid`) yang tidak tampil di list item preview sebelum form disubmit. Penyebabnya adalah `resolvePath` di `DeckView.vue` belum mengecek `prelist_data` tempat data Excel yang baru diimport disimpan. Telah ditambahkan step pencarian ke `prelist_data`.
+  - **Preview Navigation Flickering Fix**: Menyelesaikan masalah kedipan animasi skeleton loading setiap kali berpindah tab/tampilan di editor. Penyebabnya adalah `EditorBridgeService.ts` memanggil `navigate` dengan `reloadCurrent: true` yang memicu remount komponen `AppShell.vue` dan reload query DB. Diubah menjadi `reloadCurrent: false` dan `animate: false` untuk update query parameter secara instan tanpa re-render penuh.
 
 **⚠️ CRITICAL**: Always use `.\stop-all.bat` to stop servers. NEVER use `taskkill` directly - it may close IDE!
 

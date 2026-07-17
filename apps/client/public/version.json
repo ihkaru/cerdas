@@ -1,7 +1,7 @@
 {
-  "version": "0.2.8",
-  "build_id": "kwr057",
-  "timestamp": "2026-07-08T01:54:39.719Z",
+  "version": "0.2.9",
+  "build_id": "borbnw",
+  "timestamp": "2026-07-17T07:19:00.259Z",
   "min_native_version": "0.1.0",
   "changelog": [
     "Optimisasi sinkronisasi data",

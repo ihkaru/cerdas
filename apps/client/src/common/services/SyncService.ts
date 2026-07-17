@@ -24,19 +24,19 @@ export class SyncService {
     // App Sync: Running when opening an App (Table)
     async syncTable(tableId: string, onProgress?: (phase: string, progress?: number) => void) {
         try {
-            onProgress?.('Uploading pending data...', 10);
+            onProgress?.('Mengunggah data tertunda...', 10);
             await this.push();
 
-            onProgress?.('Downloading table structure...', 20);
+            onProgress?.('Mengunduh struktur tabel...', 20);
             await pullTable(tableId);
 
-            onProgress?.('Downloading assignments...', 30);
+            onProgress?.('Mengunduh penugasan...', 30);
             await pullAssignments(tableId, onProgress);
 
-            onProgress?.('Downloading responses...', 90);
+            onProgress?.('Mengunduh data jawaban...', 90);
             await pullResponses(tableId);
 
-            onProgress?.('Sync complete!', 100);
+            onProgress?.('Sinkronisasi selesai!', 100);
             await databaseService.save(); // Persist changes (Web)
             return { success: true };
         } catch (error) {
@@ -48,18 +48,18 @@ export class SyncService {
     // App Sync: Data Only (For Preview Mode where schema is local draft)
     async syncTableDataOnly(tableId: string, onProgress?: (phase: string, progress?: number) => void) {
         try {
-            onProgress?.('Uploading pending data...', 10);
+            onProgress?.('Mengunggah data tertunda...', 10);
             await this.push();
 
             // SKIP pullTable() to keep the local draft schema
 
-            onProgress?.('Downloading assignments...', 30);
+            onProgress?.('Mengunduh penugasan...', 30);
             await pullAssignments(tableId, onProgress);
 
-            onProgress?.('Downloading responses...', 90);
+            onProgress?.('Mengunduh data jawaban...', 90);
             await pullResponses(tableId);
 
-            onProgress?.('Sync complete!', 100);
+            onProgress?.('Sinkronisasi selesai!', 100);
             await databaseService.save(); // Persist changes (Web)
             return { success: true };
         } catch (error) {
@@ -75,7 +75,7 @@ export class SyncService {
         options?: { dataOnly?: boolean }
     ) {
         try {
-            onProgress?.('Fetching app configuration...', 0);
+            onProgress?.('Mengambil konfigurasi aplikasi...', 0);
 
             // 1. Ensure we have the latest App Config (Views, Nav, etc)
             const app = await this.resolveAppMetadata(appId, options);
@@ -95,11 +95,15 @@ export class SyncService {
                 const baseProgress = (i / totalTables) * 100;
                 const progressPerTable = 100 / totalTables;
 
+                // Resolve user-friendly Table Name instead of raw UUID
+                const tableObj = app.tables?.find((t: any) => String(t.id) === String(tableId));
+                const tableName = tableObj?.name || `Tabel ${tableId.slice(0, 8)}`;
+
                 try {
                     const syncCallback = (phase: string, stepProgress?: number) => {
                         const currentTableContribution = ((stepProgress || 0) / 100) * progressPerTable;
                         const total = Math.min(99, Math.round(baseProgress + currentTableContribution));
-                        onProgress?.(`Syncing ${tableId}: ${phase}`, total);
+                        onProgress?.(`Tabel ${tableName}: ${phase}`, total);
                     };
 
                     if (options?.dataOnly) {
@@ -117,7 +121,7 @@ export class SyncService {
                 }
             }
 
-            onProgress?.('App Sync Complete!', 100);
+            onProgress?.('Sinkronisasi aplikasi selesai!', 100);
             return { success: true };
 
         } catch (error) {
