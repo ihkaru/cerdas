@@ -118,8 +118,32 @@ const dropdownStyle = ref({
 // Computed
 // ============================================================================
 
+// Flatten nested_form fields to support selecting sub-fields (e.g. parent_field.0.child_field)
+const flatFields = computed(() => {
+    const list: EditableFieldDefinition[] = [];
+    
+    props.fields.forEach(f => {
+        // Push original field
+        list.push(f);
+        
+        // If it's a nested form (child table), expose its sub-fields with index 0
+        if ((f.type === 'nested_form' || f.type === 'nested') && Array.isArray(f.fields)) {
+            f.fields.forEach((sub: any) => {
+                list.push({
+                    ...sub,
+                    name: `${f.name}.0.${sub.name}`,
+                    label: `${sub.label || sub.name} (dari ${f.label || f.name})`,
+                    type: sub.type
+                } as EditableFieldDefinition);
+            });
+        }
+    });
+    
+    return list;
+});
+
 const filteredFields = computed(() => {
-    let result = props.fields;
+    let result = flatFields.value;
 
     // 1. Filter by Type
     if (props.filterTypes && props.filterTypes.length > 0) {
@@ -141,7 +165,7 @@ const filteredFields = computed(() => {
 
 const selectedField = computed(() => {
     if (!props.modelValue) return null;
-    return props.fields.find(f => f.name === props.modelValue) || null;
+    return flatFields.value.find(f => f.name === props.modelValue) || null;
 });
 
 // ============================================================================

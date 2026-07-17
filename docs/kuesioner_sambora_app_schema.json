@@ -861,13 +861,14 @@
       "title": "Daftar Pendataan",
       "type": "deck",
       "description": "Daftar hasil pendataan lapangan Sambora",
-      "config": {
-        "title_column": "kepala_keluarga_list.0.nama_kk",
-        "subtitle_column": "Nama_RT",
-        "desc_column": "ID_rumah",
-        "group_by": ["Nama_RT"],
-        "search_columns": ["kepala_keluarga_list.0.nama_kk", "ID_rumah", "Nama_RT"]
-      }
+      "groupBy": ["Nama_RT"],
+      "deck": {
+        "primaryHeaderField": "kepala_keluarga_list.0.nama_kk",
+        "secondaryHeaderField": "Nama_RT",
+        "imageField": null,
+        "imageShape": "square"
+      },
+      "actions": ["edit", "delete"]
     }
   },
   "navigation": [

@@ -22,6 +22,7 @@ export function useEditorHandlers(
         tableForPreview, 
         tableName, 
         updateTableName,
+        replaceAllFields,
         replaceLayout,
         replaceSettings
     } = tableEditor;
