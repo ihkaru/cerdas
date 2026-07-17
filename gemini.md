@@ -305,7 +305,13 @@ Logs saved to: `logs/android.log` → I can read this file directly for debuggin
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
-- **Version**: 0.2.18 (Android Mobile FAB Spacing Offset Fix)
+- **Version**: 0.2.19 (Code Quality ESLint Fix)
+
+- **Code Quality Fix (2026-07-17)**:
+  - **Error**: `sonarjs/pseudo-random` di `excelImportService.ts` baris 65 — penggunaan `Math.random()` sebagai fallback UUID dianggap tidak aman oleh SonarJS.
+  - **Fix**: Hapus fallback `Math.random()`, gunakan `crypto.randomUUID()` langsung — didukung penuh di semua target browser (Chrome 92+, Android 10+).
+  - **Dampak**: CI/CD Code Quality check kini lulus tanpa error.
+
 
 - **Android Mobile FAB Spacing Offset Fix (2026-07-17)**:
   - **Dynamic Spacing Offset**: Menambahkan kelas `fab-with-toolbar` pada `<f7-fab>` di `AppShell.vue` jika `appNavigation` aktif.

@@ -61,8 +61,8 @@ export const ExcelImportService = {
         const chunkSize = 5 * 1024 * 1024; // 5MB chunks
         const totalChunks = Math.ceil(file.size / chunkSize);
         
-        // Simple client-side UUID generation
-        const uuid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+        // Use crypto.randomUUID() — supported in all target browsers (Chrome 92+, Android 10+)
+        const uuid = crypto.randomUUID();
 
         let result: any = null;
         for (let i = 0; i < totalChunks; i++) {
