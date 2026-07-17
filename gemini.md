@@ -923,3 +923,12 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
         - Resolved conflicts in `DashboardController.php` and `TableController.php` by keeping the upstream's active app filters and the cleaner `hasAppAccess` logic.
         - Resolved conflicts in `SyncService.ts` and `gemini.md` by checking out upstream (ours) versions, as the local stashed changes in `SyncService.ts` were old pre-refactored implementations of methods that are now successfully extracted into separate helper files (`TableSyncHelpers.ts` & `AssignmentSyncHelpers.ts`).
         - Cleaned up the stash stack by dropping the conflicted WIP stash.
+
+### 17 July 2026 - Port Conflict Resolution & Documentation Audit
+- **Port Conflict Analysis & Resolution**:
+    - **Problem**: Default ports (`8090` for backend, `3000`/`8000` for client, `3001`/`8001` for editor) conflicted with active host processes: Wondershare's `WsToastNotification` on port `8090`, `fasih-nexus-vpn` on ports `3000`/`8000`, and `bps-mcp-server` on ports `3001`/`8001`.
+    - **Resolution**: Shifted all monorepo development ports to a completely free range: Backend API to `9980`, Client App to `9981`, and Editor App to `9982`.
+    - **Files Updated**: Updated `docker-compose.dev.yml`, client & editor `.env.docker-web` configurations, client `.env.docker-android` emulator settings, `AppSettingsPanel.vue` (for swap join links), and startup scripts (`start-dev-docker.ps1`, `start-android-docker.ps1`, `start-dev-docker.sh`).
+- **Documentation & Script Path Audit**:
+    - **Problem**: Documentation files (`QUICKSTART.md`, `DOCKER_DEV.md`, and `docs/WORKFLOW_AND_DEBUGGING.md`) contained outdated or mismatched port references. Batch script wrappers (`start-dev-docker.bat`, `start-android-docker.bat`, `stop-dev-docker.bat`, `restart-android.bat`, `dump-structure.bat`, and `detect-large-files.bat`) had invalid relative paths (`%~dp0scripts\...`) because they were run from within the `scripts/` directory itself.
+    - **Resolution**: Updated all documentation to reflect the new port layout (`9980`, `9981`, `9982`). Fixed all relative script path bugs in the batch wrappers to prevent execution failures when cloned fresh.
