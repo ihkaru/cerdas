@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.26](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.25...cerdas-v0.2.26) (2026-07-17)
+
+
+### Features
+
+* seamless join UX, post-login token handoff, and editor joined members UI ([4eeb3c1](https://github.com/ihkaru/cerdas/commit/4eeb3c11aee0de3ebbf4a8007a4a6f0e879c09c6))
+
 ## [0.2.25](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.24...cerdas-v0.2.25) (2026-07-17)
 
 
