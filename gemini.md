@@ -952,3 +952,11 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
     - **Resolution**: Implemented client-side chunked file upload:
         - **Backend**: Added route `POST /api/excel/upload-chunk` and method `uploadChunk()` in `ExcelImportController.php` to save chunks sequentially under `storage/app/chunks/{uuid}/chunk_{index}`. Assembles all chunks in correct order into a final file path under `imports/` once the last chunk is received.
         - **Frontend**: Extended `excelImportService.ts` with `uploadChunked()` to slice raw files into 5MB chunks and transmit them sequentially. Updated `ExcelImportModal.vue` to invoke the chunked upload method, show real-time progress state, and render a styled progress bar showing the upload percentage.
+
+### 17 July 2026 - Layout & Preview Stabilizations (TypeError & Timeout Handling)
+- **New Table Layout Generation Crash (TypeError Fix)**:
+    - **Problem**: Creating a new table resulted in a blank/white canvas on the right due to a crash in `applySmartDefaults()` inside `useEditorState.ts`. It attempted to populate `smartLayout.views.default.deck` properties, but `defaultLayout` lacked the `views` key completely, causing a `Cannot read properties of undefined (reading 'default')` TypeError.
+    - **Resolution**: Updated `defaultLayout` definition inside `useEditorState.ts` to fully initialize the `views.default.deck` structures and actions array, aligning with strict TypeScript definitions.
+- **Iframe Connection Timeout Overlay (Outdated Optimize Dep Handler)**:
+    - **Problem**: Outdated Vite cache in local development sometimes throws `504 (Outdated Optimize Dep)` on the client app, crashing the iframe preview silently with a white blank screen.
+    - **Resolution**: Implemented a connection monitoring system in `LivePreview.vue`. If the client iframe doesn't reply with the `EDITOR_CLIENT_READY` message handshake within 7 seconds, a premium connection overlay is displayed showing: "Preview Offline or Out of Sync", prompting the user with a "Reload Preview" button that manually recreates the iframe source.
