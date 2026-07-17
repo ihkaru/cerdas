@@ -305,7 +305,11 @@ Logs saved to: `logs/android.log` → I can read this file directly for debuggin
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
-- **Version**: 0.2.17 (Hapus Kolom Nomor KK)
+- **Version**: 0.2.18 (Android Mobile FAB Spacing Offset Fix)
+
+- **Android Mobile FAB Spacing Offset Fix (2026-07-17)**:
+  - **Dynamic Spacing Offset**: Menambahkan kelas `fab-with-toolbar` pada `<f7-fab>` di `AppShell.vue` jika `appNavigation` aktif.
+  - **CSS Offset**: Menggeser posisi `bottom` FAB ke atas setinggi `56px + 16px` di mobile/Android Chrome agar tidak tertimbun di belakang bottom tabbar menu utama.
 
 - **Hapus Kolom Nomor KK (2026-07-17)**:
   - **Hapus nomor_kk**: Menghapus field `nomor_kk` dari properti `fields` di dalam nested form `kepala_keluarga_list` pada `kuesioner_sambora_app_schema.json` karena tidak diperlukan dalam pengolahan data.

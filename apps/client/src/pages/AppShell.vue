@@ -262,7 +262,9 @@
             :fields="availableFields" />
 
         <!-- Floating Action Button (FAB) for Create/Add Assignment -->
-        <f7-fab v-if="hasCreateAction && !isSchemaEmpty" position="right-bottom" slot="fixed" class="app-fab premium-fab" @click="triggerCreateAction">
+        <f7-fab v-if="hasCreateAction && !isSchemaEmpty" position="right-bottom" slot="fixed" 
+            :class="['app-fab', 'premium-fab', { 'fab-with-toolbar': appNavigation && appNavigation.length > 0 }]" 
+            @click="triggerCreateAction">
             <SvgIcon name="plus" :size="24" />
         </f7-fab>
     </f7-page>
@@ -795,6 +797,10 @@ const handleAppNavClick = (item: Record<string, unknown>) => {
     --f7-fab-box-shadow: 0 4px 14px rgba(33, 150, 243, 0.4);
     bottom: calc(var(--f7-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 16px) !important;
     right: calc(var(--f7-safe-area-right, env(safe-area-inset-right, 0px)) + 16px) !important;
+}
+
+.premium-fab.fab-with-toolbar {
+    bottom: calc(var(--f7-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 56px + 16px) !important;
 }
 
 .premium-fab:active {
