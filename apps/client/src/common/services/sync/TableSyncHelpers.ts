@@ -10,15 +10,40 @@ export async function syncTablesMetadata(db: any, tables: any[]) {
     for (const table of tables) {
         const existing = await db.query(`SELECT version FROM tables WHERE id = ?`, [table.id]);
 
+        const fieldsStr = typeof table.fields === 'object' ? JSON.stringify(table.fields) : (table.fields || '[]');
+        const layoutStr = typeof table.layout === 'object' ? JSON.stringify(table.layout) : (table.layout || '{}');
+        const settingsStr = typeof table.settings === 'object' ? JSON.stringify(table.settings) : (table.settings || '{}');
+
         if (existing.values && existing.values.length > 0) {
             await db.run(
-                `UPDATE tables SET name = ?, description = ?, version = ?, version_policy = ?, synced_at = ? WHERE id = ?`,
-                [table.name, table.description, table.version, table.version_policy || 'accept_all', new Date().toISOString(), table.id]
+                `UPDATE tables SET name = ?, description = ?, version = ?, version_policy = ?, fields = ?, layout = ?, settings = ?, synced_at = ? WHERE id = ?`,
+                [
+                    table.name, 
+                    table.description, 
+                    table.version, 
+                    table.version_policy || 'accept_all', 
+                    fieldsStr, 
+                    layoutStr, 
+                    settingsStr, 
+                    new Date().toISOString(), 
+                    table.id
+                ]
             );
         } else {
             await db.run(
-                `INSERT INTO tables (id, app_id, name, description, version, version_policy, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [table.id, table.app_id || table.id, table.name, table.description, table.version, table.version_policy || 'accept_all', new Date().toISOString()]
+                `INSERT INTO tables (id, app_id, name, description, version, version_policy, fields, layout, settings, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    table.id, 
+                    table.app_id || table.id, 
+                    table.name, 
+                    table.description, 
+                    table.version, 
+                    table.version_policy || 'accept_all', 
+                    fieldsStr, 
+                    layoutStr, 
+                    settingsStr, 
+                    new Date().toISOString()
+                ]
             );
         }
     }
