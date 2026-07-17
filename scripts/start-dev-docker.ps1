@@ -2,7 +2,7 @@
 # CERDAS - Start Hybrid Dev (Local Docker Backend + Local Frontend)
 # =============================================================================
 # Mode 4: Uses Local Docker Backend (localhost:8080) + Local Vite Servers
-# API calls go to: http://localhost:8080/api
+# API calls go to: http://localhost:8090/api
 # =============================================================================
 
 $ErrorActionPreference = "Continue"
@@ -31,12 +31,12 @@ Start-Sleep -Seconds 10
 # 3. Configure Client (.env)
 Write-Host "[3/6] Configuring Client for Hybrid Mode..." -ForegroundColor Yellow
 Copy-Item -Path "$ClientDir\.env.docker-web" -Destination "$ClientDir\.env" -Force
-Write-Host "  -> Client API: http://localhost:8080/api" -ForegroundColor Gray
+Write-Host "  -> Client API: http://localhost:8090/api" -ForegroundColor Gray
 
 # 4. Configure Editor (.env)
 Write-Host "[4/6] Configuring Editor for Hybrid Mode..." -ForegroundColor Yellow
 Copy-Item -Path "$EditorDir\.env.docker-web" -Destination "$EditorDir\.env" -Force
-Write-Host "  -> Editor API: http://localhost:8080/api" -ForegroundColor Gray
+Write-Host "  -> Editor API: http://localhost:8090/api" -ForegroundColor Gray
 
 # 5. Start Client Dev Server
 Write-Host "[5/6] Starting Client (Vite)..." -ForegroundColor Yellow
@@ -52,7 +52,7 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "  Ready! Hybrid Dev Mode"                  -ForegroundColor Green
 Write-Host ""
-Write-Host "  Backend: http://localhost:8080/api"     -ForegroundColor White
+Write-Host "  Backend: http://localhost:8090/api"     -ForegroundColor White
 Write-Host "  Client:  http://localhost:3000"         -ForegroundColor White
 Write-Host "  Editor:  http://localhost:3001"         -ForegroundColor White
 Write-Host ""
