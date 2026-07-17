@@ -9,6 +9,19 @@
             <f7-preloader />
             <span>Syncing with Editor...</span>
         </div>
+
+        <!-- Connection Timeout Overlay -->
+        <div v-if="hasTimeout" class="timeout-overlay">
+            <div class="timeout-card">
+                <f7-icon f7="wifi_exclamationmark" size="48" class="timeout-icon"></f7-icon>
+                <h3 class="timeout-title">Preview Offline or Out of Sync</h3>
+                <p class="timeout-desc">The preview app failed to respond. This can happen if the dev server is starting up or has outdated Vite dependencies cache.</p>
+                <f7-button fill round color="blue" @click="reloadPreview" class="reload-btn">
+                    <f7-icon f7="arrow_counterclockwise" size="14"></f7-icon>
+                    <span>Reload Preview</span>
+                </f7-button>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -41,6 +54,37 @@ const iframeRef = ref<HTMLIFrameElement | null>(null);
 const isSyncing = ref(false);
 const impersonatedToken = ref<string | null>(null);
 
+const isReady = ref(false);
+const hasTimeout = ref(false);
+let handshakeTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+function startHandshakeTimeout() {
+    if (handshakeTimeoutId) clearTimeout(handshakeTimeoutId);
+    hasTimeout.value = false;
+    isReady.value = false;
+    
+    handshakeTimeoutId = setTimeout(() => {
+        if (!isReady.value) {
+            console.warn('[LivePreview] Connection handshake timeout.');
+            hasTimeout.value = true;
+        }
+    }, 7000); // 7 seconds
+}
+
+function reloadPreview() {
+    hasTimeout.value = false;
+    isReady.value = false;
+    if (iframeRef.value) {
+        const currentSrc = iframeRef.value.src;
+        iframeRef.value.src = '';
+        setTimeout(() => {
+            if (iframeRef.value) {
+                iframeRef.value.src = currentSrc;
+            }
+        }, 50);
+    }
+}
+
 // The client app URL - auto navigate to specific app if ID exists
 const iframeUrl = computed(() => {
     const baseUrl = import.meta.env.VITE_CLIENT_URL || window.location.origin.replace('editor', 'app');
@@ -51,7 +95,8 @@ const iframeUrl = computed(() => {
 });
 
 function handleIframeLoad() {
-    console.log('[LivePreview] Iframe loaded, synchronizing context...');
+    console.log('[LivePreview] Iframe loaded, synchronizing context and starting handshake...');
+    startHandshakeTimeout();
     syncAuth();
     syncSchema();
 }
@@ -178,6 +223,12 @@ watch([
 
 function handleEditorClientReady() {
     console.log('[LivePreview] Client Handshake Received (EDITOR_CLIENT_READY). Re-syncing context...');
+    isReady.value = true;
+    hasTimeout.value = false;
+    if (handshakeTimeoutId) {
+        clearTimeout(handshakeTimeoutId);
+        handshakeTimeoutId = null;
+    }
     syncAuth();
     syncSchema();
 }
@@ -241,6 +292,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     window.removeEventListener('message', handleMessage);
+    if (handshakeTimeoutId) clearTimeout(handshakeTimeoutId);
 });
 </script>
 
@@ -271,5 +323,73 @@ onUnmounted(() => {
     z-index: 1000;
     font-weight: 500;
     color: var(--f7-theme-color);
+}
+
+.timeout-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 10, 10, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+    padding: 20px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.timeout-card {
+    background: #1c1c1e;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px 20px;
+    max-width: 280px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.timeout-icon {
+    color: #FF9500;
+    margin-bottom: 12px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.9; }
+    50% { transform: scale(1.03); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.9; }
+}
+
+.timeout-title {
+    margin: 0 0 6px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.timeout-desc {
+    margin: 0 0 16px 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.reload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: none;
+    height: 36px;
+    padding: 0 18px;
+    --f7-button-border-radius: 99px;
 }
 </style>
