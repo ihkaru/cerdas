@@ -123,7 +123,7 @@
                                                     <option value="boolean">Boolean</option>
                                                 </select>
                                             </td>
-                                            <td class="col-preview">{{ getPreviewValue(col.name) }}</td>
+                                            <td class="col-preview">{{ getPreviewValue(col) }}</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -314,10 +314,23 @@ function handleSheetChange(e: Event) {
     loadPreview();
 }
 
-function getPreviewValue(colName: string): string {
+function getPreviewValue(col: ExcelColumn): string {
     if (previewData.value.length === 0) return '—';
-    const val = previewData.value[0]?.[colName];
-    return val !== null ? String(val) : '—';
+    const firstRow = previewData.value[0];
+    if (!firstRow) return '—';
+
+    // If firstRow is an array, look up by source_index or columns index
+    if (Array.isArray(firstRow)) {
+        const index = col.source_index !== undefined ? col.source_index : columns.value.indexOf(col);
+        const val = firstRow[index];
+        return val !== null && val !== undefined ? String(val) : '—';
+    }
+
+    // Fallback if firstRow is an object
+    const val = (firstRow as Record<string, any>)[col.name] !== undefined 
+        ? (firstRow as Record<string, any>)[col.name] 
+        : (firstRow as Record<string, any>)[col.original_header];
+    return val !== null && val !== undefined ? String(val) : '—';
 }
 
 async function doImport() {
