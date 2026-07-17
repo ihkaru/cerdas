@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.11](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.10...cerdas-v0.2.11) (2026-07-17)
+
+
+### Bug Fixes
+
+* disable API caching in client by adding cache-control headers and timestamp query param ([48808c6](https://github.com/ihkaru/cerdas/commit/48808c65bfcf7ac68c775ce4b063cd1292934120))
+
 ## [0.2.10](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.9...cerdas-v0.2.10) (2026-07-17)
 
 
