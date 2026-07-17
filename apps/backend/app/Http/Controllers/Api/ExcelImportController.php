@@ -70,7 +70,7 @@ class ExcelImportController extends Controller
             $extension = pathinfo($filename, PATHINFO_EXTENSION);
             $finalFilename = Str::uuid()->toString() . '.' . $extension;
             $finalPath = "imports/{$finalFilename}";
-            $destFile = storage_path("app/{$finalPath}");
+            $destFile = Storage::path($finalPath);
             
             // Ensure imports directory exists
             $destDir = dirname($destFile);
