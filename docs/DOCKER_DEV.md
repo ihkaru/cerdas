@@ -23,9 +23,9 @@ We utilize a robust `docker-compose.dev.yml` stack that mirrors production stabi
     ```
 
 3.  **Verify Services**
-    - **Backend Health**: `curl http://localhost:8080/api/health`
-    - **Client (Mobile)**: http://localhost:8000
-    - **Editor (Web)**: http://localhost:8001
+    - **Backend Health**: `curl http://localhost:9980/up`
+    - **Client (Mobile)**: http://localhost:9981
+    - **Editor (Web)**: http://localhost:9982
     - **Database**: Port 33066 (user: `cerdas`, pass: `secret`, db: `cerdas`)
 
 ## Architecture Changes
@@ -50,7 +50,7 @@ To run the Android app using the local Docker backend:
     This script will:
     -   Stop existing servers.
     -   Start `docker-compose.dev.yml` (Backend + DB).
-    -   Configure the client to use `http://10.0.2.2:8080/api`.
+    -   Configure the client to use `http://10.0.2.2:9980/api`.
     -   Start the client dev server with Live Reload.
     -   Launch the Android Emulator and Android Studio.
 

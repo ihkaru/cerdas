@@ -5,4 +5,4 @@ REM ============================================================================
 REM Wrapper for PowerShell script
 REM ============================================================================
 
-powershell -ExecutionPolicy Bypass -File "%~dp0scripts\start-dev-docker.ps1"
+powershell -ExecutionPolicy Bypass -File "%~dp0start-dev-docker.ps1"

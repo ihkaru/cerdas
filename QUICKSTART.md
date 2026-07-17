@@ -55,8 +55,8 @@ Run all services (Backend API, Web Editor, Mobile Client) in parallel:
 | App | URL | Credentials (Seeded) |
 |-----|-----|----------------------|
 | **Backend API** | `http://localhost:8080` | N/A |
-| **Web Editor** | `http://localhost:9981` | User: `admin@cerdas.com` <br> Pass: `password` |
-| **Mobile Client** | `http://localhost:5173` | (Same as above) |
+| **Web Editor** | `http://localhost:9982` | User: `admin@cerdas.com` <br> Pass: `password` |
+| **Mobile Client** | `http://localhost:9981` | (Same as above) |
 
 ---
 
@@ -74,9 +74,9 @@ Run all services (Backend API, Web Editor, Mobile Client) in parallel:
 ## 🤝 Troubleshooting
 
 **Port Conflicts?**
-*   Backend needs port `8080`.
-*   Editor needs port `9981`.
-*   Client needs port `5173`.
+*   Backend needs port `8080` (or `9980` in Docker).
+*   Client needs port `9981`.
+*   Editor needs port `9982`.
 *   *Fix*: Check `pnpm dev` output or `docker ps` if running containers.
 
 **Database Issues?**
