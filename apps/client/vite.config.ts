@@ -25,9 +25,14 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    // Explicitly include ALL Capacitor packages so Vite pre-bundles them
-    // at startup (not lazily at runtime), which prevents the
-    // "504 Outdated Optimize Dep" loop in development.
+    // Explicitly include ALL web-compatible Capacitor packages so Vite
+    // pre-bundles them at startup (not lazily at runtime).
+    // This prevents the "504 Outdated Optimize Dep" loop in development.
+    //
+    // DO NOT add: @capacitor/android, @capacitor/ios — native-only binaries,
+    //             not importable as JS modules in browser.
+    // DO NOT add: jeep-sqlite, @capacitor-community/sqlite — excluded below
+    //             because they ship WASM and must NOT be pre-bundled.
     include: [
       'framework7',
       'framework7-vue',
@@ -36,6 +41,7 @@ export default defineConfig({
       '@capacitor/app',
       '@capacitor/camera',
       '@capacitor/geolocation',
+      '@ionic/pwa-elements',
     ],
     exclude: ['jeep-sqlite', '@capacitor-community/sqlite']
   },

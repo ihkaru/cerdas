@@ -23,6 +23,10 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
+    // Editor is a pure web app (no Capacitor), so we only need framework7.
+    // No Capacitor packages are needed here.
     include: ['framework7', 'framework7-vue'],
+    // Exclude any accidental WASM packages that might be transitively pulled in
+    exclude: ['jeep-sqlite'],
   },
 })
