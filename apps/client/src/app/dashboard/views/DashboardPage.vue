@@ -16,11 +16,11 @@
 
         <DashboardStats :stats="assignmentStats" :total="totalAssignments" :last-sync-time="lastSyncTime" />
 
-        <AppGallery :apps="appsWithStats" @open-app="openApp" />
+        <AppGallery :apps="appsWithStats" @open-app="openApp" @join-app="triggerJoinApp" />
 
         <!-- Settings / Profile Sheet -->
         <DashboardSettingsSheet v-model:opened="settingsOpen" :user="auth.user" :is-syncing="isSyncing"
-            @sync="handleSync" @logout="handleLogout" @reset-database="handleResetDatabase" />
+            @sync="handleSync" @logout="handleLogout" @reset-database="handleResetDatabase" @join-app="triggerJoinApp" />
     </f7-page>
 </template>
 
@@ -29,6 +29,7 @@ import { f7 } from 'framework7-vue';
 import { storeToRefs } from 'pinia';
 import { onMounted, onUnmounted, ref } from 'vue';
 import SvgIcon from '@/components/common/SvgIcon.vue';
+import { apiClient } from '@/common/api/ApiClient';
 import { useDatabase } from '../../../common/composables/useDatabase';
 import { useSync } from '../../../common/composables/useSync';
 import { useAuthStore } from '../../../common/stores/authStore';
@@ -148,6 +149,50 @@ const openApp = (id: string) => {
     props.f7router
         ? props.f7router.navigate(`/app/${id}`)
         : f7.views.main.router.navigate(`/app/${id}`);
+};
+
+const triggerJoinApp = () => {
+    f7.dialog.prompt(
+        'Masukkan Link atau Kode Undangan:',
+        'Gabung Aplikasi',
+        async (input?: string) => {
+            if (!input) return;
+            const clean = input.trim();
+            let token = clean;
+            if (clean.includes('/join/')) {
+                const parts = clean.split('/join/');
+                const lastPart = parts[parts.length - 1];
+                token = lastPart ? (lastPart.split(/[?#]/)[0] || '') : '';
+            }
+            
+            if (!token) {
+                f7.dialog.alert('Format link atau kode undangan tidak valid.', 'Error');
+                return;
+            }
+
+            f7.dialog.preloader('Memproses Undangan...');
+            try {
+                const res = await apiClient.post('/join', { token });
+                f7.dialog.close();
+                
+                if (res.success) {
+                    f7.dialog.alert(
+                        `Berhasil bergabung! Melakukan sinkronisasi data aplikasi baru...`, 
+                        'Sukses', 
+                        async () => {
+                            await handleSync();
+                        }
+                    );
+                } else {
+                    f7.dialog.alert(res.message || 'Gagal bergabung ke aplikasi.', 'Error');
+                }
+            } catch (err: any) {
+                f7.dialog.close();
+                const msg = err.response?.data?.message || 'Gagal bergabung. Tautan mungkin tidak valid atau sudah kedaluwarsa.';
+                f7.dialog.alert(msg, 'Error');
+            }
+        }
+    );
 };
 </script>
 

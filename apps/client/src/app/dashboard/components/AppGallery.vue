@@ -1,7 +1,11 @@
 <template>
     <!-- Header of Section -->
-    <div class="section-header">
+    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 16px 8px;">
         <h2 class="section-title">My Apps</h2>
+        <f7-link v-if="apps.length > 0" @click="$emit('join-app')" class="join-app-link" style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 4px; color: var(--f7-theme-color);">
+            <f7-icon f7="plus_circle" size="16"></f7-icon>
+            <span>Gabung Aplikasi</span>
+        </f7-link>
     </div>
 
     <!-- Active Apps Gallery -->
@@ -50,8 +54,12 @@
             <div class="app-empty-icon-wrapper">
                 <f7-icon f7="square_stack_3d_up" size="32" class="app-empty-icon"></f7-icon>
             </div>
-            <p class="app-empty-title">No Apps Installed</p>
-            <p class="app-empty-sub">Sync to download your apps</p>
+            <p class="app-empty-title">Belum Ada Aplikasi</p>
+            <p class="app-empty-sub" style="margin-bottom: 12px;">Sinkronisasi data atau gunakan kode undangan untuk bergabung</p>
+            <f7-button fill round @click="$emit('join-app')" style="min-width: 180px; text-transform: none; font-weight: 600; --f7-button-font-size: 13px;">
+                <f7-icon f7="plus_square_fill" size="18" class="margin-right-half"></f7-icon>
+                <span>Masukkan Kode Undangan</span>
+            </f7-button>
         </div>
 
         <!-- Special Active Apps Empty State (If there are apps but all are completed) -->
@@ -97,6 +105,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     (e: 'open-app', id: string): void;
+    (e: 'join-app'): void;
 }>();
 
 const showCompleted = ref(false);

@@ -1257,3 +1257,11 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
 - **Iframe Connection Timeout Overlay (Outdated Optimize Dep Handler)**:
     - **Problem**: Outdated Vite cache in local development sometimes throws `504 (Outdated Optimize Dep)` on the client app, crashing the iframe preview silently with a white blank screen.
     - **Resolution**: Implemented a connection monitoring system in `LivePreview.vue`. If the client iframe doesn't reply with the `EDITOR_CLIENT_READY` message handshake within 7 seconds, a premium connection overlay is displayed showing: "Preview Offline or Out of Sync", prompting the user with a "Reload Preview" button that manually recreates the iframe source.
+
+### 17 July 2026 - Manual Join Code Entry & APK Join UX Improvements
+- **Manual Invitation Code / Link Input**:
+    - **Problem**: When a user downloads the APK first and installs it, they cannot join an app via the invitation link because the link opens in the system browser and has no way to pass the invitation token to the installed native app. This left the user stuck with an empty dashboard after logging into the APK.
+    - **Resolution**: Implemented a manual invitation join feature in the Client App:
+        - **Dashboard Settings Sheet**: Added a "Gabung Aplikasi Baru" list item.
+        - **App Gallery**: Added a "+ Gabung Aplikasi" link next to "My Apps" header and a prominent "Masukkan Kode Undangan" button in the empty state.
+        - **Dashboard Controller**: Added `triggerJoinApp()` method in `DashboardPage.vue` that displays a native prompt for the user to input the link or code, parses the token (extracting it from the URL if needed), submits the join request to the backend `/api/join`, and automatically triggers a local database sync to fetch the new app metadata and assignments immediately.

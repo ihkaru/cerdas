@@ -26,6 +26,12 @@
                         <span v-if="isSyncing" class="sync-label">Syncing...</span>
                     </template>
                 </f7-list-item>
+                <f7-list-item link @click="onJoinApp">
+                    <template #media>
+                        <f7-icon f7="plus_rectangle_fill" color="green"></f7-icon>
+                    </template>
+                    <template #title>Gabung Aplikasi Baru</template>
+                </f7-list-item>
                 <f7-list-item link @click="onLogout" class="logout-item">
                     <template #media>
                         <f7-icon f7="square_arrow_right" color="orange"></f7-icon>
@@ -68,6 +74,7 @@ const emit = defineEmits<{
     (e: 'sync'): void;
     (e: 'logout'): void;
     (e: 'reset-database'): void;
+    (e: 'join-app'): void;
 }>();
 
 const versionText = computed(() => props.appVersion ? `v${props.appVersion}` : '');
@@ -95,6 +102,11 @@ const close = () => emit('update:opened', false);
 const onSync = () => {
     close();
     emit('sync');
+};
+
+const onJoinApp = () => {
+    close();
+    emit('join-app');
 };
 
 const onLogout = () => {
