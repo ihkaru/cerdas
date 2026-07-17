@@ -104,8 +104,8 @@ class DashboardController extends Controller
                 ];
             });
 
-        // 4. All Tables (for Client Sync)
-        $tablesQuery = Table::whereIn('app_id', $appIds);
+        // 4. All Tables (for Client Sync) — eager load latestVersion for fields/layout/settings
+        $tablesQuery = Table::whereIn('app_id', $appIds)->with('latestVersion');
 
         if ($updatedSince) {
             $tablesQuery->withTrashed()->where('updated_at', '>=', \Carbon\Carbon::parse($updatedSince));
@@ -130,14 +130,24 @@ class DashboardController extends Controller
         }
 
         $allTables = $activeTables->map(function ($table) {
+            $version = $table->latestVersion;
+            // settings dari layout.settings (sumber kebenaran schema) atau dari kolom settings tabel
+            $layoutSettings = $version?->layout['settings'] ?? null;
+            $tableSettings = $table->settings ?? [];
+            $mergedSettings = $layoutSettings ?? $tableSettings;
+
             return [
                 'id' => $table->id,
                 'app_id' => $table->app_id,
                 'name' => $table->name,
                 'description' => $table->description,
                 'version' => $table->current_version,
-                'version_policy' => $table->settings['version_policy'] ?? 'accept_all',
+                'version_policy' => $tableSettings['version_policy'] ?? 'accept_all',
                 'updated_at' => $table->updated_at,
+                // Schema data untuk SQLite lokal client (diperlukan untuk FAB & UI config)
+                'fields' => $version?->fields ?? [],
+                'layout' => $version?->layout ?? [],
+                'settings' => $mergedSettings,
             ];
         })->values();
 
