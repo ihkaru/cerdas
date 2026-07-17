@@ -270,6 +270,213 @@ adb logcat -d *:S Capacitor/Console:* > logs\android.log
 ```
 
 Logs saved to: `logs/android.log` → I can read this file directly for debugging!
+## Reference Documents
+- `docs/architecture_principles.md` - Full technical principles
+- `docs/implementation_plan.md` - Phase-by-phase plan
+- `docs/task.md` - Current progress tracker
+- `docs/DEVELOPMENT_LIFECYCLE.md` - **Development feedback loop & workflow**
+- `references/SCREEN_FLOW.md` - **User Screen Flow & Routing Guide (Happy/Unhappy Paths)**
+- `ROADMAP.md` - **Feature Roadmap & Progress Tracker (Live Status)**
+- **System Reference & Specification** (External specification) - **Single Source of Truth** for Requirements, Features, and Entity Relationships.
+
+### Process Management Scripts (scripts/)
+- `scripts/start-all.bat`: Starts Backend (8080), Client (9981), Editor (9982).
+- `scripts/stop-all.bat`: **Surgical Stop**. Kills only Cerdas windows & processes. Safe to use.
+- `scripts/restart-android.bat`: Restarts Android App & captures logs.
+- `scripts/save-android-log.bat`: Captures current Android logs to `logs/`.
+
+- **Map View Fixes (2026-02-15)**:
+  - **Dynamic Popups**: Fixed "Buka Detail" button to use canonical `/assignments/:id` route, resolving the "View not found" error.
+  - **Styling**: Enforced white text/icons on popup buttons to override default blue link styles.
+  - **UX**: Aligned "Get Directions" icon/color with `GpsField.vue` standards.
+  - **Navigation**: Implemented delegated click handling for F7 router compatibility in map popups.
+- **Excel Import & Stability**: 
+    - Reduced batch size and implemented recursive retry splitting logic in `ImportExcelJob.php`.
+    - Added comprehensive GPS coordinate string parsing support in `geoUtils.ts` and `GpsField.vue`.
+    - Fixed several strict `pre-push` style and type blockers.
+- **Final Push**: Successfully pushed all verified code fixes to GitHub while excluding large CSV test files.
+- **Excel Import (Recent)**:
+  - Enhanced `ExcelImportModal` and backend `ExcelImportController` for more robust data handling (matching modified files).
+- **App Hierarchy & UX (2026-02-17)**:
+  - **Refactor**: `AppShell` now supports multi-table Apps via dynamic `resolvedTableId` switching based on `activeView` (View -> Form ID).
+  - **Editor UX**: Added Breadcrumbs (`App Name / Table Name`) to `EditorHeader.vue` for better context.
+  - **Map Optimization**:
+      - Enabled Clustering (`cluster: true`, minPoints: 30) in `MapView.vue`.
+      - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
+      - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
+
+- **Version**: 0.2.12 (Assignment Draft Status Fix)
+
+- **Assignment Draft Status Bug Fix (2026-07-17)**:
+  - **Bug**: Draf assignment (`in_progress`) berubah menjadi `Selesai` (submitted) setelah user melakukan sync.
+  - **Root Cause (3 lapisan)**:
+    1. **Backend logic**: Server memaksa status `submitted` jika assignment punya App, mengabaikan status dari client.
+    2. **OPCache PHP**: `octane:reload` tidak cukup — perlu `docker restart` untuk membersihkan OPCache agar kode baru dimuat.
+    3. **Root cause utama**: Field `responses.*.status` tidak ada di Laravel validation rules → di-strip dari `$validated` sebelum sampai ke logika backend. Client sudah mengirim `status: "in_progress"` tapi Laravel membuangnya.
+  - **Fix**:
+    - `ResponseController.php`: Tambah `'responses.*.status' => 'nullable|string|in:assigned,in_progress,...'` ke validation rules.
+    - `ResponseController.php`: Backend kini menghormati status eksplisit dari client (tidak paksa `submitted`).
+  - **Pelajaran**: Selalu pastikan field yang dibutuhkan ada di Laravel validation rules — field yang tidak terdaftar akan di-strip dari `$validated` meskipun ada di request body.
+
+
+- **Anti-Cache Sync Fix (2026-07-17)**:
+  - **Global Header**: Menambahkan header `'Cache-Control': 'no-cache'`, `'Pragma': 'no-cache'`, dan `'Expires': '0'` di `ApiClient.ts`.
+  - **Timestamp Cache-Buster**: Menyematkan query param `_t: Date.now()` otomatis pada seluruh API `GET` request agar bypass Cloudflare/Nginx/Browser cache di production.
+
+
+- **URL / Hyperlink Field Type (2026-07-17)**:
+  - **Tipe Data Terpusat**: Menambahkan `'url'` ke daftar `FieldType` global di `@cerdas/types`.
+  - **UrlField.vue (NEW)**: Komponen input URL khusus di `@cerdas/form-engine` dengan fitur:
+    - **Mode Edit**: `<input type="url">` dengan asisten `📋 Tempel` clipboard cepat dan tombol `↗ Tes Tautan` verifikasi tautan.
+    - **Mode Read-Only**: Blok tombol tautan berikon yang bersih dengan dukungan `config.display_label` kustom untuk menyembunyikan URL panjang.
+  - **Editor App Integration**: Mendaftarkan tipe data `'url'` di `FIELD_TYPE_META` editor agar muncul di dropdown tipe kolom Schema Editor.
+
+
+- **UX Post-Import "Aha Moment" (2026-07-17)**:
+  - **Root Cause**: Preview iframe adalah Client App yang hanya menampilkan *assignment* (penugasan), bukan *rekaman data*. Data CSV yang baru diimport tidak pernah ter-assign → selalu kosong. Ini mismatch arsitektur yang menciptakan dead end.
+  - **Backend**: Tambah endpoint `GET /tables/{id}/records?page=1&per_page=50` di `TableController::records()` — query `AppRecord` berdasarkan `table_id`, return data + metadata kolom dari versi field aktual.
+  - **DataPreviewPanel.vue (NEW)**: Komponen grid data premium di dalam editor. Dark sticky header, striped rows, loading skeleton, pagination 50 rows/page, auto-reload saat tabel berubah. Menampilkan data langsung dari API tanpa iframe Client App.
+  - **Sub-tab "Fields | Data Preview"**: Menambahkan sub-tab bar di panel kanan Schema tab. Creator bisa switch antara melihat field config dan melihat data aktual tanpa ganti tab utama.
+  - **Race Condition Fix**: `handleExcelImported()` sebelumnya menggunakan `setTimeout(500)` yang menyebabkan `fetchAppViews()` berjalan sebelum fields ter-load → smart view detection fallback ke kolom kosong. Diperbaiki dengan `await doSelectTable()` — fields pasti tersedia sebelum view default dibuat.
+  - **onImportSuccess Callback**: Setelah import selesai, editor otomatis switch ke sub-tab "Data Preview" dan menampilkan guidance toast 5 detik: "✓ Data berhasil diimport! Lihat data di tab **Data Preview**, lalu buka **Views** untuk mengatur tampilan."
+  - **DeckView Fix (Client App)**: Memperbaiki masalah kolom kustom (seperti `nama_kk` atau `wid`) yang tidak tampil di list item preview sebelum form disubmit. Penyebabnya adalah `resolvePath` di `DeckView.vue` belum mengecek `prelist_data` tempat data Excel yang baru diimport disimpan. Telah ditambahkan step pencarian ke `prelist_data`.
+  - **Preview Navigation Flickering Fix**: Menyelesaikan masalah kedipan animasi skeleton loading setiap kali berpindah tab/tampilan di editor. Penyebabnya adalah `EditorBridgeService.ts` memanggil `navigate` dengan `reloadCurrent: true` yang memicu remount komponen `AppShell.vue` dan reload query DB. Diubah menjadi `reloadCurrent: false` dan `animate: false` untuk update query parameter secara instan tanpa re-render penuh.
+
+**⚠️ CRITICAL**: Always use `.\stop-all.bat` to stop servers. NEVER use `taskkill` directly - it may close IDE!
+
+## User Memory Notes
+- User prefers Indonesian communication
+- User is Product Manager, I am fullstack developer + system architect
+- User gives standing permission for necessary actions
+- User wants strict TypeScript to catch errors early
+- Update gemini.md with important changes/progress
+- **FRAMEWORK7 VUE THEMING RULE**: Always follow [docs/framework7_vue_theming_best_practices.md](file:///home/ihza/Projects/cerdas/docs/framework7_vue_theming_best_practices.md) when designing custom themes, managing layout spacing offsets, or handling device notches. Use inline styles with `!important` on `<f7-page-content>` to safely override double-spacing bugs, and override standard F7 CSS variables in `:root` inside `style.css` for dynamic theme changes.
+- **CRITICAL UI DOCUMENTATION RULE**: Whenever developing, changing, or fixing UI navigation, routing, or screen states, I MUST ALWAYS update the `references/SCREEN_FLOW.md` document (including adding/updating Mermaid diagrams if relevant) to ensure it stays as the single source of truth across all future sessions.
+- **BROWSER TOOL USAGE**: NEVER use browser tool for ANY reason. User will verify manually. I am an agent for writing logic and code, not for clicking.
+- **CRITICAL VERSION RULE**: Always update the project version (currently 0.1.0) in `README.md`, `package.json`, and `composer.json` whenever significant progress is made (equivalent to a "push").
+
+## ClosureContext (App-Wide Context) - Updated 2026-01-20
+
+Form closures now have access to typed user context:
+
+```typescript
+// In closures (validation_js, showIf, etc):
+ctx.user.id           // number
+ctx.user.email        // string
+ctx.user.name         // string
+ctx.user.role         // 'app_admin' | 'org_admin' | 'supervisor' | 'enumerator'
+ctx.user.organizationId // number | null
+
+ctx.assignment.id     // string | number
+ctx.assignment.status // string
+ctx.assignment.organization_id // number
+
+ctx.utils.today()     // 'YYYY-MM-DD'
+ctx.utils.now()       // ISO datetime
+ctx.utils.daysSince('2026-01-01') // number
+```
+
+**Files Updated:**
+- `packages/form-engine/src/utils/ClosureCompiler.ts` - Typed ClosureContext
+- `apps/client/src/common/stores/authStore.ts` - User interface with role/org
+- `apps/client/src/pages/AssignmentDetail.vue` - Pass userContext to FormRenderer
+
+## Framework7 v9 + TypeScript Setup Notes
+F7 Vue has incomplete TypeScript declarations. Required shims:
+
+```typescript
+// src/types/framework7-vue.d.ts
+declare module 'framework7-vue/bundle' {
+  export * from 'framework7-vue';
+  export function registerComponents(app: App): void;
+}
+
+// src/types/css.d.ts
+declare module 'framework7/css/bundle' {}
+```
+
+Key imports:
+- Routes type: `Router.RouteParameters` from `framework7/types`
+- App params: `Framework7Parameters` from `framework7/types`
+- registerComponents: from `framework7-vue/bundle`
+
+## Android Development Setup (2026-01-14)
+
+### Configuration Complete
+- **Min SDK**: Android 10 (API 29)
+- **Target SDK**: API 36
+- **Live Reload**: Enabled via `capacitor.config.ts`
+
+### Key Files Modified
+- `capacitor.config.ts`: Live Reload pointing to `10.0.2.2:9981`
+- `variables.gradle`: `minSdkVersion = 29`
+- `AndroidManifest.xml`: Network security config added
+- `network_security_config.xml`: Allow HTTP to dev servers
+
+### Verified Working Configuration (2026-01-14 11:46)
+- **AGP**: 8.3.2 (compatible with Android Studio)
+- **Gradle JDK**: 21 (Temurin)
+- **compileSdkVersion**: 35 (for Capacitor VANILLA_ICE_CREAM constant)
+- **minSdkVersion**: 29 (Android 10 - production target)
+- **targetSdkVersion**: 34
+- **Test AVD**: Pixel 5 API 30 (needs WebView 83+ for modern JS)
+
+### Development Workflow
+1. Run `start-all.bat` (starts backend:9980, client:9981, editor:9982)
+2. Open Android Studio: `npx cap open android`
+3. Run on emulator (use API 30+ for dev, app works on API 29+ in production)
+4. Edit code → Auto-refresh in emulator!
+5. Save logs: `.\save-android-log.bat` → logs saved to `logs/android.log`
+
+### Dual Android Dev Modus (New 2026-02-12)
+
+**Mode 1: Local Backend** (Standard)
+```powershell
+./scripts/start-android-local.ps1
+```
+- Backend: `http://10.0.2.2:8080/api` (Localhost)
+- Database: Local MySQL
+- Use for: Full-stack features, backend changes.
+
+**Mode 2: Remote Backend** (UI Only)
+```powershell
+./scripts/start-android-remote.ps1
+```
+- Backend: `https://api.dvlpid.my.id/api` (Production)
+- Database: Production DB
+- Use for: UI/UX tweaks, verifying prod data.
+
+> [!TIP]
+> Both scripts automatically start `Pixel_5_API_30` emulator if no device is found! 🚀
+
+> [!NOTE]
+> **Caddyfile Conflict**: `apps/backend/Caddyfile` contained absolute Windows paths, causing 404s in Docker. Renamed to `Caddyfile.local` to let Octane use default config.
+
+> [!IMPORTANT]
+> **Production Fix**: `Dockerfile.prod` updated to install `curl`. This is required for `docker-compose.prod.yml` healthchecks. Without it, Coolify/Docker reports `502 Bad Gateway` (Unhealthy).
+
+> [!NOTE]
+> **CORS Bypass**: `CapacitorHttp` is enabled in `capacitor.config.ts`. This forces all API calls to go through the native layer, bypassing WebView CORS restrictions. This is critical for Mode 2 (Remote Backend).
+
+See `.agent/workflows/android-local.md` and `android-remote.md`.
+
+### Important IPs (Android Emulator)
+- `10.0.2.2` → Host machine (your PC)
+- `127.0.0.1` → Emulator itself (NOT your PC!)
+
+### Android Debugging Feedback Loop (CRITICAL)
+**Use these commands to debug Android without manual interaction:**
+
+```powershell
+# Quick: Restart app + capture log
+.\restart-android.bat
+
+# Manual commands:
+adb shell am force-stop com.cerdas.client && adb shell am start -n com.cerdas.client/.MainActivity
+adb logcat -d *:S Capacitor/Console:* > logs\android.log
+```
+
+Logs saved to: `logs/android.log` → I can read this file directly for debugging!
 
 See `.agent/workflows/android-dev.md` for detailed ADB debugging guide.
 
@@ -279,10 +486,11 @@ See `.agent/workflows/android-dev.md` for detailed ADB debugging guide.
 
 ## Log Pekerjaan AI Asisten
 
-### 22 Feb 2026 - Safe Deletion Data Source & Strict Type Fixes
-- **Backend**: Mengubah penghapusan Data Source di `TableController` menjadi 'Soft Delete' supaya tidak terjadi force delete pada data `Assignment` dan `AppRecord`. Menambahkan Dependency Guard yang mengecek penggunaan tabel di config View dan Navigation untuk mencegah penghapusan jika sedang digunakan (409 Conflict). Menambahkan flag `force_cleanup` agar bisa melakukan unbind secara paksa.
-- **Frontend (Editor)**: Menambahkan _confirmation dialog_ dimana pengguna harus mengetikkan nama tabel secara presisi sebelum bisa menghapusnya. Jika terhalang Dependency Guard, akan muncul _prompt_ untuk secara otomatis melepas penggunaan tabel di View terkait.
-- **Fixing Build Errors**: Memperbaiki berbagai error build Vue/TypeScript strict mode di beberapa komponen Editor (`OrganizationsPage`, `AppLayout`, `useViewConfigSync`, `echo.ts`, dan `ActionEditorModal`). Build `npm run build` kembali hijau.
+### 17 Jul 2026 - Perbaikan Bug Sinkronisasi & Deserialisasi Schema Actions (Root Cause Fixes)
+- **Client App Sync (Root Cause A)**: Menambahkan fallback pada `TableSyncHelpers.ts` agar mengambil data `settings` dari `layoutData.settings` jika properti `settings` dari tabel root bernilai `null`/kosong di DB. Ini memastikan client app di HP (dan production) selalu berhasil menyinkronkan data tombol aksi (seperti tombol FAB plus) dari server.
+- **Editor App Code Apply (Root Cause B)**: Mengintegrasikan `useTableStore` di `CodeEditorTab.vue` dan memancarkan event `apply` setelah user mengeklik "Apply Changes". Hal ini menyinkronkan memori Editor Visual (`editorState`) secara instan, sehingga Live Preview emulator (iframe) langsung ter-update reaktif tanpa harus me-reload halaman browser secara manual.
+- **Editor App ApiClient Anti-Cache**: Menambahkan header `'Cache-Control': 'no-cache'`, `'Pragma': 'no-cache'`, dan `'Expires': '0'` serta parameter buster `_t: Date.now()` pada Axios GET request di `ApiClient.ts` editor app. Ini memecahkan masalah caching agresif browser/Vite dev server pada request skema tabel yang menyebabkan editor memuat skema lama dan meng-override preview.
+- **Auto-generated ID Rumah**: Mengubah field `ID_rumah` menjadi auto-generated (`RMH-[UUID]`) dan menyembunyikannya dari enumerator (`show_if_fn: false`) untuk mencegah kesalahan input manual.
 - **Trash Management UI**: Menambahkan sistem "Trash / Deleted Data Sources" via modal dialog khusus pada tab Data editor. Modal ini terhubung dengan store state `trashedTables` dan Endpoint `GET /trash`, `PUT /restore`, serta `DELETE /force` di backend `TableController`. Pembersihan permanen wajib mengetik konfirmasi *EXACTLY DELETE*.
 - **Automated Trash Cleanup**: Menulis dan Mendaftarkan daemon artisan `php artisan app:clean-trash --days=30` menggunakan Laravel Scheduler di `routes/console.php` agar setiap *soft-deleted variables* yang berusia di atas 30 hari dihapus selamanya secara ootmatis setiap malam untuk mengamankan limit kapasitas Database production.
 - **Queue Worker Reliability**: Menemukan & memperbaiki _bug_ fatal error pada `ImportExcelJob` yang selalu stuck saat import data jumlah besar karena memotong `max-time` di level script worker dan limit PHP (3600 detik). Limit telah dikalibrasi menjadi 14400 (4 Jam) agar tidak macet / ter-*kill* di tengah jalan oleh sistem operasi.

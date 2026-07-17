@@ -219,6 +219,11 @@ export class SyncService {
                 const tbl = await db.query(`SELECT version FROM tables WHERE id = ?`, [r.table_id]);
                 submittedVersion = tbl.values?.[0]?.version;
             }
+            let assignmentStatus = 'in_progress';
+            if (r.assignment_id) {
+                const assign = await db.query(`SELECT status FROM assignments WHERE id = ?`, [r.assignment_id]);
+                assignmentStatus = assign.values?.[0]?.status || 'in_progress';
+            }
             return {
                 local_id: r.local_id,
                 assignment_id: r.assignment_id,
@@ -228,9 +233,12 @@ export class SyncService {
                 updated_at: r.updated_at,
                 device_id: 'device-1',
                 submitted_version: submittedVersion,
+                status: assignmentStatus,
             };
         });
         const payload = await Promise.all(payloadPromises);
+        
+        console.log('[DEBUG] SyncService: Pushing responses sync payload!', JSON.parse(JSON.stringify(payload)));
 
         try {
             logger.info('[SyncService] Pushing Payload:', payload);

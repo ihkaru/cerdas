@@ -8,20 +8,31 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Expires': '0',
     }
 });
 
-// Interceptor for token (if using localStorage based auth)
+// Interceptor for token and anti-cache parameters
 api.interceptors.request.use(config => {
     const token = localStorage.getItem('auth_token');
-    console.log('[ApiClient] Request interceptor', { 
-        url: config.url, 
-        hasToken: !!token,
-        tokenPreview: token ? token.substring(0, 20) + '...' : null
-    });
+    
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Enforce cache-buster for GET requests to bypass browser caching
+    if (config.method?.toLowerCase() === 'get') {
+        config.params = { ...config.params, _t: Date.now() };
+    }
+    
+    console.log('[ApiClient] Request interceptor', { 
+        url: config.url, 
+        method: config.method,
+        params: config.params,
+        hasToken: !!token
+    });
     return config;
 });
 

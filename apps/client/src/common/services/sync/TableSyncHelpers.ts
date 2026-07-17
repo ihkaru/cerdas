@@ -222,7 +222,7 @@ export async function cacheAndSaveTable(db: any, tableId: string, version: any, 
         [
             JSON.stringify(fieldsData),
             JSON.stringify(layoutData),
-            JSON.stringify(table.settings || {}),
+            JSON.stringify(table.settings || (layoutData as any)?.settings || {}),
             version.version,
             table.app_id || null,
             table.name || null,

@@ -70,6 +70,7 @@ import { computed, ref, watch } from 'vue';
 import { validateAppJson, type ValidationResult } from '../../utils/jsonValidator';
 import { ApiClient } from '@/common/api/ApiClient';
 import { useAppStore } from '@/stores/app.store';
+import { useTableStore } from '@/stores/table.store';
 
 interface Props {
     // No more table-specific props needed. Everything is in the App Schema.
@@ -79,6 +80,7 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
     (e: 'generate-context'): void;
+    (e: 'apply', payload: { fields: any[]; layout: any; settings: any }): void;
 }>();
 
 // Local state for the JSON code
@@ -339,6 +341,22 @@ async function handleApply() {
                     // Refresh everything
                     await appStore.fetchApp(appStore.currentApp.id);
                     originalJson.value = jsonCode.value;
+
+                    // Root Cause B Fix: Sync Visual Editor Memory & Iframe Preview
+                    const tableStore = useTableStore();
+                    const activeSlug = tableStore.currentTable?.slug;
+                    if (activeSlug && parsed.tables?.[activeSlug]) {
+                        const tableData = parsed.tables[activeSlug];
+                        emit('apply', {
+                            fields: tableData.fields || [],
+                            layout: {
+                                type: 'standard',
+                                settings: tableData.settings || {},
+                                views: tableStore.currentVersion?.layout?.views || {}
+                            },
+                            settings: tableData.settings || {}
+                        });
+                    }
                 } catch (e: any) {
                     f7.dialog.alert('Failed to update app schema: ' + e.message);
                 } finally {

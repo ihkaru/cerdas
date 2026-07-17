@@ -2,7 +2,7 @@
     <EditorShell>
         <template #header>
             <EditorHeader :title="tableName" :app-name="appStore.currentApp?.name" :is-dirty="isGlobalDirty"
-                :is-published="isPublished" :version="currentVersion" :can-publish="isGlobalDirty"
+                :is-published="isPublished" :version="currentVersion" :can-publish="!isPublished"
                 @rename="handleRename" @save="handleSave" @publish="onPublish" @back="() => handleBack(isGlobalDirty)"
                 @export="exportTable" />
         </template>

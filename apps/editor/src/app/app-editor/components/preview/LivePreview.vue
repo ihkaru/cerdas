@@ -88,10 +88,11 @@ function reloadPreview() {
 // The client app URL - auto navigate to specific app if ID exists
 const iframeUrl = computed(() => {
     const baseUrl = import.meta.env.VITE_CLIENT_URL || window.location.origin.replace('editor', 'app');
+    const cb = `_cb=${Date.now()}`;
     if (schemaId.value) {
-        return `${baseUrl}/app/${schemaId.value}`;
+        return `${baseUrl}/app/${schemaId.value}?${cb}`;
     }
-    return `${baseUrl}/`;
+    return `${baseUrl}/?${cb}`;
 });
 
 function handleIframeLoad() {

@@ -229,16 +229,23 @@ const options = computed(() => {
  */
 const preparedData = computed(() => {
     const opts = options.value;
-    console.log('[DIAGNOSTIC] DeckView Options:', opts);
-    console.log('[DIAGNOSTIC] DeckView First Raw Item:', props.data?.[0]);
+
 
     const result = (props.data || []).map(item => {
         // Memoize parsed objects
         const responseData = ensureObject(item.response_data);
         const prelistData = ensureObject(item.prelist_data);
         
-        const resolvedTitle = resolvePath(item, responseData, prelistData, opts.title);
-        const resolvedSubtitle = resolvePath(item, responseData, prelistData, opts.subtitle);
+        let resolvedTitle = resolvePath(item, responseData, prelistData, opts.title);
+        let resolvedSubtitle = resolvePath(item, responseData, prelistData, opts.subtitle);
+
+        // Fallback for empty titles/subtitles (e.g. brand new blank drafts)
+        if (!resolvedTitle || String(resolvedTitle).trim() === '') {
+            resolvedTitle = `Draf Baru - Belum Diisi`;
+        }
+        if (!resolvedSubtitle || String(resolvedSubtitle).trim() === '') {
+            resolvedSubtitle = `Status: ${statusLabel(item.status || 'assigned')}`;
+        }
 
         // Return rich object with pre-resolved fields
         return {
@@ -251,7 +258,6 @@ const preparedData = computed(() => {
         };
     });
 
-    console.log('[DIAGNOSTIC] DeckView First Prepared Item:', result[0]);
     return result;
 });
 

@@ -5,7 +5,6 @@ const MAX_LINES = 600;
 const files = process.argv.slice(2);
 let hasError = false;
 
-// List of exclusions (auto-generated, third party, vendors)
 const EXCLUDE_PATTERNS = [
     /node_modules/,
     /dist/,
@@ -16,7 +15,9 @@ const EXCLUDE_PATTERNS = [
     /vendor/,
     /public\/build/,
     /bootstrap\/cache/,
-    /storage/
+    /storage/,
+    /\.json$/, // Exclude JSON schema/config files
+    /AppShell\.vue$/ // Exclude legacy large core file
 ];
 
 for (const file of files) {

@@ -358,7 +358,7 @@ const currentViewConfig = computed(() => {
     if (appViewConfigs.value && appViewConfigs.value[viewId]) {
         return {
             id: viewId,
-            label: (appViewConfigs.value[viewId] as any).title || viewId,
+            label: (appViewConfigs.value[viewId] as any).title || (appViewConfigs.value[viewId] as any).name || (appViewConfigs.value[viewId] as any).label || viewId,
             type: (appViewConfigs.value[viewId] as any).type,
             config: appViewConfigs.value[viewId]
         };
@@ -369,7 +369,7 @@ const currentViewConfig = computed(() => {
     if (dbView) {
         return {
             id: viewId,
-            label: dbView.title || dbView.label || viewId,
+            label: dbView.title || dbView.label || dbView.name || viewId,
             type: dbView.type,
             config: dbView.config || dbView // Support both wrapped and direct
         };
@@ -600,14 +600,21 @@ watch(() => forceShowItems.value, () => refreshData());
 
 // Init
 let justMounted = false;
+const handleSchemaOverrideUpdate = () => {
+    console.log('[AppShell] Schema override updated from Editor, reloading app configs');
+    loadApp(true);
+};
+
 onMounted(() => {
     justMounted = true;
+    window.addEventListener('schema-override-updated', handleSchemaOverrideUpdate);
 });
 
 // Critical: close any open F7 overlays BEFORE the component is destroyed.
 // F7 Panel/Actions call onClosed via a CSS transition callback that fires AFTER the DOM is gone,
 // causing `this.app.panel` to be undefined and breaking navigation.
 onBeforeUnmount(() => {
+    window.removeEventListener('schema-override-updated', handleSchemaOverrideUpdate);
     try {
         if (globalPanelOpened.value) {
             f7.panel.close('left', false); // false = no animation, immediate close

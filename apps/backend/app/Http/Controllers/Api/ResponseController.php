@@ -21,7 +21,7 @@ class ResponseController extends Controller
     public function indexForEditor(Request $request, string $id): JsonResponse
     {
         $app = \App\Models\App::findOrFail($id);
-        
+
         // Scalability Optimization: Use table_id directly with whereIn instead of nested whereHas
         $tableIds = Table::where('app_id', $id)->pluck('id');
 
@@ -40,9 +40,9 @@ class ResponseController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('prelist_data', 'like', "%{$search}%")
-                  ->orWhereHas('enumerator', function($uQ) use ($search) {
-                      $uQ->where('name', 'like', "%{$search}%");
-                  });
+                    ->orWhereHas('enumerator', function ($uQ) use ($search) {
+                        $uQ->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -55,8 +55,10 @@ class ResponseController extends Controller
                     $field = $f['field'] ?? null;
                     $operator = $f['operator'] ?? 'equals';
                     $val = $f['value'] ?? null;
-                    
-                    if (!$field || $val === null || $val === '') continue;
+
+                    if (! $field || $val === null || $val === '') {
+                        continue;
+                    }
 
                     $query->where(function ($subQ) use ($field, $operator, $val) {
                         // 1. Search in assignments.prelist_data (static prelist)
@@ -64,9 +66,9 @@ class ResponseController extends Controller
                             $this->applyJsonFilter($q, 'prelist_data', $field, $operator, $val);
                         })
                         // 2. Or search in responses.data (dynamic responses)
-                        ->orWhereHas('responses', function ($rQ) use ($field, $operator, $val) {
-                            $this->applyJsonFilter($rQ, 'data', $field, $operator, $val);
-                        });
+                            ->orWhereHas('responses', function ($rQ) use ($field, $operator, $val) {
+                                $this->applyJsonFilter($rQ, 'data', $field, $operator, $val);
+                            });
                     });
                 }
             }
@@ -121,7 +123,7 @@ class ResponseController extends Controller
         $assignment = $response->assignment;
 
         // Validation: Only supervisors/admins
-        if ($assignment->supervisor_id !== $user->id && !$user->isSuperAdmin()) {
+        if ($assignment->supervisor_id !== $user->id && ! $user->isSuperAdmin()) {
             return response()->json(['message' => 'Unauthorized to approve'], 403);
         }
 
@@ -134,7 +136,7 @@ class ResponseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Response approved successfully',
-            'status' => 'approved'
+            'status' => 'approved',
         ]);
     }
 
@@ -146,7 +148,7 @@ class ResponseController extends Controller
         $user = $request->user();
         $assignment = $response->assignment;
 
-        if ($assignment->supervisor_id !== $user->id && !$user->isSuperAdmin()) {
+        if ($assignment->supervisor_id !== $user->id && ! $user->isSuperAdmin()) {
             return response()->json(['message' => 'Unauthorized to reject'], 403);
         }
 
@@ -155,7 +157,7 @@ class ResponseController extends Controller
         // Move status to rejected so we can explicitly filter for it
         $assignment->update([
             'status' => 'rejected',
-            'rejection_note' => $request->reason
+            'rejection_note' => $request->reason,
         ]);
 
         Log::info('Response Rejected', ['response_id' => $response->id, 'rejected_by' => $user->id]);
@@ -163,7 +165,7 @@ class ResponseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Response rejected and returned to enumerator',
-            'status' => 'in_progress'
+            'status' => 'in_progress',
         ]);
     }
 
@@ -187,7 +189,7 @@ class ResponseController extends Controller
 
         // If NOT Super Admin, restrict to own assignments
         // If NOT Super Admin, restrict to own assignments OR Simple Mode Apps
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             $query->whereHas('assignment', function ($q) use ($user) {
                 $q->where('enumerator_id', $user->id)
                     ->orWhere('supervisor_id', $user->id)
@@ -235,19 +237,13 @@ class ResponseController extends Controller
                 $imageData = base64_decode($imageData);
 
                 if ($imageData === false) {
-                    continue; // Skip invalid base64
+                    continue;
                 }
 
-                // Generate Path: responses/{assignment_id}/{user_id}/{timestamp}_{random}.ext
                 $fileName = time().'_'.Str::random(10).'.'.$extension;
                 $path = "responses/{$assignmentId}/{$userId}/{$fileName}";
-
-                // Store to Disk (Public)
                 \Illuminate\Support\Facades\Storage::disk('public')->put($path, $imageData);
-
-                // Return the URL
                 $url = \Illuminate\Support\Facades\Storage::url($path);
-
                 $data[$key] = $url;
             }
         }
@@ -255,24 +251,21 @@ class ResponseController extends Controller
         return $data;
     }
 
-    /**
-     * Store new responses (Sync Push)
-     */
     public function store(Request $request): JsonResponse
     {
-        // Increase memory limit for this request to handle parsing
         ini_set('memory_limit', '512M');
 
         $validated = $request->validate([
             'responses' => 'required|array',
             'responses.*.local_id' => 'required|uuid',
-            'responses.*.assignment_id' => 'required', // String (UUID) or Integer
-            'responses.*.table_id' => 'nullable', // Needed for creation (ad-hoc)
+            'responses.*.assignment_id' => 'required',
+            'responses.*.table_id' => 'nullable',
             'responses.*.data' => 'required|array',
             'responses.*.created_at' => 'nullable|date',
             'responses.*.updated_at' => 'nullable|date',
             'responses.*.device_id' => 'nullable|string',
-            'responses.*.submitted_version' => 'nullable|integer', // Form version used by client
+            'responses.*.submitted_version' => 'nullable|integer',
+            'responses.*.status' => 'nullable|string|in:assigned,in_progress,submitted,approved,rejected',
         ]);
 
         $user = $request->user();
@@ -288,30 +281,25 @@ class ResponseController extends Controller
         DB::transaction(function () use ($validated, $user, &$results) {
             foreach ($validated['responses'] as $respData) {
                 $assignmentInput = $respData['assignment_id'];
-
                 Log::debug('Processing Item', ['local_id' => $respData['local_id'], 'assignment_input' => $assignmentInput]);
 
                 $assignment = null;
 
-                // 1. Try to find assignment
                 if (is_numeric($assignmentInput)) {
                     $assignment = Assignment::find($assignmentInput);
                 } elseif (Str::isUuid($assignmentInput)) {
-                    // First try to find by id (primary key)
                     $assignment = Assignment::find($assignmentInput);
-
-                    // If not found, try by external_id (for ad-hoc assignments created earlier)
-                    if (!$assignment) {
+                    if (! $assignment) {
                         $assignment = Assignment::where('external_id', $assignmentInput)->first();
                     }
                 }
-                // 2. Create if not found and is UUID (Self-Assignment)
-                $newAssignmentId = null;
-                if (!$assignment && Str::isUuid($assignmentInput) && !empty($respData['table_id'])) {
-                    // Get latest version for this table
-                    $table = Table::with('app')->find($respData['table_id']);
 
-                    if ($table && $table->latestPublishedVersion) {
+                $newAssignmentId = null;
+                if (! $assignment && Str::isUuid($assignmentInput) && ! empty($respData['table_id'])) {
+                    $table = Table::with(['app', 'latestVersion', 'latestPublishedVersion'])->find($respData['table_id']);
+                    $version = $table?->latestPublishedVersion ?? $table?->latestVersion;
+
+                    if ($table && $version) {
                         // Determine Supervisor: Try to find from AppMembership, else self
                         $supervisorId = $user->id; // Default fallback
                         $membership = $user->getMembershipForApp($table->app_id);
@@ -322,7 +310,7 @@ class ResponseController extends Controller
                         // Create Ad-hoc Assignment
                         $assignment = Assignment::create([
                             'table_id' => $table->id,
-                            'table_version_id' => $table->latestPublishedVersion->id,
+                            'table_version_id' => $version->id,
                             'organization_id' => $membership->organization_id ?? $user->appMemberships->first()?->organization_id,
                             'supervisor_id' => $supervisorId,
                             'enumerator_id' => $user->id,
@@ -337,7 +325,7 @@ class ResponseController extends Controller
                     }
                 }
 
-                if (!$assignment) {
+                if (! $assignment) {
                     Log::warning('Assignment Not Found', ['input' => $assignmentInput]);
                     $results[] = [
                         'local_id' => $respData['local_id'],
@@ -360,13 +348,14 @@ class ResponseController extends Controller
                 $app = $assignment->tableVersion->table->app ?? null;
 
                 // Enforce active status: Block response uploads if App is deactivated/inactive (non-admin only)
-                if ($app && !$app->is_active && !$user->isSuperAdmin()) {
+                if ($app && ! $app->is_active && ! $user->isSuperAdmin()) {
                     Log::warning('Sync rejected: App is inactive', ['user_id' => $user->id, 'app_id' => $app->id]);
                     $results[] = [
                         'local_id' => $respData['local_id'],
                         'status' => 'error',
                         'message' => 'Application is deactivated/inactive',
                     ];
+
                     continue;
                 }
 
@@ -374,7 +363,7 @@ class ResponseController extends Controller
                     $isSimpleShared = true;
                 }
 
-                if (!$isSimpleShared && !$isOwner && !$isSupervisor && !$user->isSuperAdmin() && !$isUnassigned) {
+                if (! $isSimpleShared && ! $isOwner && ! $isSupervisor && ! $user->isSuperAdmin() && ! $isUnassigned) {
                     Log::warning('Access Denied', ['user_id' => $user->id, 'assignment_id' => $assignment->id]);
                     $results[] = [
                         'local_id' => $respData['local_id'],
@@ -425,19 +414,19 @@ class ResponseController extends Controller
                     if ($schemaVersion) {
                         $fields = $schemaVersion->getFields();
                         $requiredFields = collect($fields)
-                            ->filter(fn ($f) => !empty($f['required']) || !empty($f['validation_rules']))
+                            ->filter(fn ($f) => ! empty($f['required']) || ! empty($f['validation_rules']))
                             ->pluck('name')
                             ->filter()
                             ->toArray();
 
                         $missingFields = [];
                         foreach ($requiredFields as $fieldName) {
-                            if (!isset($respData['data'][$fieldName]) || $respData['data'][$fieldName] === '' || $respData['data'][$fieldName] === null) {
+                            if (! isset($respData['data'][$fieldName]) || $respData['data'][$fieldName] === '' || $respData['data'][$fieldName] === null) {
                                 $missingFields[] = $fieldName;
                             }
                         }
 
-                        if (!empty($missingFields)) {
+                        if (! empty($missingFields)) {
                             Log::warning('Strict Validation Failed', [
                                 'local_id' => $respData['local_id'],
                                 'missing_fields' => $missingFields,
@@ -503,20 +492,28 @@ class ResponseController extends Controller
 
                 }
 
-                // Auto-transition assignment status on response sync (for both new response and response updates)
-                if ($assignment->status === 'assigned') {
-                    $assignment->status = 'in_progress';
-                }
-
-                $assignment->loadMissing('tableVersion.table.app');
-                $app = $assignment->tableVersion?->table?->app ?? null;
-                if ($app) {
-                    $assignment->status = 'submitted';
+                // Auto-transition assignment status on response sync using client status if present
+                // RULE: If client sends an explicit status, ALWAYS respect it (client is authoritative for draft state).
+                // Only apply server-side auto-transition if client sends NO status (legacy fallback).
+                $incomingStatus = $respData['status'] ?? null;
+                if ($incomingStatus && in_array($incomingStatus, ['assigned', 'in_progress', 'submitted', 'approved', 'rejected'])) {
+                    // Client is explicit: use their status as-is. Draft stays draft.
+                    $assignment->status = $incomingStatus;
+                    Log::debug('Assignment status set from client', ['status' => $incomingStatus, 'id' => $assignment->id]);
+                } else {
+                    // Legacy fallback (no status sent by client): auto-transition
+                    if ($assignment->status === 'assigned') {
+                        $assignment->status = 'in_progress';
+                    }
+                    $assignment->loadMissing('tableVersion.table.app');
+                    $app = $assignment->tableVersion?->table?->app ?? null;
+                    if ($app) {
+                        $assignment->status = 'submitted';
+                    }
                 }
 
                 $assignment->save();
                 $assignment->touch(); // Explicitly touch updated_at to bypass mass-assignment protection and force db timestamp update
-
 
                 $resItem = [
                     'local_id' => $respData['local_id'],
@@ -554,11 +551,13 @@ class ResponseController extends Controller
     {
         // Sanitize field path to prevent SQL injection in whereRaw
         $sanitizedField = preg_replace('/[^a-zA-Z0-9_\.\-]/', '', $field);
-        if (empty($sanitizedField)) return;
+        if (empty($sanitizedField)) {
+            return;
+        }
 
         // Support nested fields via JSON query syntax (e.g. 'address.city' or repeat groups)
         // Laravel JSON syntax: column->field
-        $jsonField = "{$column}->" . str_replace('.', '->', $sanitizedField);
+        $jsonField = "{$column}->".str_replace('.', '->', $sanitizedField);
         $lowerValue = strtolower($value);
 
         switch ($operator) {

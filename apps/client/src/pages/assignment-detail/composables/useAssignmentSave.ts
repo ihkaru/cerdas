@@ -44,9 +44,12 @@ export function useAssignmentSave(
     const confirmSubmit = () => {
         saving.value = false;
 
+        console.log('[DEBUG] confirmSubmit: formRenderer.value is', formRenderer.value);
+
         // Validate Form Before Submitting
         if (formRenderer.value) {
             const isValid = formRenderer.value.validate();
+            console.log('[DEBUG] confirmSubmit: isValid is', isValid);
             if (!isValid) {
                 f7.toast.show({
                     text: 'Mohon perbaiki error di form sebelum submit.',
@@ -56,6 +59,8 @@ export function useAssignmentSave(
                 });
                 return;
             }
+        } else {
+            console.warn('[DEBUG] confirmSubmit: formRenderer.value is NULL!');
         }
 
         f7.dialog.confirm('Apakah Anda yakin ingin menyelesaikan assignment ini?', 'Selesaikan', async () => {
