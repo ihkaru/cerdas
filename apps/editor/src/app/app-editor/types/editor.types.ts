@@ -3,6 +3,7 @@
  */
 
 import type { FieldType } from '@cerdas/types';
+export type { FieldType };
 import type { FieldDefinition } from '@cerdas/form-engine';
 
 // ============================================================================

@@ -119,7 +119,14 @@ export const useAppStore = defineStore('app', () => {
         }
     }
 
-    async function createApp(payload: { name: string; description?: string; mode?: string }) {
+    async function createApp(payload: { 
+        name: string; 
+        description?: string; 
+        mode?: string; 
+        start_date?: string | null; 
+        end_date?: string | null; 
+        expired_behavior?: string;
+    }) {
         loading.value = true;
         try {
             const res = await ApiClient.post('/apps', payload);

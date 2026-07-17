@@ -176,7 +176,7 @@ const apps = computed(() => {
         slug: app.slug,
         name: app.name,
         description: app.description,
-        color: colors[app.id % colors.length] || colors[0],
+        color: colors[(typeof app.id === 'number' ? app.id : parseInt(String(app.id)) || 0) % colors.length] || colors[0],
         formCount: app.tables_count || 0,
         memberCount: app.memberships_count || 0,
     }));
@@ -216,7 +216,14 @@ async function handleCreateApp() {
 
     isCreating.value = true;
     try {
-        const payload: Record<string, any> = {
+        const payload: {
+            name: string;
+            description?: string;
+            mode?: string;
+            start_date?: string | null;
+            end_date?: string | null;
+            expired_behavior?: string;
+        } = {
             name: newApp.name.trim(),
             description: newApp.description?.trim(),
             mode: newApp.mode
