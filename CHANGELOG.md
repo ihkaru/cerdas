@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.10](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.9...cerdas-v0.2.10) (2026-07-17)
+
+
+### Features
+
+* **excel:** implement client-side chunked upload to bypass server file constraints ([885220d](https://github.com/ihkaru/cerdas/commit/885220d59dac9c2dd5324fe4ec92fd4e25336941))
+* implement post-import data preview panel and interactive URL field type ([b3d1988](https://github.com/ihkaru/cerdas/commit/b3d19887892e15e41155a188f7c1586bf26ecb7e))
+* **preview:** implement connection timeout and reload button for iframe live preview ([1944e24](https://github.com/ihkaru/cerdas/commit/1944e244b1982ce0c4aa20e9c00e95ac9d1035a8))
+
+
+### Bug Fixes
+
+* **client:** add all @capacitor/* to optimizeDeps.include to prevent 504 loop ([998e4d4](https://github.com/ihkaru/cerdas/commit/998e4d4a274c9e3710cea5a0750d76510509d58f))
+* **docker:** correct php.ini override directory path for FrankenPHP upload limits ([d0b1a63](https://github.com/ihkaru/cerdas/commit/d0b1a63e6b71613f19a75ed5e6809ce3b2914f6e))
+* **editor:** resolve codemirror/autocomplete import and fix strict ts errors in app store/pages ([bb83310](https://github.com/ihkaru/cerdas/commit/bb83310b25df2748e8a7bd2485b9d8efff1b0f8e))
+* **excel:** support indexed array in preview row lookup to fix undefined preview values ([4d7bdab](https://github.com/ihkaru/cerdas/commit/4d7bdab56952eb9c4cbcd639ea59faeac7dd7273))
+* **excel:** use Storage::path instead of manual storage_path for assembled chunks ([6f323fd](https://github.com/ihkaru/cerdas/commit/6f323fd1f723edcb382e97a7fff39ee5aea875ed))
+* **layout:** populate default views in defaultLayout to prevent TypeError when loading new table layout ([c53752a](https://github.com/ihkaru/cerdas/commit/c53752a3151f9bd6fa41d4d7c6b33167ab3f28d0))
+* **vite:** complete optimizeDeps - add pwa-elements to client, add exclude to editor ([207ccac](https://github.com/ihkaru/cerdas/commit/207ccac3bbae9144dc80761277f28f66ce1a2a8d))
+
 ## [0.2.9](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.8...cerdas-v0.2.9) (2026-07-08)
 
 
