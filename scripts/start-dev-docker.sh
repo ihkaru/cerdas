@@ -3,7 +3,7 @@
 # =============================================================================
 # CERDAS - Start Hybrid Dev (Local Docker Backend + Local Frontend)
 # =============================================================================
-# API calls go to: http://localhost:8090/api
+# API calls go to: http://localhost:9980/api
 # =============================================================================
 
 export DOCKER_BUILDKIT=1
@@ -35,7 +35,7 @@ sleep 10
 echo -e "\033[1;33m[3/5] Configuring Client for Hybrid Mode...\033[0m"
 if [ -f "$CLIENT_DIR/.env.docker-web" ]; then
     cp "$CLIENT_DIR/.env.docker-web" "$CLIENT_DIR/.env"
-    echo -e "\033[0;37m  -> Client API set to: http://localhost:8090/api\033[0m"
+    echo -e "\033[0;37m  -> Client API set to: http://localhost:9980/api\033[0m"
 else
     echo -e "\033[1;31m  -> ERROR: $CLIENT_DIR/.env.docker-web not found!\033[0m"
 fi
@@ -44,7 +44,7 @@ fi
 echo -e "\033[1;33m[4/5] Configuring Editor for Hybrid Mode...\033[0m"
 if [ -f "$EDITOR_DIR/.env.docker-web" ]; then
     cp "$EDITOR_DIR/.env.docker-web" "$EDITOR_DIR/.env"
-    echo -e "\033[0;37m  -> Editor API set to: http://localhost:8090/api\033[0m"
+    echo -e "\033[0;37m  -> Editor API set to: http://localhost:9980/api\033[0m"
 else
     echo -e "\033[1;31m  -> ERROR: $EDITOR_DIR/.env.docker-web not found!\033[0m"
 fi
@@ -101,18 +101,18 @@ if ! command -v pnpm &> /dev/null; then
 fi
 
 echo -e "\033[1;36m  -> Starting Editor on port 3001...\033[0m"
-pnpm --filter editor dev --host --port 3001 > editor.log 2>&1 &
+pnpm --filter editor dev --host --port 9982 > editor.log 2>&1 &
 EDITOR_PID=$!
 
 echo -e "\033[1;36m  -> Starting Client on port 3000...\033[0m"
-pnpm --filter client dev --host --port 3000 > client.log 2>&1 &
+pnpm --filter client dev --host --port 9981 > client.log 2>&1 &
 CLIENT_PID=$!
 
 echo ""
 echo -e "\033[1;37m  URLs:\033[0m"
-echo -e "\033[1;36m  - Editor App:\033[0m http://localhost:3001"
-echo -e "\033[1;36m  - Client App:\033[0m http://localhost:3000"
-echo -e "\033[1;36m  - Backend API:\033[0m http://localhost:8090/api"
+echo -e "\033[1;36m  - Editor App:\033[0m http://localhost:9982"
+echo -e "\033[1;36m  - Client App:\033[0m http://localhost:9981"
+echo -e "\033[1;36m  - Backend API:\033[0m http://localhost:9980/api"
 echo ""
 echo -e "\033[0;90m  (Logs are hidden. Press Ctrl+C to stop everything)\033[0m"
 echo -e "\033[1;32m========================================\033[0m"

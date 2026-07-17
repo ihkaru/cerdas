@@ -2,7 +2,7 @@
 # CERDAS - Start Android Dev (Local Docker Backend)
 # =============================================================================
 # Mode 3: Uses Local Docker Backend (10.0.2.2) + Vite live reload
-# API calls go to: http://10.0.2.2:8080/api
+# API calls go to: http://10.0.2.2:9980/api
 # =============================================================================
 
 param(
@@ -34,7 +34,7 @@ Start-Sleep -Seconds 10
 # 3. Copy .env.docker-android -> .env
 Write-Host "[3/8] Setting API to LOCAL DOCKER backend..." -ForegroundColor Yellow
 Copy-Item -Path "$ClientDir\.env.docker-android" -Destination "$ClientDir\.env" -Force
-Write-Host "  -> VITE_API_BASE_URL=http://10.0.2.2:8080/api" -ForegroundColor Gray
+Write-Host "  -> VITE_API_BASE_URL=http://10.0.2.2:9980/api" -ForegroundColor Gray
 
 # 4. Ensure useLiveReload = true
 Write-Host "[4/8] Enabling Live Reload..." -ForegroundColor Yellow
@@ -104,7 +104,7 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "  Ready! Docker Backend Mode"             -ForegroundColor Green
 Write-Host ""
-Write-Host "  API:    http://10.0.2.2:8080/api"      -ForegroundColor White
+Write-Host "  API:    http://10.0.2.2:9980/api"      -ForegroundColor White
 Write-Host "  Client: http://10.0.2.2:9981"           -ForegroundColor White
 Write-Host "  Mode:   Live Reload ON"                 -ForegroundColor White
 Write-Host ""

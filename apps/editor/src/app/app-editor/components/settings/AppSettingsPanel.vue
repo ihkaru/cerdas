@@ -203,6 +203,7 @@ const fullJoinUrl = computed(() => {
     const origin = window.location.origin;
     if (origin.includes(':3001')) return origin.replace(':3001', ':3000') + `/join/${joinLink.value.token}`;
     if (origin.includes(':8001')) return origin.replace(':8001', ':8000') + `/join/${joinLink.value.token}`;
+    if (origin.includes(':9982')) return origin.replace(':9982', ':9981') + `/join/${joinLink.value.token}`;
     
     // 4. Default Fallback
     return `${origin}/join/${joinLink.value.token}`;

@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile.prod
     restart: always
     ports:
-      - "8090:8080"
+      - "9980:8080"
     env_file:
       - .env.docker
     dns:
@@ -78,7 +78,7 @@ services:
       context: .
       dockerfile: apps/client/Dockerfile.prod
       args:
-        VITE_API_BASE_URL: http://localhost:8090/api
+        VITE_API_BASE_URL: http://localhost:9980/api
         VITE_GOOGLE_CLIENT_ID: 133588067257-0huo4ja0kaavpg704si2htphl0kvgobt.apps.googleusercontent.com
         VITE_REVERB_APP_KEY: ${REVERB_APP_KEY:-reverb-app-key}
         VITE_REVERB_HOST: ${REVERB_HOST:-localhost}
@@ -86,7 +86,7 @@ services:
         VITE_REVERB_SCHEME: ${REVERB_SCHEME:-http}
     restart: always
     ports:
-      - "8000:80"
+      - "9981:80"
     depends_on:
       backend:
         condition: service_healthy
@@ -99,7 +99,7 @@ services:
       context: .
       dockerfile: apps/editor/Dockerfile.prod
       args:
-        VITE_API_BASE_URL: http://localhost:8090/api
+        VITE_API_BASE_URL: http://localhost:9980/api
         VITE_GOOGLE_CLIENT_ID: 133588067257-0huo4ja0kaavpg704si2htphl0kvgobt.apps.googleusercontent.com
         VITE_REVERB_APP_KEY: ${REVERB_APP_KEY:-reverb-app-key}
         VITE_REVERB_HOST: ${REVERB_HOST:-localhost}
@@ -107,7 +107,7 @@ services:
         VITE_REVERB_SCHEME: ${REVERB_SCHEME:-http}
     restart: always
     ports:
-      - "8001:80"
+      - "9982:80"
     depends_on:
       backend:
         condition: service_healthy
