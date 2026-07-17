@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.27](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.26...cerdas-v0.2.27) (2026-07-17)
+
+
+### Features
+
+* allow manual invitation join via code/link on dashboard and settings ([aa9ad40](https://github.com/ihkaru/cerdas/commit/aa9ad40ab99a5a53af7f3f977fae211cabf527fb))
+
+
+### Bug Fixes
+
+* null-safe assignment destroy and try-catch error protection ([5ed5fd0](https://github.com/ihkaru/cerdas/commit/5ed5fd0b2afb7f536735ab72a626f2105a3fe2b5))
+
 ## [0.2.26](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.25...cerdas-v0.2.26) (2026-07-17)
 
 
