@@ -48,6 +48,9 @@ export class ApiClient {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Authorization': token ? `Bearer ${token}` : '',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Expires': '0',
         };
     }
 
@@ -103,8 +106,10 @@ export class ApiClient {
     }
 
     async get(endpoint: string, params: Record<string, any> = {}) {
+        // Enforce cache buster timestamp for all GET requests to bypass CDN/browser caches in production
+        const queryParams: Record<string, any> = { ...params, _t: Date.now() };
         const url = new URL(`${this.baseUrl}${endpoint}`);
-        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+        Object.keys(queryParams).forEach(key => url.searchParams.append(key, queryParams[key]));
 
         const res = await fetch(url.toString(), {
             method: 'GET',
