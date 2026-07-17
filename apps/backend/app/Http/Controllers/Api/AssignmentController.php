@@ -205,35 +205,45 @@ class AssignmentController extends Controller
      */
     public function destroy(Request $request, Assignment $assignment): JsonResponse
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
 
-        // Permission check: Assigned enumerator/supervisor or SuperAdmin or App Admin
-        $isAssigned = $assignment->enumerator_id === $user->id || $assignment->supervisor_id === $user->id;
+            // Permission check: Assigned enumerator/supervisor or SuperAdmin or App Admin
+            $isAssigned = $assignment->enumerator_id === $user->id || $assignment->supervisor_id === $user->id;
 
-        if (!$isAssigned && !$user->isSuperAdmin()) {
-            $assignment->loadMissing('tableVersion.table.app');
-            $app = $assignment->tableVersion->table->app;
+            if (!$isAssigned && !$user->isSuperAdmin()) {
+                $assignment->loadMissing(['table.app', 'tableVersion.table.app']);
+                $app = $assignment->tableVersion?->table?->app ?? $assignment->table?->app;
 
-            // Check membership access
-            if (!$user->getAccessibleAppIds()->contains($app->id ?? '')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Access denied',
-                ], 403);
+                if ($app && !$user->getAccessibleAppIds()->contains($app->id)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Access denied',
+                    ], 403);
+                }
             }
+
+            // Delete associated responses
+            Response::where('assignment_id', $assignment->id)->delete();
+
+            // Soft-delete assignment
+            $assignment->delete();
+
+            Log::info("[AssignmentController] Soft-deleted assignment {$assignment->id} by user {$user->id}");
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Assignment deleted successfully',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("[AssignmentController] Failed to delete assignment {$assignment->id}: {$e->getMessage()}", [
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete assignment: ' . $e->getMessage(),
+            ], 500);
         }
-
-        // Delete associated responses
-        Response::where('assignment_id', $assignment->id)->delete();
-
-        // Soft-delete assignment
-        $assignment->delete();
-
-        Log::info("[AssignmentController] Soft-deleted assignment {$assignment->id} by user {$user->id}");
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Assignment deleted successfully',
-        ]);
     }
 }

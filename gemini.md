@@ -110,6 +110,12 @@ packages/types  - @cerdas/types (shared strict TS types)
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
+- **Version**: 0.2.27 (Null-Safe Assignment Deletion & Try-Catch Log Protection)
+
+- **Null-Safe Assignment Deletion (2026-07-17)**:
+  - **Null-Safe Relation Traversal**: Memperbaiki `AssignmentController::destroy` agar secara aman membaca `$assignment->tableVersion?->table?->app ?? $assignment->table?->app` untuk mencegah fatal PHP Error `Attempt to read property "table" on null` saat `tableVersion` bernilai null.
+  - **Exception Protection**: Menambahkan blok `try/catch` komprehensif dengan logging trace yang mendalam agar memberikan pesan error terstruktur jika ada kegagalan saat proses penghapusan.
+
 - **Version**: 0.2.26 (Seamless Join UX, Post-Login Token Handoff & Joined Members Management)
 
 - **Seamless Join UX & Post-Login Token Handoff (2026-07-17)**:
