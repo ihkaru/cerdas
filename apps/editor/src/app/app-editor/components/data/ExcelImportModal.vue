@@ -40,7 +40,10 @@
                             </div>
                             <div v-else class="upload-loading">
                                 <f7-preloader color="blue"></f7-preloader>
-                                <p class="upload-loading-text">Uploading file...</p>
+                                <p class="upload-loading-text">Uploading ({{ uploadProgress }}%)</p>
+                                <div class="import-progress-track" style="width: 100%; max-width: 200px; margin: 8px auto 0;">
+                                    <div class="import-progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+                                </div>
                             </div>
                         </div>
 
@@ -176,6 +179,7 @@ const isOpen = computed({
 const step = ref(1);
 const isDragging = ref(false);
 const isUploading = ref(false);
+const uploadProgress = ref(0);
 const isLoadingPreview = ref(false);
 const isImporting = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -260,9 +264,12 @@ async function uploadFile(file: File) {
     }
 
     isUploading.value = true;
+    uploadProgress.value = 0;
 
     try {
-        const result = await ExcelImportService.upload(file);
+        const result = await ExcelImportService.uploadChunked(file, (percent) => {
+            uploadProgress.value = percent;
+        });
         filePath.value = result.file_path;
         tableName.value = file.name
             .replace(/\.[^/.]+$/, '')

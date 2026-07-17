@@ -202,6 +202,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Excel
     Route::post('/excel/upload', [ExcelImportController::class, 'upload']);
+    Route::post('/excel/upload-chunk', [ExcelImportController::class, 'uploadChunk']);
     Route::post('/excel/preview', [ExcelImportController::class, 'preview']);
     Route::post('/excel/import', [ExcelImportController::class, 'import']);
     Route::get('/excel/status/{jobId}', [ExcelImportController::class, 'checkStatus']);

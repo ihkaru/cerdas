@@ -36,6 +36,92 @@ class ExcelImportController extends Controller
     }
 
     /**
+     * Upload chunk for temporary storage and assemble when complete
+     */
+    public function uploadChunk(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => 'required|file',
+            'chunk_index' => 'required|integer',
+            'total_chunks' => 'required|integer',
+            'uuid' => 'required|string',
+            'filename' => 'required|string',
+        ]);
+
+        $file = $request->file('file');
+        $chunkIndex = (int) $request->chunk_index;
+        $totalChunks = (int) $request->total_chunks;
+        $uuid = $request->uuid;
+        $filename = $request->filename;
+
+        // Ensure temporary folder exists
+        $tempPath = storage_path("app/chunks/{$uuid}");
+        if (!file_exists($tempPath)) {
+            mkdir($tempPath, 0755, true);
+        }
+
+        // Save chunk
+        $file->move($tempPath, "chunk_{$chunkIndex}");
+
+        // Check if all chunks are uploaded
+        $uploadedChunks = count(glob("{$tempPath}/chunk_*"));
+        if ($uploadedChunks === $totalChunks) {
+            // Assemble file
+            $extension = pathinfo($filename, PATHINFO_EXTENSION);
+            $finalFilename = Str::uuid()->toString() . '.' . $extension;
+            $finalPath = "imports/{$finalFilename}";
+            $destFile = storage_path("app/{$finalPath}");
+            
+            // Ensure imports directory exists
+            $destDir = dirname($destFile);
+            if (!file_exists($destDir)) {
+                mkdir($destDir, 0755, true);
+            }
+
+            $out = fopen($destFile, 'wb');
+            if ($out === false) {
+                return response()->json(['error' => 'Failed to create final file'], 500);
+            }
+
+            for ($i = 0; $i < $totalChunks; $i++) {
+                $chunkFile = "{$tempPath}/chunk_{$i}";
+                if (!file_exists($chunkFile)) {
+                    fclose($out);
+                    return response()->json(['error' => "Missing chunk: {$i}"], 400);
+                }
+                
+                $in = fopen($chunkFile, 'rb');
+                if ($in === false) {
+                    fclose($out);
+                    return response()->json(['error' => "Failed to read chunk: {$i}"], 500);
+                }
+
+                while ($buff = fread($in, 4096)) {
+                    fwrite($out, $buff);
+                }
+                fclose($in);
+                unlink($chunkFile); // Remove chunk after writing
+            }
+            fclose($out);
+            
+            // Clean up directory
+            rmdir($tempPath);
+
+            return response()->json([
+                'message' => 'File uploaded and assembled successfully',
+                'file_path' => $finalPath,
+                'original_name' => $filename,
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Chunk uploaded successfully',
+            'chunk_index' => $chunkIndex,
+            'progress' => round((($chunkIndex + 1) / $totalChunks) * 100, 2),
+        ]);
+    }
+
+    /**
      * Preview columns and infer types from a specific sheet
      */
     public function preview(Request $request): JsonResponse

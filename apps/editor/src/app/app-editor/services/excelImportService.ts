@@ -32,6 +32,50 @@ export const ExcelImportService = {
         return response.data;
     },
 
+    async uploadChunk(
+        file: File,
+        chunk: Blob,
+        chunkIndex: number,
+        totalChunks: number,
+        uuid: string
+    ): Promise<any> {
+        const formData = new FormData();
+        formData.append('file', chunk);
+        formData.append('chunk_index', chunkIndex.toString());
+        formData.append('total_chunks', totalChunks.toString());
+        formData.append('uuid', uuid);
+        formData.append('filename', file.name);
+
+        const response = await ApiClient.post('/excel/upload-chunk', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data;
+    },
+
+    async uploadChunked(
+        file: File,
+        onProgress: (percent: number) => void
+    ): Promise<{ file_path: string; original_name: string }> {
+        const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+        const totalChunks = Math.ceil(file.size / chunkSize);
+        
+        // Simple client-side UUID generation
+        const uuid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+        let result: any = null;
+        for (let i = 0; i < totalChunks; i++) {
+            const start = i * chunkSize;
+            const end = Math.min(start + chunkSize, file.size);
+            const chunk = file.slice(start, end);
+            
+            result = await this.uploadChunk(file, chunk, i, totalChunks, uuid);
+            onProgress(Math.round(((i + 1) / totalChunks) * 100));
+        }
+        return result;
+    },
+
     async preview(filePath: string, sheet?: string): Promise<ImportPreviewResponse> {
         const response = await ApiClient.post('/excel/preview', {
             file_path: filePath,
