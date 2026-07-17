@@ -110,7 +110,12 @@ packages/types  - @cerdas/types (shared strict TS types)
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
-- **Version**: 0.2.10 (Interactive URL / Hyperlink Field Type)
+- **Version**: 0.2.11 (Interactive URL / Hyperlink & Anti-Cache Sync)
+
+- **Anti-Cache Sync Fix (2026-07-17)**:
+  - **Global Header**: Menambahkan header `'Cache-Control': 'no-cache'`, `'Pragma': 'no-cache'`, dan `'Expires': '0'` di `ApiClient.ts`.
+  - **Timestamp Cache-Buster**: Menyematkan query param `_t: Date.now()` otomatis pada seluruh API `GET` request agar bypass Cloudflare/Nginx/Browser cache di production.
+
 
 - **URL / Hyperlink Field Type (2026-07-17)**:
   - **Tipe Data Terpusat**: Menambahkan `'url'` ke daftar `FieldType` global di `@cerdas/types`.
