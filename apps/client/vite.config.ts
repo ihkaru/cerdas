@@ -25,8 +25,19 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['framework7', 'framework7-vue'],
-    exclude: ['jeep-sqlite']
+    // Explicitly include ALL Capacitor packages so Vite pre-bundles them
+    // at startup (not lazily at runtime), which prevents the
+    // "504 Outdated Optimize Dep" loop in development.
+    include: [
+      'framework7',
+      'framework7-vue',
+      '@capacitor/core',
+      '@capacitor/network',
+      '@capacitor/app',
+      '@capacitor/camera',
+      '@capacitor/geolocation',
+    ],
+    exclude: ['jeep-sqlite', '@capacitor-community/sqlite']
   },
   server: {
     host: true,  // Listen on all interfaces (0.0.0.0)
