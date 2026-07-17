@@ -208,7 +208,7 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { useAppStore } from '../../../../stores/app.store';
 import { useTableStore } from '../../../../stores/table.store';
-import { ApiClient } from '../../../../common/api/ApiClient';
+import { ApiClient, getApiBaseUrl } from '../../../../common/api/ApiClient';
 import ResponseReviewDrawer from './ResponseReviewDrawer.vue';
 import CsvImportPopup from './CsvImportPopup.vue';
 import { f7 } from 'framework7-vue';
@@ -356,7 +356,7 @@ async function exportData() {
 
     try {
         const token = localStorage.getItem('auth_token') || '';
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+        const baseUrl = getApiBaseUrl();
         
         const reqRes = await axios.post(`${baseUrl}/tables/${tableFilter.value}/export/request?version=current`, {}, {
             headers: { 'Authorization': `Bearer ${token}` }

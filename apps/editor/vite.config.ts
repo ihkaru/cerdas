@@ -29,4 +29,8 @@ export default defineConfig({
     // Exclude any accidental WASM packages that might be transitively pulled in
     exclude: ['jeep-sqlite'],
   },
+  server: {
+    host: true,
+    port: Number(process.env.PORT) || 9982,
+  },
 })

@@ -1,7 +1,7 @@
 {
-  "version": "0.2.21",
-  "build_id": "e6g621",
-  "timestamp": "2026-07-17T13:18:57.754Z",
+  "version": "0.2.23",
+  "build_id": "qaotl",
+  "timestamp": "2026-07-17T13:36:29.656Z",
   "min_native_version": "0.1.0",
   "changelog": [
     "Optimisasi sinkronisasi data",

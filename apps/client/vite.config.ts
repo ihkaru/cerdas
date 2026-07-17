@@ -47,7 +47,7 @@ export default defineConfig({
   },
   server: {
     host: true,  // Listen on all interfaces (0.0.0.0)
-    port: 9981,  // Fixed port for Android to connect
+    port: Number(process.env.PORT) || 9981,  // Fixed port for Android to connect (fallback: 9981)
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
       // 'credentialless' allows loading external images without CORP headers

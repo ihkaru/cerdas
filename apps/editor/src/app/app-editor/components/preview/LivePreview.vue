@@ -28,6 +28,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch, inject } from 'vue';
 import { useTableEditor } from '../../composables/useTableEditor';
+import { getApiBaseUrl } from '../../../../common/api/ApiClient';
 
 const props = defineProps<{
     role?: string;
@@ -111,7 +112,7 @@ async function resolveToken(): Promise<string | null> {
     if (impersonatedToken.value) return impersonatedToken.value;
 
     try {
-        const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+        const apiUrl = getApiBaseUrl();
         const res = await fetch(`${apiUrl}/auth/impersonate`, {
             method: 'POST',
             headers: {

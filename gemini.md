@@ -305,6 +305,19 @@ Logs saved to: `logs/android.log` → I can read this file directly for debuggin
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
+- **Version**: 0.2.24 (Zero Hardcoded Ports & Dynamic Origin API Fallback for Coolify / Docker)
+
+- **Dynamic Origin API Fallback (2026-07-17)**:
+  - **Dynamic Base URL**: Refactored `ApiClient.ts` di Client App dan Editor App untuk menggunakan `window.location.origin + '/api'` secara otomatis sebagai fallback dinamis jika tidak ada environment variable yang diset.
+  - **Zero Hardcoded Fallbacks**: Menghapus seluruh fallback hardcoded `http://localhost:8080/api` dari `ApiClient.ts`, `SubmissionsPanel.vue`, `LivePreview.vue`, dan `.env.local` agar aplikasi aman dan siap dideploy secara fleksibel di environment Docker / Coolify tanpa konflik port.
+  - **Helper Export**: Mengekspor `getApiBaseUrl()` dari Editor `ApiClient.ts` sebagai single source of truth resolusi URL API.
+
+- **Version**: 0.2.23 (Automated Backend Port Conflict Detection)
+
+- **Automated Backend Port Conflict Detection (2026-07-17)**:
+  - **Conflict Detector**: Menambahkan logika pemeriksaan konflik port otomatis di `HealthCheckService.ts`. Jika client mendeteksi kedua backend Host (`8080`) dan Docker (`9980`) aktif bersamaan saat local development, client akan menampilkan Framework7 dialog alert untuk memperingatkan developer.
+  - **Surgical Process Terminate**: Mematikan dan memverifikasi port `8080` host secara tuntas sehingga client hanya berinteraksi secara eksklusif dengan database Docker (`9980`).
+
 - **Version**: 0.2.22 (Local Dev Precedence & Robust SQLite Merge)
 
 - **Local Dev Precedence & Robust SQLite Merge (2026-07-17)**:

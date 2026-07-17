@@ -184,11 +184,44 @@ export class HealthCheckService {
         return null;
     }
 
+    private async detectPortConflict(): Promise<void> {
+        if (window.location.hostname !== 'localhost') {
+            return;
+        }
+
+        let currentPort: string | null = null;
+        if (this.apiClient.baseUrl.includes('9980')) {
+            currentPort = '9980';
+        } else if (this.apiClient.baseUrl.includes('8080')) {
+            currentPort = '8080';
+        }
+
+        if (!currentPort) {
+            return;
+        }
+
+        const checkPort = currentPort === '9980' ? '8080' : '9980';
+        try {
+            const res = await fetch(`http://localhost:${checkPort}/api/up`, { method: 'GET' });
+            if (res.ok) {
+                f7.dialog.alert(
+                    `⚠️ Konflik Port Backend: Kedua backend Docker (9980) dan Host (8080) aktif secara bersamaan! Ini akan menyebabkan ketidaksesuaian data sync. Harap matikan salah satunya.`,
+                    'Peringatan Konflik Port'
+                );
+            }
+        } catch {
+            logger.debug(`Port ${checkPort} is down as expected.`);
+        }
+    }
+
     public async runStartupChecks(silent: boolean = true) {
         logger.info('[HealthCheck] Running startup checks...');
         
         const apiOk = await this.checkApi();
         const reverbOk = this.checkReverb();
+
+        // Proactive Port Conflict check for local development
+        await this.detectPortConflict();
 
         if (!apiOk && !silent) {
             f7.dialog.alert('Gagal terhubung ke Server. Pastikan internet lancar.', 'Connection Error');
