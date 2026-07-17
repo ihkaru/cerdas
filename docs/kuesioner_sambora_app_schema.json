@@ -25,6 +25,13 @@
           "content": "<strong>1 Form = 1 Rumah Fisik (Bangunan)</strong>.<br/>• Jika di dalam rumah terdapat <strong>lebih dari 1 KK</strong>, isikan kolom <i>Jumlah Kartu Keluarga</i> sesuai jumlah KK-nya dan daftarkan semua kepala keluarga pada bagian <i>Daftar Kartu Keluarga & Kepala Keluarga</i>.<br/>• Pastikan Jumlah Kepala Keluarga Laki-laki + Perempuan cocok dengan total KK."
         },
         {
+          "name": "panduan_kendala_lapangan",
+          "type": "html_block",
+          "blockStyle": "warning",
+          "label": "⚠️ Panduan Kendala Lapangan & Kode Khusus",
+          "content": "<strong>Gunakan Kode Bypass ini secara sadar jika data tidak tersedia di lokasi:</strong><br/>• <strong>KK Tidak Ada / Hilang:</strong> Isikan angka 9 sebanyak 16 kali (<strong>9999999999999999</strong>) pada kolom Nomor KK.<br/>• <strong>Keluarga Tidak Punya WA:</strong> Isikan angka <strong>99998</strong> pada kolom Nomor WhatsApp.<br/>• <strong>Akurasi Geotagging:</strong> Lokasi GPS tetap <strong>Wajib (Required)</strong>. Jika akurasi buruk (> 50m) akibat di dalam bangunan, silakan melangkah ke luar ruangan sejenak saat mengambil koordinat."
+        },
+        {
           "name": "Nama_RT",
           "type": "select",
           "label": "Nama RT",
@@ -62,7 +69,8 @@
           "name": "Lokasi_Geotagging",
           "type": "gps",
           "label": "Lokasi Geotagging (GPS)",
-          "required": true
+          "required": true,
+          "warning_js": "if (row.Lokasi_Geotagging && row.Lokasi_Geotagging.coords && row.Lokasi_Geotagging.coords.accuracy > 50) { return '⚠️ Akurasi GPS kurang optimal ('+Math.round(row.Lokasi_Geotagging.coords.accuracy)+' meter). Disarankan mengambil titik koordinat di luar ruangan untuk sinyal dan akurasi terbaik.'; } return null;"
         },
         {
           "name": "kepala_keluarga_list",
@@ -80,7 +88,8 @@
               "name": "nomor_kk",
               "type": "text",
               "label": "Nomor Kartu Keluarga (KK)",
-              "required": true
+              "required": true,
+              "validation_js": "const val = String(row.nomor_kk || '').trim(); if (!val) { return 'Nomor KK wajib diisi. Jika dokumen hilang/tidak ada, isikan angka 9 sebanyak 16 kali (9999999999999999) secara sadar.'; } if (val.length !== 16) { return 'Nomor KK wajib 16 digit. Jika tidak ada dokumen, isikan 9999999999999999.'; } return null;"
             }
           ]
         },
@@ -89,7 +98,8 @@
           "type": "text",
           "label": "Nomor WhatsApp Anggota Keluarga",
           "required": true,
-          "placeholder": "08xxxxxxxxxx"
+          "placeholder": "08xxxxxxxxxx",
+          "validation_js": "const val = String(row.Nomor_WhatsApp_ART || '').trim(); if (!val) { return 'Nomor WhatsApp wajib diisi. Jika tidak memiliki nomor kontak aktif, isikan 99998 secara sadar.'; } if (val !== '99998' && (val.length < 10 || isNaN(Number(val)))) { return 'Nomor WhatsApp tidak valid (wajib berupa angka minimal 10 digit, atau isikan 99998 jika tidak ada).'; } return null;"
         },
         {
           "name": "Jumlah_Kartu_Keluarga",

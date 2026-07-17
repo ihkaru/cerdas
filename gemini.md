@@ -305,7 +305,15 @@ Logs saved to: `logs/android.log` → I can read this file directly for debuggin
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
-- **Version**: 0.2.13 (Layout Editor Fixes & Sambora Schema update)
+- **Version**: 0.2.15 (Visual Guidelines HTML Block & Strict GPS Required)
+
+- **Visual Guidelines HTML Block & Strict GPS Required (2026-07-17)**:
+  - **Visual HTML Block Guide**: Menyisipkan html_block `panduan_kendala_lapangan` berisi aturan bypass kode khusus (9999999999999999 untuk KK, dan 99998 untuk WA) serta arahan akurasi GPS agar tampil rapi di form HP enumerator.
+  - **Enforce Required GPS**: Memastikan input lokasi Geotagging tetap wajib (Required) diisi di lapangan dengan warning akurasi opsional.
+
+- **Strict Data Quality Control & GPS Warning (2026-07-17)**:
+  - **GPS Accuracy Warning**: Menambahkan `warning_js` pada geotagging lokasi jika akurasi GPS buruk (> 50 meter) agar mengarahkan petugas keluar ruangan.
+  - **Bypass Code Validation**: Mengubah nomor KK dan nomor WA kembali menjadi wajib (`required: true`), namun memaksa pengisian kode khusus secara sadar (`9999999999999999` untuk KK hilang, dan `99998` untuk WA kosong) guna meminimalkan data kosong tak sengaja.
 
 - **Layout Editor Fixes & Sambora Schema (2026-07-17)**:
   - **Apply Schema Fix**: Membenahi error `replaceAllFields is not defined` saat user mengklik Apply di Code editor tab (menambahkan destrukturisasi di `useEditorHandlers.ts`).
