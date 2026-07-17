@@ -865,7 +865,7 @@
       "deck": {
         "primaryHeaderField": "kepala_keluarga_list.0.nama_kk",
         "secondaryHeaderField": "Nama_RT",
-        "imageField": null,
+        "imageField": "Foto_Rumah",
         "imageShape": "square"
       },
       "actions": ["edit", "delete"]

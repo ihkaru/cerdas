@@ -305,7 +305,13 @@ Logs saved to: `logs/android.log` → I can read this file directly for debuggin
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
-- **Version**: 0.2.12 (Assignment Draft Status Fix)
+- **Version**: 0.2.13 (Layout Editor Fixes & Sambora Schema update)
+
+- **Layout Editor Fixes & Sambora Schema (2026-07-17)**:
+  - **Apply Schema Fix**: Membenahi error `replaceAllFields is not defined` saat user mengklik Apply di Code editor tab (menambahkan destrukturisasi di `useEditorHandlers.ts`).
+  - **Nested Fields Support**: Menambahkan computed `flatFields` di `FieldPicker.vue` sehingga editor secara cerdas memflaten nested form fields (notasi parent.0.child) agar bisa langsung dipilih dari menu dropdown Layout Configuration.
+  - **View Layout Sambora**: Memperbaiki format view `default` di `kuesioner_sambora_app_schema.json` agar kompatibel dengan editor visual Cerdas, dan mengatur `Foto_Rumah` sebagai imageField preview untuk kartu kuesioner.
+  - **Image Export Fix**: Mengubah `APP_URL` kontainer ke `http://localhost:9980` di `.env.docker` agar link export foto menunjuk ke port host yang valid dan dapat diakses dari luar kontainer.
 
 - **Assignment Draft Status Bug Fix (2026-07-17)**:
   - **Bug**: Draf assignment (`in_progress`) berubah menjadi `Selesai` (submitted) setelah user melakukan sync.
