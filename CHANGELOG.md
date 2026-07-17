@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.12](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.11...cerdas-v0.2.12) (2026-07-17)
+
+
+### Features
+
+* **sync:** fix assignment draft status bug, update sambora schema & relax check-line-limit v0.2.12 ([5cac874](https://github.com/ihkaru/cerdas/commit/5cac8745826e02d65e4625b738147b529b8ba780))
+
+
+### Bug Fixes
+
+* **editor:** fix apply schema crash, support nested fields in layout config & update views format ([2775677](https://github.com/ihkaru/cerdas/commit/27756774a9f4a55fbdb503d577c734d7d0eb6135))
+* **editor:** update AI Context prompt guidelines for nested fields and validations ([88f73bf](https://github.com/ihkaru/cerdas/commit/88f73bf936ff2a9d30c0c4b5493099b32f1a9c64))
+
 ## [0.2.11](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.10...cerdas-v0.2.11) (2026-07-17)
 
 
