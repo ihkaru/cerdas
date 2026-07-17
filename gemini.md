@@ -305,6 +305,14 @@ Logs saved to: `logs/android.log` → I can read this file directly for debuggin
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
+- **Version**: 0.2.22 (Local Dev Precedence & Robust SQLite Merge)
+
+- **Local Dev Precedence & Robust SQLite Merge (2026-07-17)**:
+  - **Precedence Fix**: Mengubah urutan pembacaan API URL di `ApiClient.ts` agar memprioritaskan `VITE_API_URL` daripada `VITE_API_BASE_URL`. Ini memulihkan fungsi file `.env.local` untuk mengarahkan client & editor ke port local host dev (`8080`) secara sukses alih-alih tertahan di port Docker (`9980`).
+  - **Robust Settings Merge**: Meningkatkan fungsi penggabungan settings di `TableSyncHelpers.ts` (`cacheAndSaveTable`) agar menggabungkan data layout settings dan table settings secara kokoh. Jika settings dari API terisi sebagian namun tidak memiliki key `actions`, logic ini menjamin key `actions` dari layout settings tetap diselamatkan.
+  - **Docker Rebuild**: Membangun kembali container backend lokal untuk menyinkronkan kode `DashboardController` terbaru.
+  - **Local Seeding**: Menambahkan script seeding lokal agar skema Kuesioner Sambora Mempawah ter-seed secara benar di database host lokal (`8080`).
+
 - **Version**: 0.2.21 (FAB Final Fix — cacheAndSaveTable Empty Object Bug)
 
 - **FAB Final Fix — cacheAndSaveTable Empty Object Bug (2026-07-17)**:

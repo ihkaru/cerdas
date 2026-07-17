@@ -247,14 +247,16 @@ export async function cacheAndSaveTable(db: any, tableId: string, version: any, 
         [
             JSON.stringify(fieldsData),
             JSON.stringify(layoutData),
-            // CRITICAL: table.settings dari API /tables/{id} adalah {} (empty object) yang TRUTHY di JS.
-            // Harus cek apakah punya key bermakna (actions/icon) sebelum pakai.
-            // Fallback ke layoutData.settings yang menyimpan actions config yang sebenarnya.
-            JSON.stringify(
-                (table.settings && Object.keys(table.settings).length > 0 ? table.settings : null)
-                ?? (layoutData as any)?.settings
-                ?? {}
-            ),
+            (() => {
+                const layoutSettings = (layoutData as any)?.settings || {};
+                const tableSettings = table.settings && Object.keys(table.settings).length > 0 ? table.settings : {};
+                const merged = { ...layoutSettings, ...tableSettings };
+                // Ensure actions from layout are preserved if not present in merged settings
+                if (!merged.actions && layoutSettings.actions) {
+                    merged.actions = layoutSettings.actions;
+                }
+                return JSON.stringify(merged);
+            })(),
             version.version,
             table.app_id || null,
             table.name || null,

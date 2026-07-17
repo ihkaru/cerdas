@@ -29,7 +29,7 @@ export class ApiClient {
         // Robust platform detection: treat iframe as web regardless of Capacitor detection
         const isActuallyWeb = platform === 'web' || isInIframe || !isNative;
         
-        let url = import.meta.env.VITE_API_BASE_URL || envUrl || 'http://localhost:8080/api';
+        let url = envUrl || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
         
         if (!isActuallyWeb && url.includes('localhost')) {
             url = url.replace('localhost', ANDROID_LOOPBACK);
