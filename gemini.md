@@ -940,3 +940,8 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
 - **Strict TypeScript Type Safety Fixes**:
     - **Problem**: Build errors on `editor.types.ts` where `FieldType` was declared locally but not exported to consuming files. Modulo arithmetic operations on `app.id` in `AppsPage.vue` failed since `app.id` was typed as `string | number`. Parameter `payload` type on `appStore.createApp` was incompatible with the dynamically constructed object in `AppsPage.vue`.
     - **Resolution**: Explicitly exported `FieldType` from `editor.types.ts`. Safely parsed/casted `app.id` using `parseInt`/`Number` before doing modulo operations in `AppsPage.vue`. Updated `createApp` signature inside `app.store.ts` to include optional fields (`start_date`, `end_date`, `expired_behavior`) and declared the payload type in `AppsPage.vue` cleanly.
+
+### 17 July 2026 - Docker Backend Upload Limit Resolution (500 Error Fix)
+- **PHP File Upload Configuration Path**:
+    - **Problem**: Uploading a ~20.8MB Excel file to `/api/excel/upload` failed with `500 Internal Server Error` due to PHP's default constraints: `upload_max_filesize = 2M` and `post_max_size = 8M`. Our custom `upload.ini` (designed to increase limits to 100MB) was copied to `/usr/local/etc/php/conf.d/99-upload.ini` in `Dockerfile.prod`, but FrankenPHP's static binary actually scans `/etc/frankenphp/php.d` for additional `.ini` files. Thus, the custom limits were completely ignored.
+    - **Resolution**: Updated `apps/backend/Dockerfile.prod` to copy `upload.ini` to `/etc/frankenphp/php.d/99-upload.ini`. Rebuilt and recreated the backend container via `docker compose -f docker-compose.dev.yml up -d --build backend`, successfully updating the limits to `100M`.
