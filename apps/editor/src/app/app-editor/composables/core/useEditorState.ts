@@ -35,6 +35,20 @@ const defaultLayout: LayoutConfig = {
   type: 'standard',
   app_name: 'Untitled App',
   groupBy: [],
+  views: {
+    default: {
+      type: 'deck',
+      title: 'Default View',
+      groupBy: [],
+      deck: {
+        primaryHeaderField: '',
+        secondaryHeaderField: '',
+        imageField: null,
+        imageShape: 'circle',
+      },
+      actions: [],
+    },
+  },
 };
 
 // ============================================================================
