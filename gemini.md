@@ -932,3 +932,11 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
 - **Documentation & Script Path Audit**:
     - **Problem**: Documentation files (`QUICKSTART.md`, `DOCKER_DEV.md`, and `docs/WORKFLOW_AND_DEBUGGING.md`) contained outdated or mismatched port references. Batch script wrappers (`start-dev-docker.bat`, `start-android-docker.bat`, `stop-dev-docker.bat`, `restart-android.bat`, `dump-structure.bat`, and `detect-large-files.bat`) had invalid relative paths (`%~dp0scripts\...`) because they were run from within the `scripts/` directory itself.
     - **Resolution**: Updated all documentation to reflect the new port layout (`9980`, `9981`, `9982`). Fixed all relative script path bugs in the batch wrappers to prevent execution failures when cloned fresh.
+
+### 17 July 2026 - Editor Codemirror Import & TypeScript Build Fixes
+- **Vite Import Resolution & Codemirror Dependency**:
+    - **Problem**: Vite failed to resolve import `@codemirror/autocomplete` inside `useSchemaAutocomplete.ts` during runtime/build. Additionally, TypeScript failed on `@codemirror/view`'s `Extension` type import (as it is not exported from `@codemirror/view`).
+    - **Resolution**: Added `@codemirror/state` directly to `apps/editor/package.json` dependencies and ran `pnpm install`. Refactored `useSchemaAutocomplete.ts` to import `Extension` from `@codemirror/state` directly.
+- **Strict TypeScript Type Safety Fixes**:
+    - **Problem**: Build errors on `editor.types.ts` where `FieldType` was declared locally but not exported to consuming files. Modulo arithmetic operations on `app.id` in `AppsPage.vue` failed since `app.id` was typed as `string | number`. Parameter `payload` type on `appStore.createApp` was incompatible with the dynamically constructed object in `AppsPage.vue`.
+    - **Resolution**: Explicitly exported `FieldType` from `editor.types.ts`. Safely parsed/casted `app.id` using `parseInt`/`Number` before doing modulo operations in `AppsPage.vue`. Updated `createApp` signature inside `app.store.ts` to include optional fields (`start_date`, `end_date`, `expired_behavior`) and declared the payload type in `AppsPage.vue` cleanly.
