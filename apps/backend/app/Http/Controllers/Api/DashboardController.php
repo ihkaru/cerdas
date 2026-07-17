@@ -29,12 +29,11 @@ class DashboardController extends Controller
             });
 
         $stats = [
-            'assigned'    => (clone $statsQuery)->where('status', 'assigned')->count(),
+            'assigned' => (clone $statsQuery)->where('status', 'assigned')->count(),
             'in_progress' => (clone $statsQuery)->where('status', 'in_progress')->count(),
             // 'submitted' and 'approved' represent finalized/submitted work
-            'completed'   => (clone $statsQuery)->whereIn('status', ['submitted', 'approved', 'synced', 'rejected'])->count(),
+            'completed' => (clone $statsQuery)->whereIn('status', ['submitted', 'approved', 'synced', 'rejected'])->count(),
         ];
-
 
         // 2. Apps List (User's Apps)
         if ($user->isSuperAdmin()) {
@@ -62,11 +61,11 @@ class DashboardController extends Controller
 
         $allQueriedApps = $appsQuery->get();
 
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             // For surveyors, inactive apps are treated as deleted/inaccessible
             $activeApps = $allQueriedApps->whereNull('deleted_at')->where('is_active', true);
             $deletedApps = $allQueriedApps->filter(function ($app) {
-                return $app->deleted_at !== null || !$app->is_active;
+                return $app->deleted_at !== null || ! $app->is_active;
             });
             $deletedAppIds = $deletedApps->pluck('id')->values()->all();
         } else {
@@ -113,16 +112,16 @@ class DashboardController extends Controller
         }
 
         $allQueriedTables = $tablesQuery->get();
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             // For surveyors, exclude tables belonging to inactive apps
             $activeAppIds = App::whereIn('id', $appIds)->where('is_active', true)->pluck('id')->toArray();
-            
+
             $activeTables = $allQueriedTables->whereNull('deleted_at')->filter(function ($table) use ($activeAppIds) {
                 return in_array($table->app_id, $activeAppIds);
             });
-            
+
             $deletedTables = $allQueriedTables->filter(function ($table) use ($activeAppIds) {
-                return $table->deleted_at !== null || !in_array($table->app_id, $activeAppIds);
+                return $table->deleted_at !== null || ! in_array($table->app_id, $activeAppIds);
             });
             $deletedTableIds = $deletedTables->pluck('id')->values()->all();
         } else {

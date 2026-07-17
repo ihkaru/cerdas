@@ -55,7 +55,7 @@ class AppSchemaController extends Controller
         $views = [];
         // Add views: prioritize view_configs JSON column (UI Editor source of truth)
         $viewConfigs = $app->view_configs ?? [];
-        if (!empty($viewConfigs)) {
+        if (! empty($viewConfigs)) {
             foreach ($viewConfigs as $viewKey => $viewData) {
                 $tableId = $viewData['table_id'] ?? $viewData['form_id'] ?? null;
                 $tableSlug = 'unknown';
@@ -63,12 +63,12 @@ class AppSchemaController extends Controller
                     $table = $app->tables->firstWhere('id', $tableId);
                     $tableSlug = $table ? $table->slug : 'unknown';
                 }
-                
+
                 // Fallback: If table_slug is still unknown, default to the first table of the app
                 if ($tableSlug === 'unknown' && $app->tables->isNotEmpty()) {
                     $tableSlug = $app->tables->first()->slug;
                 }
-                
+
                 $views[$viewKey] = [
                     'table' => $tableSlug,
                     'name' => $viewData['name'] ?? $viewKey,
@@ -206,7 +206,7 @@ class AppSchemaController extends Controller
             foreach ($data['views'] ?? [] as $viewKey => $viewData) {
                 // Find table by slug
                 $table = $app->tables->firstWhere('slug', $viewData['table']);
-                if (!$table) {
+                if (! $table) {
                     continue; // Skip if table not found
                 }
 
@@ -344,7 +344,7 @@ class AppSchemaController extends Controller
 
             foreach ($data['views'] ?? [] as $viewKey => $viewData) {
                 $table = $app->tables->firstWhere('slug', $viewData['table']);
-                if (!$table) {
+                if (! $table) {
                     continue;
                 }
 
