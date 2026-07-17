@@ -29,6 +29,7 @@ Route::get('/up', function () {
 
 // Broadcasting Auth Route
 Route::post('/broadcasting/auth', function (Request $request) {
+    // Return 401 for unauthenticated requests
     if (!$request->user()) {
         return response()->json(['error' => 'Unauthenticated'], 401);
     }
@@ -67,7 +68,49 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    // Dashboard
+    // Impersonation for Editor Preview (Super Admin Only)
+    Route::post('/auth/impersonate', function (Request $request) {
+        $user = $request->user();
+        if (!$user->isSuperAdmin()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate(['role' => 'required|in:admin,supervisor,enumerator']);
+
+        $targetUser = null;
+        switch ($request->role) {
+            case 'admin':
+                $targetUser = $user; // Self
+
+                break;
+            case 'supervisor':
+                $targetUser = \App\Models\User::where('email', 'supervisor@cerdas.com')->first();
+
+                break;
+            case 'enumerator':
+                $targetUser = \App\Models\User::where('email', 'user@example.com')->first();
+
+                break;
+        }
+
+        if (!$targetUser) {
+            return response()->json(['message' => 'Target user not found for this role'], 404);
+        }
+
+        // Create a temporary token for preview
+        $token = $targetUser->createToken('preview-impersonation')->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'user' => $targetUser,
+        ]);
+    });
+
+    // ========================================================================
+    // Editor Routes (Web Dashboard)
+    // ========================================================================
+
+    // Dashboard Stats
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
     // Apps Management

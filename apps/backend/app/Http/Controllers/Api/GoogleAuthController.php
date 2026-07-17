@@ -42,7 +42,7 @@ class GoogleAuthController extends Controller
 
             $payload = $client->verifyIdToken($idToken);
 
-            if (! $payload) {
+            if (!$payload) {
                 // If verifyIdToken returns false, it failed.
                 // Sometimes it throws exception, sometimes false.
                 return response()->json(['message' => 'Invalid Google Token'], 401);

@@ -910,3 +910,16 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
     - **Problem**: Bot rilis otomatis `release-please` di GitHub Actions berhenti/menolak membuat Pull Request rilis baru secara otomatis.
     - **Root Cause**: Terjadi ketidakcocokan (*version mismatch*) antara berkas `.release-please-manifest.json` yang masih mencatat versi lama (`0.1.68`) dengan berkas `package.json` lokal yang telah kita bump manual ke `0.2.x`.
     - **Resolution**: Selalu selaraskan nomor versi di berkas manifest `.release-please-manifest.json` secara manual ketika melakukan bump versi paksa pada `package.json` agar Release Please dapat melanjutkan perhitungan rilis secara aman.
+
+### 17 July 2026 - Branch Syncing & Git Rebase
+- **Git Rebase and Stash Conflict Resolution**:
+    - **Goal**: Synchronize local `main` branch with `origin/main` (behind by 130 commits).
+    - **Resolution**:
+        - Stashed local uncommitted changes.
+        - Performed `git rebase origin/main` to fast-forward local `main` to the latest release (`0.2.9`).
+        - Popped the stash, which caused merge conflicts in several files: `cors.php`, `api.php`, `ExportController.php`, `DashboardController.php`, `TableController.php`, `SyncService.ts`, and `gemini.md`.
+        - Resolved conflicts in `cors.php` and `ExportController.php` by choosing the cleaner upstream implementation.
+        - Resolved conflicts in `api.php` by merging the impersonation route from the stash.
+        - Resolved conflicts in `DashboardController.php` and `TableController.php` by keeping the upstream's active app filters and the cleaner `hasAppAccess` logic.
+        - Resolved conflicts in `SyncService.ts` and `gemini.md` by checking out upstream (ours) versions, as the local stashed changes in `SyncService.ts` were old pre-refactored implementations of methods that are now successfully extracted into separate helper files (`TableSyncHelpers.ts` & `AssignmentSyncHelpers.ts`).
+        - Cleaned up the stash stack by dropping the conflicted WIP stash.

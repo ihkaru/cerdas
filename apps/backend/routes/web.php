@@ -19,7 +19,7 @@ Route::get('/media/{path}', function ($path) {
     }
 
     $fullPath = storage_path('app/public/'.$path);
-    if (! file_exists($fullPath)) {
+    if (!file_exists($fullPath)) {
         abort(404);
     }
 

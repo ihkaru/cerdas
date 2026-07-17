@@ -113,7 +113,6 @@ class DashboardController extends Controller
         }
 
         $allQueriedTables = $tablesQuery->get();
-
         if (!$user->isSuperAdmin()) {
             // For surveyors, exclude tables belonging to inactive apps
             $activeAppIds = App::whereIn('id', $appIds)->where('is_active', true)->pluck('id')->toArray();

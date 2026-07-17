@@ -204,7 +204,7 @@ class User extends Authenticatable
                 ->where('user_id', $this->id)
                 ->exists();
 
-            if (! $existing) {
+            if (!$existing) {
                 \App\Models\AppMembership::create([
                     'app_id' => $invite->app_id,
                     'user_id' => $this->id,
