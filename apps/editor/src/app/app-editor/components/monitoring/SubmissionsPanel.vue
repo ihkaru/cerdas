@@ -156,7 +156,10 @@
                             <td class="preview-cell">{{ formatPreview(item) }}</td>
                             <td class="date-cell">{{ formatDate(item.updated_at) }}</td>
                             <td class="actions-cell">
-                                <f7-button small fill color="blue" @click="openReview(item)">Review</f7-button>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <f7-button small fill color="blue" @click="openReview(item)">Review</f7-button>
+                                    <f7-button small outline color="red" @click="confirmDeleteSubmission(item)">Delete</f7-button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -326,6 +329,22 @@ async function fetchResponses() {
     } finally {
         loading.value = false;
     }
+}
+
+function confirmDeleteSubmission(item: any) {
+    f7.dialog.confirm(
+        'Apakah Anda yakin ingin menghapus data submission ini?',
+        'Konfirmasi Hapus Data',
+        async () => {
+            try {
+                await ApiClient.delete(`/assignments/${item.id}`);
+                f7.toast.show({ text: 'Data berhasil dihapus dari server', closeTimeout: 2000 });
+                await fetchResponses();
+            } catch (e: any) {
+                f7.dialog.alert('Gagal menghapus data: ' + (e.message || e), 'Error');
+            }
+        }
+    );
 }
 
 function nextPage() {

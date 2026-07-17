@@ -212,34 +212,36 @@ export const DashboardRepository = {
         const now = new Date().toISOString();
         const dataStr = JSON.stringify(data);
         
-        const existing = await db.query(`SELECT local_id FROM responses WHERE assignment_id = ?`, [assignmentId]);
+        const existing = await db.query(`SELECT local_id, assignment_id FROM responses WHERE assignment_id = ? OR assignment_id IN (SELECT id FROM assignments WHERE external_id = ?)`, [assignmentId, assignmentId]);
         
         if (existing.values && existing.values.length > 0) {
+            const targetAssignmentId = existing.values[0].assignment_id;
             await db.run(`UPDATE responses SET data = ?, updated_at = ?, is_synced = 0 WHERE assignment_id = ?`, 
-                [dataStr, now, assignmentId]);
+                [dataStr, now, targetAssignmentId]);
         } else {
             // Pin schema_version on first creation
-            const assignRow = await db.query(`SELECT a.table_id, t.version FROM assignments a JOIN tables t ON t.id = a.table_id WHERE a.id = ?`, [assignmentId]);
+            const assignRow = await db.query(`SELECT a.id, a.table_id, t.version FROM assignments a JOIN tables t ON t.id = a.table_id WHERE a.id = ? OR a.external_id = ?`, [assignmentId, assignmentId]);
+            const realAssignmentId = assignRow.values?.[0]?.id || assignmentId;
             const schemaVer = assignRow.values?.[0]?.version || null;
 
             const localId = generateUUID();
             await db.run(`INSERT INTO responses (local_id, assignment_id, data, schema_version, is_synced, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)`, 
-                [localId, assignmentId, dataStr, schemaVer, now, now]);
-            log.info('Created response with schema_version:', { assignmentId, schemaVer });
+                [localId, realAssignmentId, dataStr, schemaVer, now, now]);
+            log.info('Created response with schema_version:', { assignmentId: realAssignmentId, schemaVer });
         }
         
         if (!isDraft) {
              // Final submit: mark as submitted locally (server sync will transition it to synced/submitted)
-             const res = await db.run(`UPDATE assignments SET status = 'submitted' WHERE id = ?`, [assignmentId]);
+             const res = await db.run(`UPDATE assignments SET status = 'submitted' WHERE id = ? OR external_id = ?`, [assignmentId, assignmentId]);
              log.info('Updated (Finish) status SUBMITTED:', { changes: res?.changes });
         } else {
              // Debug: Check current status to understand why update might fail
-             const check = await db.query(`SELECT status FROM assignments WHERE id = ?`, [assignmentId]);
+             const check = await db.query(`SELECT status FROM assignments WHERE id = ? OR external_id = ?`, [assignmentId, assignmentId]);
              const currentStatus = check.values?.[0]?.status;
              log.info('Draft Save - Current Assignment Status:', { id: assignmentId, status: currentStatus });
 
              // Relaxed condition: Update to in_progress if it's NOT submitted/synced and NOT already in_progress
-             const res = await db.run(`UPDATE assignments SET status = 'in_progress' WHERE id = ? AND status NOT IN ('submitted', 'synced', 'in_progress')`, [assignmentId]);
+             const res = await db.run(`UPDATE assignments SET status = 'in_progress' WHERE (id = ? OR external_id = ?) AND status NOT IN ('submitted', 'synced', 'in_progress')`, [assignmentId, assignmentId]);
              log.info('Updated (Draft) status IN_PROGRESS:', { changes: res?.changes, assignmentId });
         }
     },
@@ -262,8 +264,8 @@ export const DashboardRepository = {
         const id = generateUUID();
         const now = new Date().toISOString();
         await db.run(
-            `INSERT INTO assignments (id, table_id, status, created_at, updated_at) VALUES (?, ?, 'assigned', ?, ?)`,
-            [id, tableId, now, now]
+            `INSERT INTO assignments (id, external_id, table_id, status, created_at, updated_at) VALUES (?, ?, ?, 'assigned', ?, ?)`,
+            [id, id, tableId, now, now]
         );
         return id;
     },

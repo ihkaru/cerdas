@@ -195,6 +195,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('assignments')->group(function () {
         Route::get('/', [AssignmentController::class, 'index']);
         Route::get('/{assignment}', [AssignmentController::class, 'show']);
+        Route::delete('/{assignment}', [AssignmentController::class, 'destroy']);
         Route::post('/import', [AssignmentController::class, 'import']);
     });
 

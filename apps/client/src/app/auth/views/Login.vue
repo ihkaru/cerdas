@@ -100,6 +100,15 @@ const isLoading = ref(false);
 const isNative = Capacitor.isNativePlatform();
 const clientVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 
+const handlePostLoginRedirect = () => {
+  const pendingToken = localStorage.getItem('pending_join_token');
+  if (pendingToken) {
+    f7.view.main.router.navigate(`/join/${pendingToken}`, { reloadCurrent: true, clearPreviousHistory: true });
+  } else {
+    f7.view.main.router.navigate('/', { reloadCurrent: true, clearPreviousHistory: true });
+  }
+};
+
 const signIn = async () => {
   if (!email.value || !password.value) {
     f7.toast.show({ text: 'Please enter email and password', position: 'top', closeTimeout: 2000, cssClass: 'color-red' });
@@ -112,7 +121,7 @@ const signIn = async () => {
     isLoading.value = false;
 
     if (success) {
-      f7.view.main.router.navigate('/', { reloadCurrent: true, clearPreviousHistory: true });
+      handlePostLoginRedirect();
     } else {
       f7.dialog.alert('Login failed. Please check your credentials.', 'Authentication Error');
     }
@@ -135,7 +144,7 @@ const handleGoogleLoginWeb = async (response: { credential?: string }) => {
       isLoading.value = true;
       const success = await authStore.loginWithGoogle(response.credential);
       if (success) {
-        f7.view.main.router.navigate('/', { reloadCurrent: true, clearPreviousHistory: true });
+        handlePostLoginRedirect();
       }
     } catch {
       f7.dialog.alert('Google Login Failed', 'Error');
@@ -156,7 +165,7 @@ const signInWithGoogleNative = async () => {
     if (idToken) {
       const success = await authStore.loginWithGoogle(idToken);
       if (success) {
-        f7.view.main.router.navigate('/', { reloadCurrent: true, clearPreviousHistory: true });
+        handlePostLoginRedirect();
       }
     } else {
       throw new Error('No ID Token from Google');

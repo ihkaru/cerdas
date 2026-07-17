@@ -90,7 +90,7 @@
             <f7-list-item group-title>Public Enrollment</f7-list-item>
             <f7-list-item title="Shareable Join Link">
                 <f7-toggle :checked="!!joinLink?.is_active" color="green"
-                    @toggle:change="(val) => toggleJoinLink(val)" />
+                    @toggle:change="(val: boolean) => toggleJoinLink(val)" />
             </f7-list-item>
 
             <template v-if="joinLink?.is_active">
@@ -113,6 +113,53 @@
                     </select>
                 </f7-list-item>
             </template>
+        </f7-list>
+
+        <!-- Joined App Members & Surveyors -->
+        <f7-list inset media-list class="app-members-list">
+            <f7-list-item group-title>
+                <div class="display-flex justify-content-between align-items-center w-full">
+                    <span>Joined Members & Surveyors ({{ membersList.length }})</span>
+                    <f7-button small outline @click="fetchAppMembers" class="refresh-members-btn">
+                        <f7-icon f7="arrow_clockwise" size="14" /> Refresh
+                    </f7-button>
+                </div>
+            </f7-list-item>
+
+            <template v-if="membersList.length > 0">
+                <f7-list-item 
+                    v-for="member in membersList" 
+                    :key="member.id" 
+                    :title="member.user?.name || member.user?.email || 'Surveyor'"
+                    :subtitle="member.user?.email"
+                >
+                    <template #media>
+                        <f7-icon f7="person_circle_fill" size="32" color="blue" />
+                    </template>
+                    <template #after>
+                        <div class="display-flex align-items-center gap-half">
+                            <f7-chip 
+                                :text="member.role" 
+                                :color="member.role === 'supervisor' ? 'orange' : (member.role === 'app_admin' ? 'blue' : 'teal')" 
+                            />
+                            <f7-button 
+                                v-if="member.role !== 'app_admin'"
+                                small 
+                                color="red" 
+                                class="padding-horizontal-half"
+                                @click="removeAppMember(member)"
+                            >
+                                <f7-icon f7="trash" size="14" />
+                            </f7-button>
+                        </div>
+                    </template>
+                </f7-list-item>
+            </template>
+            <f7-list-item v-else title="Belum Ada Anggota Tergabung">
+                <div slot="footer" class="padding-top-half">
+                    Bagikan Shareable Join Link di atas agar petugas/enumerator dapat bergabung.
+                </div>
+            </f7-list-item>
         </f7-list>
 
         <!-- Version History -->
@@ -158,12 +205,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useTableEditor } from '../../composables/useTableEditor';
 import { useAppJoinLink } from '../../composables/useAppJoinLink';
 import { useAppStore } from '@/stores';
 import VersionHistory from './VersionHistory.vue';
 import { f7 } from 'framework7-vue';
+import { ApiClient } from '../../../../common/api/ApiClient';
 
 const {
     state,
@@ -209,8 +257,50 @@ const fullJoinUrl = computed(() => {
     return `${origin}/join/${joinLink.value.token}`;
 });
 
+const membersList = ref<any[]>([]);
+
+const fetchAppMembers = async () => {
+    const appId = appStore.currentApp?.id;
+    if (!appId) return;
+    try {
+        const res = await ApiClient.get(`/apps/${appId}`);
+        if (res.data.success && res.data.data) {
+            membersList.value = res.data.data.memberships || [];
+        }
+    } catch (e) {
+        console.error('[AppSettingsPanel] Failed to fetch app members:', e);
+    }
+};
+
+const removeAppMember = (member: any) => {
+    const appId = appStore.currentApp?.id;
+    const targetUserId = member.user?.id || member.user_id;
+    if (!appId || !targetUserId) return;
+
+    f7.dialog.confirm(
+        `Cabut akses ${member.user?.name || member.user?.email || 'petugas'} dari aplikasi ini?`,
+        'Hapus Anggota',
+        async () => {
+            try {
+                const res = await ApiClient.delete(`/apps/${appId}/members/${targetUserId}`);
+                if (res.data.success) {
+                    f7.toast.show({ text: 'Anggota berhasil dihapus', closeTimeout: 2000, cssClass: 'color-green' });
+                    await fetchAppMembers();
+                }
+            } catch (e: any) {
+                f7.dialog.alert(e.message || 'Gagal menghapus anggota');
+            }
+        }
+    );
+};
+
+watch(() => appStore.currentApp?.id, (newId: string | number | undefined) => {
+    if (newId) fetchAppMembers();
+}, { immediate: true });
+
 onMounted(() => {
     fetchJoinLink();
+    fetchAppMembers();
 });
 
 function copyLink() {
@@ -219,7 +309,7 @@ function copyLink() {
         f7.toast.show({
             text: 'Link copied to clipboard',
             closeTimeout: 1500,
-            color: 'blue'
+            cssClass: 'color-blue'
         });
     }
 }

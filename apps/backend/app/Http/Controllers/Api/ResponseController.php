@@ -79,17 +79,17 @@ class ResponseController extends Controller
         if ($status && $status !== 'all') {
             switch ($status) {
                 case 'submitted':
-                    // Pending Review (Complex mode only)
+                    // Pending Review (Complex mode) or Finished Submissions (Simple mode)
                     if ($app->mode === 'complex') {
                         $query->where('status', 'submitted');
                     } else {
-                        $query->whereRaw('1 = 0'); // Empty for simple mode
+                        $query->whereIn('status', ['submitted', 'approved', 'synced']);
                     }
                     break;
                 case 'approved':
                 case 'synced': // Backward compatibility support
                     if ($app->mode === 'simple') {
-                        $query->where('status', 'submitted');
+                        $query->whereIn('status', ['submitted', 'approved', 'synced']);
                     } else {
                         $query->whereIn('status', ['approved', 'synced']);
                     }
@@ -308,6 +308,7 @@ class ResponseController extends Controller
                         }
 
                         // Create Ad-hoc Assignment
+                        $initialStatus = $respData['status'] ?? 'in_progress';
                         $assignment = Assignment::create([
                             'table_id' => $table->id,
                             'table_version_id' => $version->id,
@@ -315,7 +316,7 @@ class ResponseController extends Controller
                             'supervisor_id' => $supervisorId,
                             'enumerator_id' => $user->id,
                             'external_id' => $assignmentInput,
-                            'status' => 'in_progress',
+                            'status' => $initialStatus,
                             'prelist_data' => ['name' => 'Self Assignment '.now()->format('H:i')],
                             'created_at' => now(),
                             'updated_at' => now(),

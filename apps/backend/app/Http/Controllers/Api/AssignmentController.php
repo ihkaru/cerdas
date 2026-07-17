@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Imports\PrelistImport;
 use App\Models\Assignment;
+use App\Models\Response;
+use App\Models\AppRecord;
 use App\Models\TableVersion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -195,6 +197,43 @@ class AssignmentController extends Controller
         return response()->json([
             'success' => true,
             'data' => $assignment->load(['tableVersion.table', 'organization']),
+        ]);
+    }
+
+    /**
+     * Delete (soft-delete) an assignment and its responses/records
+     */
+    public function destroy(Request $request, Assignment $assignment): JsonResponse
+    {
+        $user = $request->user();
+
+        // Permission check: Assigned enumerator/supervisor or SuperAdmin or App Admin
+        $isAssigned = $assignment->enumerator_id === $user->id || $assignment->supervisor_id === $user->id;
+
+        if (!$isAssigned && !$user->isSuperAdmin()) {
+            $assignment->loadMissing('tableVersion.table.app');
+            $app = $assignment->tableVersion->table->app;
+
+            // Check membership access
+            if (!$user->getAccessibleAppIds()->contains($app->id ?? '')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied',
+                ], 403);
+            }
+        }
+
+        // Delete associated responses
+        Response::where('assignment_id', $assignment->id)->delete();
+
+        // Soft-delete assignment
+        $assignment->delete();
+
+        Log::info("[AssignmentController] Soft-deleted assignment {$assignment->id} by user {$user->id}");
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Assignment deleted successfully',
         ]);
     }
 }

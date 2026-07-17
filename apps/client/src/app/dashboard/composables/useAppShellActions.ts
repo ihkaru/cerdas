@@ -3,6 +3,8 @@ import { f7 } from 'framework7-vue';
 import type { Ref } from 'vue';
 import { isRef } from 'vue';
 import { DashboardRepository } from '../repositories/DashboardRepository';
+import { apiClient } from '@/common/api/ApiClient';
+import { logger } from '@/common/utils/logger';
 
 export function useAppShellActions(contextId: string | Ref<string>, refreshCallback: (full?: boolean) => Promise<void>) {
     const db = useDatabase();
@@ -17,6 +19,14 @@ export function useAppShellActions(contextId: string | Ref<string>, refreshCallb
             await conn.run(`DELETE FROM responses WHERE assignment_id = ?`, [assignmentId]);
             await db.save(); 
             await refreshCallback(true);
+
+            // Send API request to backend so server soft-deletes assignment & responses in MariaDB
+            try {
+                await apiClient.delete(`/assignments/${assignmentId}`);
+            } catch (apiErr) {
+                logger.warn(`[deleteAssignment] Server API delete warning for assignment ${assignmentId}:`, apiErr);
+            }
+
             f7.toast.show({ text: 'Assignment dihapus', closeTimeout: 2000 });
         } catch (e: any) {
             f7.dialog.alert('Gagal menghapus: ' + e.message, 'Error');
