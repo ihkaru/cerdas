@@ -36,8 +36,8 @@ RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions sto
     chown -R 1000:1000 storage bootstrap/cache
 
 # Add custom overrides for php.ini
-RUN mkdir -p /usr/local/etc/php/conf.d
-COPY upload.ini /usr/local/etc/php/conf.d/99-upload.ini
+RUN mkdir -p /etc/frankenphp/php.d
+COPY upload.ini /etc/frankenphp/php.d/99-upload.ini
 
 # Copy startup script
 COPY start-container.sh /usr/local/bin/start-container
