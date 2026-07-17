@@ -29,7 +29,7 @@
           "type": "html_block",
           "blockStyle": "warning",
           "label": "⚠️ Panduan Kendala Lapangan & Kode Khusus",
-          "content": "<strong>Gunakan Kode Bypass ini secara sadar jika data tidak tersedia di lokasi:</strong><br/>• <strong>KK Tidak Ada / Hilang:</strong> Isikan angka 9 sebanyak 16 kali (<strong>9999999999999999</strong>) pada kolom Nomor KK.<br/>• <strong>Keluarga Tidak Punya WA:</strong> Isikan angka <strong>99998</strong> pada kolom Nomor WhatsApp.<br/>• <strong>Akurasi Geotagging:</strong> Lokasi GPS tetap <strong>Wajib (Required)</strong>. Jika akurasi buruk (> 50m) akibat di dalam bangunan, silakan melangkah ke luar ruangan sejenak saat mengambil koordinat."
+          "content": "<strong>Gunakan Kode Bypass ini secara sadar jika data tidak tersedia di lokasi:</strong><br/>• <strong>Keluarga Tidak Punya WA:</strong> Isikan angka <strong>99998</strong> pada kolom Nomor WhatsApp.<br/>• <strong>Akurasi Geotagging:</strong> Lokasi GPS tetap <strong>Wajib (Required)</strong>. Jika akurasi buruk (> 50m) akibat di dalam bangunan, silakan melangkah ke luar ruangan sejenak saat mengambil koordinat."
         },
         {
           "name": "Nama_RT",
@@ -83,13 +83,6 @@
               "type": "text",
               "label": "Nama Kepala Keluarga",
               "required": true
-            },
-            {
-              "name": "nomor_kk",
-              "type": "text",
-              "label": "Nomor Kartu Keluarga (KK)",
-              "required": true,
-              "validation_js": "const val = String(row.nomor_kk || '').trim(); if (!val) { return 'Nomor KK wajib diisi. Jika dokumen hilang/tidak ada, isikan angka 9 sebanyak 16 kali (9999999999999999) secara sadar.'; } if (val.length !== 16) { return 'Nomor KK wajib 16 digit. Jika tidak ada dokumen, isikan 9999999999999999.'; } return null;"
             }
           ]
         },
