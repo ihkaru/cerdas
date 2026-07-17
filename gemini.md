@@ -305,7 +305,13 @@ Logs saved to: `logs/android.log` → I can read this file directly for debuggin
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
-- **Version**: 0.2.20 (FAB Root Cause Fix — DashboardController)
+- **Version**: 0.2.21 (FAB Final Fix — cacheAndSaveTable Empty Object Bug)
+
+- **FAB Final Fix — cacheAndSaveTable Empty Object Bug (2026-07-17)**:
+  - **Bug**: FAB muncul saat fresh login tapi HILANG setelah Sync Data.
+  - **Root Cause**: `cacheAndSaveTable` baris 250 — `table.settings` dari API `/tables/{id}` adalah `{}` (empty object). Di JavaScript, `{}` adalah **truthy**, sehingga `table.settings || layoutData?.settings` selalu pakai `{}` dan tidak pernah fallback ke `layoutData.settings` yang berisi config `actions.header` yang benar.
+  - **Fix**: Ganti logika dengan cek `Object.keys(table.settings).length > 0` sebelum pakai `table.settings`, fallback ke `layoutData?.settings` jika kosong.
+  - **Dampak**: Setelah Sync, settings `{icon, actions: {header: [{create}]}}` tersimpan dengan benar ke SQLite → FAB muncul dan tetap ada ✅.
 
 - **Code Quality Fix (2026-07-17)**:
   - **Error**: `sonarjs/pseudo-random` di `excelImportService.ts` baris 65 — penggunaan `Math.random()` sebagai fallback UUID dianggap tidak aman oleh SonarJS.

@@ -247,7 +247,14 @@ export async function cacheAndSaveTable(db: any, tableId: string, version: any, 
         [
             JSON.stringify(fieldsData),
             JSON.stringify(layoutData),
-            JSON.stringify(table.settings || (layoutData as any)?.settings || {}),
+            // CRITICAL: table.settings dari API /tables/{id} adalah {} (empty object) yang TRUTHY di JS.
+            // Harus cek apakah punya key bermakna (actions/icon) sebelum pakai.
+            // Fallback ke layoutData.settings yang menyimpan actions config yang sebenarnya.
+            JSON.stringify(
+                (table.settings && Object.keys(table.settings).length > 0 ? table.settings : null)
+                ?? (layoutData as any)?.settings
+                ?? {}
+            ),
             version.version,
             table.app_id || null,
             table.name || null,
