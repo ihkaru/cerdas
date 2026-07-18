@@ -33,6 +33,7 @@ import RadioField from './fields/RadioField.vue';
 import SelectField from './fields/SelectField.vue';
 import TextField from './fields/TextField.vue';
 import UrlField from './fields/UrlField.vue';
+import CheckboxField from './fields/CheckboxField.vue';
 
 // Async import for larger components
 const NestedFormField = defineAsyncComponent(() => import('./fields/NestedFormField.vue'));
@@ -57,6 +58,7 @@ const componentMap: Partial<Record<FieldType | string, any>> = {
   text: TextField,
   number: NumberField,
   select: SelectField,
+  checkbox: CheckboxField,
   date: DateField,
   datetime: DateField,
   time: DateField,

@@ -82,3 +82,7 @@ dashboard_response.json
 *.sql
 !schema-final.sql
 audit*.json
+
+# App schemas
+docs/kuesioner_sambora_app_schema.json
+
