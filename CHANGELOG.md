@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.35](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.34...cerdas-v0.2.35) (2026-07-18)
+
+
+### Features
+
+* **examples:** add multiple-family notes to physical KK guidelines in schema ([e981934](https://github.com/ihkaru/cerdas/commit/e9819341617a783f8b440a5e1c1c4b5274d6b90d))
+* **examples:** add newlywed helper question and guidelines to Sambora schema ([93c1b59](https://github.com/ihkaru/cerdas/commit/93c1b597d9a3a58544ce31f1e5b7aacdf2076ba5))
+* **examples:** expand suku options and streamline html_blocks into hints in schema ([25bb893](https://github.com/ihkaru/cerdas/commit/25bb8935b0085d822709c083e5cdcba33edba2c9))
+* **examples:** generalize newlywed guide into a generic physical KK guide in schema ([875ff53](https://github.com/ihkaru/cerdas/commit/875ff53fab00560c3907e9964b2dd77a1d24c5fd))
+* **examples:** remove redundant panduan_kendala_lapangan block to improve form opening UX ([ebd0ebf](https://github.com/ihkaru/cerdas/commit/ebd0ebfa9b2294ef566926121d279d65ee81fc63))
+
 ## [0.2.34](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.33...cerdas-v0.2.34) (2026-07-18)
 
 
