@@ -61,3 +61,4 @@ packages/types  - @cerdas/types (shared strict TS types)
 * `docs/task.md` - Current TODO list
 * `references/SCREEN_FLOW.md` - Screen Flow & Routing Guide
 * `ROADMAP.md` - Feature Roadmap
+* `QUICKSTART.md` - Initial setup guide for new contributors / local dev

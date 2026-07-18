@@ -54,7 +54,7 @@ Run all services (Backend API, Web Editor, Mobile Client) in parallel:
 
 | App | URL | Credentials (Seeded) |
 |-----|-----|----------------------|
-| **Backend API** | `http://localhost:8080` | N/A |
+| **Backend API** | `http://localhost:9980` | N/A |
 | **Web Editor** | `http://localhost:9982` | User: `admin@cerdas.com` <br> Pass: `password` |
 | **Mobile Client** | `http://localhost:9981` | (Same as above) |
 
@@ -74,10 +74,10 @@ Run all services (Backend API, Web Editor, Mobile Client) in parallel:
 ## 🤝 Troubleshooting
 
 **Port Conflicts?**
-*   Backend needs port `8080` (or `9980` in Docker).
+*   Backend (local dev) needs port `9980`. Port `8080` is used internally by the Docker production container.
 *   Client needs port `9981`.
 *   Editor needs port `9982`.
-*   *Fix*: Check `pnpm dev` output or `docker ps` if running containers.
+*   *Fix*: Check `start-all.bat` output or `docker ps` if running containers.
 
 **Database Issues?**
 *   Ensure `database/database.sqlite` exists in `apps/backend`.
