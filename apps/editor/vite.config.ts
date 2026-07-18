@@ -33,4 +33,11 @@ export default defineConfig({
     host: true,
     port: Number(process.env.PORT) || 9982,
   },
+  build: {
+    // Drop all console.* and debugger statements in production builds.
+    // Development builds are unaffected — logs remain fully visible during dev.
+    esbuild: {
+      drop: ['console', 'debugger'],
+    },
+  },
 })

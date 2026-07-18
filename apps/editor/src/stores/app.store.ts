@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { ApiClient } from '../common/api/ApiClient';
+import { useLogger } from '../utils/logger';
 
 export interface AppModel {
     id: number | string;
@@ -49,29 +50,31 @@ export const useAppStore = defineStore('app', () => {
     const error = ref<string | null>(null);
 
     async function fetchApps() {
-        console.log('[AppStore] fetchApps called, current apps:', apps.value.length);
+        const log = useLogger('AppStore');
+        log.debug('fetchApps called, current apps:', apps.value.length);
         loading.value = true;
         try {
             const res = await ApiClient.get('/apps');
-            console.log('[AppStore] fetchApps received:', res.data.data?.length, 'apps');
+            log.debug('fetchApps received:', res.data.data?.length, 'apps');
             apps.value = res.data.data;
         } catch (e: any) {
             error.value = e.message || 'Failed to fetch apps';
-            console.error(e);
+            log.error('fetchApps failed', e);
         } finally {
             loading.value = false;
         }
     }
 
     async function fetchDashboard() {
-        console.log('[AppStore] fetchDashboard called, current apps:', apps.value.length);
+        const log = useLogger('AppStore');
+        log.debug('fetchDashboard called, current apps:', apps.value.length);
         loading.value = true;
         try {
             const res = await ApiClient.get('/dashboard');
             const data = res.data.data;
             
             // Map dashboard data to store state
-            console.log('[AppStore] fetchDashboard received, apps in response:', data.apps?.length);
+            log.debug('fetchDashboard received, apps in response:', data.apps?.length);
             if (data.apps && Array.isArray(data.apps)) {
                  apps.value = data.apps;
             }
@@ -86,7 +89,7 @@ export const useAppStore = defineStore('app', () => {
 
         } catch (e: any) {
             error.value = e.message || 'Failed to fetch dashboard';
-            console.error(e);
+            log.error('fetchDashboard failed', e);
         } finally {
             loading.value = false;
         }

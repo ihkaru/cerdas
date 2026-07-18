@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/stores/auth.store';
+import { useLogger } from '@/utils/logger';
 import type { Router } from 'framework7/types';
 
 import AppEditorPage from './app/app-editor/AppEditorPage.vue';
@@ -11,25 +12,26 @@ import OrganizationsPage from './pages/OrganizationsPage.vue';
 // Guard: Check if authenticated
 const checkAuth = async ({ resolve }: any) => {
   const authStore = useAuthStore();
+  const log = useLogger('AuthGuard');
   const start = performance.now();
-  console.log('[DEBUG-PERF] [AuthGuard] Starting check. Auth:', authStore.isAuthenticated, 'User:', !!authStore.user);
+  log.debug('Starting check. Auth:', authStore.isAuthenticated, 'User:', !!authStore.user);
   
   if (!authStore.isAuthenticated) {
-     console.log('[DEBUG-PERF] [AuthGuard] Not authenticated. Redirecting to /login');
+     log.debug('Not authenticated. Redirecting to /login');
      resolve({ url: '/login' }); 
   } else {
     if (!authStore.user) {
-        console.log('[DEBUG-PERF] [AuthGuard] User missing. Fetching...');
+        log.debug('User missing. Fetching...');
         try {
             await authStore.fetchUser();
-            console.log('[DEBUG-PERF] [AuthGuard] User fetched. Duration:', performance.now() - start);
+            log.debug('User fetched. Duration:', performance.now() - start);
         } catch (e) {
-            console.error('[DEBUG-PERF] [AuthGuard] Fetch failed:', e);
+            log.error('Fetch failed:', e);
         }
     } else {
-        console.log('[DEBUG-PERF] [AuthGuard] User exists. Proceeding immediately.');
+        log.debug('User exists. Proceeding immediately.');
     }
-    console.log('[DEBUG-PERF] [AuthGuard] Resolving. Total duration:', performance.now() - start);
+    log.debug('Resolving. Total duration:', performance.now() - start);
     resolve();
   }
 };
@@ -37,11 +39,11 @@ const checkAuth = async ({ resolve }: any) => {
 // Wrapper for F7 v9+ beforeEnter
 // V9 signature is: (ctx: { to, from, resolve, reject, router, ... }) => void
 const beforeEnterGuard = (ctx: any) => {
-  console.log('[Router] beforeEnterGuard triggered', ctx);
-  // Destructure safely just in case ctx is weird, though in v9 it should be object
+  const log = useLogger('Router');
+  log.debug('beforeEnterGuard triggered');
   const { resolve, reject } = ctx || {};
   if (!resolve) {
-      console.error('[Router] Resolve is undefined! Context:', ctx);
+      log.error('Resolve is undefined! Context:', ctx);
       return; 
   }
   checkAuth({ resolve, reject });
