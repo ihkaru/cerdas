@@ -1,89 +1,82 @@
 # Cerdas Roadmap & Feature Tracker
 
 Dokumen ini melacak fitur jangka panjang (rencana awal) dan fitur yang telah diselesaikan.
-**Status Terakhir Diupdate:** 2026-01-19
+**Status Terakhir Diupdate:** 2026-07-18
 
 ## ✅ Fitur Selesai (Completed Features)
 
 ### 1. Core Architecture & Foundation
-
 - [x] **Tech Stack Setup**: Laravel 12 (Backend), Vue 3 + Framework7 (Client & Editor), SQLite (Offline).
 - [x] **Monorepo Structure**: `apps/backend`, `apps/client`, `apps/editor`, `packages/types`.
-- [x] **Database Schema**: Multi-tenant (Organization -> App -> Form -> Assignment).
-- [x] **Terminology Refactor**: Standardized to Apps (Proyek) and Forms (Schema).
+- [x] **Database Schema**: Multi-tenant (Organization -> App -> AppMembership).
+- [x] **Terminology Refactor**: Standardized to Apps (Proyek) and Tables (Schema).
 - [x] **Android Build System**: Configured for API 29+, Live Reload, and production signing readiness.
 
 ### 2. Form Renderer (Client App)
-
 - [x] **Premium UI**: Modern, clean design with customized F7 components.
 - [x] **Field Components**:
   - Text & Number (Debounced, Optimized).
-  - GPS Field (Leaflet Map, High Accuracy, Permissions).
+  - GPS Field (Leaflet Map, High Accuracy, Permissions, Accuracy Warning).
   - Image Field (Camera/Gallery, Compression, "Box Style").
+  - Signature Field (Digital pad capture and raw base64 upload).
   - HTML Block (Instructions, Alerts).
 - [x] **Validation Logic**: Client-side JS closures (working offline).
-- [x] **Nested Forms**: Support for `CanEvaluateModules` (Repeatable sections).
+- [x] **Nested Forms**: Support for repeatable sections.
 - [x] **Performance**: Virtual scrolling for large lists, shallowRef optimizations.
 
 ### 3. Offline Capabilities & Sync
-
 - [x] **Local Storage**: `capacitor-community/sqlite` (Jeep-SQLite for Web) integration.
 - [x] **Sync Engine**: Bi-directional sync (Push Responses, Pull Assignments).
 - [x] **Conflict Resolution**: Last-Write-Wins strategy.
 - [x] **Draft System**: Local drafts saved automatically before sync.
+- [x] **SQLite Soft-Delete Sync**: Cleanup orphaned/tombstoned data on sync.
 
 ### 4. Navigation & Dashboard (AppShell)
-
-- [x] **Dynamic Navigation**: Tab-based navigation configured via JSON.
+- [x] **Dynamic Navigation**: Tab-based navigation configured via JSON and synced with Editor.
 - [x] **Assignment Management**: List view with Search, Filtering, and Grouping.
 - [x] **Data Visualization**: Basic dashboard stats.
 - [x] **Hardware Navigation**: Android Back Button handling (Close Modal -> Back -> Exit).
 
-### 5. Editor (Initial Phase)
-
-- [x] **WYSIWYG Preview**: Iframe-based live preview of the Client App within the Editor.
+### 5. Editor (Web)
+- [x] **WYSIWYG Preview**: Iframe-based live preview of the Client App with connection checks.
 - [x] **Basic Form Configuration**: Settings, Name, Icon.
-- [x] **CSV Import**: Wizard for bulk importing assignments/pre-list data.
+- [x] **Excel/CSV Import**: Wizard for bulk importing assignments/pre-list data with 5MB chunked upload.
 - [x] **Action Management**: Configuring Header, Row, and Swipe actions (Delete, Complete, etc.).
+- [x] **Data Preview Grid**: Interactive grid table in editor showing raw imported AppRecord datasets.
+- [x] **Monaco/CodeMirror Editor**: Raw JSON schema edit tab with instant sync apply.
+
+### 6. Production & Deployment
+- [x] **Docker Container**: FrankenPHP/Octane production-ready compose config.
+- [x] **Pusat Unduhan APK**: Automatic sync command `php artisan apk:sync-version` caching latest GitHub release metadata, and `ApkDownloadCard` in app dashboard.
+- [x] **Automated Release**: Version tags (`vX.Y.Z`) and APK build/upload on GitHub releases.
 
 ---
 
 ## 🚀 Fitur Jangka Panjang (Planned / In Progress)
 
 ### Phase 5: Advanced No-Code Editor (Current Focus)
-
 - [ ] **Schema Builder UI**: Interface berbasis tombol (Simple) untuk menambah/mengatur field form.
 - [ ] **Column Settings**: UI lengkap seperti AppSheet untuk edit properti field (Show_If, Editable_If, Formula).
 - [ ] **Logic Builder**: UI visual untuk membuat logic/validasi tanpa coding manual JSON.
-- [ ] **View Configuration**: UI untuk mengatur tampilan (Deck, Table, Map, Calendar, Detail).
 
 ### Phase 6: Sync & Data Robustness
-
 - [ ] **Background Sync**: Sync otomatis di background (jika memungkinkan di Android baru).
 - [ ] **Large Dataset Strategy**: Handling ribuan baris data referensi (Reference Tables) offline.
 - [ ] **Smart Delta Sync**: Hanya download data yang berubah untuk hemat kuota.
 
 ### Advanced Fields & Media
-
-- [ ] **Signature Field**: Tanda tangan digital.
 - [ ] **Barcode/QR Scanner**: Scan untuk input data/pencarian.
-
 - [ ] **Reference Type**: Lookup ke tabel/form lain (Relationship).
 
 ### Automation & Reporting
-
 - [ ] **Bot/Automation**: Trigger email/webhook saat data masuk.
 - [ ] **PDF Generator**: Generate laporan PDF custom dari hasil input.
-- [ ] **Excel Export**: Export data assignment/response ke Excel yang rapi.
-- [ ] **Google Sheet 2-Way Sync**: Sinkronisasi 2 arah via API v3 (files.watch + Self-Healing Scheduler).
+- [ ] **2-Way Google Sheet Sync**: Sinkronisasi 2 arah via API v3 (files.watch + Self-Healing Scheduler).
 
 ### Security & Management
-
-- [ ] **Role Management UI**: Interface untuk atur role user (Enumerator vs Supervisor).
 - [ ] **Row-Level Security**: Filter data assignment berdasarkan User ID (Security Filters).
 
 ### Polish & UX
-
 - [ ] **Dark Mode**: Dukungan penuh tema gelap di semua aplikasi.
 - [ ] **Multi-language**: Dukungan Bahasa Indonesia/English (i18n).
 - [ ] **Onboarding**: Tutorial untuk user baru.
