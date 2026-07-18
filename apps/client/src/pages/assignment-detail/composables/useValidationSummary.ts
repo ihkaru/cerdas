@@ -17,6 +17,7 @@ export interface FormRendererRef {
     getValidationSummary: () => ValidationSummary;
     scrollToField: (fieldName: string) => void;
     validate: () => boolean;
+    getScrubbedData: () => Record<string, unknown>;
 }
 
 export function useValidationSummary(formRenderer: Ref<FormRendererRef | null>) {

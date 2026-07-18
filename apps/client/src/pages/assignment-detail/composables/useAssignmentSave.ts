@@ -18,7 +18,18 @@ export function useAssignmentSave(
     const saveResponse = async (isDraft: boolean) => {
         try {
             const conn = await db.getDB();
-            await DashboardRepository.saveResponse(conn, assignmentId, formData.value, isDraft);
+
+            // Data Scrubbing (Pendekatan B - Best Practice):
+            // Bersihkan nilai-nilai kolom yang tersembunyi (show_if=false) sebelum disimpan ke SQLite.
+            // Ini mencegah data yang tidak relevan (misal: jumlah_dayak=5 meski suku_dayak tidak dicentang)
+            // tersimpan ke database dan dikirim ke server.
+            // Nilai terkahir dari user tetap ada di memori (formData) sampai form ditutup,
+            // sehingga jika user salah klik, data tidak langsung hilang.
+            const dataToSave = formRenderer.value?.getScrubbedData
+                ? formRenderer.value.getScrubbedData()
+                : formData.value;
+
+            await DashboardRepository.saveResponse(conn, assignmentId, dataToSave, isDraft);
             await db.save();
 
             saving.value = false;
@@ -44,12 +55,9 @@ export function useAssignmentSave(
     const confirmSubmit = () => {
         saving.value = false;
 
-        console.log('[DEBUG] confirmSubmit: formRenderer.value is', formRenderer.value);
-
         // Validate Form Before Submitting
         if (formRenderer.value) {
             const isValid = formRenderer.value.validate();
-            console.log('[DEBUG] confirmSubmit: isValid is', isValid);
             if (!isValid) {
                 f7.toast.show({
                     text: 'Mohon perbaiki error di form sebelum submit.',
@@ -60,7 +68,7 @@ export function useAssignmentSave(
                 return;
             }
         } else {
-            console.warn('[DEBUG] confirmSubmit: formRenderer.value is NULL!');
+            console.warn('[AssignmentSave] formRenderer ref is not available, skipping validation.');
         }
 
         f7.dialog.confirm('Apakah Anda yakin ingin menyelesaikan assignment ini?', 'Selesaikan', async () => {
