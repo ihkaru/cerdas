@@ -41,7 +41,7 @@ class AppSchemaController extends Controller
                 'source_type' => $table->source_type ?? 'internal',
                 'source_config' => $table->source_config ?? [],
                 'fields' => $version?->fields ?? [],
-                'settings' => $version?->layout['settings'] ?? [
+                'settings' => ($version && is_array($version->layout) && isset($version->layout['settings'])) ? $version->layout['settings'] : [
                     'icon' => 'list_bullet',
                     'actions' => [
                         'header' => [],
@@ -186,7 +186,7 @@ class AppSchemaController extends Controller
                     'layout' => [
                         'type' => 'standard',
                         'settings' => $tableData['settings'] ?? [],
-                        'views' => $version->layout['views'] ?? [],
+                        'views' => ($version && is_array($version->layout) && isset($version->layout['views'])) ? $version->layout['views'] : [],
                     ],
                 ]);
             }
@@ -247,7 +247,7 @@ class AppSchemaController extends Controller
                 'message' => 'Schema updated successfully',
                 'app' => $app->fresh(['tables.latestVersion', 'views']),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
 
             return response()->json([
@@ -363,7 +363,7 @@ class AppSchemaController extends Controller
                 'message' => 'App imported successfully',
                 'app' => $app->fresh(['tables.latestVersion', 'views']),
             ], 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
 
             return response()->json([
