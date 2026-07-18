@@ -111,6 +111,12 @@ packages/types  - @cerdas/types (shared strict TS types)
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
+- **Version**: 0.2.35 (Production Backend Array Contains Fix & Streamlined Suku Schema)
+
+- **Production Backend Fix (2026-07-18)**:
+  - **Git Rebase Restore**: Memulihkan perbaikan backend `AssignmentController::destroy` yang tidak sengaja terhapus/terlewat akibat perintah `git rebase --skip` sebelumnya. Mengganti `getAccessibleAppIds()->contains($app->id)` yang memicu error 500 dengan method `$user->hasAppAccess($app->id)` yang aman dan efisien.
+  - **Streamlined Suku Schema**: Memperluas opsi Suku (Sunda, Minang, Banjar) dan merampingkan block HTML di Seksi Ekonomi menjadi hint field bawaan untuk meningkatkan UX petugas lapangan.
+
 - **Version**: 0.2.34 (Dynamic APK Download Link Verification & Mismatch Visibility Fix)
 
 - **Mismatch Visibility & Verification (2026-07-18)**:
