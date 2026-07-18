@@ -120,9 +120,11 @@
           "name": "Jumlah_Kartu_Keluarga",
           "type": "number",
           "label": "Jumlah Kartu Keluarga di Rumah",
-          "hint": "Hitung jumlah KK fisik (dokumen) yang dimiliki penghuni rumah ini, bukan jumlah keluarga/rumah tangga.",
+          "hint": "Terisi otomatis sesuai jumlah Kepala Keluarga yang Anda daftarkan di atas.",
           "required": true,
-          "validation_js": "const val = Number(row.Jumlah_Kartu_Keluarga || 0); const listCount = Array.isArray(row.kepala_keluarga_list) ? row.kepala_keluarga_list.length : 0; if (val !== listCount) { return 'Jumlah Kartu Keluarga ('+val+') wajib sama dengan jumlah Kepala Keluarga yang didaftarkan ('+listCount+')!'; } return null;"
+          "readonly": true,
+          "formula_fn": "return Array.isArray(row.kepala_keluarga_list) ? row.kepala_keluarga_list.length : 0;",
+          "warning_js": "const val = Number(row.Jumlah_Kartu_Keluarga || 0); if (row.status_kk_fisik === 'gabung' && val > 1) { return '⚠️ Status Menumpang biasanya hanya 1 KK (KK induk). Pastikan jumlah ini sudah benar.'; } if (row.status_kk_fisik === 'mandiri' && val === 0) { return '⚠️ Isi minimal 1 KK (de facto), meski belum ada KK fisik terbit.'; } return null;"
         },
         {
           "name": "Jumlah_Anggota_Keluarga_di_Rumah",
