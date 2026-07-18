@@ -48,9 +48,16 @@ packages/types  - @cerdas/types (shared strict TS types)
 * **Mode 2: Remote Backend**: `./scripts/start-android-remote.ps1` (Backend at remote staging)
 
 ## Reference Documents
-* `docs/architecture_principles.md` - Technical principles
+* `docs/architecture_principles.md` - Technical principles (**READ FIRST** before any implementation)
 * `docs/DEVELOPMENT_LIFECYCLE.md` - Start/stop, coding loop, and Release/Versioning SOP
+* `docs/WORKFLOW_AND_DEBUGGING.md` - Debugging workflow, CI/CD, and local verification (`verify-local.ps1`)
+* `docs/TERMINOLOGY_DISAMBIGUATION.md` - Canonical naming conventions (SSOT)
+* `docs/STATUS_FLOWS.md` - Assignment status state machine diagram
+* `docs/FORM_EDITOR_WORKFLOW.md` - Detailed workflow for the visual form/view editor
+* `docs/framework7_vue_theming_best_practices.md` - F7 theming, notch handling, spacing bug fixes
+* `docs/ANDROID_BUILD_GUIDE.md` - Android build, signing, and APK release guide
+* `docs/COOLIFY_GUIDE.md` - Production deployment guide (Coolify + Docker)
+* `docs/DOCKER_DEV.md` - Local development with Docker backend
 * `docs/task.md` - Current TODO list
 * `references/SCREEN_FLOW.md` - Screen Flow & Routing Guide
 * `ROADMAP.md` - Feature Roadmap
-* `docs/TERMINOLOGY_DISAMBIGUATION.md` - Canonical naming conventions (SSOT)
