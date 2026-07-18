@@ -91,13 +91,15 @@ const latestVersion = computed(() => {
     if (!props.latestApk?.version) return currentVersion;
     return isOlder(props.latestApk.version, currentVersion) ? currentVersion : props.latestApk.version;
 });
-const downloadUrl = computed(() => props.latestApk?.url || 'https://github.com/ihkaru/cerdas/releases/latest');
+const downloadUrl = computed(() => {
+    if (props.latestApk?.url && !props.latestApk.url.includes('v0.2.27')) {
+        return props.latestApk.url;
+    }
+    return `https://github.com/ihkaru/cerdas/releases/download/v${latestVersion.value}/cerdas-v${latestVersion.value}.apk`;
+});
 const changelog = computed(() => props.latestApk?.changelog || []);
 
-const updateAvailable = computed(() => {
-    if (!props.latestApk) return true;
-    return isOlder(currentVersion, props.latestApk.version) || props.latestApk.version === currentVersion;
-});
+const updateAvailable = computed(() => true);
 
 function handleDownloadClick(e: MouseEvent) {
     e.stopPropagation();
