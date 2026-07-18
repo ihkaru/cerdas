@@ -379,6 +379,15 @@
           "content": "Jumlah total seluruh penduduk pada kelompok usia di bawah ini <strong>wajib sama</strong> dengan <i>Jumlah Anggota Keluarga di Rumah</i> yang telah diinput di atas."
         },
         {
+          "name": "Total_Usia_Check",
+          "type": "number",
+          "label": "Total Jiwa (otomatis)",
+          "readonly": true,
+          "show_if_fn": "return false;",
+          "formula_fn": "return (Number(row.Jumlah_usia_0_4||0)+Number(row.Jumlah_usia_5_9||0)+Number(row.Jumlah_usia_10_14||0)+Number(row.Jumlah_usia_15_19||0)+Number(row.Jumlah_usia_20_24||0)+Number(row.Jumlah_usia_25_29||0)+Number(row.Jumlah_usia_30_34||0)+Number(row.Jumlah_usia_35_39||0)+Number(row.Jumlah_usia_40_44||0)+Number(row.Jumlah_usia_45_49||0)+Number(row.Jumlah_usia_50_54||0)+Number(row.Jumlah_usia_55_59||0)+Number(row.Jumlah_usia_60_69||0)+Number(row.Jumlah_usia_diatas_70||0));",
+          "validation_js": "const total = Number(row.Total_Usia_Check||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && total !== anggota) { return 'Total kelompok usia (' + total + ') harus sama dengan Jumlah Anggota Keluarga (' + anggota + '). Periksa kembali tiap kelompok usia.'; } return null;"
+        },
+        {
           "name": "Jumlah_usia_0_4",
           "type": "number",
           "label": "Jumlah usia 0-4 tahun (Balita)",
@@ -477,91 +486,132 @@
         {
           "name": "Jumlah_Belum_Sekolah",
           "type": "number",
-          "label": "Jumlah Belum Sekolah",
-          "required": true
-        },
-        {
-          "name": "Jumlah_Sedang_TK",
-          "type": "number",
-          "label": "Jumlah Sedang TK",
-          "required": true
-        },
-        {
-          "name": "Jumlah_Sedang_SD",
-          "type": "number",
-          "label": "Jumlah Sedang SD",
-          "required": true
-        },
-        {
-          "name": "Jumlah_Sedang_SMP",
-          "type": "number",
-          "label": "Jumlah Sedang SMP",
-          "required": true
-        },
-        {
-          "name": "Jumlah_Sedang_SMA",
-          "type": "number",
-          "label": "Jumlah Sedang SMA",
-          "required": true
-        },
-        {
-          "name": "Jumlah_Sedang_D1_S1",
-          "type": "number",
-          "label": "Jumlah Sedang D1-S1",
-          "required": true
-        },
-        {
-          "name": "Jumlah_Sedang_S2",
-          "type": "number",
-          "label": "Jumlah Sedang S2",
+          "label": "Jumlah Belum Sekolah (anak < 7 tahun)",
+          "hint": "Anak-anak yang belum masuk sekolah sama sekali. Biasanya berusia 0-6 tahun.",
           "required": true
         },
         {
           "name": "Jumlah_Tidak_Pernah_Sekolah",
           "type": "number",
-          "label": "Jumlah Tidak Pernah Sekolah",
+          "label": "Jumlah Tidak Pernah Sekolah (usia > 7 tahun)",
+          "hint": "Anggota yang sudah cukup usia sekolah (7 tahun ke atas) tapi tidak pernah bersekolah sama sekali.",
           "required": true
+        },
+        {
+          "name": "sub_section_sedang_sekolah",
+          "type": "separator",
+          "label": "Sedang Bersekolah Saat Ini"
+        },
+        {
+          "name": "Jumlah_Sedang_TK",
+          "type": "number",
+          "label": "Sedang TK / PAUD",
+          "hint": "Anggota yang saat ini aktif bersekolah di TK atau PAUD.",
+          "required": true
+        },
+        {
+          "name": "Jumlah_Sedang_SD",
+          "type": "number",
+          "label": "Sedang SD / Sederajat",
+          "hint": "Anggota yang saat ini aktif bersekolah di SD, MI, atau sederajat.",
+          "required": true
+        },
+        {
+          "name": "Jumlah_Sedang_SMP",
+          "type": "number",
+          "label": "Sedang SMP / Sederajat",
+          "hint": "Anggota yang saat ini aktif bersekolah di SMP, MTs, atau sederajat.",
+          "required": true
+        },
+        {
+          "name": "Jumlah_Sedang_SMA",
+          "type": "number",
+          "label": "Sedang SMA / SMK / Sederajat",
+          "hint": "Anggota yang saat ini aktif bersekolah di SMA, SMK, MA, atau sederajat.",
+          "required": true
+        },
+        {
+          "name": "Jumlah_Sedang_D1_S1",
+          "type": "number",
+          "label": "Sedang Kuliah D1-S1",
+          "hint": "Anggota yang saat ini aktif kuliah (Diploma 1 hingga Sarjana S1).",
+          "required": true
+        },
+        {
+          "name": "Jumlah_Sedang_S2",
+          "type": "number",
+          "label": "Sedang Kuliah S2/S3",
+          "hint": "Anggota yang saat ini aktif kuliah Pascasarjana (S2 atau S3).",
+          "required": true
+        },
+        {
+          "name": "sub_section_ijazah_tertinggi",
+          "type": "separator",
+          "label": "Ijazah/Pendidikan Tertinggi (Sudah Tidak Sekolah)"
+        },
+        {
+          "name": "panduan_tamat",
+          "type": "html_block",
+          "blockStyle": "info",
+          "label": "📋 Petunjuk Pengisian Ijazah Tertinggi",
+          "content": "Bagian ini <strong>hanya untuk anggota yang sudah tidak bersekolah lagi</strong>.<br/>Isikan ijazah atau pendidikan <strong>tertinggi yang berhasil diselesaikan</strong>.<br/>• <em>Contoh</em>: Bapak usia 45 th, sekolah terakhir SMP → masuk <strong>Tamat SMP</strong>.<br/>• <em>Contoh</em>: Ibu usia 30 th, pernah sekolah SD tapi tidak lulus → masuk <strong>Tidak Tamat SD</strong>.<br/>• Seseorang yang sedang sekolah <strong>TIDAK dihitung di sini</strong>."
         },
         {
           "name": "Jumlah_Tidak_Tamat_SD",
           "type": "number",
-          "label": "Jumlah Tidak Tamat SD",
+          "label": "Sudah tidak sekolah: Tidak Tamat SD",
+          "hint": "Pernah masuk SD tapi tidak sampai lulus/ijazah. Sudah tidak sekolah lagi.",
           "required": true
         },
         {
           "name": "Jumlah_Tamat_SD",
           "type": "number",
-          "label": "Jumlah Tamat SD",
+          "label": "Ijazah tertinggi: SD / Sederajat",
+          "hint": "Lulus SD/MI dan tidak melanjutkan sekolah lagi. Ijazah SD adalah yang tertinggi dimiliki.",
           "required": true
         },
         {
           "name": "Jumlah_Tamat_SMP",
           "type": "number",
-          "label": "Jumlah Tamat SMP",
+          "label": "Ijazah tertinggi: SMP / Sederajat",
+          "hint": "Lulus SMP/MTs dan tidak melanjutkan sekolah lagi. Ijazah SMP adalah yang tertinggi dimiliki.",
           "required": true
         },
         {
           "name": "Jumlah_Tamat_SMA",
           "type": "number",
-          "label": "Jumlah Tamat SMA",
+          "label": "Ijazah tertinggi: SMA / SMK / Sederajat",
+          "hint": "Lulus SMA/SMK/MA dan tidak melanjutkan kuliah. Ijazah SMA adalah yang tertinggi dimiliki.",
           "required": true
         },
         {
           "name": "Jumlah_Tamat_D1_S1",
           "type": "number",
-          "label": "Jumlah Tamat D1-S1",
+          "label": "Ijazah tertinggi: Diploma / Sarjana (D1-S1)",
+          "hint": "Lulus Diploma atau S1 dan sudah tidak kuliah lagi. Ijazah Diploma/S1 adalah yang tertinggi.",
           "required": true
         },
         {
           "name": "Jumlah_Tamat_S2",
           "type": "number",
-          "label": "Jumlah Tamat S2",
+          "label": "Ijazah tertinggi: Pascasarjana (S2/S3)",
+          "hint": "Lulus S2 atau S3 dan sudah tidak kuliah lagi.",
           "required": true
+        },
+        {
+          "name": "Total_Pendidikan_Check",
+          "type": "number",
+          "label": "Total Pendidikan (otomatis)",
+          "readonly": true,
+          "show_if_fn": "return false;",
+          "formula_fn": "return (Number(row.Jumlah_Belum_Sekolah||0)+Number(row.Jumlah_Tidak_Pernah_Sekolah||0)+Number(row.Jumlah_Sedang_TK||0)+Number(row.Jumlah_Sedang_SD||0)+Number(row.Jumlah_Sedang_SMP||0)+Number(row.Jumlah_Sedang_SMA||0)+Number(row.Jumlah_Sedang_D1_S1||0)+Number(row.Jumlah_Sedang_S2||0)+Number(row.Jumlah_Tidak_Tamat_SD||0)+Number(row.Jumlah_Tamat_SD||0)+Number(row.Jumlah_Tamat_SMP||0)+Number(row.Jumlah_Tamat_SMA||0)+Number(row.Jumlah_Tamat_D1_S1||0)+Number(row.Jumlah_Tamat_S2||0));",
+          "validation_js": "const total = Number(row.Total_Pendidikan_Check||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && total !== anggota) { return 'Total status pendidikan (' + total + ') harus sama dengan Jumlah Anggota Keluarga (' + anggota + '). Periksa kembali: setiap anggota harus dihitung tepat 1 kali (baik Sedang Sekolah maupun Ijazah Tertinggi).'; } return null;"
         },
         {
           "name": "Jumlah_Anggota_Keluarga_Putus_Sekolah",
           "type": "number",
-          "label": "Jumlah Anggota Keluarga Putus Sekolah (7-18 tahun)",
+          "label": "Jumlah Anggota Putus Sekolah (usia 7-18 tahun)",
+          "hint": "Hitung anggota usia 7-18 tahun yang seharusnya masih sekolah tapi sudah keluar/berhenti sekolah.",
           "required": true
         },
         {
@@ -599,62 +649,77 @@
         {
           "name": "Jumlah_Petani",
           "type": "number",
-          "label": "Jumlah Petani",
+          "label": "Jumlah Petani / Nelayan / Pekebun",
+          "hint": "Termasuk buruh tani, nelayan, atau yang bertani/berkebun sebagai mata pencaharian utama.",
           "required": true
         },
         {
           "name": "Jumlah_PNS",
           "type": "number",
-          "label": "Jumlah PNS",
+          "label": "Jumlah PNS / ASN",
           "required": true
         },
         {
           "name": "Jumlah_TNI",
           "type": "number",
-          "label": "Jumlah TNI",
+          "label": "Jumlah TNI (aktif)",
           "required": true
         },
         {
           "name": "Jumlah_Polri",
           "type": "number",
-          "label": "Jumlah Polri",
+          "label": "Jumlah Polri (aktif)",
           "required": true
         },
         {
           "name": "Jumlah_Pensiunan",
           "type": "number",
-          "label": "Jumlah Pensiunan PNS/TNI/Polri",
+          "label": "Jumlah Pensiunan (PNS/TNI/Polri)",
+          "hint": "Anggota yang sudah pensiun dari dinas PNS/TNI/Polri dan tidak bekerja lagi.",
           "required": true
         },
         {
           "name": "Jumlah_Wiraswasta",
           "type": "number",
-          "label": "Jumlah Wiraswasta",
+          "label": "Jumlah Wiraswasta / Buruh Swasta",
+          "hint": "Termasuk pedagang, pengusaha kecil, buruh pabrik, karyawan swasta, ojek, dll.",
           "required": true
         },
         {
           "name": "Jumlah_Mengurus_Rumah_Tangga",
           "type": "number",
-          "label": "Jumlah Mengurus Rumah Tangga",
+          "label": "Jumlah Ibu Rumah Tangga (Mengurus Rumah)",
+          "hint": "Anggota yang pekerjaannya mengurus rumah tangga secara penuh dan tidak memiliki pekerjaan lain.",
           "required": true
         },
         {
           "name": "Jumlah_Pelajar",
           "type": "number",
-          "label": "Jumlah Pelajar / Mahasiswa",
+          "label": "Jumlah Pelajar / Mahasiswa (tidak bekerja)",
+          "hint": "Anggota yang statusnya pelajar/mahasiswa aktif dan tidak memiliki pekerjaan sampingan.",
           "required": true
         },
         {
           "name": "Jumlah_Belum_Bekerja",
           "type": "number",
-          "label": "Jumlah Belum Bekerja",
+          "label": "Jumlah Pengangguran / Belum Bekerja",
+          "hint": "Anggota usia kerja (15-64 th) yang tidak memiliki pekerjaan dan sedang mencari kerja.",
           "required": true
         },
         {
           "name": "Jumlah_pekerjaan_lainnya",
           "type": "number",
-          "label": "Jumlah Pekerjaan Lainnya",
+          "label": "Jumlah Pekerjaan Lainnya (tidak tercantum di atas)",
           "required": true
+        },
+        {
+          "name": "Total_Pekerjaan_Check",
+          "type": "number",
+          "label": "Total Pekerjaan (otomatis)",
+          "readonly": true,
+          "show_if_fn": "return false;",
+          "formula_fn": "return (Number(row.Jumlah_Petani||0)+Number(row.Jumlah_PNS||0)+Number(row.Jumlah_TNI||0)+Number(row.Jumlah_Polri||0)+Number(row.Jumlah_Pensiunan||0)+Number(row.Jumlah_Wiraswasta||0)+Number(row.Jumlah_Mengurus_Rumah_Tangga||0)+Number(row.Jumlah_Pelajar||0)+Number(row.Jumlah_Belum_Bekerja||0)+Number(row.Jumlah_pekerjaan_lainnya||0));",
+          "validation_js": "const total = Number(row.Total_Pekerjaan_Check||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && total !== anggota) { return 'Total jenis pekerjaan (' + total + ') harus sama dengan Jumlah Anggota Keluarga (' + anggota + '). Setiap anggota harus memiliki tepat 1 status pekerjaan.'; } return null;"
         },
         {
           "name": "section_ekonomi",
