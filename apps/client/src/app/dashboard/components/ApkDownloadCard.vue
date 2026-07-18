@@ -99,7 +99,10 @@ const downloadUrl = computed(() => {
 });
 const changelog = computed(() => props.latestApk?.changelog || []);
 
-const updateAvailable = computed(() => true);
+const updateAvailable = computed(() => {
+    if (!props.latestApk?.version) return false;
+    return isOlder(currentVersion, props.latestApk.version);
+});
 
 function handleDownloadClick(e: MouseEvent) {
     e.stopPropagation();
