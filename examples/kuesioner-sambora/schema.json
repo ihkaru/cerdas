@@ -74,31 +74,31 @@
           "warning_js": "if (row.Lokasi_Geotagging && row.Lokasi_Geotagging.coords && row.Lokasi_Geotagging.coords.accuracy > 50) { return '⚠️ Akurasi GPS kurang optimal ('+Math.round(row.Lokasi_Geotagging.coords.accuracy)+' meter). Disarankan mengambil titik koordinat di luar ruangan untuk sinyal dan akurasi terbaik.'; } return null;"
         },
         {
-          "name": "status_pengantin_baru",
+          "name": "status_kk_fisik",
           "type": "select",
-          "label": "Apakah di rumah ini ada Pengantin Baru yang belum pecah KK?",
+          "label": "Apakah di rumah ini ada keluarga/anggota yang belum pecah KK atau belum memiliki KK fisik sendiri?",
           "required": true,
           "options": [
-            { "value": "tidak", "label": "Tidak Ada" },
-            { "value": "gabung", "label": "Ada, dan tinggal bersama Orang Tua/Mertua" },
-            { "value": "mandiri", "label": "Ada, dan tinggal mandiri di rumah ini (punya rumah sendiri)" }
+            { "value": "tidak", "label": "Tidak Ada (Semua sudah sesuai KK fisik masing-masing)" },
+            { "value": "gabung", "label": "Ada, dan tinggal bersama/menumpang keluarga utama (misal: anak/menantu/saudara)" },
+            { "value": "mandiri", "label": "Ada, dan tinggal mandiri (misal: sewa rumah/punya rumah sendiri tapi belum terbit KK fisik)" }
           ]
         },
         {
-          "name": "panduan_pengantin_baru_gabung",
+          "name": "panduan_kk_gabung",
           "type": "html_block",
           "blockStyle": "info",
-          "label": "💡 Petunjuk Pengisian Pengantin Baru (Gabung)",
-          "content": "Karena tinggal bersama orang tua, maka:<br/>• <strong>Jumlah KK di Rumah</strong> diisi <strong>1</strong> (KK Orang Tua).<br/>• <strong>Kepala Keluarga</strong> diisi nama <strong>Orang Tua/Mertua</strong>.<br/>• Pengantin baru dihitung langsung sebagai <strong>Anggota Keluarga biasa</strong> di rumah ini.",
-          "show_if_fn": "return row.status_pengantin_baru === 'gabung';"
+          "label": "💡 Petunjuk Pengisian Keluarga Menumpang (Gabung)",
+          "content": "Karena tinggal bersama keluarga utama, maka:<br/>• <strong>Jumlah KK di Rumah</strong> diisi <strong>1</strong> (KK keluarga utama/orang tua).<br/>• <strong>Kepala Keluarga</strong> diisi nama Kepala Keluarga di KK fisik tersebut.<br/>• Anggota yang menumpang langsung dihitung sebagai <strong>Anggota Keluarga biasa</strong> di rumah ini.",
+          "show_if_fn": "return row.status_kk_fisik === 'gabung';"
         },
         {
-          "name": "panduan_pengantin_baru_mandiri",
+          "name": "panduan_kk_mandiri",
           "type": "html_block",
           "blockStyle": "info",
-          "label": "💡 Petunjuk Pengisian Pengantin Baru (Mandiri)",
-          "content": "Karena tinggal mandiri di rumah sendiri, maka:<br/>• <strong>Jumlah KK di Rumah</strong> diisi <strong>1</strong>.<br/>• <strong>Kepala Keluarga</strong> diisi nama <strong>Suami</strong> (sebagai Kepala Keluarga de facto).<br/>• <strong>Jumlah Anggota Keluarga</strong> diisi <strong>2</strong> (Suami & Istri).",
-          "show_if_fn": "return row.status_pengantin_baru === 'mandiri';"
+          "label": "💡 Petunjuk Pengisian Keluarga Mandiri tanpa KK Fisik (Mandiri)",
+          "content": "Karena tinggal mandiri di rumah sendiri, maka:<br/>• <strong>Jumlah KK di Rumah</strong> diisi <strong>1</strong>.<br/>• <strong>Kepala Keluarga</strong> diisi nama Kepala Keluarga yang bertanggung jawab secara nyata (de facto).<br/>• <strong>Jumlah Anggota Keluarga</strong> diisi jumlah orang yang tinggal secara nyata di rumah ini.",
+          "show_if_fn": "return row.status_kk_fisik === 'mandiri';"
         },
         {
           "name": "kepala_keluarga_list",
