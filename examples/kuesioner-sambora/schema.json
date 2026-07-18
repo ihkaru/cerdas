@@ -745,18 +745,18 @@
         {
           "name": "Jumlah_Penduduk_usia_kerja_bekerja",
           "type": "number",
-          "label": "Jumlah Penduduk usia kerja (15-64 tahun) bekerja",
+          "label": "Jumlah Anggota usia kerja (15-64 tahun) yang bekerja",
           "hint": "Bekerja: Memiliki pekerjaan/penghasilan aktif (petani, PNS, wiraswasta, buruh, pengrajin, dll).",
           "required": true,
-          "warning_js": "const bekerja = Number(row.Jumlah_Penduduk_usia_kerja_bekerja||0); const tidakBekerja = Number(row.Jumlah_Penduduk_usia_kerja_tidak_bekerja||0); const usiaKerja = Number(row.Total_UsiaKerja_Check||0); if (usiaKerja > 0 && (bekerja + tidakBekerja) !== usiaKerja) { return '⚠️ Total usia kerja bekerja (' + bekerja + ') + tidak bekerja (' + tidakBekerja + ') = ' + (bekerja+tidakBekerja) + ', seharusnya sama dengan total penduduk usia 15-64 tahun dari kelompok usia (' + usiaKerja + ').'; } return null;"
+          "warning_js": "const bekerja = Number(row.Jumlah_Penduduk_usia_kerja_bekerja||0); const tidakBekerja = Number(row.Jumlah_Penduduk_usia_kerja_tidak_bekerja||0); const usiaKerja = Number(row.Total_UsiaKerja_Check||0); if (usiaKerja > 0 && (bekerja + tidakBekerja) !== usiaKerja) { return '⚠️ Total anggota usia kerja yang bekerja (' + bekerja + ') + tidak bekerja (' + tidakBekerja + ') = ' + (bekerja+tidakBekerja) + ', seharusnya sama dengan total anggota usia 15-64 tahun (' + usiaKerja + ').'; } return null;"
         },
         {
           "name": "Jumlah_Penduduk_usia_kerja_tidak_bekerja",
           "type": "number",
-          "label": "Jumlah Penduduk usia kerja (15-64 tahun) tidak bekerja",
+          "label": "Jumlah Anggota usia kerja (15-64 tahun) yang tidak bekerja",
           "hint": "Tidak Bekerja: Pengangguran, Ibu Rumah Tangga penuh, atau Pelajar/Mahasiswa (tidak aktif bekerja).",
           "required": true,
-          "warning_js": "const bekerja = Number(row.Jumlah_Penduduk_usia_kerja_bekerja||0); const tidakBekerja = Number(row.Jumlah_Penduduk_usia_kerja_tidak_bekerja||0); const usiaKerja = Number(row.Total_UsiaKerja_Check||0); if (usiaKerja > 0 && (bekerja + tidakBekerja) !== usiaKerja) { return '⚠️ Total usia kerja bekerja (' + bekerja + ') + tidak bekerja (' + tidakBekerja + ') = ' + (bekerja+tidakBekerja) + ', seharusnya sama dengan total penduduk usia 15-64 tahun dari kelompok usia (' + usiaKerja + ').'; } return null;"
+          "warning_js": "const bekerja = Number(row.Jumlah_Penduduk_usia_kerja_bekerja||0); const tidakBekerja = Number(row.Jumlah_Penduduk_usia_kerja_tidak_bekerja||0); const usiaKerja = Number(row.Total_UsiaKerja_Check||0); if (usiaKerja > 0 && (bekerja + tidakBekerja) !== usiaKerja) { return '⚠️ Total anggota usia kerja yang bekerja (' + bekerja + ') + tidak bekerja (' + tidakBekerja + ') = ' + (bekerja+tidakBekerja) + ', seharusnya sama dengan total anggota usia 15-64 tahun (' + usiaKerja + ').'; } return null;"
         },
         {
           "name": "Jumlah_UMKM_Dalam_Keluarga",
