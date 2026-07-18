@@ -9,6 +9,7 @@ use App\Models\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -140,6 +141,20 @@ class AppSchemaController extends Controller
             ], 422);
         }
 
+        // Check if slug is taken by another app
+        $slugConflict = App::where('slug', $data['app']['slug'])
+            ->where('id', '!=', $app->id)
+            ->exists();
+
+        if ($slugConflict) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => [
+                    'app.slug' => ['The app slug "'.$data['app']['slug'].'" is already taken oleh aplikasi lain.'],
+                ],
+            ], 422);
+        }
+
         try {
             DB::beginTransaction();
 
@@ -249,6 +264,7 @@ class AppSchemaController extends Controller
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
+            Log::error('Failed to update schema: '.$e->getMessage(), ['exception' => $e]);
 
             return response()->json([
                 'message' => 'Failed to update schema',
