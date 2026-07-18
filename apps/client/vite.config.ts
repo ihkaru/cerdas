@@ -55,11 +55,9 @@ export default defineConfig({
       'Cross-Origin-Embedder-Policy': 'credentialless',
     },
   },
-  build: {
+  esbuild: {
     // Drop all console.* and debugger statements in production builds.
     // Development builds are unaffected — logs remain fully visible during dev.
-    esbuild: {
-      drop: ['console', 'debugger'],
-    },
+    drop: ['console', 'debugger'],
   },
 })
