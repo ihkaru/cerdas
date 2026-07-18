@@ -25,13 +25,6 @@
           "content": "<strong>1 Form = 1 Rumah Fisik (Bangunan)</strong>.<br/>• Jika di dalam rumah terdapat <strong>lebih dari 1 KK</strong>, isikan kolom <i>Jumlah Kartu Keluarga</i> sesuai jumlah KK-nya dan daftarkan semua kepala keluarga pada bagian <i>Daftar Kartu Keluarga & Kepala Keluarga</i>.<br/>• Pastikan Jumlah Kepala Keluarga Laki-laki + Perempuan cocok dengan total KK."
         },
         {
-          "name": "panduan_kendala_lapangan",
-          "type": "html_block",
-          "blockStyle": "warning",
-          "label": "⚠️ Panduan Kendala Lapangan & Kode Khusus",
-          "content": "<strong>Gunakan Kode Bypass ini secara sadar jika data tidak tersedia di lokasi:</strong><br/>• <strong>Keluarga Tidak Punya WA:</strong> Isikan angka <strong>99998</strong> pada kolom Nomor WhatsApp.<br/>• <strong>Akurasi Geotagging:</strong> Lokasi GPS tetap <strong>Wajib (Required)</strong>. Jika akurasi buruk (> 50m) akibat di dalam bangunan, silakan melangkah ke luar ruangan sejenak saat mengambil koordinat."
-        },
-        {
           "name": "Nama_RT",
           "type": "select",
           "label": "Nama RT",
