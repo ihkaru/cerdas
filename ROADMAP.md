@@ -48,10 +48,11 @@ Dokumen ini melacak fitur jangka panjang (rencana awal) dan fitur yang telah dis
 - [x] **Data Preview Grid**: Interactive grid table di dalam editor menampilkan data AppRecord mentah hasil impor.
 - [x] **Monaco/CodeMirror Editor**: Panel editor kode JSON skema dengan fitur instan apply & autocomplete.
 
-### 6. Production & Deployment
+### 6. Production, Security & Deployment
 - [x] **Docker Container**: FrankenPHP/Octane production-ready compose config.
 - [x] **Pusat Unduhan APK**: Automatic sync command `php artisan apk:sync-version` caching latest GitHub release metadata, and `ApkDownloadCard` in app dashboard.
 - [x] **Automated Release**: Version tags (`vX.Y.Z`) dan APK build/upload on GitHub releases.
+- [x] **Row-Level Access Control**: Filter penugasan berbasis peran di backend API (`AssignmentController` & `ResponseController`) — enumerator/supervisor hanya dapat mengakses baris data yang ditugaskan ke ID mereka.
 
 ---
 
@@ -59,6 +60,7 @@ Dokumen ini melacak fitur jangka panjang (rencana awal) dan fitur yang telah dis
 
 ### Phase 5: Advanced No-Code Editor (Current Focus)
 - [ ] **Visual Logic Builder**: UI visual (seperti blockly atau scratch-like query builder) untuk menyusun rule/validasi tanpa menulis kode Javascript sama sekali.
+- [ ] **Dynamic Security Filters**: Fitur penyaringan data tingkat baris (Row-Level Security) dinamis berbasis formula kustom yang diinput oleh admin (misal: `[Suku] == ctx.user.suku` atau `[Wilayah] == 'Sambora'`).
 
 ### Phase 6: Sync & Data Robustness
 - [ ] **Background Sync**: Sync otomatis di background (jika memungkinkan di Android baru).
@@ -74,10 +76,7 @@ Dokumen ini melacak fitur jangka panjang (rencana awal) dan fitur yang telah dis
 - [ ] **PDF Generator**: Generate laporan PDF custom dari hasil input.
 - [ ] **2-Way Google Sheet Sync**: Sinkronisasi 2 arah via API v3 (files.watch + Self-Healing Scheduler).
 
-### Security & Management
-- [ ] **Row-Level Security**: Filter data assignment berdasarkan User ID (Security Filters).
-
 ### Polish & UX
 - [ ] **Dark Mode**: Dukungan penuh tema gelap di semua aplikasi.
 - [ ] **Multi-language**: Dukungan Bahasa Indonesia/English (i18n).
-- [ ] **Onboarding**: Tutorial untuk user baru.
+- [ ] **Onboarding**: Tutorial/panduan interaktif pemandu alur kerja bagi pengguna baru.
