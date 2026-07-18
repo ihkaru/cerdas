@@ -111,6 +111,12 @@ packages/types  - @cerdas/types (shared strict TS types)
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
+- **Version**: 0.2.32 (Dynamic APK Download Link Resolution & Version SSOT Sync)
+
+- **Dynamic APK Download Resolution (2026-07-18)**:
+  - **Dynamic Link**: Memperbaiki `ApkDownloadCard.vue` agar menghitung `downloadUrl` secara dinamis sesuai `latestVersion` untuk mencegah tautan mengarah ke rilis APK lama dari payload cache.
+  - **Version Sync**: Menyinkronkan seluruh single source of truth versi di `package.json` root, client, editor, manifest, dan version.json ke `0.2.32`.
+
 - **Version**: 0.2.30 (Editor Code Apply Navigation Sync & SQLite Soft-Delete Tombstone Fix)
 
 - **Editor Code Apply & Navigation Sync (2026-07-18)**:
