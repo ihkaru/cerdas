@@ -763,32 +763,40 @@
           "type": "number",
           "label": "Jumlah UMKM dalam Keluarga",
           "hint": "Hitung jumlah usaha aktif yang dijalankan anggota keluarga ini (warung, bengkel, kebun komersial, dll). Isi 0 jika tidak ada.",
-          "required": true
+          "required": true,
+          "warning_js": "const val = Number(row.Jumlah_UMKM_Dalam_Keluarga||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (val > anggota) { return '⚠️ Jumlah UMKM (' + val + ') melebihi jumlah anggota keluarga (' + anggota + '). Pastikan setiap UMKM dijalankan oleh minimal satu anggota.'; } return null;"
         },
         {
           "name": "Perdagangan",
           "type": "number",
           "label": "UMKM Perdagangan",
-          "show_if_fn": "return Number(row.Jumlah_UMKM_Dalam_Keluarga || 0) > 0;"
+          "hint": "Jumlah usaha perdagangan (warung, toko, kios, dll).",
+          "show_if_fn": "return Number(row.Jumlah_UMKM_Dalam_Keluarga || 0) > 0;",
+          "warning_js": "const total = (Number(row.Perdagangan||0)+Number(row.Kuliner||0)+Number(row.Pertanian_UMKM||0)); const jml = Number(row.Jumlah_UMKM_Dalam_Keluarga||0); if (jml > 0 && total !== jml) { return '⚠️ Total kategori UMKM (' + total + ') belum sama dengan Jumlah UMKM (' + jml + '). Pastikan semua usaha sudah dikategorikan.'; } return null;"
         },
         {
           "name": "Kuliner",
           "type": "number",
           "label": "UMKM Kuliner",
-          "show_if_fn": "return Number(row.Jumlah_UMKM_Dalam_Keluarga || 0) > 0;"
+          "hint": "Jumlah usaha kuliner (warung makan, katering, jajanan, dll).",
+          "show_if_fn": "return Number(row.Jumlah_UMKM_Dalam_Keluarga || 0) > 0;",
+          "warning_js": "const total = (Number(row.Perdagangan||0)+Number(row.Kuliner||0)+Number(row.Pertanian_UMKM||0)); const jml = Number(row.Jumlah_UMKM_Dalam_Keluarga||0); if (jml > 0 && total !== jml) { return '⚠️ Total kategori UMKM (' + total + ') belum sama dengan Jumlah UMKM (' + jml + '). Pastikan semua usaha sudah dikategorikan.'; } return null;"
         },
         {
           "name": "Pertanian_UMKM",
           "type": "number",
-          "label": "UMKM Pertanian",
-          "show_if_fn": "return Number(row.Jumlah_UMKM_Dalam_Keluarga || 0) > 0;"
+          "label": "UMKM Pertanian / Perkebunan",
+          "hint": "Jumlah usaha pertanian/perkebunan komersial (bukan konsumsi sendiri).",
+          "show_if_fn": "return Number(row.Jumlah_UMKM_Dalam_Keluarga || 0) > 0;",
+          "warning_js": "const total = (Number(row.Perdagangan||0)+Number(row.Kuliner||0)+Number(row.Pertanian_UMKM||0)); const jml = Number(row.Jumlah_UMKM_Dalam_Keluarga||0); if (jml > 0 && total !== jml) { return '⚠️ Total kategori UMKM (' + total + ') belum sama dengan Jumlah UMKM (' + jml + '). Pastikan semua usaha sudah dikategorikan.'; } return null;"
         },
         {
           "name": "Jumlah_ART_Memiliki_BPJS",
           "type": "number",
-          "label": "Jumlah ART memiliki BPJS Kesehatan",
+          "label": "Jumlah Anggota yang memiliki BPJS Kesehatan",
           "hint": "Hitung anggota keluarga yang kartu BPJS-nya aktif (bisa Mandiri atau PBI/gratis dari pemerintah). Isi 0 jika tidak ada.",
-          "required": true
+          "required": true,
+          "validation_js": "const val = Number(row.Jumlah_ART_Memiliki_BPJS||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (val < 0) { return 'Jumlah tidak boleh negatif.'; } if (anggota > 0 && val > anggota) { return 'Jumlah pemilik BPJS (' + val + ') tidak boleh melebihi jumlah anggota keluarga (' + anggota + ').'; } return null;"
         },
         {
           "name": "Filter_Penerima_Bansos",
@@ -804,36 +812,45 @@
           "name": "Jml_Penerima_Terdaftar_Sembako_BPNT",
           "type": "number",
           "label": "Jumlah Penerima Sembako / BPNT",
-          "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya';"
+          "hint": "Hitung anggota yang namanya terdaftar sebagai penerima Sembako/BPNT.",
+          "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya';",
+          "warning_js": "const val = Number(row.Jml_Penerima_Terdaftar_Sembako_BPNT||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && val > anggota) { return '⚠️ Jumlah penerima Sembako (' + val + ') melebihi jumlah anggota keluarga (' + anggota + ').'; } return null;"
         },
         {
           "name": "Nama_Penerima_Terdaftar_Sembako_BPNT",
           "type": "text",
           "label": "Nama Penerima Sembako / BPNT",
+          "hint": "Tulis nama-nama penerima, pisahkan dengan koma jika lebih dari satu.",
           "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya' && Number(row.Jml_Penerima_Terdaftar_Sembako_BPNT || 0) > 0;"
         },
         {
           "name": "Jml_Penerima_Terdaftar_PKH",
           "type": "number",
           "label": "Jumlah Penerima PKH",
-          "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya';"
+          "hint": "Hitung anggota yang namanya terdaftar sebagai penerima PKH.",
+          "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya';",
+          "warning_js": "const val = Number(row.Jml_Penerima_Terdaftar_PKH||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && val > anggota) { return '⚠️ Jumlah penerima PKH (' + val + ') melebihi jumlah anggota keluarga (' + anggota + ').'; } return null;"
         },
         {
           "name": "Nama_Penerima_Terdaftar_PKH",
           "type": "text",
           "label": "Nama Penerima PKH",
+          "hint": "Tulis nama-nama penerima, pisahkan dengan koma jika lebih dari satu.",
           "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya' && Number(row.Jml_Penerima_Terdaftar_PKH || 0) > 0;"
         },
         {
           "name": "Jml_Penerima_Terdaftar_BLT",
           "type": "number",
           "label": "Jumlah Penerima BLT",
-          "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya';"
+          "hint": "Hitung anggota yang namanya terdaftar sebagai penerima BLT.",
+          "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya';",
+          "warning_js": "const val = Number(row.Jml_Penerima_Terdaftar_BLT||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && val > anggota) { return '⚠️ Jumlah penerima BLT (' + val + ') melebihi jumlah anggota keluarga (' + anggota + ').'; } return null;"
         },
         {
           "name": "Nama_Penerima_Terdaftar_BLT",
           "type": "text",
           "label": "Nama Penerima BLT",
+          "hint": "Tulis nama-nama penerima, pisahkan dengan koma jika lebih dari satu.",
           "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya' && Number(row.Jml_Penerima_Terdaftar_BLT || 0) > 0;"
         },
         {
