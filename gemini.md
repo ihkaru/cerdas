@@ -111,11 +111,12 @@ packages/types  - @cerdas/types (shared strict TS types)
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
-- **Version**: 0.2.36 (Model Relation Property Name Type-Hinting Fix)
+- **Version**: 0.2.36 (Model Relation Property Name Type-Hinting Fix & Release Tag Sorting Fix)
 
-- **Model Relation Property Name Type-Hinting Fix (2026-07-18)**:
+- **Model Relation Property Name Type-Hinting Fix & Release Tag Sorting Fix (2026-07-18)**:
   - **Type Collision Fix**: Menambahkan class-level `@property \App\Models\Table $table` docblocks pada `TableVersion`, `Assignment`, `View`, `AppRecord`, dan `ExportJob` model untuk mengatasi konflik nama dengan base property `protected $table` dari class `Model` Laravel Eloquent.
   - **AssignmentController Refactoring**: Menyimpan dynamic relation `$tableVersion->table` ke local variable `$table` yang dilengkapi annotation `/** @var \App\Models\Table $table */` untuk meniadakan warning static analysis "Expected type 'object'. Found 'string|null'" di IDE/PHPStan.
+  - **Release Tag Sorting Fix**: Menambahkan `"include-component-in-tag": false` di `release-please-config.json` agar tag rilis ke depan menggunakan format `vX.Y.Z` alih-alih `cerdas-vX.Y.Z`, menyelesaikan masalah sorting abjad di GitHub Release sehingga rilis baru muncul sebagai "Latest".
 
 - **Version**: 0.2.35 (Production Backend Array Contains Fix & Streamlined Suku Schema)
 
