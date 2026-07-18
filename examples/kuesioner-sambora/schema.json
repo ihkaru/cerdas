@@ -266,6 +266,9 @@
             { "value": "Melayu", "label": "Melayu" },
             { "value": "Bugis", "label": "Bugis" },
             { "value": "Madura", "label": "Madura" },
+            { "value": "Sunda", "label": "Sunda" },
+            { "value": "Minang", "label": "Minang" },
+            { "value": "Banjar", "label": "Banjar" },
             { "value": "Batak", "label": "Batak" },
             { "value": "Cina", "label": "Cina" },
             { "value": "Flores", "label": "Flores" },
@@ -343,6 +346,30 @@
           "required": true,
           "show_if_fn": "return Array.isArray(row.Suku_yang_ada_di_rumah) ? row.Suku_yang_ada_di_rumah.includes('Flores') : row.Suku_yang_ada_di_rumah === 'Flores';",
           "required_if_fn": "return Array.isArray(row.Suku_yang_ada_di_rumah) ? row.Suku_yang_ada_di_rumah.includes('Flores') : row.Suku_yang_ada_di_rumah === 'Flores';"
+        },
+        {
+          "name": "Jumlah_Sunda",
+          "type": "number",
+          "label": "Jumlah Anggota Suku Sunda",
+          "required": true,
+          "show_if_fn": "return Array.isArray(row.Suku_yang_ada_di_rumah) ? row.Suku_yang_ada_di_rumah.includes('Sunda') : row.Suku_yang_ada_di_rumah === 'Sunda';",
+          "required_if_fn": "return Array.isArray(row.Suku_yang_ada_di_rumah) ? row.Suku_yang_ada_di_rumah.includes('Sunda') : row.Suku_yang_ada_di_rumah === 'Sunda';"
+        },
+        {
+          "name": "Jumlah_Minang",
+          "type": "number",
+          "label": "Jumlah Anggota Suku Minang",
+          "required": true,
+          "show_if_fn": "return Array.isArray(row.Suku_yang_ada_di_rumah) ? row.Suku_yang_ada_di_rumah.includes('Minang') : row.Suku_yang_ada_di_rumah === 'Minang';",
+          "required_if_fn": "return Array.isArray(row.Suku_yang_ada_di_rumah) ? row.Suku_yang_ada_di_rumah.includes('Minang') : row.Suku_yang_ada_di_rumah === 'Minang';"
+        },
+        {
+          "name": "Jumlah_Banjar",
+          "type": "number",
+          "label": "Jumlah Anggota Suku Banjar",
+          "required": true,
+          "show_if_fn": "return Array.isArray(row.Suku_yang_ada_di_rumah) ? row.Suku_yang_ada_di_rumah.includes('Banjar') : row.Suku_yang_ada_di_rumah === 'Banjar';",
+          "required_if_fn": "return Array.isArray(row.Suku_yang_ada_di_rumah) ? row.Suku_yang_ada_di_rumah.includes('Banjar') : row.Suku_yang_ada_di_rumah === 'Banjar';"
         },
         {
           "name": "section_demografi",
@@ -640,22 +667,17 @@
           "label": "IV. Ekonomi & Bantuan Sosial"
         },
         {
-          "name": "panduan_usia_kerja",
-          "type": "html_block",
-          "blockStyle": "info",
-          "label": "💼 Definisi Usia Kerja (15-64 Tahun)",
-          "content": "• <strong>Bekerja</strong>: Memiliki pekerjaan/penghasilan aktif (petani, PNS, wiraswasta, buruh, dll).<br/>• <strong>Tidak Bekerja</strong>: Pengangguran, Ibu Rumah Tangga penuh, atau Pelajar/Mahasiswa (tidak bekerja)."
-        },
-        {
           "name": "Jumlah_Penduduk_usia_kerja_bekerja",
           "type": "number",
           "label": "Jumlah Penduduk usia kerja (15-64 tahun) bekerja",
+          "hint": "Bekerja: Memiliki pekerjaan/penghasilan aktif (petani, PNS, wiraswasta, buruh, pengrajin, dll).",
           "required": true
         },
         {
           "name": "Jumlah_Penduduk_usia_kerja_tidak_bekerja",
           "type": "number",
           "label": "Jumlah Penduduk usia kerja (15-64 tahun) tidak bekerja",
+          "hint": "Tidak Bekerja: Pengangguran, Ibu Rumah Tangga penuh, atau Pelajar/Mahasiswa (tidak aktif bekerja).",
           "required": true
         },
         {
