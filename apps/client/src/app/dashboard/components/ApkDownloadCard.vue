@@ -92,7 +92,7 @@ const latestVersion = computed(() => {
     return isOlder(props.latestApk.version, currentVersion) ? currentVersion : props.latestApk.version;
 });
 const downloadUrl = computed(() => {
-    if (props.latestApk?.url && !props.latestApk.url.includes('v0.2.27')) {
+    if (props.latestApk?.url && props.latestApk.url.includes(`/v${latestVersion.value}/`)) {
         return props.latestApk.url;
     }
     return `https://github.com/ihkaru/cerdas/releases/download/v${latestVersion.value}/cerdas-v${latestVersion.value}.apk`;
