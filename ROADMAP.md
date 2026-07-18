@@ -60,7 +60,7 @@ Dokumen ini melacak fitur jangka panjang (rencana awal) dan fitur yang telah dis
 ## 🚀 Fitur Jangka Panjang (Planned / In Progress)
 
 ### Phase 5: Advanced No-Code Editor (Current Focus)
-- [ ] **Visual Logic Builder**: UI visual (seperti blockly atau scratch-like query builder) untuk menyusun rule/validasi tanpa menulis kode Javascript sama sekali.
+- [ ] **AI-Assisted Vibe Coding (AI Context Button)**: Integrasi asisten AI langsung di dalam editor kode formula (CodeTab) dengan tombol context pengirim metadata skema, membantu pembuat aplikasi menulis logika validasi (show_if, required_if) secara natural menggunakan bahasa alami.
 - [ ] **Dynamic Security Filters**: Fitur penyaringan data tingkat baris (Row-Level Security) dinamis berbasis formula kustom yang diinput oleh admin (misal: `[Suku] == ctx.user.suku` atau `[Wilayah] == 'Sambora'`).
 
 ### Phase 6: Sync & Data Robustness
