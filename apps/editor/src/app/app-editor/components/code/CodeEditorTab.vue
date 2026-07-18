@@ -194,7 +194,7 @@ async function handleGenerateAIPrompt() {
         const prompt = await buildAIContextPrompt(
             jsonCode.value,
             appStore.currentApp?.tables || [],
-            appStore.currentApp?.id,
+            appStore.currentApp?.id !== undefined ? String(appStore.currentApp.id) : undefined,
             (url, params) => ApiClient.get(url, params as Record<string, unknown>)
         );
         await navigator.clipboard.writeText(prompt);
