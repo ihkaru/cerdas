@@ -71,6 +71,7 @@ import { validateAppJson, type ValidationResult } from '../../utils/jsonValidato
 import { ApiClient } from '@/common/api/ApiClient';
 import { useAppStore } from '@/stores/app.store';
 import { useTableStore } from '@/stores/table.store';
+import { buildAIContextPrompt } from './generateAIPrompt';
 
 interface Props {
     // No more table-specific props needed. Everything is in the App Schema.
@@ -186,90 +187,23 @@ async function fetchAppSchema() {
 async function handleGenerateAIPrompt() {
     if (isGeneratingPrompt.value) return;
     isGeneratingPrompt.value = true;
-    
+
     const toast = f7.toast.create({ text: 'Assembling Super-Context (Technical Manual + Live Data)...', closeTimeout: 0 }).open();
-    
-    try {        let prompt = "# CERDAS AI ARCHITECT SUPER-CONTEXT v2.1\n"
-                   + "You are an expert AI Architect specializing in the 'Cerdas' low-code ecosystem. Your goal is to modify or generate the provided Application Schema based on user instructions with 100% technical accuracy.\n\n"
-                   + "## CHAPTER 1: THE CORE ARCHITECTURE\n"
-                   + "Cerdas is an offline-first survey engine. The Application Schema defines the entire system: structure, logic, and UI. Technical precision is mandatory.\n\n"
 
-                   + "## CHAPTER 2: LOGIC & EXPRESSIONS (CLOSURES)\n"
-                   + "Custom logic uses JS function strings in `*_fn` and `validation_js` properties.\n"
-                   + "- **Signature**: `(row, ctx, utils)`\n"
-                   + "- **`ctx` Variable**:\n"
-                   + "  - `user`: { id, name, email, role ['app_admin', 'editor', 'enumerator', 'supervisor', 'viewer'] }\n"
-                   + "  - `app`: { id, mode ['simple', 'complex'] }\n"
-                   + "  - `assignment`: { id, status, prelist_data: {} } (Data for follow-up surveys).\n"
-                   + "  - `items`: All visible records.\n"
-                   + "- **`utils` Variable**: `now()`, `today()`, `sum(arr, key)`, `daysSince(date)`, `uuid()`.\n\n"
-
-                   + "## CHAPTER 3: DATA MASTER (TABLES & FIELDS)\n"
-                   + "- **Field Types**: [text, number, url, date, time, select, radio, checkbox, gps, image, signature, html_block, nested_form, separator].\n"
-                   + "- **HTML Blocks**: Required `content` (HTML) and `blockStyle` (info|success|warning|danger).\n"
-                   + "- **Advanced Flags**: `pii` (sensitive), `preview` (show in map/list summaries), `searchable`.\n\n"
-
-                   + "## CHAPTER 4: USER INTERFACE (VIEWS & NAVIGATION)\n"
-                   + "- **Views**: Object keyed by View ID. Types: [deck, map, table, calendar].\n"
-                   + "- **View Layout Configuration**: Flat structure directly under the view object:\n"
-                   + "  - **Deck View**: `deck: { primaryHeaderField: string, secondaryHeaderField: string, imageField: string|null, imageShape: 'square'|'circle' }`\n"
-                   + "  - **Map View**: `map: { gps_column: string, label: string, subtitle: string, mapbox_style: string }`\n"
-                   + "  - **Actions**: Array of allowed operations: `actions: ['edit', 'delete']`\n"
-                   + "  - **Group By**: Array of grouping fields: `groupBy: ['Field_Name']`\n"
-                   + "- **Navigation**: Array of `{ id, type: 'view', view: 'ViewID', label, icon }`.\n\n"
-
-                   + "## CHAPTER 5: ACTIVE SCHEMA CONTEXT\n"
-                   + "Below is the CURRENT state of the application. USE THIS AS YOUR BASE.\n"
-                   + "```json\n"
-                   + jsonCode.value + "\n"
-                   + "```\n\n"
-
-                   + "## CHAPTER 6: REAL-WORLD DATA SAMPLES\n"
-                   + "Use these real records to understand the data format and content:\n";
-        
-        let sampleDataPrompt = "";
-        for (const table of (appStore.currentApp?.tables || [])) {
-            try {
-                if (appStore.currentApp?.id) {
-                    const res = await ApiClient.get(`/apps/${appStore.currentApp.id}/responses`, {
-                        table_id: table.id,
-                        status: 'all',
-                        page: 1,
-                        per_page: 2
-                    });
-                    const responses = res.data?.data?.data || [];
-                    if (responses.length > 0) {
-                        sampleDataPrompt += `\n### Table: ${table.name} (${table.slug})\n` + "```json\n";
-                        for(const r of responses) {
-                            sampleDataPrompt += JSON.stringify(r.responses?.[0]?.data || r.prelist_data || {}, null, 2) + "\n";
-                        }
-                        sampleDataPrompt += "```\n";
-                    }
-                }
-            } catch {}
-        }
-        
-        prompt += sampleDataPrompt;
-
-        prompt += "\n## CHAPTER 7: COMMON PATTERNS & COMPLEX VALIDATIONS\n"
-                + "- **Pre-filling from Prelist**: `\"initial_value_fn\": \"return ctx.assignment?.prelist_data?.full_name;\"`.\n"
-                + "- **Aggregating Siblings**: `\"formula_fn\": \"return utils.sum(ctx.allRows, 'amount');\"`.\n"
-                + "- **Referencing Nested Form Fields in Views**: Use dot index notation (e.g. `\"primaryHeaderField\": \"kepala_keluarga_list.0.nama_kk\"`).\n"
-                + "- **Complex Cross-Variable Validation**: Validation matching family members, genders, and age groups:\n"
-                + "  `\"validation_js\": \"const total = Number(row.Jumlah_Anggota_Keluarga || 0); const laki = Number(row.Laki_Laki || 0); const pr = Number(row.Perempuan || 0); const listCount = Array.isArray(row.nested_list) ? row.nested_list.length : 0; if (total < listCount) { return 'Total ('+total+') cannot be less than nested items ('+listCount+')'; } if (total !== (laki + pr)) { return 'Total must match Laki-Laki + Perempuan!'; } return null;\"`.\n";
-        
-        prompt += "\n## FINAL INSTRUCTION\n"
-                + "1. Output valid, strict JSON.\n"
-                + "2. Maintain slug consistency.\n"
-                + "3. Preserve existing `tableId` and `id` fields unless specifically asked to change them.\n"
-                + "4. Respond with ONLY the modified parts or the full JSON depending on the user's request.";
-                
+    try {
+        const prompt = await buildAIContextPrompt(
+            jsonCode.value,
+            appStore.currentApp?.tables || [],
+            appStore.currentApp?.id,
+            (url, params) => ApiClient.get(url, params as Record<string, unknown>)
+        );
         await navigator.clipboard.writeText(prompt);
         toast.close();
         f7.toast.show({ text: 'Super-Context Copied! LLM is now fully briefed.', position: 'center', closeTimeout: 3000 });
-    } catch(e: any) {
+    } catch (e: unknown) {
         toast.close();
-        f7.dialog.alert('Error: ' + e.message);
+        const msg = e instanceof Error ? e.message : String(e);
+        f7.dialog.alert('Error: ' + msg);
     } finally {
         isGeneratingPrompt.value = false;
     }
