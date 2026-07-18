@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
+/**
+ * @property \App\Models\Table $table
+ */
 class Assignment extends Model
 {
     use HasFactory;
@@ -110,7 +113,6 @@ class Assignment extends Model
     {
         $this->update(['status' => 'approved']);
     }
-
 
     /**
      * Get the active TableVersion for this assignment's Table.

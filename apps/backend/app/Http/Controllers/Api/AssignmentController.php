@@ -131,7 +131,10 @@ class AssignmentController extends Controller
 
         $user = $request->user();
 
-        if (! $user->hasAppAccess($tableVersion->table->app_id)) {
+        /** @var \App\Models\Table $table */
+        $table = $tableVersion->table;
+
+        if (! $user->hasAppAccess($table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
@@ -146,7 +149,7 @@ class AssignmentController extends Controller
         }
 
         try {
-            Excel::import(new PrelistImport($tableVersion->id, $tableVersion->table->app_id, $tableVersion->table_id), $request->file('file'));
+            Excel::import(new PrelistImport($tableVersion->id, $table->app_id, $table->id), $request->file('file'));
 
             return response()->json([
                 'success' => true,

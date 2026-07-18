@@ -111,6 +111,12 @@ packages/types  - @cerdas/types (shared strict TS types)
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
+- **Version**: 0.2.36 (Model Relation Property Name Type-Hinting Fix)
+
+- **Model Relation Property Name Type-Hinting Fix (2026-07-18)**:
+  - **Type Collision Fix**: Menambahkan class-level `@property \App\Models\Table $table` docblocks pada `TableVersion`, `Assignment`, `View`, `AppRecord`, dan `ExportJob` model untuk mengatasi konflik nama dengan base property `protected $table` dari class `Model` Laravel Eloquent.
+  - **AssignmentController Refactoring**: Menyimpan dynamic relation `$tableVersion->table` ke local variable `$table` yang dilengkapi annotation `/** @var \App\Models\Table $table */` untuk meniadakan warning static analysis "Expected type 'object'. Found 'string|null'" di IDE/PHPStan.
+
 - **Version**: 0.2.35 (Production Backend Array Contains Fix & Streamlined Suku Schema)
 
 - **Production Backend Fix (2026-07-18)**:

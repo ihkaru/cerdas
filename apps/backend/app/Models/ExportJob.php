@@ -13,13 +13,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property string $id
  * @property string $table_id
- * @property int    $user_id
+ * @property int $user_id
  * @property string $status
- * @property int    $version
+ * @property int $version
  * @property string|null $file_path
- * @property int|null    $total_rows
+ * @property int|null $total_rows
  * @property string|null $error_message
  * @property \Illuminate\Support\Carbon|null $expires_at
+ * @property \App\Models\Table $table
  */
 class ExportJob extends Model
 {
@@ -72,8 +73,8 @@ class ExportJob extends Model
     public function markCompleted(string $filePath, int $totalRows): void
     {
         $this->update([
-            'status'     => 'completed',
-            'file_path'  => $filePath,
+            'status' => 'completed',
+            'file_path' => $filePath,
             'total_rows' => $totalRows,
             'expires_at' => now()->addHour(), // File auto-expires in 1 hour
         ]);
@@ -82,7 +83,7 @@ class ExportJob extends Model
     public function markFailed(string $error): void
     {
         $this->update([
-            'status'        => 'failed',
+            'status' => 'failed',
             'error_message' => $error,
         ]);
     }

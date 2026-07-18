@@ -12,6 +12,8 @@ use Illuminate\Support\Str;
  *
  * A version of a Table's fields and layout.
  * Previously known as "FormVersion" or "AppSchemaVersion".
+ *
+ * @property \App\Models\Table $table
  */
 class TableVersion extends Model
 {
