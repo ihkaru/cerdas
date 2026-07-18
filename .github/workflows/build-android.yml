@@ -112,8 +112,11 @@ jobs:
       - name: Upload APK to Release
         if: github.event_name == 'release' || github.event_name == 'workflow_call'
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
           TAG_NAME="${{ inputs.tag_name || github.event.release.tag_name }}"
+          VERSION=$(echo "$TAG_NAME" | sed -E 's/^v|^cerdas-v//')
+          if [ -z "$VERSION" ]; then
+            VERSION="${{ steps.version.outputs.version }}"
+          fi
           cp apps/client/android/app/build/outputs/apk/prod/release/app-prod-release.apk cerdas-v${VERSION}.apk
           gh release upload "$TAG_NAME" cerdas-v${VERSION}.apk --clobber
         env:
