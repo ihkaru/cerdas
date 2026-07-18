@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.34](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.33...cerdas-v0.2.34) (2026-07-18)
+
+
+### Bug Fixes
+
+* **client:** fix hardcoded updateAvailable logic in ApkDownloadCard ([b53a20d](https://github.com/ihkaru/cerdas/commit/b53a20dcc3b26b525bd348d8629da93c85cb6b3f))
+* **client:** make downloadUrl verification fully dynamic without version hardcode ([e00f84a](https://github.com/ihkaru/cerdas/commit/e00f84ad9658534173bd56f2f9330935c24c0c4e))
+
 ## [0.2.33](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.32...cerdas-v0.2.33) (2026-07-18)
 
 
