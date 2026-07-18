@@ -141,27 +141,12 @@ class AppSchemaController extends Controller
             ], 422);
         }
 
-        // Check if slug is taken by another app
-        $slugConflict = App::where('slug', $data['app']['slug'])
-            ->where('id', '!=', $app->id)
-            ->exists();
-
-        if ($slugConflict) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => [
-                    'app.slug' => ['The app slug "'.$data['app']['slug'].'" is already taken oleh aplikasi lain.'],
-                ],
-            ], 422);
-        }
-
         try {
             DB::beginTransaction();
 
-            // Update App metadata
+            // Update App metadata (slug remains unchanged for security & immutability in schema updates)
             $app->update([
                 'name' => $data['app']['name'],
-                'slug' => $data['app']['slug'],
                 'description' => $data['app']['description'] ?? null,
                 'mode' => $data['app']['mode'] ?? 'simple',
                 'navigation' => $data['navigation'] ?? [],
