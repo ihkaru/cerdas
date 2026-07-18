@@ -110,6 +110,12 @@ packages/types  - @cerdas/types (shared strict TS types)
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
+- **Version**: 0.2.30 (Editor Code Apply Navigation Sync & SQLite Soft-Delete Tombstone Fix)
+
+- **Editor Code Apply & Navigation Sync (2026-07-18)**:
+  - **Code Apply Sync**: Memperbaiki `CodeEditorTab.vue` dan `useEditorHandlers.ts` agar saat tombol "Apply Changes" ditekan di tab Code Editor, `navigation` dan `views` (view_configs) dari JSON langsung memperbarui state visual UI Editor dan tersimpan ke backend API secara end-to-end.
+  - **SQLite Soft-Delete Tombstones**: Memperbaiki `AssignmentSyncHelpers.ts` di Client App agar data yang di-soft delete (`deleted_at != null`) di server/Editor otomatis dieksekusi `DELETE FROM assignments` & `DELETE FROM responses` di SQLite lokal saat user menekan Refresh/Sync.
+
 - **Version**: 0.2.29 (Data Scrubbing, Required-If, UX Hints & Relocated Example App Schema)
 
 - **Example App Relocation & Data Scrubbing (2026-07-18)**:

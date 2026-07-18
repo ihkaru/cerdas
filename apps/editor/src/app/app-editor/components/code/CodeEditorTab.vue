@@ -80,7 +80,7 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
     (e: 'generate-context'): void;
-    (e: 'apply', payload: { fields: any[]; layout: any; settings: any }): void;
+    (e: 'apply', payload: { fields: any[]; layout: any; settings: any; navigation?: any[]; views?: any }): void;
 }>();
 
 // Local state for the JSON code
@@ -346,7 +346,6 @@ async function handleApply() {
                     await appStore.fetchApp(appStore.currentApp.id);
                     originalJson.value = jsonCode.value;
 
-                    // Root Cause B Fix: Sync Visual Editor Memory & Iframe Preview
                     const tableStore = useTableStore();
                     const activeSlug = tableStore.currentTable?.slug;
                     if (activeSlug && parsed.tables?.[activeSlug]) {
@@ -358,7 +357,9 @@ async function handleApply() {
                                 settings: tableData.settings || {},
                                 views: parsed.views || tableStore.currentVersion?.layout?.views || {}
                             },
-                            settings: tableData.settings || {}
+                            settings: tableData.settings || {},
+                            navigation: parsed.navigation || [],
+                            views: parsed.views || {}
                         });
                     }
                 } catch (e: any) {

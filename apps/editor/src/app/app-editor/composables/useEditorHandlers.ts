@@ -196,10 +196,18 @@ export function useEditorHandlers(
         fields: EditableFieldDefinition[];
         layout: LayoutConfig;
         settings: TableSettings;
+        navigation?: any[];
+        views?: any;
     }) {
         replaceAllFields(payload.fields);
         replaceLayout(payload.layout);
         replaceSettings(payload.settings);
+        if (payload.navigation && navManagement?.fetchNavigation) {
+            navManagement.fetchNavigation();
+        }
+        if (payload.views && appViewManagement?.fetchAppViews) {
+            appViewManagement.fetchAppViews();
+        }
     }
 
     function handleBack(isDirtyGlobal?: boolean) {

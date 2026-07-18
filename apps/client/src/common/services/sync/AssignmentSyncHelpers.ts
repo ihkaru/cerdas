@@ -9,7 +9,8 @@ import { generateUUID } from '../../utils/uuid';
 
 /** Build batch statements for UPSERT into local SQLite */
 export function buildAssignmentBatch(items: any[], stmtAssign: string, syncTimestamp: string) {
-    return items.map((assign: any) => ({
+    const activeItems = items.filter((assign: any) => !assign.deleted_at);
+    return activeItems.map((assign: any) => ({
         statement: stmtAssign,
         values: [
             assign.id,
@@ -43,9 +44,6 @@ export async function cleanupOrphanAssignments(db: any, tableId: string, fetched
         return;
     }
 
-    // FIX: The previous chunked NOT IN approach was destructive!
-    // Each chunk's DELETE would remove records from other chunks.
-    // Instead, query existing local IDs and compute the diff using a Set.
     const localResult = await db.query('SELECT id FROM assignments WHERE table_id = ?', [tableId]);
     const localIds: string[] = (localResult.values || []).map((r: { id: string }) => r.id);
 
@@ -58,6 +56,7 @@ export async function cleanupOrphanAssignments(db: any, tableId: string, fetched
         logger.debug(`[Sync] Removing ${orphanIds.length} orphan assignments for table ${tableId}`);
         for (const id of orphanIds) {
             await db.run('DELETE FROM assignments WHERE id = ?', [id]);
+            await db.run('DELETE FROM responses WHERE assignment_id = ?', [id]);
         }
     } else {
         logger.debug(`[Sync] No orphan assignments found for table ${tableId}`);
@@ -70,12 +69,24 @@ export async function cleanupOrphanAssignments(db: any, tableId: string, fetched
 export async function processAssignmentPage(
     db: any, res: any, stmtAssign: string, syncTimestamp: string, trackIds: boolean, fetchedIds: string[]
 ): Promise<number> {
-    const items = res.data?.data || [];
-    const batchSet = buildAssignmentBatch(items, stmtAssign, syncTimestamp);
+    const rawItems = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+    const deletedItems = rawItems.filter((a: any) => a.deleted_at);
+    const activeItems = rawItems.filter((a: any) => !a.deleted_at);
+
+    // Handle soft-deleted tombstones
+    const tombstoneIds = [
+        ...deletedItems.map((a: any) => a.id),
+        ...(res.deleted_ids || [])
+    ];
+    if (tombstoneIds.length > 0) {
+        await handleTombstones(db, tombstoneIds);
+    }
 
     if (trackIds) {
-        for (const a of items) fetchedIds.push(a.id);
+        for (const a of activeItems) fetchedIds.push(a.id);
     }
+
+    const batchSet = buildAssignmentBatch(activeItems, stmtAssign, syncTimestamp);
 
     let inserted = 0;
     if (batchSet.length > 0) {
@@ -87,7 +98,6 @@ export async function processAssignmentPage(
         }
     }
 
-    await handleTombstones(db, res.deleted_ids);
     return inserted;
 }
 
