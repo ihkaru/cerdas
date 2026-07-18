@@ -168,7 +168,7 @@ Key documentation every contributor should read:
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------| 
-| **Build APK** | Push to `main` (client changes) | Auto-build signed APK → GitHub Releases |
+| **Build APK** | Release Publication / Tag | Auto-build signed APK → GitHub Releases |
 | **Octane Audit** | Push to `main` (backend changes) | Detect memory leak patterns before deploy |
 | **Code Quality** | Push to `main` (apps changes) | ESLint (Vue/TS) + Laravel Pint (PHP) |
 | **Secret Scan** | Push to `main` (all) | Detect leaked credentials/keys |

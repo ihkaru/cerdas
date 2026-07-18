@@ -263,7 +263,32 @@ git push origin main
 
 ---
 
-## Fase 6: Shutdown
+## Fase 6: Versioning & Release Process (SOP)
+
+Cerdas menggunakan **Release Please** dan **GitHub Actions** untuk mengotomatisasi peningkatan versi (*version bumping*), pembuatan changelog, dan kompilasi APK.
+
+### 6.1 Aturan Komit (Conventional Commits)
+Setiap komit ke branch `main` harus mengikuti format **Conventional Commits**:
+* `feat(scope): ...` untuk penambahan fitur (akan memicu kenaikan versi MINOR).
+* `fix(scope): ...` untuk perbaikan bug (akan memicu kenaikan versi PATCH).
+* `chore: ...` atau `docs: ...` untuk pemeliharaan/dokumentasi (tidak menaikkan versi rilis secara otomatis).
+
+### 6.2 Langkah Pengisian Rilis (SOP)
+1. **Lakukan Koding & Uji Lokal**: Selesaikan fitur atau perbaikan bug, jalankan verifikasi lokal (`.\scripts\verify-local.ps1`).
+2. **JANGAN melakukan bump versi manual**: Jangan mengedit versi di `package.json`, `composer.json`, atau `.release-please-manifest.json` secara manual. Biarkan bot yang melakukannya.
+3. **Commit & Push**: Buat commit dengan pesan conventional (misal `fix(backend): resolve memory leak`) dan push ke GitHub branch `main`.
+4. **Gabungkan (Merge) Release PR**:
+   * GitHub Action `Release Please` akan mendeteksi commit baru dan membuat/memperbarui Pull Request rilis otomatis bernama `chore(main): release X.Y.Z`.
+   * Periksa isi PR tersebut, lalu merge PR tersebut ke `main` (bisa via web GitHub atau perintah CLI: `gh pr merge <PR_NUMBER> --merge`).
+5. **Auto-Build APK & Tagging**:
+   * Setelah Release PR di-merge, GitHub secara otomatis membuat tag rilis `vX.Y.Z` (tanpa prefix component).
+   * GitHub Actions `Build Android APK` akan otomatis terpicu untuk membuild berkas APK rilis produksi bertanda tangan (`cerdas-vX.Y.Z.apk`) dan mengunggahnya ke aset rilis tersebut.
+6. **Sinkronisasi Repo Lokal**:
+   * Setelah merge selesai, jalankan **`git pull`** pada direktori lokal Anda untuk menyinkronkan file `package.json` dan `CHANGELOG.md` yang telah diperbarui oleh bot rilis di server GitHub.
+
+---
+
+## Fase 7: Shutdown
 
 ### 5.1 Stop All Servers
 
