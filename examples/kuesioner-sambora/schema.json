@@ -89,7 +89,7 @@
           "type": "html_block",
           "blockStyle": "info",
           "label": "💡 Petunjuk Pengisian Keluarga Menumpang (Gabung)",
-          "content": "Karena tinggal bersama keluarga utama, maka:<br/>• <strong>Jumlah KK di Rumah</strong> diisi <strong>1</strong> (KK keluarga utama/orang tua).<br/>• <strong>Kepala Keluarga</strong> diisi nama Kepala Keluarga di KK fisik tersebut.<br/>• Anggota yang menumpang langsung dihitung sebagai <strong>Anggota Keluarga biasa</strong> di rumah ini.",
+          "content": "Karena tinggal bersama keluarga utama, maka:<br/>• <strong>Jumlah KK di Rumah</strong> diisi <strong>1</strong> (KK keluarga utama/orang tua).<br/>• <strong>Kepala Keluarga</strong> diisi nama Kepala Keluarga di KK fisik tersebut.<br/>• Anggota yang menumpang langsung dihitung sebagai <strong>Anggota Keluarga biasa</strong> di rumah ini.<br/>• <em>Catatan: Jika ada lebih dari 1 pasangan/keluarga menumpang yang masih satu dapur, semuanya tetap dihitung dalam 1 KK utama ini.</em>",
           "show_if_fn": "return row.status_kk_fisik === 'gabung';"
         },
         {
@@ -97,7 +97,7 @@
           "type": "html_block",
           "blockStyle": "info",
           "label": "💡 Petunjuk Pengisian Keluarga Mandiri tanpa KK Fisik (Mandiri)",
-          "content": "Karena tinggal mandiri di rumah sendiri, maka:<br/>• <strong>Jumlah KK di Rumah</strong> diisi <strong>1</strong>.<br/>• <strong>Kepala Keluarga</strong> diisi nama Kepala Keluarga yang bertanggung jawab secara nyata (de facto).<br/>• <strong>Jumlah Anggota Keluarga</strong> diisi jumlah orang yang tinggal secara nyata di rumah ini.",
+          "content": "Karena tinggal mandiri di rumah sendiri, maka:<br/>• <strong>Jumlah KK di Rumah</strong> diisi <strong>1</strong>.<br/>• <strong>Kepala Keluarga</strong> diisi nama Kepala Keluarga yang bertanggung jawab secara nyata (de facto).<br/>• <strong>Jumlah Anggota Keluarga</strong> diisi jumlah orang yang tinggal secara nyata di rumah ini.<br/>• <em>Catatan: Jika ada lebih dari 1 keluarga mandiri yang menyewa/tinggal bersama tanpa KK fisik, isikan Jumlah KK sesuai jumlah keluarga mandiri tersebut, dan daftarkan masing-masing penanggung jawabnya sebagai Kepala Keluarga.</em>",
           "show_if_fn": "return row.status_kk_fisik === 'mandiri';"
         },
         {
