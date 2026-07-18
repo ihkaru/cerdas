@@ -64,6 +64,7 @@
 * seamless join UX, post-login token handoff, and editor joined members UI ([4eeb3c1](https://github.com/ihkaru/cerdas/commit/4eeb3c11aee0de3ebbf4a8007a4a6f0e879c09c6))
 * stabilize editor and preview sync ([884475b](https://github.com/ihkaru/cerdas/commit/884475bef72ffc613138063cd219f825c7336374))
 * stabilize editor publish flow and enhance live preview sync ([0464ba0](https://github.com/ihkaru/cerdas/commit/0464ba059a50350ae5382d2990119e302050c241))
+* sync editor code apply navigation and fix sqlite soft-delete tombstones ([60201fb](https://github.com/ihkaru/cerdas/commit/60201fb9f22ca7532848e33c52d7d96bd9f6b43d))
 * **sync:** fix assignment draft status bug, update sambora schema & relax check-line-limit v0.2.12 ([5cac874](https://github.com/ihkaru/cerdas/commit/5cac8745826e02d65e4625b738147b529b8ba780))
 * **tools:** add script to generate consolidated docker context ([0d9fb9a](https://github.com/ihkaru/cerdas/commit/0d9fb9a5a748a676a014f4806622db7debc7c38a))
 * unified versioning, production health check, smart pre-push hook ([2afcd0a](https://github.com/ihkaru/cerdas/commit/2afcd0a2fb4bc773616d168c2ffed2ae86448bbd))
