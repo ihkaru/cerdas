@@ -29,6 +29,7 @@ Dokumen ini melacak fitur jangka panjang (rencana awal) dan fitur yang telah dis
 - [x] **Sync Engine**: Bi-directional sync (Push Responses, Pull Assignments).
 - [x] **Conflict Resolution**: Last-Write-Wins strategy.
 - [x] **Draft System**: Local drafts saved automatically before sync.
+- [x] **Smart Delta Sync**: Mekanisme sinkronisasi inkremental berbasis parameter `updated_since` — client hanya mengunduh data penugasan atau skema aplikasi yang mengalami perubahan setelah stempel waktu (timestamp) sinkronisasi terakhir, menghemat kuota internet pengguna lapangan secara signifikan.
 - [x] **SQLite Soft-Delete Sync**: Cleanup orphaned/tombstoned data on sync.
 
 ### 4. Navigation & Dashboard (AppShell)
@@ -65,7 +66,6 @@ Dokumen ini melacak fitur jangka panjang (rencana awal) dan fitur yang telah dis
 ### Phase 6: Sync & Data Robustness
 - [ ] **Background Sync**: Sync otomatis di background (jika memungkinkan di Android baru).
 - [ ] **Large Dataset Strategy**: Handling ribuan baris data referensi (Reference Tables) offline.
-- [ ] **Smart Delta Sync**: Hanya download data yang berubah untuk hemat kuota.
 
 ### Advanced Fields & Media
 - [ ] **Barcode/QR Scanner**: Scan untuk input data/pencarian.
