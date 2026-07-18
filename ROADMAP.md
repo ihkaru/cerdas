@@ -60,11 +60,10 @@ Dokumen ini melacak fitur jangka panjang (rencana awal) dan fitur yang telah dis
 ## 🚀 Fitur Jangka Panjang (Planned / In Progress)
 
 ### Phase 5: Advanced No-Code Editor (Current Focus)
-- [ ] **AI-Assisted Vibe Coding (AI Context Button)**: Integrasi asisten AI langsung di dalam editor kode formula (CodeTab) dengan tombol context pengirim metadata skema, membantu pembuat aplikasi menulis logika validasi (show_if, required_if) secara natural menggunakan bahasa alami.
+- [ ] **AI Context Button (Vibe Coding Bridge)**: Tombol sekali-klik di Editor App untuk menyalin seluruh paket konteks metadata aplikasi (skema field, layout view, stempel waktu, dan user context). Paket ini dapat langsung ditempel (*paste*) ke Claude/Gemini/ChatGPT untuk menginstruksikan AI eksternal menulis logika formula/validasi kustom (`show_if_fn`, `required_if_fn`) secara instan dan akurat.
 - [ ] **Dynamic Security Filters**: Fitur penyaringan data tingkat baris (Row-Level Security) dinamis berbasis formula kustom yang diinput oleh admin (misal: `[Suku] == ctx.user.suku` atau `[Wilayah] == 'Sambora'`).
 
 ### Phase 6: Sync & Data Robustness
-- [ ] **Background Sync**: Sync otomatis di background (jika memungkinkan di Android baru).
 - [ ] **Large Dataset Strategy**: Handling ribuan baris data referensi (Reference Tables) offline.
 
 ### Advanced Fields & Media
