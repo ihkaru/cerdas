@@ -42,18 +42,18 @@ The table below maps how core concepts are named across different layers of the 
 ### 2.3. Assignment Status — Canonical Values
 
 > [!IMPORTANT]
-> **Canonical status values** are the single source of truth for `assignments.status` across the entire stack. All frontend components, API filters, and TypeScript types **must** use these exact strings. Legacy aliases (`'pending'`, `'approved'`, `'completed'`) have been removed as of July 2026.
+> **Canonical status values** are the single source of truth for `assignments.status` across the entire stack. All frontend components, API filters, and TypeScript types **must** use these exact strings. The active statuses used by the Laravel backend and Client DB are `'assigned'`, `'in_progress'`, `'submitted'`, `'approved'`, and `'rejected'`. The value `'synced'` is supported for backward compatibility only.
 
 #### Status Flow Diagram
 
-**Simple Mode** (no supervisor review — data goes directly from enumerator to synced):
+**Simple Mode** (no supervisor review — data goes directly from enumerator to submitted state on server):
 ```
-assigned → in_progress → synced
+assigned → in_progress → submitted
 ```
 
 **Complex Mode** (supervisor review required before data is accepted):
 ```
-assigned → in_progress → submitted → synced
+assigned → in_progress → submitted → approved
                                    ↘ rejected → (enumerator revises) → in_progress → submitted
 ```
 
@@ -63,28 +63,29 @@ assigned → in_progress → submitted → synced
 | :--- | :--- | :--- | :---: | :---: |
 | `assigned` | System / Supervisor | Assignment created but enumerator hasn't started yet | ✅ | ✅ |
 | `in_progress` | System (auto on first sync) | Enumerator has submitted at least one response | ✅ | ✅ |
-| `submitted` | System (auto after `in_progress`) | Data sent to server and waiting for supervisor review | ❌ | ✅ |
-| `synced` | System (simple) / Supervisor (complex) | Final accepted state — data is fully synchronized | ✅ | ✅ |
+| `submitted` | System (auto after `in_progress`) | Data sent to server. Terminal state in Simple Mode; waiting for review in Complex Mode. | ✅ | ✅ |
+| `approved` | Supervisor | Final accepted state in Complex Mode — data is approved by supervisor | ❌ | ✅ |
 | `rejected` | Supervisor | Submission rejected and returned to the enumerator for revision | ❌ | ✅ |
+| `synced` | System (Legacy) | Backward compatibility support for older client databases/records | ✅ | ✅ |
 
 #### Layer Consistency Map
 
 | Layer | File | Canonical Values Used |
 | :--- | :--- | :--- |
-| **Database** | `assignments` table (enum column) | `assigned`, `in_progress`, `submitted`, `synced`, `rejected` |
-| **Backend Model** | `Assignment.php` | `markInProgress()`, `markCompleted()`, `markSynced()` helpers |
-| **Backend API Filter** | `ResponseController.php` | `submitted`, `synced`, `rejected`, `in_progress`, `assigned` |
+| **Database** | `assignments` table (enum column) | `assigned`, `in_progress`, `completed`, `submitted`, `rejected`, `synced`, `approved` |
+| **Backend Model** | `Assignment.php` | `markInProgress()`, `markApproved()`, helpers |
+| **Backend API Filter** | `ResponseController.php` | `submitted`, `approved`, `rejected`, `in_progress`, `assigned` |
 | **Backend Stats** | `DashboardController.php` | Uses canonical values directly in queries |
-| **TypeScript Type** | `apps/client/src/app/dashboard/types/index.ts` | `'assigned' \| 'in_progress' \| 'submitted' \| 'synced' \| 'rejected'` |
-| **Status Helpers** | `statusHelpers.ts` | All 5 values mapped for color + label |
+| **TypeScript Type** | `apps/client/src/app/dashboard/types/index.ts` | `'assigned' \| 'in_progress' \| 'submitted' \| 'approved' \| 'rejected'` |
+| **Status Helpers** | `statusHelpers.ts` | All values mapped for color + label |
 | **Monitoring Panel** | `SubmissionsPanel.vue` | Filter buttons conditioned by `appMode` |
-| **Assignment List** | `AssignmentList.vue` | `statusColor()` covers all 5 values |
+| **Assignment List** | `AssignmentList.vue` | `statusColor()` covers all values |
 
 > [!CAUTION]
-> The following legacy aliases are **deprecated and removed**. Do not use them anywhere in the codebase:
+> The following legacy aliases are **deprecated**. Do not use them in new code:
 > - ~~`'pending'`~~ → use `'assigned'`
-> - ~~`'approved'`~~ → use `'synced'`
-> - ~~`'completed'`~~ → this was a transitional state; `'synced'` is the terminal state in simple mode, `'submitted'` is the pre-review state in complex mode
+> - ~~`'completed'`~~ → this was a transitional state; use `'submitted'` (simple) or `'approved'` (complex)
+> - ~~`'synced'`~~ → use `'approved'` (complex) or `'submitted'` (simple) for new states, kept only for legacy DB compatibility.
 
 ---
 
