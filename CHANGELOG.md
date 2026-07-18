@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.36](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.35...cerdas-v0.2.36) (2026-07-18)
+
+
+### Bug Fixes
+
+* **backend:** resolve model relation property name collision in IDE ([4e9216c](https://github.com/ihkaru/cerdas/commit/4e9216c24409fe2c29b54afa67f746b81ed21e0e))
+
 ## [0.2.35](https://github.com/ihkaru/cerdas/compare/cerdas-v0.2.34...cerdas-v0.2.35) (2026-07-18)
 
 
