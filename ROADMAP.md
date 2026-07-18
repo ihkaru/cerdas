@@ -40,24 +40,25 @@ Dokumen ini melacak fitur jangka panjang (rencana awal) dan fitur yang telah dis
 ### 5. Editor (Web)
 - [x] **WYSIWYG Preview**: Iframe-based live preview of the Client App with connection checks.
 - [x] **Basic Form Configuration**: Settings, Name, Icon.
-- [x] **Excel/CSV Import**: Wizard for bulk importing assignments/pre-list data with 5MB chunked upload.
-- [x] **Action Management**: Configuring Header, Row, and Swipe actions (Delete, Complete, etc.).
-- [x] **Data Preview Grid**: Interactive grid table in editor showing raw imported AppRecord datasets.
-- [x] **Monaco/CodeMirror Editor**: Raw JSON schema edit tab with instant sync apply.
+- [x] **No-Code Schema Builder UI**: Interface berbasis tombol untuk menambah, menghapus, dan menyusun field form secara visual.
+- [x] **Column Settings**: UI lengkap seperti AppSheet untuk edit properti field (Show_If, Editable_If, required_if, label, placeholder, options).
+- [x] **View Configuration UI**: UI panel kustom untuk mengatur tata letak view (Deck view key mapping, Map view markers/clustering, dan Navigation menu tabs).
+- [x] **Excel/CSV Import**: Wizard untuk bulk importing assignments/pre-list data dengan 5MB chunked upload.
+- [x] **Action Management**: Configuring Header, Row, and Swipe actions (Delete, Complete, dll).
+- [x] **Data Preview Grid**: Interactive grid table di dalam editor menampilkan data AppRecord mentah hasil impor.
+- [x] **Monaco/CodeMirror Editor**: Panel editor kode JSON skema dengan fitur instan apply & autocomplete.
 
 ### 6. Production & Deployment
 - [x] **Docker Container**: FrankenPHP/Octane production-ready compose config.
 - [x] **Pusat Unduhan APK**: Automatic sync command `php artisan apk:sync-version` caching latest GitHub release metadata, and `ApkDownloadCard` in app dashboard.
-- [x] **Automated Release**: Version tags (`vX.Y.Z`) and APK build/upload on GitHub releases.
+- [x] **Automated Release**: Version tags (`vX.Y.Z`) dan APK build/upload on GitHub releases.
 
 ---
 
 ## 🚀 Fitur Jangka Panjang (Planned / In Progress)
 
 ### Phase 5: Advanced No-Code Editor (Current Focus)
-- [ ] **Schema Builder UI**: Interface berbasis tombol (Simple) untuk menambah/mengatur field form.
-- [ ] **Column Settings**: UI lengkap seperti AppSheet untuk edit properti field (Show_If, Editable_If, Formula).
-- [ ] **Logic Builder**: UI visual untuk membuat logic/validasi tanpa coding manual JSON.
+- [ ] **Visual Logic Builder**: UI visual (seperti blockly atau scratch-like query builder) untuk menyusun rule/validasi tanpa menulis kode Javascript sama sekali.
 
 ### Phase 6: Sync & Data Robustness
 - [ ] **Background Sync**: Sync otomatis di background (jika memungkinkan di Android baru).
