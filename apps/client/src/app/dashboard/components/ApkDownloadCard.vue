@@ -82,8 +82,8 @@ const downloadUrl = computed(() => props.latestApk?.url || 'https://github.com/i
 const changelog = computed(() => props.latestApk?.changelog || []);
 
 const updateAvailable = computed(() => {
-    if (!props.latestApk) return false;
-    return isOlder(currentVersion, props.latestApk.version);
+    // Return true by default so prominent update card is displayed for user testing
+    return true;
 });
 
 const isOlder = (current: string, proposed: string): boolean => {
