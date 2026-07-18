@@ -110,6 +110,13 @@ packages/types  - @cerdas/types (shared strict TS types)
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
+- **Version**: 0.2.28 (Pusat Unduhan APK & Auto-GitHub Sync)
+
+- **Pusat Unduhan APK & Auto-GitHub Sync (2026-07-18)**:
+  - **Auto-GitHub Sync**: Menambahkan perintah artisan `php artisan apk:sync-version` untuk mengambil metadata rilis APK terbaru dari GitHub Releases secara dinamis ke database `system_settings` pada saat inisialisasi kontainer.
+  - **Public Download Redirect**: Menyediakan endpoint API `/api/apk/latest-info` dan `/api/apk/latest/download` yang melakukan redirect otomatis ke link unduhan APK aktual.
+  - **Premium Dashboard Card**: Menambahkan widget `ApkDownloadCard.vue` di dashboard client app yang secara reaktif mendeteksi ketidakcocokan versi dan memberikan tombol unduhan yang berestetika tinggi (glassmorphism & pulse animation).
+
 - **Version**: 0.2.27 (Null-Safe Assignment Deletion & Try-Catch Log Protection)
 
 - **Null-Safe Assignment Deletion (2026-07-17)**:
@@ -1265,3 +1272,19 @@ Reference: `.agent/workflows/verify-build.md`, `.agent/workflows/scan-secrets.md
         - **Dashboard Settings Sheet**: Added a "Gabung Aplikasi Baru" list item.
         - **App Gallery**: Added a "+ Gabung Aplikasi" link next to "My Apps" header and a prominent "Masukkan Kode Undangan" button in the empty state.
         - **Dashboard Controller**: Added `triggerJoinApp()` method in `DashboardPage.vue` that displays a native prompt for the user to input the link or code, parses the token (extracting it from the URL if needed), submits the join request to the backend `/api/join`, and automatically triggers a local database sync to fetch the new app metadata and assignments immediately.
+
+### 18 July 2026 - Pusat Unduhan APK & Auto-GitHub Sync (Version 0.2.28)
+- **Database System Settings**:
+    - **Problem**: Storing system-wide metadata like the latest APK version information in app-specific or local static files is not maintainable, and administrators need a central database configuration layer.
+    - **Resolution**: Created a migration for the `system_settings` table to serve as a key-value store, seeding the initial `latest_apk` configuration containing version, url, changelog, and force_update properties.
+- **Command & Deployment Sync**:
+    - **Problem**: Keeping the backend database updated with the latest compiled APK version and download link from GitHub Releases manually on every build/release is error-prone.
+    - **Resolution**: Created a console command `php artisan apk:sync-version` that fetches the latest release data from the GitHub Releases API for `ihkaru/cerdas`. It parses the tag name, selects the `.apk` asset URL, parses markdown list bullets into a JSON changelog array, and caches it in `system_settings`. Integrated this command in the Docker startup script `start-container.sh` with a fail-safe fallback (`|| true`), ensuring the database is automatically up-to-date upon coolify autodeploy.
+- **Client App Dashboard Widget**:
+    - **Problem**: Users need an easy, clean, and highly visible way to download the latest APK directly on their dashboard after logging in.
+    - **Resolution**: Developed a dedicated `ApkDownloadCard.vue` component that:
+        - Compares the running local `__APP_VERSION__` with the server's `latest_apk` version.
+        - Displays a vibrant, glassmorphic alert card with a pulsating dot and expandable changelog if a new version is available.
+        - Shows a clean, minimalist green checkmark badge with a "Download Ulang APK" link if the application is up-to-date.
+        - Added background cache syncing in `TableSyncHelpers.ts` to store the latest metadata to localStorage, allowing instant offline availability.
+

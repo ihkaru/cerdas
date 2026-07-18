@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ApkController;
 use App\Http\Controllers\Api\AppController;
 use App\Http\Controllers\Api\AppSchemaController;
 use App\Http\Controllers\Api\AssignmentController;
@@ -49,6 +50,10 @@ Route::prefix('auth')->group(function () {
 
 Route::get('/join/{token}', [AppController::class, 'resolveJoinToken']);
 Route::post('/join', [AppController::class, 'joinWithToken'])->middleware('auth:sanctum');
+
+// APK Info & Download
+Route::get('/apk/latest-info', [ApkController::class, 'getLatestApkInfo']);
+Route::get('/apk/latest/download', [ApkController::class, 'downloadLatestApk']);
 
 // 2026 Best Practice: Secure Raw Download (Signature Required, Relative validation for Proxy-safety)
 // Validation is performed inside the Controller method to support relative signatures correctly.

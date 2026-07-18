@@ -16,6 +16,8 @@
 
         <DashboardStats :stats="assignmentStats" :total="totalAssignments" :last-sync-time="lastSyncTime" />
 
+        <ApkDownloadCard :latest-apk="latestApk" />
+
         <AppGallery :apps="appsWithStats" @open-app="openApp" @join-app="triggerJoinApp" />
 
         <!-- Settings / Profile Sheet -->
@@ -34,6 +36,7 @@ import { useDatabase } from '../../../common/composables/useDatabase';
 import { useSync } from '../../../common/composables/useSync';
 import { useAuthStore } from '../../../common/stores/authStore';
 import AppGallery from '../components/AppGallery.vue';
+import ApkDownloadCard from '../components/ApkDownloadCard.vue';
 import DashboardSettingsSheet from '../components/DashboardSettingsSheet.vue';
 import DashboardStats from '../components/DashboardStats.vue';
 import { useDashboardStore } from '../stores/dashboardStore';
@@ -44,7 +47,7 @@ const props = defineProps<{
 }>();
 
 const dashboardStore = useDashboardStore();
-const { apps, appsWithStats, totalAssignments, assignmentStats, lastSyncTime } = storeToRefs(dashboardStore);
+const { apps, appsWithStats, totalAssignments, assignmentStats, lastSyncTime, latestApk } = storeToRefs(dashboardStore);
 const sync = useSync();
 const auth = useAuthStore();
 const db = useDatabase();
@@ -78,9 +81,17 @@ const handleAppsDeactivated = (event: Event) => {
     }
 };
 
+const handleApkUpdated = (event: Event) => {
+    const detail = (event as CustomEvent).detail;
+    if (detail) {
+        dashboardStore.latestApk = detail;
+    }
+};
+
 onMounted(async () => {
     await dashboardStore.loadData();
     window.addEventListener('apps-deactivated', handleAppsDeactivated);
+    window.addEventListener('latest-apk-updated', handleApkUpdated);
 
     if (navigator.onLine) {
         // If it's the first time (no apps, no last sync), show a non-obstructive preloader
@@ -98,6 +109,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
     window.removeEventListener('apps-deactivated', handleAppsDeactivated);
+    window.removeEventListener('latest-apk-updated', handleApkUpdated);
 });
 
 const onPageAfterIn = () => {

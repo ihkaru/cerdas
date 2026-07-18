@@ -28,6 +28,9 @@ echo "🚀 Starting deployment tasks..."
 echo "📦 Running migrations..."
 php artisan migrate --force
 
+echo "🔄 Syncing latest APK version..."
+php artisan apk:sync-version || true
+
 echo "🔍 Discovering packages..."
 php artisan package:discover --ansi
 

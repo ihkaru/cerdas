@@ -351,6 +351,12 @@ export async function pullGlobal() {
         }
 
         syncDashboardUIState(res.data.stats, res.data.tables || []);
+        
+        if (res.data.latest_apk) {
+            localStorage.setItem('latest_apk_info', JSON.stringify(res.data.latest_apk));
+            window.dispatchEvent(new CustomEvent('latest-apk-updated', { detail: res.data.latest_apk }));
+        }
+
         if (res.server_time) {
             localStorage.setItem(syncKey, res.server_time);
             logger.debug(`[Sync] Global checkpoint saved: ${res.server_time}`);

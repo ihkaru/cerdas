@@ -19,6 +19,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
     const lastSyncTime = ref<string | null>(null);
     const loading = ref(false);
     const initialized = ref(false);
+    const latestApk = ref<{
+        version: string;
+        url: string;
+        changelog: string[];
+        force_update: boolean;
+    } | null>(null);
 
     /**
      * Apps enriched with per-app assignment stats + smart urgency sort.
@@ -127,6 +133,15 @@ export const useDashboardStore = defineStore('dashboard', () => {
             assignmentStats.value = fetchedStats;
             appStats.value = fetchedAppStats;
             lastSyncTime.value = new Date().toLocaleString('id-ID');
+            const cachedApkInfo = localStorage.getItem('latest_apk_info');
+            if (cachedApkInfo) {
+                try {
+                    latestApk.value = JSON.parse(cachedApkInfo);
+                } catch (err) {
+                    logger.warn('Failed to parse latest_apk_info from localStorage', err);
+                }
+            }
+
             initialized.value = true;
 
             logger.debug('Dashboard data refreshed', { 
@@ -153,6 +168,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
         appStats.value = [];
         pendingUploads.value = 0;
         lastSyncTime.value = null;
+        latestApk.value = null;
         initialized.value = false;
         loading.value = false;
     }
@@ -167,6 +183,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
         pendingUploads,
         lastSyncTime,
         loading,
+        latestApk,
 
         // Computed
         appsWithStats,

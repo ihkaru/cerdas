@@ -151,6 +151,18 @@ class DashboardController extends Controller
             ];
         })->values();
 
+        $latestApkSetting = \App\Models\SystemSetting::where('key', 'latest_apk')->first();
+        $latestApk = $latestApkSetting ? $latestApkSetting->value : [
+            'version' => '0.2.28',
+            'url' => 'https://github.com/ihkaru/cerdas/releases/latest',
+            'changelog' => [
+                'Fitur Pusat Unduhan APK langsung di Dashboard',
+                'Auto-sinkronisasi versi APK terbaru dari GitHub Releases',
+                'Endpoint API publik untuk redirect download APK dan metadata info',
+            ],
+            'force_update' => false,
+        ];
+
         return response()->json([
             'success' => true,
             'server_time' => $serverTime,
@@ -161,6 +173,7 @@ class DashboardController extends Controller
                 'apps' => $apps,
                 'recent_tables' => $recentTables, // Renamed from recent_forms
                 'tables' => $allTables, // Renamed from forms
+                'latest_apk' => $latestApk,
             ],
         ]);
     }
