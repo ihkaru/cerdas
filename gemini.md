@@ -29,6 +29,7 @@ Cerdas adalah AppSheet clone - self-hosted, offline-first, no-code app builder u
 4. **Schema Versioning**: Published versions are IMMUTABLE, responses tied to schema_version_id
 5. **Validation Engine**: JavaScript closures executed CLIENT-SIDE (offline-capable)
 6. **Sync Strategy**: Last-write-wins for conflict resolution
+7. **Version Single Source of Truth**: MANDATORY - Never hardcode version strings in Vue templates or components. ALWAYS use __APP_VERSION__ injected dynamically by Vite from package.json.
 
 ## Multi-Tenant Hierarchy (Updated 2026-01-20)
 

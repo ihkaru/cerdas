@@ -53,7 +53,7 @@
             </f7-list>
 
             <!-- Version -->
-            <div class="version-label" @click="handleVersionTap" style="cursor: pointer; user-select: none; padding: 12px; margin-top: 10px;">{{ versionText || 'v0.2.7' }}</div>
+            <div class="version-label" @click="handleVersionTap" style="cursor: pointer; user-select: none; padding: 12px; margin-top: 10px;">{{ versionText }}</div>
         </f7-page-content>
     </f7-sheet>
 </template>
@@ -77,7 +77,8 @@ const emit = defineEmits<{
     (e: 'join-app'): void;
 }>();
 
-const versionText = computed(() => props.appVersion ? `v${props.appVersion}` : '');
+const appVer = computed(() => props.appVersion || (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0'));
+const versionText = computed(() => `v${appVer.value}`);
 
 let versionTapCount = 0;
 let versionTapTimer: any = null;
