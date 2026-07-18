@@ -117,6 +117,12 @@ packages/types  - @cerdas/types (shared strict TS types)
   - **Dynamic Link**: Memperbaiki `ApkDownloadCard.vue` agar menghitung `downloadUrl` secara dinamis sesuai `latestVersion` untuk mencegah tautan mengarah ke rilis APK lama dari payload cache.
   - **Version Sync**: Menyinkronkan seluruh single source of truth versi di `package.json` root, client, editor, manifest, dan version.json ke `0.2.32`.
 
+- **Version**: 0.2.31 (Null-Safe Assignment Deletion & PHP Array Method Fix)
+
+- **Null-Safe Assignment Deletion (2026-07-18)**:
+  - **Array Method Fix**: Memperbaiki `AssignmentController::destroy` di backend yang memanggil method `contains()` pada hasAppAccess logic.
+  - **Null Relations & Cascade Cleanup**: Mengosongkan `parent_response_id` di response sebelum menghapus penugasan untuk mencegah error constraint database.
+
 - **Version**: 0.2.30 (Editor Code Apply Navigation Sync & SQLite Soft-Delete Tombstone Fix)
 
 - **Editor Code Apply & Navigation Sync (2026-07-18)**:
