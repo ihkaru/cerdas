@@ -111,6 +111,11 @@ packages/types  - @cerdas/types (shared strict TS types)
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
+- **Version**: 0.2.33 (Automated Release via Release-Please Merge)
+
+- **Automated Release Verification (2026-07-18)**:
+  - **Pipeline Automation**: Memverifikasi jalur integrasi rilis otomatis dengan me-merge Pull Request rilis resmi `#85` dari GitHub Release Please, yang secara otomatis memicu tag versi, pembuatan GitHub Release, dan build/upload APK secara terintegrasi penuh tanpa intervensi manual.
+
 - **Version**: 0.2.32 (Dynamic APK Download Link Resolution & Version SSOT Sync)
 
 - **Dynamic APK Download Resolution (2026-07-18)**:
