@@ -965,6 +965,19 @@
         "imageShape": "square"
       },
       "actions": ["edit", "delete"]
+    },
+    "map_view": {
+      "table": "tabel_sambora",
+      "name": "Peta Pendataan",
+      "title": "Peta Lokasi Rumah",
+      "type": "map",
+      "description": "Peta sebaran lokasi geotagging pendataan rumah",
+      "map": {
+        "gps_column": "Lokasi_Geotagging",
+        "label": "kepala_keluarga_list.0.nama_kk",
+        "subtitle": "Nama_RT"
+      },
+      "actions": ["edit", "delete"]
     }
   },
   "navigation": [
@@ -972,8 +985,16 @@
       "id": "nav_home",
       "type": "view",
       "view": "default",
-      "label": "Home",
-      "icon": "house_fill"
+      "label": "Daftar",
+      "icon": "list_bullet"
+    },
+    {
+      "id": "nav_map",
+      "type": "view",
+      "view": "map_view",
+      "label": "Peta Lokasi",
+      "icon": "map_fill"
     }
   ]
 }
+

@@ -11,6 +11,7 @@ File `schema.json` di dalam folder ini adalah contoh skema aplikasi Cerdas (*App
 
 ## 💡 Fitur Kuesioner Ini:
 - **Offline-First & Auto-Scrubbing**: Data tersembunyi (`show_if=false`) otomatis dibersihkan saat disimpan.
+- **Peta Lokasi & Geotagging (`type: map`)**: Bottom Navigation Tab "Peta Lokasi" yang menampilkan pin lokasi rumah secara interaktif di peta (berbasis kolom GPS `Lokasi_Geotagging`).
 - **Validasi Kondisional (`required_if_fn`)**: Mengunci kolom jumlah jika pilihan suku/agama dicentang.
 - **Multi-Select Checkbox**: Pengolahan sampah mendukung lebih dari satu pilihan.
 - **UX Hint Text**: Petunjuk kontekstual di bawah setiap kolom penting sesuai standar KoBoToolbox / ODK.
