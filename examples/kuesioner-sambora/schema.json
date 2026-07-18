@@ -74,6 +74,33 @@
           "warning_js": "if (row.Lokasi_Geotagging && row.Lokasi_Geotagging.coords && row.Lokasi_Geotagging.coords.accuracy > 50) { return '⚠️ Akurasi GPS kurang optimal ('+Math.round(row.Lokasi_Geotagging.coords.accuracy)+' meter). Disarankan mengambil titik koordinat di luar ruangan untuk sinyal dan akurasi terbaik.'; } return null;"
         },
         {
+          "name": "status_pengantin_baru",
+          "type": "select",
+          "label": "Apakah di rumah ini ada Pengantin Baru yang belum pecah KK?",
+          "required": true,
+          "options": [
+            { "value": "tidak", "label": "Tidak Ada" },
+            { "value": "gabung", "label": "Ada, dan tinggal bersama Orang Tua/Mertua" },
+            { "value": "mandiri", "label": "Ada, dan tinggal mandiri di rumah ini (punya rumah sendiri)" }
+          ]
+        },
+        {
+          "name": "panduan_pengantin_baru_gabung",
+          "type": "html_block",
+          "blockStyle": "info",
+          "label": "💡 Petunjuk Pengisian Pengantin Baru (Gabung)",
+          "content": "Karena tinggal bersama orang tua, maka:<br/>• <strong>Jumlah KK di Rumah</strong> diisi <strong>1</strong> (KK Orang Tua).<br/>• <strong>Kepala Keluarga</strong> diisi nama <strong>Orang Tua/Mertua</strong>.<br/>• Pengantin baru dihitung langsung sebagai <strong>Anggota Keluarga biasa</strong> di rumah ini.",
+          "show_if_fn": "return row.status_pengantin_baru === 'gabung';"
+        },
+        {
+          "name": "panduan_pengantin_baru_mandiri",
+          "type": "html_block",
+          "blockStyle": "info",
+          "label": "💡 Petunjuk Pengisian Pengantin Baru (Mandiri)",
+          "content": "Karena tinggal mandiri di rumah sendiri, maka:<br/>• <strong>Jumlah KK di Rumah</strong> diisi <strong>1</strong>.<br/>• <strong>Kepala Keluarga</strong> diisi nama <strong>Suami</strong> (sebagai Kepala Keluarga de facto).<br/>• <strong>Jumlah Anggota Keluarga</strong> diisi <strong>2</strong> (Suami & Istri).",
+          "show_if_fn": "return row.status_pengantin_baru === 'mandiri';"
+        },
+        {
           "name": "kepala_keluarga_list",
           "type": "nested_form",
           "label": "Daftar Kartu Keluarga & Kepala Keluarga di Rumah",
