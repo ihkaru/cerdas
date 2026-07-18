@@ -356,7 +356,7 @@ async function handleApply() {
                             layout: {
                                 type: 'standard',
                                 settings: tableData.settings || {},
-                                views: tableStore.currentVersion?.layout?.views || {}
+                                views: parsed.views || tableStore.currentVersion?.layout?.views || {}
                             },
                             settings: tableData.settings || {}
                         });

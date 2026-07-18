@@ -70,13 +70,13 @@ class AppSchemaController extends Controller
                     $tableSlug = $app->tables->first()->slug;
                 }
 
-                $views[$viewKey] = [
+                $views[$viewKey] = array_merge($viewData, [
                     'table' => $tableSlug,
                     'name' => $viewData['name'] ?? $viewKey,
                     'type' => $viewData['type'] ?? 'deck',
                     'description' => $viewData['description'] ?? '',
-                    'config' => $viewData['config'] ?? [],
-                ];
+                ]);
+                unset($views[$viewKey]['table_id'], $views[$viewKey]['form_id']);
             }
         } else {
             // Fallback: SQL views table relation
@@ -179,6 +179,16 @@ class AppSchemaController extends Controller
                     ]);
                 }
 
+                // Extract views specific to this table slug from $data['views']
+                $tableViews = [];
+                if (isset($data['views']) && is_array($data['views'])) {
+                    foreach ($data['views'] as $vKey => $vVal) {
+                        if (isset($vVal['table']) && $vVal['table'] === $slug) {
+                            $tableViews[$vKey] = $vVal;
+                        }
+                    }
+                }
+
                 // Create/Update version with fields and layout
                 $version = $table->latestDraftVersion ?? $table->createDraftVersion();
                 $version->update([
@@ -186,7 +196,7 @@ class AppSchemaController extends Controller
                     'layout' => [
                         'type' => 'standard',
                         'settings' => $tableData['settings'] ?? [],
-                        'views' => ($version && is_array($version->layout) && isset($version->layout['views'])) ? $version->layout['views'] : [],
+                        'views' => ! empty($tableViews) ? $tableViews : (($version && is_array($version->layout) && isset($version->layout['views'])) ? $version->layout['views'] : []),
                     ],
                 ]);
             }

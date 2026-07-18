@@ -110,6 +110,13 @@ packages/types  - @cerdas/types (shared strict TS types)
       - **Async Rendering Engine**: Implemented chunked GeoJSON building with `setTimeout(0)` and `AbortController` to prevent ANR on Android (30k+ items).
       - **Memory Fix**: Used `shallowRef` for assignments and `toRaw` for map data to bypass Vue's deep reactivity, resolving OOM crashes.
 
+- **Version**: 0.2.29 (Data Scrubbing, Required-If, UX Hints & Relocated Example App Schema)
+
+- **Example App Relocation & Data Scrubbing (2026-07-18)**:
+  - **Relocate Schema**: Memindahkan file `docs/kuesioner_sambora_app_schema.json` ke `examples/kuesioner-sambora/schema.json` agar terpisah dari platform code dan tidak memicu bump version platform.
+  - **Visibility-Based Data Scrubbing**: Mengintegrasikan `getScrubbedData()` di `FormRenderer.vue` dan `useAssignmentSave.ts` untuk membersihkan field tersembunyi (`show_if=false`) sebelum disimpan.
+  - **Kuesioner UX & Validasi**: Menambahkan `required_if_fn` pada field turunan suku/agama, mengubah sampah ke multi-select checkbox, dan menyematkan 17 hint text standar ODK/KoBoToolbox.
+
 - **Version**: 0.2.28 (Pusat Unduhan APK & Auto-GitHub Sync)
 
 - **Pusat Unduhan APK & Auto-GitHub Sync (2026-07-18)**:
