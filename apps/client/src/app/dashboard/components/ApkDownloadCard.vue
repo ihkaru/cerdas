@@ -32,7 +32,7 @@
                 </div>
 
                 <div class="apk-actions">
-                    <a :href="downloadUrl" target="_system" class="download-button download-button--primary">
+                    <a :href="downloadUrl" external target="_blank" class="external download-button download-button--primary" @click="handleDownloadClick">
                         <f7-icon f7="arrow_down_to_line_alt" size="18" class="margin-right-half"></f7-icon>
                         Download APK Terbaru
                     </a>
@@ -52,7 +52,7 @@
                         <span class="version-label">v{{ currentVersion }}</span>
                     </div>
                 </div>
-                <a :href="downloadUrl" target="_system" class="re-download-link">
+                <a :href="downloadUrl" external target="_blank" class="external re-download-link" @click="handleDownloadClick">
                     <f7-icon f7="arrow_down_to_line" size="13"></f7-icon>
                     <span>Download Ulang APK</span>
                 </a>
@@ -95,6 +95,13 @@ const isOlder = (current: string, proposed: string): boolean => {
     }
     return false;
 };
+
+function handleDownloadClick(e: MouseEvent) {
+    e.stopPropagation();
+    if (downloadUrl.value) {
+        window.open(downloadUrl.value, '_blank');
+    }
+}
 </script>
 
 <style scoped>
