@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Imports\PrelistImport;
 use App\Models\Assignment;
 use App\Models\Response;
-use App\Models\AppRecord;
 use App\Models\TableVersion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,7 +31,7 @@ class AssignmentController extends Controller
             });
 
         // Filter based on role
-        if (!$user->isSuperAdmin()) {
+        if (! $user->isSuperAdmin()) {
             // Determine which apps allow unassigned access
             // Logic: App Mode = 'simple' AND restrict_unassigned != true
             $allowedAppIds = \App\Models\App::whereIn('id', $user->getAccessibleAppIds())
@@ -123,7 +122,7 @@ class AssignmentController extends Controller
 
         $tableVersion = TableVersion::with('table')->find($request->table_version_id);
 
-        if (!$tableVersion) {
+        if (! $tableVersion) {
             return response()->json([
                 'success' => false,
                 'message' => 'Table version not found',
@@ -132,14 +131,14 @@ class AssignmentController extends Controller
 
         $user = $request->user();
 
-        if (!$user->hasAppAccess($tableVersion->table->app_id)) {
+        if (! $user->hasAppAccess($tableVersion->table->app_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied',
             ], 403);
         }
 
-        if (!$tableVersion->isPublished()) {
+        if (! $tableVersion->isPublished()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Can only assign to published versions',
@@ -171,7 +170,7 @@ class AssignmentController extends Controller
         // Check explicit assignment
         $isAssigned = $assignment->enumerator_id === $user->id || $assignment->supervisor_id === $user->id;
 
-        if (!$isAssigned && !$user->isSuperAdmin()) {
+        if (! $isAssigned && ! $user->isSuperAdmin()) {
             // Check if unassigned and allowed
             $isUnassigned = is_null($assignment->enumerator_id);
             $accessGranted = false;
@@ -186,7 +185,7 @@ class AssignmentController extends Controller
                 }
             }
 
-            if (!$accessGranted) {
+            if (! $accessGranted) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Access denied',
@@ -211,11 +210,11 @@ class AssignmentController extends Controller
             // Permission check: Assigned enumerator/supervisor or SuperAdmin or App Admin
             $isAssigned = $assignment->enumerator_id === $user->id || $assignment->supervisor_id === $user->id;
 
-            if (!$isAssigned && !$user->isSuperAdmin()) {
+            if (! $isAssigned && ! $user->isSuperAdmin()) {
                 $assignment->loadMissing(['table.app', 'tableVersion.table.app']);
                 $app = $assignment->tableVersion?->table?->app ?? $assignment->table?->app;
 
-                if ($app && !$user->getAccessibleAppIds()->contains($app->id)) {
+                if ($app && ! $user->hasAppAccess($app->id)) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Access denied',
@@ -242,7 +241,7 @@ class AssignmentController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete assignment: ' . $e->getMessage(),
+                'message' => 'Failed to delete assignment: '.$e->getMessage(),
             ], 500);
         }
     }
