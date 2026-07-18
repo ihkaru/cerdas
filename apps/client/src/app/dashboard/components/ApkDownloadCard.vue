@@ -77,15 +77,6 @@ const props = defineProps<{
 const currentVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 const showChangelog = ref(false);
 
-const latestVersion = computed(() => props.latestApk?.version || currentVersion);
-const downloadUrl = computed(() => props.latestApk?.url || 'https://github.com/ihkaru/cerdas/releases/latest');
-const changelog = computed(() => props.latestApk?.changelog || []);
-
-const updateAvailable = computed(() => {
-    // Return true by default so prominent update card is displayed for user testing
-    return true;
-});
-
 const isOlder = (current: string, proposed: string): boolean => {
     const c = current.split('.').map(Number);
     const p = proposed.split('.').map(Number);
@@ -95,6 +86,18 @@ const isOlder = (current: string, proposed: string): boolean => {
     }
     return false;
 };
+
+const latestVersion = computed(() => {
+    if (!props.latestApk?.version) return currentVersion;
+    return isOlder(props.latestApk.version, currentVersion) ? currentVersion : props.latestApk.version;
+});
+const downloadUrl = computed(() => props.latestApk?.url || 'https://github.com/ihkaru/cerdas/releases/latest');
+const changelog = computed(() => props.latestApk?.changelog || []);
+
+const updateAvailable = computed(() => {
+    if (!props.latestApk) return true;
+    return isOlder(currentVersion, props.latestApk.version) || props.latestApk.version === currentVersion;
+});
 
 function handleDownloadClick(e: MouseEvent) {
     e.stopPropagation();
