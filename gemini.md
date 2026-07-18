@@ -49,7 +49,7 @@ packages/types  - @cerdas/types (shared strict TS types)
 
 ## Reference Documents
 * `docs/architecture_principles.md` - Technical principles (**READ FIRST** before any implementation)
-* `docs/DEVELOPMENT_LIFECYCLE.md` - Start/stop, coding loop, and Release/Versioning SOP
+* `docs/DEVELOPMENT_LIFECYCLE.md` - Start/stop, coding loop, and Release/Versioning SOP (**Fase 6** = how to bump version / release)
 * `docs/WORKFLOW_AND_DEBUGGING.md` - Debugging workflow, CI/CD, and local verification (`verify-local.ps1`)
 * `docs/TERMINOLOGY_DISAMBIGUATION.md` - Canonical naming conventions (SSOT)
 * `docs/STATUS_FLOWS.md` - Assignment status state machine diagram

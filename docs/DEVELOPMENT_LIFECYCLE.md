@@ -13,7 +13,7 @@ Dokumen ini menjelaskan seluruh alur pengembangan (development lifecycle) untuk 
 
 | Aksi | Command | Port |
 |------|---------|------|
-| Start All Servers | `scripts/start-all.bat` | Backend:8080, Client:9981, Editor:9982 |
+| Start All Servers | `scripts/start-all.bat` | Backend:9980, Client:9981, Editor:9982 |
 | Stop All Servers | `scripts/stop-all.bat` | - |
 | Open Android Studio | `npx cap open android` | - |
 | Sync Android | `npx cap sync android` | - |
@@ -377,7 +377,7 @@ VITE_API_URL=https://your-production-api.com/api
 Gunakan checklist ini setiap mulai session coding baru:
 
 - [ ] Run `scripts/start-all.bat`
-- [ ] Verify Backend: `curl http://localhost:8080/api/user`
+- [ ] Verify Backend: `curl http://localhost:9980/api/user`
 - [ ] Verify Client: Open `http://localhost:9981` in browser
 - [ ] Open Android Studio: `npx cap open android`
 - [ ] Run app on emulator

@@ -152,7 +152,7 @@ Key documentation every contributor should read:
 | Document | Description |
 |----------|-------------|
 | [Terminology & Disambiguation](docs/TERMINOLOGY_DISAMBIGUATION.md) | **SSOT** for naming conventions across backend, frontend, and TypeScript types |
-| [↳ Assignment Status Canonical Values](docs/TERMINOLOGY_DISAMBIGUATION.md#23-assignment-status--canonical-values) | The 5 canonical assignment statuses (`assigned`, `in_progress`, `submitted`, `synced`, `rejected`), their flow per app mode, and which legacy aliases are removed |
+| [↳ Assignment Status Canonical Values](docs/TERMINOLOGY_DISAMBIGUATION.md#23-assignment-status--canonical-values) | The 5 canonical assignment statuses (`assigned`, `in_progress`, `submitted`, `approved`, `rejected`), their flow per app mode (Simple vs Complex) |
 | [Assignment Status Flows Table](docs/STATUS_FLOWS.md) | **Tabel lengkap pemetaan status** antara SQLite lokal client dan database backend server untuk Simple & Complex Mode |
 | [Architecture Principles](docs/architecture_principles.md) | Core architectural decisions and patterns |
 | [Form Editor Workflow](docs/FORM_EDITOR_WORKFLOW.md) | How the schema editor and publish flow work |
