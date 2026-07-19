@@ -87,3 +87,8 @@ packages/types  - @cerdas/types (shared strict TS types)
   - **Download CSV Template Button**: Menambahkan tombol `Download CSV Template` di UI `CsvImportPopup.vue` menggunakan File System Access API (`showSaveFilePicker`) untuk mengunduh template CSV berformat UTF-8 BOM secara instant berdasarkan field kuesioner aktif.
   - **Idempotent Import Engine**: `PrelistImport.php` diperbarui dengan UPSERT (`updateOrCreate`) berbasis `table_id` dan fallback natural ID keys (`external_id`, `id_rumah`, `ID_rumah`, `id_kk`), menjamin pengimporan berulang-kali bebas duplikasi data.
   - **Standardized Header Names**: Standardisasi nama kolom Google Sheet Sync menggunakan `field.name` (`Nama_RT`, `ID_rumah`, `kepala_keluarga_list.nama`) agar 100% simetris dengan CSV Template & siap untuk 2-Way Sync.
+- **2026-07-19**: Dukungan Sinkronisasi Bertingkat (Recursive Multi-Level Nested Forms):
+  - **Recursive Traversal**: Mengganti penanganan data nested array statis dengan fungsi rekursif `collectNestedRowsForPath` dan `enqueueNestedItems` untuk mendukung sinkronisasi form bertingkat tak terbatas (N-Level Deeply Nested Forms).
+  - **Hierarchical Lineage ID**: Menghasilkan ID unik `child_response_id` yang merepresentasikan rantai relasi lengkap (misal `parentUuid_nestedKey_index_subKey_index`).
+  - **Dot Notation Path Resolution**: Memperbarui `GoogleSheetColumnMapper` untuk menyelesaikan path nested menggunakan dot notation, mengabaikan sub-repeatable di level yang sama karena telah dipetakan ke sub-tab spreadsheet terpisah.
+  - **Idempotent Nested Updates**: Memasang antrean `delete` berbasis `parent_response_id` sebelum melakukan batch `upsert` pada nested tab, menjamin data di sub-tab selalu sinkron meskipun data dikurangi/ditambah dari PWA.
