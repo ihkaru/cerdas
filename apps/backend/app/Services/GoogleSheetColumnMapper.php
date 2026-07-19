@@ -295,7 +295,7 @@ class GoogleSheetColumnMapper
      * Check if a field is purely structural/layout (separator, html_block, section_header, note)
      * and carries no user input data.
      */
-    private function isLayoutField(array $field): bool
+    public function isLayoutField(array $field): bool
     {
         $type = strtolower($field['type'] ?? '');
 
@@ -306,7 +306,7 @@ class GoogleSheetColumnMapper
      * Check if a field is a repeatable/nested section.
      * Supports common field type names used in Cerdas schema.
      */
-    private function isRepeatableField(array $field): bool
+    public function isRepeatableField(array $field): bool
     {
         $type = strtolower($field['type'] ?? '');
 

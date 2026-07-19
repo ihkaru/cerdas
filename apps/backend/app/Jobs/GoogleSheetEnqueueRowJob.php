@@ -220,7 +220,7 @@ class GoogleSheetEnqueueRowJob implements ShouldQueue
                     continue;
                 }
 
-                $childId = $parentId.'_'.$key.'_'.$i;
+                $childId = \Ramsey\Uuid\Uuid::uuid5(\Ramsey\Uuid\Uuid::NAMESPACE_DNS, $parentId.'_'.$key.'_'.$i)->toString();
 
                 if ($tab) {
                     $metadata = [
