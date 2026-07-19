@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.39](https://github.com/ihkaru/cerdas/compare/v0.2.38...v0.2.39) (2026-07-19)
+
+
+### Features
+
+* **gps:** support manual input in gps field & add nested forms for sambora schema ([a374cc8](https://github.com/ihkaru/cerdas/commit/a374cc8e31c6851f32529bc6b68570d223d6f206))
+
 ## [0.2.38](https://github.com/ihkaru/cerdas/compare/v0.2.37...v0.2.38) (2026-07-19)
 
 
