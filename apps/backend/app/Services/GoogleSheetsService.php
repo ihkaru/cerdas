@@ -255,6 +255,7 @@ class GoogleSheetsService
      *                             'response_id' => string,
      *                             'operation'   => 'upsert' | 'delete',
      *                             'row_data'    => array|null,  // null for delete
+     *                             'tab_type'    => 'root' | 'nested',
      *                             ]
      */
     public function batchFlushRows(
@@ -281,11 +282,19 @@ class GoogleSheetsService
             $responseId = $update['response_id'];
             $operation = $update['operation'];
             $rowData = $update['row_data'] ?? null;
-            $existingRow = $existingIndex[$responseId] ?? null;
+            $tabType = $update['tab_type'] ?? 'root';
 
             if ($operation === 'delete') {
-                if ($existingRow !== null) {
-                    $deleteRowNums[] = $existingRow;
+                if ($tabType === 'nested') {
+                    // For nested tabs, response_id is the parent_response_id.
+                    // We want to delete all rows matching it in Column B (Parent Response ID).
+                    $nestedDeleteRows = $this->fetchRowNumsByParentId($app, $spreadsheetId, $tabName, $responseId);
+                    $deleteRowNums = array_merge($deleteRowNums, $nestedDeleteRows);
+                } else {
+                    $existingRow = $existingIndex[$responseId] ?? null;
+                    if ($existingRow !== null) {
+                        $deleteRowNums[] = $existingRow;
+                    }
                 }
 
                 continue;
@@ -295,6 +304,8 @@ class GoogleSheetsService
             if ($rowData === null) {
                 continue;
             }
+
+            $existingRow = $existingIndex[$responseId] ?? null;
 
             if ($existingRow !== null) {
                 // Update existing row
@@ -320,9 +331,48 @@ class GoogleSheetsService
 
         // Execute deletes (sorted descending to avoid row shift issues)
         if (! empty($deleteRowNums)) {
+            $deleteRowNums = array_unique($deleteRowNums);
             rsort($deleteRowNums);
             $this->deleteRows($service, $spreadsheetId, $tabName, $deleteRowNums, $existingIndex);
         }
+    }
+
+    /**
+     * Fetch all row numbers in a tab where Column B (Parent Response ID) matches the given parent ID.
+     * Column B is the second column (index 1).
+     *
+     * @return int[]
+     */
+    public function fetchRowNumsByParentId(App $app, string $spreadsheetId, string $tabName, string $parentId): array
+    {
+        $client = $this->clientForApp($app);
+        $service = $this->sheetsService($client);
+
+        try {
+            $response = $service->spreadsheets_values->get($spreadsheetId, "{$tabName}!B:B");
+            $values = $response->getValues() ?? [];
+        } catch (\Google\Service\Exception $e) {
+            Log::warning('GoogleSheetsService: fetchRowNumsByParentId failed', [
+                'spreadsheet_id' => $spreadsheetId,
+                'tab' => $tabName,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+
+        $rowNums = [];
+        foreach ($values as $rowNum => $row) {
+            if ($rowNum === 0) {
+                continue; // Skip header
+            }
+            $val = $row[0] ?? null;
+            if ($val === $parentId) {
+                $rowNums[] = $rowNum + 1; // 1-based row number
+            }
+        }
+
+        return $rowNums;
     }
 
     /**

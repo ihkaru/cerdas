@@ -104,6 +104,7 @@ class GoogleSheetBatchFlushJob implements ShouldQueue
                     'response_id' => $row->response_id,
                     'operation' => $row->operation,
                     'row_data' => $row->row_data,
+                    'tab_type' => $row->tab_type,
                 ])->all();
 
                 // Execute batch flush — 1 API call per (spreadsheet, tab)

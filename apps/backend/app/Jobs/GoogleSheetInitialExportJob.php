@@ -196,36 +196,44 @@ class GoogleSheetInitialExportJob implements ShouldQueue
         $exported = 0;
         $batchRows = [];
 
-        if (! \Illuminate\Support\Facades\Schema::hasColumn('responses', 'parent_response_id')) {
-            return 0;
-        }
-
         Response::query()
             ->whereHas('assignment', fn ($q) => $q->where(function ($q2) use ($table) {
                 $q2->whereHas('tableVersion', fn ($q3) => $q3->where('table_id', $table->id))
                     ->orWhere('table_id', $table->id);
             }))
-            ->whereNotNull('parent_response_id')
             ->orderBy('created_at')
             ->chunk(self::BATCH_SIZE, function ($responses) use (
                 $mapper, $fields, $fieldKey, &$batchRows, &$exported
             ) {
                 foreach ($responses as $response) {
-                    $metadata = [
-                        'child_response_id' => $response->id,
-                        'parent_response_id' => $response->parent_response_id,
-                        'submitted_at' => $response->created_at?->toISOString() ?? '',
-                        'synced_at' => now()->toISOString(),
-                    ];
+                    $nestedItems = $response->data[$fieldKey] ?? [];
+                    if (! is_array($nestedItems)) {
+                        continue;
+                    }
 
-                    $batchRows[] = $mapper->buildRowValues(
-                        responseData: $response->data ?? [],
-                        fields: $fields,
-                        isRoot: false,
-                        metadata: $metadata,
-                        nestedFieldKey: $fieldKey
-                    );
-                    $exported++;
+                    foreach ($nestedItems as $i => $item) {
+                        if (! is_array($item)) {
+                            continue;
+                        }
+
+                        $childId = $response->id.'_'.$fieldKey.'_'.$i;
+
+                        $metadata = [
+                            'child_response_id' => $childId,
+                            'parent_response_id' => $response->id,
+                            'submitted_at' => $response->created_at?->toISOString() ?? '',
+                            'synced_at' => now()->toISOString(),
+                        ];
+
+                        $batchRows[] = $mapper->buildRowValues(
+                            responseData: $item,
+                            fields: $fields,
+                            isRoot: false,
+                            metadata: $metadata,
+                            nestedFieldKey: $fieldKey
+                        );
+                        $exported++;
+                    }
                 }
             });
 
