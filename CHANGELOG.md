@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.40](https://github.com/ihkaru/cerdas/compare/v0.2.39...v0.2.40) (2026-07-19)
+
+
+### Bug Fixes
+
+* **sheets:** preserve active google sheets sync config on app schema update ([1831a7a](https://github.com/ihkaru/cerdas/commit/1831a7ab1d1957d44e454456c8e1a07f2127f131))
+
 ## [0.2.39](https://github.com/ihkaru/cerdas/compare/v0.2.38...v0.2.39) (2026-07-19)
 
 
