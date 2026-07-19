@@ -161,12 +161,21 @@ class AppSchemaController extends Controller
                 $table = $app->tables()->where('slug', $slug)->first();
 
                 if ($table) {
+                    $sourceType = $tableData['source_type'] ?? 'internal';
+                    $sourceConfig = $tableData['source_config'] ?? [];
+
+                    // Preserve active sync configurations (e.g. google_sheets) when applying schema changes
+                    if ($table->source_type !== 'internal' && $sourceType === 'internal') {
+                        $sourceType = $table->source_type;
+                        $sourceConfig = $table->source_config;
+                    }
+
                     // Update existing table
                     $table->update([
                         'name' => $tableData['name'],
                         'description' => $tableData['description'] ?? null,
-                        'source_type' => $tableData['source_type'] ?? 'internal',
-                        'source_config' => $tableData['source_config'] ?? [],
+                        'source_type' => $sourceType,
+                        'source_config' => $sourceConfig,
                     ]);
                 } else {
                     // Create new table
