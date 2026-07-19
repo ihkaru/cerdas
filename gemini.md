@@ -6,8 +6,8 @@
 Cerdas adalah AppSheet clone - self-hosted, offline-first, no-code app builder untuk data collection.
 
 ## Active Version & Status
-* **Version**: 0.2.38 (Stable Release)
-* **Latest Changes**: Implemented Google Sheet Sync MVP, Audit Trail Status History with ISO UTC timestamps, Download CSV Template button with File System Access API, Idempotent UPSERT imports, and Standardized field.name column headers.
+* **Version**: 0.2.39 (Stable Release)
+* **Latest Changes**: Supported optional manual coordinates input in GpsField (controlled by allow_manual_input flag), and added nested repeatable forms for Jurusan Pendidikan Tinggi, Pekerjaan Lainnya, and UMKM Lainnya with strict count validations in examples/kuesioner-sambora/schema.json.
 
 ## Core Technical Stack
 * **Backend**: Laravel 12 (PURE API only - no Blade, no Filament, Sanctum Auth)
