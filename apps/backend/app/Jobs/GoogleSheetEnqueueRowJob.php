@@ -74,31 +74,34 @@ class GoogleSheetEnqueueRowJob implements ShouldQueue
         $tabs = $sheetConfig['tabs'] ?? [];
         $fields = $response->assignment?->tableVersion?->fields ?? $table->publishedVersion?->fields ?? $table->currentVersion?->fields ?? [];
 
-        // In Cerdas, responses are always root level (nested forms are stored inside the JSON 'data' column).
-        // This job handles enqueuing both the root row and all its nested/repeatable rows.
+        // Build maps for root and nested tabs
+        $nestedTabsMap = [];
+        $rootTab = null;
 
         foreach ($tabs as $tab) {
-            $tabName = $tab['sheet_name'];
-            $tabType = $tab['type'];
-            $fieldKey = $tab['field_key'] ?? null;
+            if ($tab['type'] === 'root') {
+                $rootTab = $tab;
+            } else {
+                $nestedTabsMap[$tab['field_key']] = $tab;
+            }
+        }
+
+        // 1. Process Root Tab
+        if ($rootTab) {
+            $tabName = $rootTab['sheet_name'];
 
             if ($this->operation === 'delete') {
                 PendingSheetRow::create([
                     'spreadsheet_id' => $sheetConfig['spreadsheet_id'],
                     'sheet_name' => $tabName,
-                    'tab_type' => $tabType,
+                    'tab_type' => 'root',
                     'app_id' => $table->app_id,
                     'table_id' => $table->id,
-                    'response_id' => $response->id, // If nested, this will delete by parent_response_id
+                    'response_id' => $response->id,
                     'operation' => 'delete',
                     'row_data' => null,
                 ]);
-
-                continue;
-            }
-
-            // Upsert operation
-            if ($tabType === 'root') {
+            } else {
                 $rawStatus = $response->assignment?->status ?? 'submitted';
                 $statusLabel = match ($rawStatus) {
                     'submitted' => 'Submitted',
@@ -137,51 +140,109 @@ class GoogleSheetEnqueueRowJob implements ShouldQueue
                     'operation' => 'upsert',
                     'row_data' => $rowData,
                 ]);
-            } else {
-                // Nested tab upsert:
-                // 1. First enqueue a delete operation for this parent response id on the nested tab to clear old values
-                PendingSheetRow::create([
-                    'spreadsheet_id' => $sheetConfig['spreadsheet_id'],
-                    'sheet_name' => $tabName,
-                    'tab_type' => 'nested',
-                    'app_id' => $table->app_id,
-                    'table_id' => $table->id,
-                    'response_id' => $response->id, // deletes by parent_response_id
-                    'operation' => 'delete',
-                    'row_data' => null,
-                ]);
+            }
+        }
 
-                // 2. Extract nested repeatable array from parent data
-                $nestedItems = $response->data[$fieldKey] ?? [];
-                if (! is_array($nestedItems)) {
+        // 2. Process Nested Tabs (Pre-clear parent records by enqueuing delete operations for nested tables)
+        foreach ($nestedTabsMap as $fieldKey => $tab) {
+            PendingSheetRow::create([
+                'spreadsheet_id' => $sheetConfig['spreadsheet_id'],
+                'sheet_name' => $tab['sheet_name'],
+                'tab_type' => 'nested',
+                'app_id' => $table->app_id,
+                'table_id' => $table->id,
+                'response_id' => $response->id, // If nested, this deletes all rows matching parent_response_id
+                'operation' => 'delete',
+                'row_data' => null,
+            ]);
+        }
+
+        // 3. For Upsert, recursively extract and enqueue all nested child items
+        if ($this->operation === 'upsert' && ! empty($nestedTabsMap)) {
+            $this->enqueueNestedItems(
+                data: $response->data ?? [],
+                fields: $fields,
+                parentId: $response->id,
+                rootResponseId: $response->id,
+                submittedAt: $response->created_at?->toISOString() ?? '',
+                nestedTabsMap: $nestedTabsMap,
+                mapper: $mapper,
+                spreadsheetId: $sheetConfig['spreadsheet_id'],
+                table: $table,
+                prefixKey: ''
+            );
+        }
+
+        Log::debug('GoogleSheetEnqueueRowJob: enqueued', [
+            'response_id' => $this->responseId,
+            'operation' => $this->operation,
+            'tabs' => count($tabs),
+        ]);
+    }
+
+    /**
+     * Recursively traverse schema fields and data to extract and enqueue nested items.
+     */
+    private function enqueueNestedItems(
+        array $data,
+        array $fields,
+        string $parentId,
+        string $rootResponseId,
+        string $submittedAt,
+        array $nestedTabsMap,
+        GoogleSheetColumnMapper $mapper,
+        string $spreadsheetId,
+        $table,
+        string $prefixKey = ''
+    ): void {
+        foreach ($fields as $field) {
+            if (! $mapper->isRepeatableField($field)) {
+                continue;
+            }
+
+            $key = $field['name'] ?? $field['key'] ?? null;
+            if (! $key) {
+                continue;
+            }
+
+            $fullKey = $prefixKey ? "{$prefixKey}.{$key}" : $key;
+            $items = $data[$key] ?? [];
+
+            if (! is_array($items)) {
+                continue;
+            }
+
+            $tab = $nestedTabsMap[$fullKey] ?? null;
+            $subFields = $field['fields'] ?? $field['sub_fields'] ?? [];
+
+            foreach ($items as $i => $item) {
+                if (! is_array($item)) {
                     continue;
                 }
 
-                foreach ($nestedItems as $i => $item) {
-                    if (! is_array($item)) {
-                        continue;
-                    }
+                $childId = $parentId.'_'.$key.'_'.$i;
 
-                    $childId = $response->id.'_'.$fieldKey.'_'.$i;
-
+                if ($tab) {
                     $metadata = [
                         'child_response_id' => $childId,
-                        'parent_response_id' => $response->id,
-                        'submitted_at' => $response->created_at?->toISOString() ?? '',
+                        'parent_response_id' => $parentId,
+                        'submitted_at' => $submittedAt,
                         'synced_at' => now()->toISOString(),
                     ];
 
+                    $rootFields = $table->latestVersion?->fields ?? $table->currentVersion?->fields ?? $fields;
+
                     $rowData = $mapper->buildRowValues(
                         responseData: $item,
-                        fields: $fields,
+                        fields: $rootFields,
                         isRoot: false,
                         metadata: $metadata,
-                        nestedFieldKey: $fieldKey
+                        nestedFieldKey: $fullKey
                     );
 
                     PendingSheetRow::create([
-                        'spreadsheet_id' => $sheetConfig['spreadsheet_id'],
-                        'sheet_name' => $tabName,
+                        'spreadsheet_id' => $spreadsheetId,
+                        'sheet_name' => $tab['sheet_name'],
                         'tab_type' => 'nested',
                         'app_id' => $table->app_id,
                         'table_id' => $table->id,
@@ -190,14 +251,24 @@ class GoogleSheetEnqueueRowJob implements ShouldQueue
                         'row_data' => $rowData,
                     ]);
                 }
+
+                // Recursively search sub-fields for deeply nested repeatable items
+                if (! empty($subFields)) {
+                    $this->enqueueNestedItems(
+                        data: $item,
+                        fields: $subFields,
+                        parentId: $childId,
+                        rootResponseId: $rootResponseId,
+                        submittedAt: $submittedAt,
+                        nestedTabsMap: $nestedTabsMap,
+                        mapper: $mapper,
+                        spreadsheetId: $spreadsheetId,
+                        table: $table,
+                        prefixKey: $fullKey
+                    );
+                }
             }
         }
-
-        Log::debug('GoogleSheetEnqueueRowJob: enqueued', [
-            'response_id' => $this->responseId,
-            'operation' => $this->operation,
-            'tabs' => count($tabs),
-        ]);
     }
 
     public function failed(\Throwable $exception): void

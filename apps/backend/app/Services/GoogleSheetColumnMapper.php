@@ -69,26 +69,16 @@ class GoogleSheetColumnMapper
         // Nested tab: find the repeatable field and use its sub-fields
         $headers = array_values(self::SYSTEM_COLUMNS_NESTED);
 
-        foreach ($fields as $field) {
-            if (! $this->isRepeatableField($field)) {
+        $subFields = $this->getSubFieldsForPath($fields, $nestedFieldKey);
+
+        foreach ($subFields as $subField) {
+            if ($this->isLayoutField($subField)) {
                 continue;
             }
-
-            $fieldKey = $field['name'] ?? $field['key'] ?? null;
-            if ($fieldKey !== $nestedFieldKey) {
-                continue;
+            if ($this->isRepeatableField($subField)) {
+                continue; // Skip deeply nested repeatable forms (they get their own tab)
             }
-
-            // Add each sub-field as a column
-            $subFields = $field['fields'] ?? $field['sub_fields'] ?? [];
-            foreach ($subFields as $subField) {
-                if ($this->isLayoutField($subField)) {
-                    continue;
-                }
-                $headers[] = ($field['name'] ?? $field['key'] ?? $field['label']).'.'.($subField['name'] ?? $subField['key'] ?? $subField['label'] ?? 'Unknown');
-            }
-
-            break;
+            $headers[] = $nestedFieldKey.'.'.($subField['name'] ?? $subField['key'] ?? $subField['label'] ?? 'Unknown');
         }
 
         return $headers;
@@ -149,30 +139,53 @@ class GoogleSheetColumnMapper
             $metadata['synced_at'] ?? now()->toISOString(),
         ];
 
-        foreach ($fields as $field) {
-            if (! $this->isRepeatableField($field)) {
+        $subFields = $this->getSubFieldsForPath($fields, $nestedFieldKey);
+
+        foreach ($subFields as $subField) {
+            if ($this->isLayoutField($subField)) {
                 continue;
             }
-
-            $fieldKey = $field['name'] ?? $field['key'] ?? null;
-            if ($fieldKey !== $nestedFieldKey) {
-                continue;
+            if ($this->isRepeatableField($subField)) {
+                continue; // Repeatable fields inside this level go to their own tab
             }
-
-            $subFields = $field['fields'] ?? $field['sub_fields'] ?? [];
-            foreach ($subFields as $subField) {
-                if ($this->isLayoutField($subField)) {
-                    continue;
-                }
-                $subKey = $subField['name'] ?? $subField['key'] ?? null;
-                $value = $subKey ? ($responseData[$subKey] ?? '') : '';
-                $row[] = $this->flattenValue($value);
-            }
-
-            break;
+            $subKey = $subField['name'] ?? $subField['key'] ?? null;
+            $value = $subKey ? ($responseData[$subKey] ?? '') : '';
+            $row[] = $this->flattenValue($value);
         }
 
         return $row;
+    }
+
+    /**
+     * Resolve the sub-fields of a deeply nested repeatable field using dot notation path.
+     */
+    public function getSubFieldsForPath(array $fields, string $path): array
+    {
+        if (empty($path)) {
+            return [];
+        }
+
+        $parts = explode('.', $path);
+        $currentFields = $fields;
+
+        foreach ($parts as $part) {
+            $foundField = null;
+            foreach ($currentFields as $field) {
+                $name = $field['name'] ?? $field['key'] ?? null;
+                if ($name === $part) {
+                    $foundField = $field;
+                    break;
+                }
+            }
+
+            if (! $foundField) {
+                return [];
+            }
+
+            $currentFields = $foundField['fields'] ?? $foundField['sub_fields'] ?? [];
+        }
+
+        return $currentFields;
     }
 
     /**

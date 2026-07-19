@@ -206,32 +206,19 @@ class GoogleSheetInitialExportJob implements ShouldQueue
                 $mapper, $fields, $fieldKey, &$batchRows, &$exported
             ) {
                 foreach ($responses as $response) {
-                    $nestedItems = $response->data[$fieldKey] ?? [];
-                    if (! is_array($nestedItems)) {
-                        continue;
-                    }
+                    $rows = $this->collectNestedRowsForPath(
+                        data: $response->data ?? [],
+                        fields: $fields,
+                        parentId: $response->id,
+                        submittedAt: $response->created_at?->toISOString() ?? '',
+                        targetKey: $fieldKey,
+                        mapper: $mapper,
+                        rootFields: $fields,
+                        prefixKey: ''
+                    );
 
-                    foreach ($nestedItems as $i => $item) {
-                        if (! is_array($item)) {
-                            continue;
-                        }
-
-                        $childId = $response->id.'_'.$fieldKey.'_'.$i;
-
-                        $metadata = [
-                            'child_response_id' => $childId,
-                            'parent_response_id' => $response->id,
-                            'submitted_at' => $response->created_at?->toISOString() ?? '',
-                            'synced_at' => now()->toISOString(),
-                        ];
-
-                        $batchRows[] = $mapper->buildRowValues(
-                            responseData: $item,
-                            fields: $fields,
-                            isRoot: false,
-                            metadata: $metadata,
-                            nestedFieldKey: $fieldKey
-                        );
+                    foreach ($rows as $row) {
+                        $batchRows[] = $row;
                         $exported++;
                     }
                 }
@@ -242,6 +229,84 @@ class GoogleSheetInitialExportJob implements ShouldQueue
         }
 
         return $exported;
+    }
+
+    /**
+     * Recursively traverse response data to find and extract row values for a target repeatable field key path.
+     */
+    private function collectNestedRowsForPath(
+        array $data,
+        array $fields,
+        string $parentId,
+        string $submittedAt,
+        string $targetKey,
+        GoogleSheetColumnMapper $mapper,
+        array $rootFields,
+        string $prefixKey = ''
+    ): array {
+        $rows = [];
+
+        foreach ($fields as $field) {
+            if (! $mapper->isRepeatableField($field)) {
+                continue;
+            }
+
+            $key = $field['name'] ?? $field['key'] ?? null;
+            if (! $key) {
+                continue;
+            }
+
+            $fullKey = $prefixKey ? "{$prefixKey}.{$key}" : $key;
+            $items = $data[$key] ?? [];
+
+            if (! is_array($items)) {
+                continue;
+            }
+
+            $subFields = $field['fields'] ?? $field['sub_fields'] ?? [];
+
+            foreach ($items as $i => $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
+                $childId = $parentId.'_'.$key.'_'.$i;
+
+                if ($fullKey === $targetKey) {
+                    $metadata = [
+                        'child_response_id' => $childId,
+                        'parent_response_id' => $parentId,
+                        'submitted_at' => $submittedAt,
+                        'synced_at' => now()->toISOString(),
+                    ];
+
+                    $rows[] = $mapper->buildRowValues(
+                        responseData: $item,
+                        fields: $rootFields,
+                        isRoot: false,
+                        metadata: $metadata,
+                        nestedFieldKey: $fullKey
+                    );
+                }
+
+                // Recurse deeply
+                if (! empty($subFields)) {
+                    $subRows = $this->collectNestedRowsForPath(
+                        data: $item,
+                        fields: $subFields,
+                        parentId: $childId,
+                        submittedAt: $submittedAt,
+                        targetKey: $targetKey,
+                        mapper: $mapper,
+                        rootFields: $rootFields,
+                        prefixKey: $fullKey
+                    );
+                    $rows = array_merge($rows, $subRows);
+                }
+            }
+        }
+
+        return $rows;
     }
 
     public function failed(\Throwable $exception): void
