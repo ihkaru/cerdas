@@ -35,6 +35,10 @@
               <span class="label">Time</span>
               <span class="val">{{ formatTime(normalizedValue.timestamp) }}</span>
             </div>
+            <div class="stat-item" v-if="normalizedValue?.isManual">
+              <span class="label">Source</span>
+              <span class="val text-color-orange" style="font-weight: 600;">Manual Input</span>
+            </div>
           </div>
         </div>
 
@@ -45,13 +49,18 @@
         </f7-button>
       </div>
 
-      <!-- 3. Main Action Button -->
-      <div v-if="!field.readonly" class="action-area">
-        <f7-button fill large @click="handleCapture" :loading="loading" preloader class="custom-btn-action"
+      <!-- 3. Main Action Buttons (GPS & Manual Input) -->
+      <div v-if="!field.readonly" class="action-area display-flex gap-half">
+        <f7-button fill large @click="handleCapture" :loading="loading" preloader class="custom-btn-action flex-1"
           :color="hasLocation ? 'gray' : 'primary'" :text-color="hasLocation ? 'black' : 'white'">
           <f7-icon :f7="hasLocation ? 'arrow_clockwise' : 'location_fill'" size="18"
             class="margin-right-half"></f7-icon>
-          <span>{{ hasLocation ? 'Update Location' : 'Get Current Location' }}</span>
+          <span>{{ hasLocation ? 'Update (GPS)' : 'Ambil GPS' }}</span>
+        </f7-button>
+
+        <f7-button v-if="field.allow_manual_input !== false && field.allow_manual !== false" outline large @click="openManualInput" class="custom-btn-action" color="blue">
+          <f7-icon f7="pencil_ellipsis_rectangle" size="18" class="margin-right-half"></f7-icon>
+          <span>Input Manual</span>
         </f7-button>
       </div>
 
@@ -408,6 +417,65 @@ const handleCapture = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const openManualInput = () => {
+  if (props.field.readonly) return;
+
+  const currentLat = normalizedCoords.value?.latitude ?? '';
+  const currentLng = normalizedCoords.value?.longitude ?? '';
+
+  f7.dialog.prompt(
+    'Masukkan nilai Latitude (contoh: -0.026338):',
+    'Input Koordinat Manual (1/2)',
+    (latStr) => {
+      const lat = parseFloat(latStr);
+      if (isNaN(lat) || lat < -90 || lat > 90) {
+        f7.toast.show({ text: 'Nilai Latitude tidak valid (-90 s/d 90)', cssClass: 'color-red', closeTimeout: 2500 });
+        return;
+      }
+
+      f7.dialog.prompt(
+        'Masukkan nilai Longitude (contoh: 109.342501):',
+        'Input Koordinat Manual (2/2)',
+        (lngStr) => {
+          const lng = parseFloat(lngStr);
+          if (isNaN(lng) || lng < -180 || lng > 180) {
+            f7.toast.show({ text: 'Nilai Longitude tidak valid (-180 s/d 180)', cssClass: 'color-red', closeTimeout: 2500 });
+            return;
+          }
+
+          const manualPosition = {
+            coords: {
+              latitude: lat,
+              longitude: lng,
+              accuracy: 0,
+              altitude: null,
+              altitudeAccuracy: null,
+              heading: null,
+              speed: null
+            },
+            timestamp: Date.now(),
+            isManual: true
+          };
+
+          emit('update:value', manualPosition);
+          nextTick(() => initMap(lat, lng));
+
+          f7.toast.show({
+            text: `Koordinat manual tersimpan: ${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+            cssClass: 'color-green',
+            closeTimeout: 2500,
+            icon: '<i class="f7-icons">checkmark_alt</i>'
+          });
+        },
+        () => {},
+        String(currentLng)
+      );
+    },
+    () => {},
+    String(currentLat)
+  );
 };
 
 const clearLocation = () => {

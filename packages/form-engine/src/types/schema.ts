@@ -61,6 +61,10 @@ export interface FieldDefinition {
     // Warnings (custom warning messages)
     warning_fn?: string;   // Closure: (ctx, row, utils) => string | null
     warning_js?: string;   // Legacy JS expression
+
+    // GPS Field mitigations
+    allow_manual_input?: boolean;
+    allow_manual?: boolean;
 }
 
 export interface TableSchema {

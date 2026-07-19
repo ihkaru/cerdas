@@ -64,6 +64,7 @@
           "label": "Lokasi Geotagging (GPS)",
           "hint": "Ambil titik koordinat tepat di depan atau di dalam rumah yang sedang didata. Buka pintu/jendela untuk sinyal terbaik.",
           "required": true,
+          "allow_manual_input": true,
           "warning_js": "if (row.Lokasi_Geotagging && row.Lokasi_Geotagging.coords && row.Lokasi_Geotagging.coords.accuracy > 50) { return '⚠️ Akurasi GPS kurang optimal ('+Math.round(row.Lokasi_Geotagging.coords.accuracy)+' meter). Disarankan mengambil titik koordinat di luar ruangan untuk sinyal dan akurasi terbaik.'; } return null;"
         },
         {
@@ -616,6 +617,42 @@
           "validation_js": "const total = Number(row.Total_Pendidikan_Check||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && total !== anggota) { return 'Total status pendidikan (' + total + ') harus sama dengan Jumlah Anggota Keluarga (' + anggota + '). Periksa kembali: setiap anggota harus dihitung tepat 1 kali (baik Sedang Sekolah maupun Ijazah Tertinggi).'; } return null;"
         },
         {
+          "name": "daftar_jurusan_kuliah",
+          "type": "nested_form",
+          "label": "Rincian Jurusan Pendidikan Tinggi (D1-S2)",
+          "hint": "Daftarkan nama prodi/jurusan dari setiap anggota keluarga yang sedang atau sudah menyelesaikan kuliah.",
+          "show_if_fn": "return (Number(row.Jumlah_Sedang_D1_S1||0) + Number(row.Jumlah_Sedang_S2||0) + Number(row.Jumlah_Tamat_D1_S1||0) + Number(row.Jumlah_Tamat_S2||0)) > 0;",
+          "fields": [
+            {
+              "name": "nama_mahasiswa",
+              "type": "text",
+              "label": "Nama Anggota yang Kuliah/Lulus",
+              "required": true
+            },
+            {
+              "name": "jenjang_kuliah",
+              "type": "select",
+              "label": "Jenjang",
+              "required": true,
+              "options": [
+                { "value": "D1", "label": "Diploma 1 (D1)" },
+                { "value": "D2", "label": "Diploma 2 (D2)" },
+                { "value": "D3", "label": "Diploma 3 (D3)" },
+                { "value": "D4_S1", "label": "Diploma 4 / Sarjana (S1)" },
+                { "value": "S2_S3", "label": "Pascasarjana (S2/S3)" }
+              ]
+            },
+            {
+              "name": "nama_jurusan",
+              "type": "text",
+              "label": "Nama Jurusan / Program Studi",
+              "hint": "Contoh: Teknik Informatika, Pendidikan Guru, Kehutanan",
+              "required": true
+            }
+          ],
+          "validation_js": "const totalKuliah = (Number(row.Jumlah_Sedang_D1_S1||0) + Number(row.Jumlah_Sedang_S2||0) + Number(row.Jumlah_Tamat_D1_S1||0) + Number(row.Jumlah_Tamat_S2||0)); const list = Array.isArray(value) ? value : []; if (list.length !== totalKuliah) { return 'Jumlah baris rincian prodi/jurusan (' + list.length + ') harus cocok dengan total anggota yang sedang/tamat kuliah (' + totalKuliah + ' orang).'; } return null;"
+        },
+        {
           "name": "Jumlah_Anggota_Keluarga_Putus_Sekolah",
           "type": "number",
           "label": "Jumlah Anggota Putus Sekolah (usia 7-18 tahun)",
@@ -730,6 +767,29 @@
           "validation_js": "const total = Number(row.Total_Pekerjaan_Check||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && total !== anggota) { return 'Total jenis pekerjaan (' + total + ') harus sama dengan Jumlah Anggota Keluarga (' + anggota + '). Setiap anggota harus memiliki tepat 1 status pekerjaan.'; } return null;"
         },
         {
+          "name": "daftar_pekerjaan_lainnya",
+          "type": "nested_form",
+          "label": "Rincian Jenis Pekerjaan Lainnya",
+          "hint": "Daftarkan rincian pekerjaan yang tidak tercantum di atas (misal: Montir, Penjahit, Ojek, Buruh Lepas).",
+          "show_if_fn": "return Number(row.Jumlah_pekerjaan_lainnya || 0) > 0;",
+          "fields": [
+            {
+              "name": "nama_pekerja",
+              "type": "text",
+              "label": "Nama Anggota yang Bekerja",
+              "required": true
+            },
+            {
+              "name": "jenis_pekerjaan",
+              "type": "text",
+              "label": "Rincian Pekerjaan / Profesi",
+              "hint": "Contoh: Montir Bengkel, Tukang Jahit, Driver Ojol, Pemulung",
+              "required": true
+            }
+          ],
+          "validation_js": "const target = Number(row.Jumlah_pekerjaan_lainnya || 0); const list = Array.isArray(value) ? value : []; if (list.length !== target) { return 'Jumlah baris rincian pekerjaan lainnya (' + list.length + ') harus cocok dengan Jumlah Pekerjaan Lainnya (' + target + ' orang).'; } return null;"
+        },
+        {
           "name": "section_ekonomi",
           "type": "separator",
           "label": "IV. Ekonomi & Bantuan Sosial"
@@ -788,7 +848,38 @@
           "label": "UMKM Pertanian / Perkebunan",
           "hint": "Jumlah usaha pertanian/perkebunan komersial (bukan konsumsi sendiri).",
           "show_if_fn": "return Number(row.Jumlah_UMKM_Dalam_Keluarga || 0) > 0;",
-          "warning_js": "const total = (Number(row.Perdagangan||0)+Number(row.Kuliner||0)+Number(row.Pertanian_UMKM||0)); const jml = Number(row.Jumlah_UMKM_Dalam_Keluarga||0); if (jml > 0 && total !== jml) { return '⚠️ Total kategori UMKM (' + total + ') belum sama dengan Jumlah UMKM (' + jml + '). Pastikan semua usaha sudah dikategorikan.'; } return null;"
+          "warning_js": "const total = (Number(row.Perdagangan||0)+Number(row.Kuliner||0)+Number(row.Pertanian_UMKM||0)+Number(row.UMKM_Lainnya||0)); const jml = Number(row.Jumlah_UMKM_Dalam_Keluarga||0); if (jml > 0 && total !== jml) { return '⚠️ Total kategori UMKM (' + total + ') belum sama dengan Jumlah UMKM (' + jml + '). Pastikan semua usaha sudah dikategorikan.'; } return null;"
+        },
+        {
+          "name": "UMKM_Lainnya",
+          "type": "number",
+          "label": "UMKM Kategori Lainnya",
+          "hint": "Jumlah usaha lainnya yang tidak masuk kategori Perdagangan, Kuliner, atau Pertanian.",
+          "show_if_fn": "return Number(row.Jumlah_UMKM_Dalam_Keluarga || 0) > 0;",
+          "warning_js": "const total = (Number(row.Perdagangan||0)+Number(row.Kuliner||0)+Number(row.Pertanian_UMKM||0)+Number(row.UMKM_Lainnya||0)); const jml = Number(row.Jumlah_UMKM_Dalam_Keluarga||0); if (jml > 0 && total !== jml) { return '⚠️ Total kategori UMKM (' + total + ') belum sama dengan Jumlah UMKM (' + jml + '). Pastikan semua usaha sudah dikategorikan.'; } return null;"
+        },
+        {
+          "name": "daftar_umkm_lainnya",
+          "type": "nested_form",
+          "label": "Rincian Nama & Jenis UMKM Lainnya",
+          "hint": "Daftarkan rincian nama dan jenis usaha UMKM kategori lainnya.",
+          "show_if_fn": "return Number(row.UMKM_Lainnya || 0) > 0;",
+          "fields": [
+            {
+              "name": "nama_usaha",
+              "type": "text",
+              "label": "Nama Usaha / UMKM",
+              "required": true
+            },
+            {
+              "name": "jenis_usaha",
+              "type": "text",
+              "label": "Jenis Usaha / Produk",
+              "hint": "Contoh: Bengkel Motor, Salon Kecantikan, Jahit Pakaian, Kios Pulsa",
+              "required": true
+            }
+          ],
+          "validation_js": "const target = Number(row.UMKM_Lainnya || 0); const list = Array.isArray(value) ? value : []; if (list.length !== target) { return 'Jumlah baris rincian usaha (' + list.length + ') harus cocok dengan Jumlah UMKM Kategori Lainnya (' + target + ' usaha).'; } return null;"
         },
         {
           "name": "Jumlah_ART_Memiliki_BPJS",
