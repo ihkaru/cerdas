@@ -225,8 +225,8 @@ class AssignmentController extends Controller
                 }
             }
 
-            // Delete associated responses
-            Response::where('assignment_id', $assignment->id)->delete();
+            // Delete associated responses (using Eloquent models so deleting events trigger Google Sheet sync)
+            Response::where('assignment_id', $assignment->id)->get()->each(fn ($response) => $response->delete());
 
             // Soft-delete assignment
             $assignment->delete();

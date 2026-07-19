@@ -16,3 +16,9 @@ Schedule::call(function () {
     $count = \App\Models\ExportJob::cleanupExpired();
     logger()->info("Export cleanup: {$count} files removed.");
 })->hourly();
+
+// Google Sheet Sync — micro-batch flush (runs every 30 seconds)
+Schedule::job(new \App\Jobs\GoogleSheetBatchFlushJob)->everyThirtySeconds();
+
+// Google Sheet Sync — proactive token refresh (runs hourly)
+Schedule::job(new \App\Jobs\GoogleSheetTokenRefreshJob)->hourly();

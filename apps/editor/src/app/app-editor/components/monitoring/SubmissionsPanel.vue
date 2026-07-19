@@ -52,9 +52,9 @@
                         </f7-button>
                     </f7-segmented>
                     <div style="display: flex; gap: 8px;">
-                        <f7-button v-if="appMode === 'complex'" small fill @click="showImportPopup = true">
+                        <f7-button small outline @click="showImportPopup = true">
                             <f7-icon f7="arrow_down_doc" size="14" />
-                            Import CSV
+                            <span class="margin-left-half">Import CSV</span>
                         </f7-button>
                         <f7-button small fill color="blue" @click="exportData" :disabled="loading || isExporting || !tableFilter">
                             <f7-icon f7="arrow_down_circle" size="14" :class="{ 'spin': isExporting }" />
@@ -203,7 +203,14 @@
         />
 
         <!-- CSV Import Popup -->
-        <CsvImportPopup :opened="showImportPopup" @close="showImportPopup = false" @import="handleImportData" />
+        <CsvImportPopup 
+            :opened="showImportPopup" 
+            :fields="schemaFields" 
+            :app-id="appStore.currentApp?.id" 
+            :table-id="tableFilter" 
+            @close="showImportPopup = false" 
+            @import="handleImportData" 
+        />
     </div>
 </template>
 

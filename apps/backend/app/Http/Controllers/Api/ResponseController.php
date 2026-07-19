@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\GoogleSheetEnqueueRowJob;
 use App\Models\App;
 use App\Models\Assignment;
 use App\Models\Response;
@@ -270,6 +271,7 @@ class ResponseController extends Controller
 
         $user = $request->user();
         $results = [];
+        $syncedResponseIds = []; // Collect for GSheet dispatch after transaction
 
         Log::info('Sync Push Started', [
             'user_id' => $user->id,
@@ -278,7 +280,7 @@ class ResponseController extends Controller
 
         Log::info('Sync Push Payload JSON', ['payload' => $validated['responses']]);
 
-        DB::transaction(function () use ($validated, $user, &$results) {
+        DB::transaction(function () use ($validated, $user, &$results, &$syncedResponseIds) {
             foreach ($validated['responses'] as $respData) {
                 $assignmentInput = $respData['assignment_id'];
                 Log::debug('Processing Item', ['local_id' => $respData['local_id'], 'assignment_input' => $assignmentInput]);
@@ -533,10 +535,20 @@ class ResponseController extends Controller
                 }
 
                 $results[] = $resItem;
+
+                // Collect response IDs for Google Sheet sync (dispatched after transaction)
+                if ($resItem['status'] === 'success') {
+                    $syncedResponseIds[] = $response->id;
+                }
             }
         });
 
         Log::info('Sync Push Response JSON', ['results' => $results]);
+
+        // Google Sheet Sync — dispatch after transaction commit (DB is now consistent)
+        foreach ($syncedResponseIds as $responseId) {
+            GoogleSheetEnqueueRowJob::dispatch($responseId, 'upsert');
+        }
 
         return response()->json([
             'success' => true,
@@ -550,39 +562,22 @@ class ResponseController extends Controller
      */
     private function applyJsonFilter($query, string $column, string $field, string $operator, $value): void
     {
-        // Sanitize field path to prevent SQL injection in whereRaw
         $sanitizedField = preg_replace('/[^a-zA-Z0-9_\.\-]/', '', $field);
         if (empty($sanitizedField)) {
             return;
         }
 
-        // Support nested fields via JSON query syntax (e.g. 'address.city' or repeat groups)
-        // Laravel JSON syntax: column->field
         $jsonField = "{$column}->".str_replace('.', '->', $sanitizedField);
         $lowerValue = strtolower($value);
 
-        switch ($operator) {
-            case 'equals':
-                $query->whereRaw("LOWER({$jsonField}) = ?", [$lowerValue]);
-                break;
-            case 'contains':
-                $query->whereRaw("LOWER({$jsonField}) like ?", ["%{$lowerValue}%"]);
-                break;
-            case 'starts_with':
-                $query->whereRaw("LOWER({$jsonField}) like ?", ["{$lowerValue}%"]);
-                break;
-            case 'ends_with':
-                $query->whereRaw("LOWER({$jsonField}) like ?", ["%{$lowerValue}"]);
-                break;
-            case 'greater_than':
-                $query->whereRaw("CAST(JSON_UNQUOTE({$jsonField}) AS DECIMAL(10,2)) > ?", [$value]);
-                break;
-            case 'less_than':
-                $query->whereRaw("CAST(JSON_UNQUOTE({$jsonField}) AS DECIMAL(10,2)) < ?", [$value]);
-                break;
-            default:
-                $query->whereRaw("LOWER({$jsonField}) = ?", [$lowerValue]);
-                break;
-        }
+        match ($operator) {
+            'equals' => $query->whereRaw("LOWER({$jsonField}) = ?", [$lowerValue]),
+            'contains' => $query->whereRaw("LOWER({$jsonField}) like ?", ["%{$lowerValue}%"]),
+            'starts_with' => $query->whereRaw("LOWER({$jsonField}) like ?", ["{$lowerValue}%"]),
+            'ends_with' => $query->whereRaw("LOWER({$jsonField}) like ?", ["%{$lowerValue}"]),
+            'greater_than' => $query->whereRaw("CAST(JSON_UNQUOTE({$jsonField}) AS DECIMAL(10,2)) > ?", [$value]),
+            'less_than' => $query->whereRaw("CAST(JSON_UNQUOTE({$jsonField}) AS DECIMAL(10,2)) < ?", [$value]),
+            default => $query->whereRaw("LOWER({$jsonField}) = ?", [$lowerValue]),
+        };
     }
 }

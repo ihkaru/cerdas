@@ -26,7 +26,7 @@ else {
 if ($ForceAll -or ($changedFiles -match "apps/client/") -or ($changedFiles -match "packages/")) {
     Write-Host "`n📦 Client/Packages changes detected." -ForegroundColor Magenta
     
-    Write-Host "🏗️  [Client] Building & Type Checking (vue-tsc + vite)..."
+    Write-Host "🏗️  [Client] Building and Type Checking (vue-tsc + vite)..."
     try {
         pnpm --filter client build
         if ($LASTEXITCODE -ne 0) { throw "Build failed" }

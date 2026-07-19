@@ -49,13 +49,24 @@ class Response extends Model
                 $response->local_id = (string) Str::uuid();
             }
         });
+
+        // Google Sheet Sync — dispatch delete job before soft-delete
+        static::deleting(function ($response) {
+            $table = optional($response->assignment?->tableVersion)->table;
+            if ($table && $table->source_type === 'google_sheets') {
+                $sheetConfig = $table->source_config['google_sheet'] ?? null;
+                if ($sheetConfig && ! empty($sheetConfig['sync_enabled'])) {
+                    \App\Jobs\GoogleSheetEnqueueRowJob::dispatch($response->id, 'delete');
+                }
+            }
+        });
     }
 
     // ========== Relationships ==========
 
     public function assignment(): BelongsTo
     {
-        return $this->belongsTo(Assignment::class);
+        return $this->belongsTo(Assignment::class)->withTrashed();
     }
 
     public function parentResponse(): BelongsTo

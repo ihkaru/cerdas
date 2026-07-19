@@ -18,7 +18,13 @@
                 </div>
 
                 <f7-block class="instructions">
-                    <h4>CSV Format Requirements:</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0;">CSV Format Requirements:</h4>
+                        <f7-button small fill color="blue" @click.stop.prevent="downloadTemplateCSV">
+                            <f7-icon f7="arrow_down_circle" size="14" />
+                            <span class="margin-left-half">Download CSV Template</span>
+                        </f7-button>
+                    </div>
                     <ul>
                         <li>First row must be column headers</li>
                         <li>Each row represents one assignment</li>
@@ -80,6 +86,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { f7 } from 'framework7-vue';
 import { useTableEditor } from '../../composables/useTableEditor';
 
 // ============================================================================
@@ -88,6 +95,9 @@ import { useTableEditor } from '../../composables/useTableEditor';
 
 interface Props {
     opened: boolean;
+    fields?: any[];
+    appId?: string;
+    tableId?: string;
 }
 
 const props = defineProps<Props>();
@@ -116,6 +126,9 @@ const importedCount = ref(0);
 // ============================================================================
 
 const availableFields = computed(() => {
+    if (props.fields && Array.isArray(props.fields) && props.fields.length > 0) {
+        return props.fields;
+    }
     return fields.value || [];
 });
 
@@ -126,6 +139,52 @@ const previewRows = computed(() => {
 // ============================================================================
 // Methods
 // ============================================================================
+
+async function downloadTemplateCSV() {
+    const list = availableFields.value;
+    if (!list || list.length === 0) {
+        f7.dialog.alert('Silakan pilih tabel pada filter toolbar di atas terlebih dahulu.');
+        return;
+    }
+
+    const headers = list.map((f: any) => f.name || f.key || 'field');
+    const sampleValues = list.map((f: any) => `[Contoh ${f.label || f.name}]`);
+    const csvContent = [
+        headers.join(','),
+        sampleValues.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
+    ].join('\r\n');
+
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const finalFileName = `template_import_${props.tableId || props.appId || 'data'}.csv`;
+
+    // 1. Native File System Access API (Modern July 2026 Web Standard)
+    if ('showSaveFilePicker' in window) {
+        try {
+            const handle = await (window as any).showSaveFilePicker({
+                suggestedName: finalFileName,
+                types: [{ description: 'CSV File', accept: { 'text/csv': ['.csv'] } }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            f7.toast.create({ text: '✅ Template CSV Tersimpan!', closeTimeout: 2000 }).open();
+            return;
+        } catch (e) {
+            console.warn('[CSV Template Picker] Handled fallback after cancel/error:', e);
+        }
+    }
+
+    // 2. Standard Blob Anchor Fallback
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = finalFileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000);
+}
 
 function triggerFileInput() {
     fileInput.value?.click();

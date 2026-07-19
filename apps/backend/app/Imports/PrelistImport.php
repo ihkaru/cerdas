@@ -39,8 +39,16 @@ class PrelistImport implements ToCollection, WithHeadingRow
 
     private function createAssignment($row)
     {
-        // Extract known fields
-        $externalId = $row['external_id'] ?? null;
+        // Extract known fields (or fallback to natural ID keys like ID_rumah / id_rumah)
+        $externalId = $row['external_id']
+            ?? $row['id_rumah']
+            ?? $row['id_rumah']
+            ?? $row['ID_rumah']
+            ?? $row['ID_Rumah']
+            ?? $row['id_kk']
+            ?? $row['ID_KK']
+            ?? null;
+
         $orgCode = $row['organization'] ?? null;
         $supervisorEmail = $row['supervisor'] ?? null;
         $enumeratorEmail = $row['enumerator'] ?? null;
@@ -48,7 +56,7 @@ class PrelistImport implements ToCollection, WithHeadingRow
         // Find Organization
         $orgId = null;
         if ($orgCode) {
-            if (!isset($this->orgCache[$orgCode])) {
+            if (! isset($this->orgCache[$orgCode])) {
                 // Find organization by code attached to this app
                 $org = Organization::where('code', $orgCode)
                     ->whereHas('apps', function ($q) {
@@ -62,7 +70,7 @@ class PrelistImport implements ToCollection, WithHeadingRow
         // Find Supervisor
         $supervisorId = null;
         if ($supervisorEmail) {
-            if (!isset($this->supervisorCache[$supervisorEmail])) {
+            if (! isset($this->supervisorCache[$supervisorEmail])) {
                 $user = User::where('email', $supervisorEmail)->first();
                 $this->supervisorCache[$supervisorEmail] = $user?->id;
             }
@@ -72,7 +80,7 @@ class PrelistImport implements ToCollection, WithHeadingRow
         // Find Enumerator
         $enumeratorId = null;
         if ($enumeratorEmail) {
-            if (!isset($this->enumeratorCache[$enumeratorEmail])) {
+            if (! isset($this->enumeratorCache[$enumeratorEmail])) {
                 $user = User::where('email', $enumeratorEmail)->first();
                 $this->enumeratorCache[$enumeratorEmail] = $user?->id;
             }
@@ -86,11 +94,11 @@ class PrelistImport implements ToCollection, WithHeadingRow
         if ($externalId) {
             Assignment::updateOrCreate(
                 [
-                    'table_version_id' => $this->tableVersionId,
+                    'table_id' => $this->tableId,
                     'external_id' => $externalId,
                 ],
                 [
-                    'table_id' => $this->tableId,
+                    'table_version_id' => $this->tableVersionId,
                     'organization_id' => $orgId,
                     'supervisor_id' => $supervisorId,
                     'enumerator_id' => $enumeratorId,

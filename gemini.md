@@ -62,3 +62,28 @@ packages/types  - @cerdas/types (shared strict TS types)
 * `references/SCREEN_FLOW.md` - Screen Flow & Routing Guide
 * `ROADMAP.md` - Feature Roadmap
 * `QUICKSTART.md` - Initial setup guide for new contributors / local dev
+
+## Progress Log
+- **2026-07-19**: Implementasi Google Sheet Sync MVP (DB → Sheet, Opsi B: App-Level Token Owner). Semua komponen selesai:
+  - **DB**: Migration `google_oauth_tokens` + `pending_sheet_rows` (micro-batch staging table)
+  - **Models**: `GoogleOAuthToken` (encrypted tokens) + `PendingSheetRow`
+  - **Services**: `GoogleOAuthService` + `GoogleSheetColumnMapper` + `GoogleSheetsService` (dengan exponential backoff)
+  - **Jobs**: `GoogleSheetEnqueueRowJob` (lightweight, no API call) + `GoogleSheetBatchFlushJob` (tiap 30s, 1 batchUpdate/spreadsheet) + `GoogleSheetInitialExportJob` + `GoogleSheetTokenRefreshJob` (hourly)
+  - **API**: 8 routes via `GoogleSheetSyncController` — OAuth + Table-level connect/disconnect/status/export
+  - **Hook**: `ResponseController::store` dispatch EnqueueRowJob setelah transaction commit; `Response::deleting` observer untuk delete sync
+  - **Frontend**: Types di `@cerdas/types`, `GoogleSheetApi.ts`, composable `useGoogleSheetSync.ts`, komponen `TableSheetSyncPanel.vue` (6 UI states), tab "Sync" di sub-tab bar EditorTabContent, static `oauth-callback.html` untuk postMessage OAuth flow
+  - **Pending**: `GOOGLE_CLIENT_SECRET` + `GOOGLE_REDIRECT_URI` perlu diisi di `.env` sebelum bisa test end-to-end. `GOOGLE_REDIRECT_URI` harus mengarah ke `{EDITOR_URL}/oauth-callback.html` dan didaftarkan di GCP Console.
+- **2026-07-19**: E2E Testing & Bugfixes Google Sheet Sync MVP Selesai:
+  - **Table Model Fix**: Tambah `$table = 'google_oauth_tokens'` eksplisit di model `GoogleOAuthToken` untuk mencegah mismatch auto-infer Laravel `google_o_auth_tokens`.
+  - **Worker Queue Flag**: Tambah `--queue=default,sheets-enqueue,sheets-batch` di `docker-compose.dev.yml` dan `docker-compose.prod.yml` agar queue worker mendengarkan job sinkronisasi Google Sheet.
+  - **Field Mapping Fix**: `GoogleSheetColumnMapper` diperbarui menggunakan `$field['name'] ?? $field['key']` agar cocok dengan JSON data Cerdas, dan men-skip elemen UI layout murni (`separator`, `html_block`).
+  - **Clean Re-Sync**: `GoogleSheetsService::bulkWriteRows` diperbarui memanggil `clearValues('A2:ZZ10000')` sebelum menimpa data, menjamin Sheet selalu 1-to-1 mirror tanpa duplikasi baris.
+  - **Media Absolute URL**: Path media seperti `/storage/responses/...` dikonversi menjadi Full Clickable URL `http://.../media/responses/...` di Google Sheet.
+  - **Auto-Delete Observer**: Observer `static::deleting` dipasang pada Model `Assignment.php` & `GoogleSheetEnqueueRowJob` diperbarui dengan `withTrashed()`, sehingga tombol Delete di UI Data & Monitoring otomatis menghapus baris di Google Sheet via background worker (~30s).
+  - **Metadata Status & Enumerator**: Menambahkan kolom `Status` (`In Progress`, `Submitted`, `Approved`, `Rejected`) dan `Enumerator` di kolom metadata depan Google Sheet.
+- **2026-07-19**: Pengayaan Audit Trail, CSV Template Generator, & Standardisasi Header:
+  - **Status History Audit Log**: Menambahkan kolom `Status History` di Google Sheet Sync & Database (`status_history` JSON column) mencatat riwayat transisi status, ISO UTC timestamp, dan email petugas secara lengkap.
+  - **Initial Status Event**: Event `static::creating` di Model `Assignment` merekam entri pertama `In Progress` secara otomatis.
+  - **Download CSV Template Button**: Menambahkan tombol `Download CSV Template` di UI `CsvImportPopup.vue` menggunakan File System Access API (`showSaveFilePicker`) untuk mengunduh template CSV berformat UTF-8 BOM secara instant berdasarkan field kuesioner aktif.
+  - **Idempotent Import Engine**: `PrelistImport.php` diperbarui dengan UPSERT (`updateOrCreate`) berbasis `table_id` dan fallback natural ID keys (`external_id`, `id_rumah`, `ID_rumah`, `id_kk`), menjamin pengimporan berulang-kali bebas duplikasi data.
+  - **Standardized Header Names**: Standardisasi nama kolom Google Sheet Sync menggunakan `field.name` (`Nama_RT`, `ID_rumah`, `kepala_keluarga_list.nama`) agar 100% simetris dengan CSV Template & siap untuk 2-Way Sync.

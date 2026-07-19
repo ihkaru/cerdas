@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ExcelImportController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\GoogleAuthController;
+use App\Http\Controllers\Api\GoogleSheetSyncController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\ResponseController;
@@ -194,6 +195,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{table}/versions/draft', [TableController::class, 'createDraftVersion']);
         Route::put('/{table}/versions/{version}', [TableController::class, 'updateVersion']);
         Route::post('/{table}/versions/{version}/publish', [TableController::class, 'publishVersion']);
+
+        // Google Sheet Sync — Table-level
+        Route::post('/{table}/sheets/connect', [GoogleSheetSyncController::class, 'connectSheet']);
+        Route::delete('/{table}/sheets/disconnect', [GoogleSheetSyncController::class, 'disconnectSheet']);
+        Route::post('/{table}/sheets/export-all', [GoogleSheetSyncController::class, 'triggerInitialExport']);
+        Route::get('/{table}/sheets/status', [GoogleSheetSyncController::class, 'syncStatus']);
+    });
+
+    // Google Sheet Sync — App-level OAuth token management
+    Route::prefix('google/sheets')->group(function () {
+        Route::get('/auth-url/{app}', [GoogleSheetSyncController::class, 'getAuthUrl']);
+        Route::post('/callback', [GoogleSheetSyncController::class, 'handleCallback']);
+        Route::get('/token-status/{app}', [GoogleSheetSyncController::class, 'tokenStatus']);
+        Route::delete('/disconnect/{app}', [GoogleSheetSyncController::class, 'disconnectApp']);
     });
 
     // Client/Enumeration Routes

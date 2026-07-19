@@ -120,7 +120,7 @@ services:
       context: ./apps/backend
       dockerfile: Dockerfile.prod
     restart: always
-    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90"]
+    command: ["php", "artisan", "queue:work", "--queue=default,sheets-enqueue,sheets-batch", "--tries=3", "--timeout=90"]
     env_file:
       - .env.docker
     dns:

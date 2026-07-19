@@ -37,6 +37,13 @@ return [
 
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
+        // Required for Sheet Sync OAuth2 authorization_code flow.
+        // Not needed for Google Login (which only verifies id_token via client_id).
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        // Redirect URI must point to the editor's static oauth-callback.html page.
+        // That page receives the auth code via URL params and postMessages it to the parent window.
+        // GOOGLE_REDIRECT_URI must also be registered in GCP Console → OAuth 2.0 Client IDs.
+        'redirect_uri' => env('GOOGLE_REDIRECT_URI'),
     ],
 
 ];

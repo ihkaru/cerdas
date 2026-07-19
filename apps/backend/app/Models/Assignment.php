@@ -27,6 +27,37 @@ class Assignment extends Model
             if (empty($model->id)) {
                 $model->id = (string) Str::uuid();
             }
+            if (empty($model->status_history)) {
+                $model->recordStatusChange($model->status ?? 'in_progress');
+            }
+        });
+
+        static::updating(function ($assignment) {
+            if ($assignment->isDirty('status')) {
+                $assignment->recordStatusChange($assignment->status);
+            }
+        });
+
+        static::deleting(function ($assignment) {
+            $table = null;
+
+            if (is_object($assignment->tableVersion) && is_object($assignment->tableVersion->table)) {
+                $table = $assignment->tableVersion->table;
+            } elseif (is_object($assignment->table)) {
+                $table = $assignment->table;
+            } elseif (! empty($assignment->table_id)) {
+                $table = Table::find($assignment->table_id);
+            }
+
+            if ($table && is_object($table) && ($table->source_type ?? null) === 'google_sheets') {
+                $sheetConfig = $table->source_config['google_sheet'] ?? null;
+                if ($sheetConfig && ! empty($sheetConfig['sync_enabled'])) {
+                    $responses = Response::withTrashed()->where('assignment_id', $assignment->id)->get();
+                    foreach ($responses as $response) {
+                        \App\Jobs\GoogleSheetEnqueueRowJob::dispatch($response->id, 'delete');
+                    }
+                }
+            }
         });
     }
 
@@ -38,12 +69,35 @@ class Assignment extends Model
         'enumerator_id',
         'external_id',
         'status',
+        'status_history',
         'prelist_data',
     ];
 
     protected $casts = [
         'prelist_data' => 'array',
+        'status_history' => 'array',
     ];
+
+    /**
+     * Record a status transition entry into status_history audit log.
+     */
+    public function recordStatusChange(?string $newStatus = null, ?User $user = null, ?string $note = null): void
+    {
+        $statusToRecord = $newStatus ?? $this->status ?? 'unknown';
+        $userObj = $user ?? auth()->user();
+
+        $history = $this->status_history ?? [];
+        $history[] = [
+            'status' => $statusToRecord,
+            'timestamp' => now()->toISOString(),
+            'user_id' => $userObj?->id ?? null,
+            'user_email' => $userObj?->email ?? null,
+            'user_name' => $userObj?->name ?? 'System',
+            'note' => $note,
+        ];
+
+        $this->status_history = $history;
+    }
 
     // ========== Relationships ==========
 

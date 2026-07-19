@@ -1,7 +1,7 @@
 # Cerdas Roadmap & Feature Tracker
 
 Dokumen ini melacak fitur jangka panjang (rencana awal) dan fitur yang telah diselesaikan.
-**Status Terakhir Diupdate:** 2026-07-18
+**Status Terakhir Diupdate:** 2026-07-19
 
 ## ✅ Fitur Selesai (Completed Features)
 
@@ -54,6 +54,12 @@ Dokumen ini melacak fitur jangka panjang (rencana awal) dan fitur yang telah dis
 - [x] **Pusat Unduhan APK**: Automatic sync command `php artisan apk:sync-version` caching latest GitHub release metadata, and `ApkDownloadCard` in app dashboard.
 - [x] **Automated Release**: Version tags (`vX.Y.Z`) dan APK build/upload on GitHub releases.
 - [x] **Row-Level Access Control**: Filter penugasan berbasis peran di backend API (`AssignmentController` & `ResponseController`) — enumerator/supervisor hanya dapat mengakses baris data yang ditugaskan ke ID mereka.
+
+### 7. Integration & Export Engine
+- [x] **Google Sheet Sync MVP (App-Level OAuth Token Owner)**: Sinkronisasi 1-ke-1 berkinerja tinggi dari Database ke Google Sheet dengan App-Level OAuth2 Token, Micro-batch Queue Worker (flushing tiap 30s), dan Circuit Breaker rate limit Google API.
+- [x] **Real-Time Event Sync & Auto-Delete Observer**: Integration observers pada Model `Assignment` & `Response` menggunakan `withTrashed()`, menjamin penambahan, pengubahan, dan penghapusan data dari UI *Data & Monitoring* ter-sync otomatis dan seamless ke Google Sheet.
+- [x] **Audit Trail Engine & Status History**: Perekaman riwayat transisi status (`In Progress`, `Submitted`, `Approved`, `Rejected`), timestamp standar ISO UTC, dan email pengguna yang mengubah status secara permanen di database & Google Sheet.
+- [x] **Clickable Media URLs**: Konversi otomatis path foto/lampiran menjadi Full Clickable Media URL yang dapat diklik langsung oleh supervisor dari sel Google Sheet.
 
 ---
 

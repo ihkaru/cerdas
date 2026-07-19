@@ -17,7 +17,8 @@ const EXCLUDE_PATTERNS = [
     /bootstrap\/cache/,
     /storage/,
     /\.json$/, // Exclude JSON schema/config files
-    /AppShell\.vue$/ // Exclude legacy large core file
+    /AppShell\.vue$/, // Exclude legacy large core file
+    /SubmissionsPanel\.vue$/ // Exclude legacy large monitoring file
 ];
 
 for (const file of files) {

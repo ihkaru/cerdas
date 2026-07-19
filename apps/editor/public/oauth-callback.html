@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Google OAuth Callback</title>
+</head>
+<body>
+<script>
+    /**
+     * Google OAuth Callback Page
+     *
+     * Loaded by Google after user grants/denies Sheet Sync permission.
+     * Extracts the authorization code and sends it back to the parent editor
+     * window via postMessage, then closes itself.
+     *
+     * This page is served statically — no framework required.
+     */
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    const error = params.get('error');
+
+    if (error) {
+        // User denied access or error occurred
+        if (window.opener) {
+            window.opener.postMessage(
+                { type: 'GOOGLE_OAUTH_ERROR', error },
+                window.location.origin
+            );
+        }
+        window.close();
+    } else if (code && state) {
+        // Send code + state back to parent window
+        if (window.opener) {
+            window.opener.postMessage(
+                { type: 'GOOGLE_OAUTH_SUCCESS', code, state },
+                window.location.origin
+            );
+        }
+        // Close the popup
+        window.close();
+    } else {
+        document.body.innerHTML = '<p>OAuth callback error: missing code or state parameter.</p>';
+    }
+</script>
+<p style="font-family: sans-serif; color: #666; text-align: center; margin-top: 48px;">
+    Menyelesaikan autentikasi Google... Jendela ini akan menutup otomatis.
+</p>
+</body>
+</html>

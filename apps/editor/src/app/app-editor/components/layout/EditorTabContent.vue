@@ -74,6 +74,11 @@
                             <f7-icon f7="table_badge_more" size="11" />
                             Data Preview
                         </button>
+                        <button class="schema-subtab-btn" :class="{ active: activeSchemaSubTab === 'sync' }"
+                            @click="activeSchemaSubTab = 'sync'">
+                            <f7-icon f7="logo_google" size="11" />
+                            Sync
+                        </button>
                     </div>
                     <!-- Sub-tab content -->
                     <div style="flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;">
@@ -84,7 +89,13 @@
                             @delete="tableEditor.removeField" @duplicate="tableEditor.duplicateField"
                             @reorder="tableEditor.reorderFieldsAtCurrentLevel" @drill-in="tableEditor.drillInto"
                             @drill-up="tableEditor.drillUp" @drill-to="tableEditor.drillToPath" />
-                        <DataPreviewPanel v-else style="flex:1; min-height:0;" />
+                        <DataPreviewPanel v-else-if="activeSchemaSubTab === 'data'" style="flex:1; min-height:0;" />
+                        <div v-else-if="activeSchemaSubTab === 'sync'" style="flex:1; min-height:0; overflow-y:auto;">
+                            <TableSheetSyncPanel
+                                :table-id="tableSelection.currentTableId"
+                                :app-id="tableSelection.appTables?.find((t: any) => t.id === tableSelection.currentTableId)?.app_id ?? ''"
+                            />
+                        </div>
                     </div>
                 </div>
                 <ResizableDivider v-if="!!tableEditor.selectedFieldPath && activeSchemaSubTab === 'fields'"
@@ -167,6 +178,7 @@ import ActionsPanel from '../actions/ActionsPanel.vue';
 import SubmissionsPanel from '../monitoring/SubmissionsPanel.vue';
 import CodeEditorTab from '../code/CodeEditorTab.vue';
 import DataPreviewPanel from '../data/DataPreviewPanel.vue';
+import TableSheetSyncPanel from '../data/TableSheetSyncPanel.vue';
 import TrashModal from '../data/TrashModal.vue';
 import FieldConfigPanel from '../field-config/FieldConfigPanel.vue';
 import FieldList from '../field-list/FieldList.vue';
@@ -200,7 +212,7 @@ const appViewManagement = props.appViewManagement;
 // Local UI State
 const showTrashModal = ref(false);
 // Sub-tab for schema panel right side: 'fields' | 'data'
-const activeSchemaSubTab = ref<'fields' | 'data'>('fields');
+const activeSchemaSubTab = ref<'fields' | 'data' | 'sync'>('fields');
 
 // Expose so parent (AppEditorPage) can switch to data preview after import
 function switchToDataPreview() {
