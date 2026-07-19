@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.38](https://github.com/ihkaru/cerdas/compare/v0.2.37...v0.2.38) (2026-07-19)
+
+
+### Features
+
+* drop console statements in prod builds and migrate editor to logger utility ([ee017ad](https://github.com/ihkaru/cerdas/commit/ee017ad3cc3a1eb68941d32b609fa140ec71dcd5))
+* **editor:** extract AI Context prompt to generateAIPrompt.ts, add Ch8-10 ([e28aa27](https://github.com/ihkaru/cerdas/commit/e28aa2792edae6b664c1849094bf35f916a42473))
+* **examples:** add UMKM, BPJS, and Bansos validations in seksi IV ([ad78982](https://github.com/ihkaru/cerdas/commit/ad78982c7647ce046257d24e24011c5f1087f613))
+* **examples:** auto-compute Jumlah_Kartu_Keluarga via formula_fn, add contextual warning_js ([1a4ef5d](https://github.com/ihkaru/cerdas/commit/1a4ef5dff5ffafe2c9f0761d38e9ea1883f9f605))
+* **examples:** clarify education semantics, add cross-validation for totals ([bfc409a](https://github.com/ihkaru/cerdas/commit/bfc409ae24a6d9e5a6d2c48b13b4f6618b855b2e))
+* **sheets:** implement google sheet sync mvp and audit trail ([b2be9e9](https://github.com/ihkaru/cerdas/commit/b2be9e9a74cac6517c6b1af14bba09c8ee3f3297))
+
+
+### Bug Fixes
+
+* **client:** move esbuild drop option to top-level config for Vite 6 compat ([797d1c0](https://github.com/ihkaru/cerdas/commit/797d1c02e998907865019f5e57e6c47087785404))
+* **editor:** use strict !== undefined for eqeqeq compliance ([18b6605](https://github.com/ihkaru/cerdas/commit/18b6605447e4afe35f993b2e1e097eab1e5b9f33))
+* **examples:** normalize label from Penduduk to Anggota in seksi IV ([9150cf5](https://github.com/ihkaru/cerdas/commit/9150cf5369c8404f52855d8eeb2e8a2cea114973))
+* **examples:** split age 60-69 into 60-64/65-69, add usia kerja cross-validation ([3f33515](https://github.com/ihkaru/cerdas/commit/3f335151da9d52d19c9e5f80951d11040f36a2c3))
+
 ## [0.2.37](https://github.com/ihkaru/cerdas/compare/v0.2.36...v0.2.37) (2026-07-18)
 
 
