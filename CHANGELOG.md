@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.41](https://github.com/ihkaru/cerdas/compare/v0.2.40...v0.2.41) (2026-07-19)
+
+
+### Features
+
+* **sheets:** support arbitrary N-level deeply nested forms with clear parent-child lineage ([e7313c6](https://github.com/ihkaru/cerdas/commit/e7313c619792d689d9843a42c8a349770b4703e8))
+* **sheets:** support dynamic nested repeatable tables sync from json columns ([b09f871](https://github.com/ihkaru/cerdas/commit/b09f87130c9111b95599ecc2ba28812c3cf5027c))
+
 ## [0.2.40](https://github.com/ihkaru/cerdas/compare/v0.2.39...v0.2.40) (2026-07-19)
 
 
