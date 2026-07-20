@@ -9,8 +9,48 @@
     "tabel_sambora": {
       "name": "Data Pendataan Sambora",
       "description": "Data hasil pendataan lapangan Desa Sambora",
-      "source_type": "internal",
-      "source_config": {},
+      "source_type": "google_sheets",
+      "source_config": {
+        "google_sheet": {
+          "tabs": [
+            {
+              "type": "root",
+              "field_key": null,
+              "sheet_gid": 203985485,
+              "sheet_name": "Data Pendataan Sambora"
+            },
+            {
+              "type": "nested",
+              "field_key": "kepala_keluarga_list",
+              "sheet_gid": 1342947136,
+              "sheet_name": "Data Pendataan Sambora - Daftar Kartu Keluarga & Kepala Keluarga di Rumah"
+            },
+            {
+              "type": "nested",
+              "field_key": "daftar_jurusan_kuliah",
+              "sheet_gid": 1263167390,
+              "sheet_name": "Data Pendataan Sambora - Rincian Jurusan Pendidikan Tinggi (D1-S2)"
+            },
+            {
+              "type": "nested",
+              "field_key": "daftar_pekerjaan_lainnya",
+              "sheet_gid": 1188735880,
+              "sheet_name": "Data Pendataan Sambora - Rincian Jenis Pekerjaan Lainnya"
+            },
+            {
+              "type": "nested",
+              "field_key": "daftar_umkm_lainnya",
+              "sheet_gid": 235300861,
+              "sheet_name": "Data Pendataan Sambora - Rincian Nama & Jenis UMKM Lainnya"
+            }
+          ],
+          "sync_enabled": true,
+          "last_synced_at": "2026-07-20T06:14:13.889739Z",
+          "spreadsheet_id": "100meBm-NKXoxnHKS-TioAZWt407vOh5mlcWBgRD70Lg",
+          "spreadsheet_url": "https://docs.google.com/spreadsheets/d/100meBm-NKXoxnHKS-TioAZWt407vOh5mlcWBgRD70Lg/edit?gid=203985485#gid=203985485",
+          "total_rows_synced": 0
+        }
+      },
       "fields": [
         {
           "name": "section_info",
@@ -20,85 +60,136 @@
         {
           "name": "panduan_unit_rumah",
           "type": "html_block",
-          "blockStyle": "info",
           "label": "💡 Panduan Awal Pendataan",
-          "content": "<strong>1 Form = 1 Rumah Fisik (Bangunan)</strong>.<br/>• Jika di dalam rumah terdapat <strong>lebih dari 1 KK</strong>, isikan kolom <i>Jumlah Kartu Keluarga</i> sesuai jumlah KK-nya dan daftarkan semua kepala keluarga pada bagian <i>Daftar Kartu Keluarga & Kepala Keluarga</i>.<br/>• Pastikan Jumlah Kepala Keluarga Laki-laki + Perempuan cocok dengan total KK."
+          "content": "<strong>1 Form = 1 Rumah Fisik (Bangunan)</strong>.<br/>• Jika di dalam rumah terdapat <strong>lebih dari 1 KK</strong>, isikan kolom <i>Jumlah Kartu Keluarga</i> sesuai jumlah KK-nya dan daftarkan semua kepala keluarga pada bagian <i>Daftar Kartu Keluarga & Kepala Keluarga</i>.<br/>• Pastikan Jumlah Kepala Keluarga Laki-laki + Perempuan cocok dengan total KK.",
+          "blockStyle": "info"
         },
         {
           "name": "Nama_RT",
           "type": "select",
           "label": "Nama RT",
-          "required": true,
           "options": [
-            { "value": "RT 001 RW 01 DUSUN MEKAR JAYA", "label": "RT 001 RW 01 DUSUN MEKAR JAYA" },
-            { "value": "RT 002 RW 01 DUSUN MEKAR JAYA", "label": "RT 002 RW 01 DUSUN MEKAR JAYA" },
-            { "value": "RT 003 RW 01 DUSUN MEKAR JAYA", "label": "RT 003 RW 01 DUSUN MEKAR JAYA" },
-            { "value": "RT 004 RW 02 DUSUN MEKAR JAYA", "label": "RT 004 RW 02 DUSUN MEKAR JAYA" },
-            { "value": "RT 005 RW 02 DUSUN MEKAR JAYA", "label": "RT 005 RW 02 DUSUN MEKAR JAYA" },
-            { "value": "RT 006 RW 03 DUSUN TUNAS JAYA", "label": "RT 006 RW 03 DUSUN TUNAS JAYA" },
-            { "value": "RT 007 RW 03 DUSUN TUNAS JAYA", "label": "RT 007 RW 03 DUSUN TUNAS JAYA" },
-            { "value": "RT 008 RW 03 DUSUN TUNAS JAYA", "label": "RT 008 RW 03 DUSUN TUNAS JAYA" },
-            { "value": "RT 009 RW 02 DUSUN TARUNA", "label": "RT 009 RW 02 DUSUN TARUNA" },
-            { "value": "RT 009 RW 03 DUSUN TUNAS JAYA", "label": "RT 009 RW 03 DUSUN TUNAS JAYA" },
-            { "value": "RT 010 RW 03 DUSUN DAMAI", "label": "RT 010 RW 03 DUSUN DAMAI" },
-            { "value": "RT 010 RW 04 DUSUN TUNAS JAYA", "label": "RT 010 RW 04 DUSUN TUNAS JAYA" },
-            { "value": "RT 011 RW 03 DUSUN DAMAI", "label": "RT 011 RW 03 DUSUN DAMAI" },
-            { "value": "RT 011 RW 04 DUSUN TUNAS JAYA", "label": "RT 011 RW 04 DUSUN TUNAS JAYA" },
-            { "value": "RT 013 RW 01 DUSUN MEKAR JAYA", "label": "RT 013 RW 01 DUSUN MEKAR JAYA" },
-            { "value": "RT 014 RW 01 DUSUN MEKAR JAYA", "label": "RT 014 RW 01 DUSUN MEKAR JAYA" },
-            { "value": "RT 015 RW 02 DUSUN MEKAR JAYA", "label": "RT 015 RW 02 DUSUN MEKAR JAYA" }
-          ]
+            {
+              "label": "RT 001 RW 01 DUSUN MEKAR JAYA",
+              "value": "RT 001 RW 01 DUSUN MEKAR JAYA"
+            },
+            {
+              "label": "RT 002 RW 01 DUSUN MEKAR JAYA",
+              "value": "RT 002 RW 01 DUSUN MEKAR JAYA"
+            },
+            {
+              "label": "RT 003 RW 01 DUSUN MEKAR JAYA",
+              "value": "RT 003 RW 01 DUSUN MEKAR JAYA"
+            },
+            {
+              "label": "RT 004 RW 02 DUSUN MEKAR JAYA",
+              "value": "RT 004 RW 02 DUSUN MEKAR JAYA"
+            },
+            {
+              "label": "RT 005 RW 02 DUSUN MEKAR JAYA",
+              "value": "RT 005 RW 02 DUSUN MEKAR JAYA"
+            },
+            {
+              "label": "RT 006 RW 02 DUSUN MEKAR JAYA",
+              "value": "RT 006 RW 02 DUSUN MEKAR JAYA"
+            },
+            {
+              "label": "RT 007 RW 03 DUSUN TUNAS JAYA",
+              "value": "RT 007 RW 03 DUSUN TUNAS JAYA"
+            },
+            {
+              "label": "RT 008 RW 03 DUSUN TUNAS JAYA",
+              "value": "RT 008 RW 03 DUSUN TUNAS JAYA"
+            },
+            {
+              "label": "RT 009 RW 03 DUSUN TUNAS JAYA",
+              "value": "RT 009 RW 03 DUSUN TUNAS JAYA"
+            },
+            {
+              "label": "RT 010 RW 04 DUSUN TUNAS JAYA",
+              "value": "RT 010 RW 04 DUSUN TUNAS JAYA"
+            },
+            {
+              "label": "RT 011 RW 04 DUSUN TUNAS JAYA",
+              "value": "RT 011 RW 04 DUSUN TUNAS JAYA"
+            },
+            {
+              "label": "RT 012 RW 04 DUSUN TUNAS JAYA",
+              "value": "RT 012 RW 04 DUSUN TUNAS JAYA"
+            },
+            {
+              "label": "RT 013 RW 01 DUSUN MEKAR JAYA",
+              "value": "RT 013 RW 01 DUSUN MEKAR JAYA"
+            },
+            {
+              "label": "RT 014 RW 01 DUSUN MEKAR JAYA",
+              "value": "RT 014 RW 01 DUSUN MEKAR JAYA"
+            },
+            {
+              "label": "RT 015 RW 02 DUSUN MEKAR JAYA",
+              "value": "RT 015 RW 02 DUSUN MEKAR JAYA"
+            }
+          ],
+          "required": true
         },
         {
           "name": "ID_rumah",
           "type": "text",
           "label": "ID Rumah",
-          "required": true,
           "readonly": true,
+          "required": true,
           "show_if_fn": "return false;",
           "initial_value_fn": "return 'RMH-' + utils.uuid().substring(0, 8).toUpperCase();"
         },
         {
+          "hint": "Ambil titik koordinat tepat di depan atau di dalam rumah yang sedang didata. Buka pintu/jendela untuk sinyal terbaik.",
           "name": "Lokasi_Geotagging",
           "type": "gps",
           "label": "Lokasi Geotagging (GPS)",
-          "hint": "Ambil titik koordinat tepat di depan atau di dalam rumah yang sedang didata. Buka pintu/jendela untuk sinyal terbaik.",
           "required": true,
-          "allow_manual_input": true,
-          "warning_js": "if (row.Lokasi_Geotagging && row.Lokasi_Geotagging.coords && row.Lokasi_Geotagging.coords.accuracy > 50) { return '⚠️ Akurasi GPS kurang optimal ('+Math.round(row.Lokasi_Geotagging.coords.accuracy)+' meter). Disarankan mengambil titik koordinat di luar ruangan untuk sinyal dan akurasi terbaik.'; } return null;"
+          "warning_js": "if (row.Lokasi_Geotagging && row.Lokasi_Geotagging.coords && row.Lokasi_Geotagging.coords.accuracy > 50) { return '⚠️ Akurasi GPS kurang optimal ('+Math.round(row.Lokasi_Geotagging.coords.accuracy)+' meter). Disarankan mengambil titik koordinat di luar ruangan untuk sinyal dan akurasi terbaik.'; } return null;",
+          "allow_manual_input": true
         },
         {
           "name": "status_kk_fisik",
           "type": "select",
           "label": "Apakah di rumah ini ada keluarga/anggota yang belum pecah KK atau belum memiliki KK fisik sendiri?",
-          "required": true,
           "options": [
-            { "value": "tidak", "label": "Tidak Ada (Semua sudah sesuai KK fisik masing-masing)" },
-            { "value": "gabung", "label": "Ada, dan tinggal bersama/menumpang keluarga utama (misal: anak/menantu/saudara)" },
-            { "value": "mandiri", "label": "Ada, dan tinggal mandiri (misal: sewa rumah/punya rumah sendiri tapi belum terbit KK fisik)" }
-          ]
+            {
+              "label": "Tidak Ada (Semua sudah sesuai KK fisik masing-masing)",
+              "value": "tidak"
+            },
+            {
+              "label": "Ada, dan tinggal bersama/menumpang keluarga utama (misal: anak/menantu/saudara)",
+              "value": "gabung"
+            },
+            {
+              "label": "Ada, dan tinggal mandiri (misal: sewa rumah/punya rumah sendiri tapi belum terbit KK fisik)",
+              "value": "mandiri"
+            }
+          ],
+          "required": true
         },
         {
           "name": "panduan_kk_gabung",
           "type": "html_block",
-          "blockStyle": "info",
           "label": "💡 Petunjuk Pengisian Keluarga Menumpang (Gabung)",
           "content": "Karena tinggal bersama keluarga utama, maka:<br/>• <strong>Jumlah KK di Rumah</strong> diisi <strong>1</strong> (KK keluarga utama/orang tua).<br/>• <strong>Kepala Keluarga</strong> diisi nama Kepala Keluarga di KK fisik tersebut.<br/>• Anggota yang menumpang langsung dihitung sebagai <strong>Anggota Keluarga biasa</strong> di rumah ini.<br/>• <em>Catatan: Jika ada lebih dari 1 pasangan/keluarga menumpang yang masih satu dapur, semuanya tetap dihitung dalam 1 KK utama ini.</em>",
+          "blockStyle": "info",
           "show_if_fn": "return row.status_kk_fisik === 'gabung';"
         },
         {
           "name": "panduan_kk_mandiri",
           "type": "html_block",
-          "blockStyle": "info",
           "label": "💡 Petunjuk Pengisian Keluarga Mandiri tanpa KK Fisik (Mandiri)",
           "content": "Karena tinggal mandiri di rumah sendiri, maka:<br/>• <strong>Jumlah KK di Rumah</strong> diisi <strong>1</strong>.<br/>• <strong>Kepala Keluarga</strong> diisi nama Kepala Keluarga yang bertanggung jawab secara nyata (de facto).<br/>• <strong>Jumlah Anggota Keluarga</strong> diisi jumlah orang yang tinggal secara nyata di rumah ini.<br/>• <em>Catatan: Jika ada lebih dari 1 keluarga mandiri yang menyewa/tinggal bersama tanpa KK fisik, isikan Jumlah KK sesuai jumlah keluarga mandiri tersebut, dan daftarkan masing-masing penanggung jawabnya sebagai Kepala Keluarga.</em>",
+          "blockStyle": "info",
           "show_if_fn": "return row.status_kk_fisik === 'mandiri';"
         },
         {
           "name": "kepala_keluarga_list",
           "type": "nested_form",
           "label": "Daftar Kartu Keluarga & Kepala Keluarga di Rumah",
-          "required": true,
           "fields": [
             {
               "name": "nama_kk",
@@ -106,24 +197,25 @@
               "label": "Nama Kepala Keluarga",
               "required": true
             }
-          ]
+          ],
+          "required": true
         },
         {
+          "hint": "Nomor HP aktif yang bisa dihubungi via WhatsApp. Jika keluarga tidak memiliki WA, isi dengan kode khusus 99998.",
           "name": "Nomor_WhatsApp_ART",
           "type": "text",
           "label": "Nomor WhatsApp Anggota Keluarga",
-          "hint": "Nomor HP aktif yang bisa dihubungi via WhatsApp. Jika keluarga tidak memiliki WA, isi dengan kode khusus 99998.",
           "required": true,
           "placeholder": "08xxxxxxxxxx",
           "validation_js": "const val = String(row.Nomor_WhatsApp_ART || '').trim(); if (!val) { return 'Nomor WhatsApp wajib diisi. Jika tidak memiliki nomor kontak aktif, isikan 99998 secara sadar.'; } if (val !== '99998' && (val.length < 10 || isNaN(Number(val)))) { return 'Nomor WhatsApp tidak valid (wajib berupa angka minimal 10 digit, atau isikan 99998 jika tidak ada).'; } return null;"
         },
         {
+          "hint": "Terisi otomatis sesuai jumlah Kepala Keluarga yang Anda daftarkan di atas.",
           "name": "Jumlah_Kartu_Keluarga",
           "type": "number",
           "label": "Jumlah Kartu Keluarga di Rumah",
-          "hint": "Terisi otomatis sesuai jumlah Kepala Keluarga yang Anda daftarkan di atas.",
-          "required": true,
           "readonly": true,
+          "required": true,
           "formula_fn": "return Array.isArray(row.kepala_keluarga_list) ? row.kepala_keluarga_list.length : 0;",
           "warning_js": "const val = Number(row.Jumlah_Kartu_Keluarga || 0); if (row.status_kk_fisik === 'gabung' && val > 1) { return '⚠️ Status Menumpang biasanya hanya 1 KK (KK induk). Pastikan jumlah ini sudah benar.'; } if (row.status_kk_fisik === 'mandiri' && val === 0) { return '⚠️ Isi minimal 1 KK (de facto), meski belum ada KK fisik terbit.'; } return null;"
         },
@@ -135,17 +227,17 @@
           "validation_js": "const total = Number(row.Jumlah_Anggota_Keluarga_di_Rumah || 0); const laki = Number(row.Jumlah_Orang_Laki_Dirumah || 0); const perempuan = Number(row.Jumlah_Orang_Perempuan_Dirumah || 0); const kkCount = Array.isArray(row.kepala_keluarga_list) ? row.kepala_keluarga_list.length : 0; if (total < kkCount) { return 'Jumlah Anggota Keluarga ('+total+') tidak boleh lebih kecil dari jumlah Kepala Keluarga ('+kkCount+')!'; } if (total !== (laki + perempuan)) { return 'Jumlah Anggota Keluarga ('+total+') wajib sama dengan Jumlah Laki-laki ('+laki+') + Perempuan ('+perempuan+')!'; } return null;"
         },
         {
+          "hint": "Jumlah orang yang tercatat sebagai Kepala Keluarga (posisi di KK) berjenis kelamin laki-laki.",
           "name": "Jenis_Kelamin_KK_Laki",
           "type": "number",
           "label": "Jumlah Kepala Keluarga Laki-laki",
-          "hint": "Jumlah orang yang tercatat sebagai Kepala Keluarga (posisi di KK) berjenis kelamin laki-laki.",
           "required": true
         },
         {
+          "hint": "Jumlah orang yang tercatat sebagai Kepala Keluarga (posisi di KK) berjenis kelamin perempuan (misal: janda/cerai hidup).",
           "name": "Jenis_Kelamin_KK_Perempuan",
           "type": "number",
           "label": "Jumlah Kepala Keluarga Perempuan",
-          "hint": "Jumlah orang yang tercatat sebagai Kepala Keluarga (posisi di KK) berjenis kelamin perempuan (misal: janda/cerai hidup).",
           "required": true
         },
         {
@@ -175,25 +267,46 @@
         {
           "name": "panduan_anggota_mati_pindah",
           "type": "html_block",
-          "blockStyle": "warning",
           "label": "⚠️ PENTING: Penulisan Anggota Keluarga",
-          "content": "Anggota keluarga yang sudah <strong>meninggal dunia</strong> atau <strong>pindah domisili secara de facto</strong> (tidak lagi tinggal di rumah ini) <strong>TIDAK BOLEH</strong> dimasukkan ke dalam perhitungan kelompok usia, pendidikan, maupun pekerjaan di bawah."
+          "content": "Anggota keluarga yang sudah <strong>meninggal dunia</strong> atau <strong>pindah domisili secara de facto</strong> (tidak lagi tinggal di rumah ini) <strong>TIDAK BOLEH</strong> dimasukkan ke dalam perhitungan kelompok usia, pendidikan, maupun pekerjaan di bawah.",
+          "blockStyle": "warning"
         },
         {
+          "hint": "Centang semua agama yang dianut oleh anggota keluarga di rumah ini. Satu rumah bisa memiliki lebih dari satu agama.",
           "name": "Agama_yang_Ada_di_Rumah",
           "type": "checkbox",
           "label": "Pilih Agama yang Ada di Rumah",
-          "hint": "Centang semua agama yang dianut oleh anggota keluarga di rumah ini. Satu rumah bisa memiliki lebih dari satu agama.",
-          "required": true,
           "options": [
-            { "value": "Islam", "label": "Islam" },
-            { "value": "Kristen", "label": "Kristen" },
-            { "value": "Katolik", "label": "Katolik" },
-            { "value": "Konghucu", "label": "Konghucu" },
-            { "value": "Budha", "label": "Budha" },
-            { "value": "Hindu", "label": "Hindu" },
-            { "value": "Lainnya", "label": "Lainnya" }
-          ]
+            {
+              "label": "Islam",
+              "value": "Islam"
+            },
+            {
+              "label": "Kristen",
+              "value": "Kristen"
+            },
+            {
+              "label": "Katolik",
+              "value": "Katolik"
+            },
+            {
+              "label": "Konghucu",
+              "value": "Konghucu"
+            },
+            {
+              "label": "Budha",
+              "value": "Budha"
+            },
+            {
+              "label": "Hindu",
+              "value": "Hindu"
+            },
+            {
+              "label": "Lainnya",
+              "value": "Lainnya"
+            }
+          ],
+          "required": true
         },
         {
           "name": "Jumlah_orang_beragama_islam",
@@ -255,21 +368,57 @@
           "name": "Suku_yang_ada_di_rumah",
           "type": "checkbox",
           "label": "Suku yang ada di rumah",
-          "required": true,
           "options": [
-            { "value": "Dayak", "label": "Dayak" },
-            { "value": "Jawa", "label": "Jawa" },
-            { "value": "Melayu", "label": "Melayu" },
-            { "value": "Bugis", "label": "Bugis" },
-            { "value": "Madura", "label": "Madura" },
-            { "value": "Sunda", "label": "Sunda" },
-            { "value": "Minang", "label": "Minang" },
-            { "value": "Banjar", "label": "Banjar" },
-            { "value": "Batak", "label": "Batak" },
-            { "value": "Cina", "label": "Cina" },
-            { "value": "Flores", "label": "Flores" },
-            { "value": "Lainnya", "label": "Lainnya" }
-          ]
+            {
+              "label": "Dayak",
+              "value": "Dayak"
+            },
+            {
+              "label": "Jawa",
+              "value": "Jawa"
+            },
+            {
+              "label": "Melayu",
+              "value": "Melayu"
+            },
+            {
+              "label": "Bugis",
+              "value": "Bugis"
+            },
+            {
+              "label": "Madura",
+              "value": "Madura"
+            },
+            {
+              "label": "Sunda",
+              "value": "Sunda"
+            },
+            {
+              "label": "Minang",
+              "value": "Minang"
+            },
+            {
+              "label": "Banjar",
+              "value": "Banjar"
+            },
+            {
+              "label": "Batak",
+              "value": "Batak"
+            },
+            {
+              "label": "Cina",
+              "value": "Cina"
+            },
+            {
+              "label": "Flores",
+              "value": "Flores"
+            },
+            {
+              "label": "Lainnya",
+              "value": "Lainnya"
+            }
+          ],
+          "required": true
         },
         {
           "name": "Jumlah_Dayak",
@@ -375,17 +524,17 @@
         {
           "name": "panduan_total_demografi",
           "type": "html_block",
-          "blockStyle": "note",
           "label": "📊 Sinkronisasi Jumlah Jiwa (Kelompok Usia)",
-          "content": "Jumlah total seluruh penduduk pada kelompok usia di bawah ini <strong>wajib sama</strong> dengan <i>Jumlah Anggota Keluarga di Rumah</i> yang telah diinput di atas."
+          "content": "Jumlah total seluruh penduduk pada kelompok usia di bawah ini <strong>wajib sama</strong> dengan <i>Jumlah Anggota Keluarga di Rumah</i> yang telah diinput di atas.",
+          "blockStyle": "note"
         },
         {
           "name": "Total_Usia_Check",
           "type": "number",
           "label": "Total Jiwa (otomatis)",
           "readonly": true,
-          "show_if_fn": "return false;",
           "formula_fn": "return (Number(row.Jumlah_usia_0_4||0)+Number(row.Jumlah_usia_5_9||0)+Number(row.Jumlah_usia_10_14||0)+Number(row.Jumlah_usia_15_19||0)+Number(row.Jumlah_usia_20_24||0)+Number(row.Jumlah_usia_25_29||0)+Number(row.Jumlah_usia_30_34||0)+Number(row.Jumlah_usia_35_39||0)+Number(row.Jumlah_usia_40_44||0)+Number(row.Jumlah_usia_45_49||0)+Number(row.Jumlah_usia_50_54||0)+Number(row.Jumlah_usia_55_59||0)+Number(row.Jumlah_usia_60_64||0)+Number(row.Jumlah_usia_65_69||0)+Number(row.Jumlah_usia_diatas_70||0));",
+          "show_if_fn": "return false;",
           "validation_js": "const total = Number(row.Total_Usia_Check||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && total !== anggota) { return 'Total kelompok usia (' + total + ') harus sama dengan Jumlah Anggota Keluarga (' + anggota + '). Periksa kembali tiap kelompok usia.'; } return null;"
         },
         {
@@ -461,17 +610,17 @@
           "required": true
         },
         {
+          "hint": "Masih termasuk usia kerja (15-64 tahun).",
           "name": "Jumlah_usia_60_64",
           "type": "number",
           "label": "Jumlah usia 60-64 tahun",
-          "hint": "Masih termasuk usia kerja (15-64 tahun).",
           "required": true
         },
         {
+          "hint": "Sudah termasuk kategori Lanjut Usia (lansia, 65 tahun ke atas).",
           "name": "Jumlah_usia_65_69",
           "type": "number",
           "label": "Jumlah usia 65-69 tahun",
-          "hint": "Sudah termasuk kategori Lanjut Usia (lansia, 65 tahun ke atas).",
           "required": true
         },
         {
@@ -488,22 +637,22 @@
         {
           "name": "panduan_pendidikan_pekerjaan",
           "type": "html_block",
-          "blockStyle": "note",
           "label": "🎓 Sinkronisasi Pendidikan & Pekerjaan",
-          "content": "Jumlah total status pendidikan dan jenis pekerjaan di bawah ini masing-masing <strong>wajib sama</strong> dengan total <i>Jumlah Anggota Keluarga di Rumah</i>."
+          "content": "Jumlah total status pendidikan dan jenis pekerjaan di bawah ini masing-masing <strong>wajib sama</strong> dengan total <i>Jumlah Anggota Keluarga di Rumah</i>.",
+          "blockStyle": "note"
         },
         {
+          "hint": "Anak-anak yang belum masuk sekolah sama sekali. Biasanya berusia 0-6 tahun.",
           "name": "Jumlah_Belum_Sekolah",
           "type": "number",
           "label": "Jumlah Belum Sekolah (anak < 7 tahun)",
-          "hint": "Anak-anak yang belum masuk sekolah sama sekali. Biasanya berusia 0-6 tahun.",
           "required": true
         },
         {
+          "hint": "Anggota yang sudah cukup usia sekolah (7 tahun ke atas) tapi tidak pernah bersekolah sama sekali.",
           "name": "Jumlah_Tidak_Pernah_Sekolah",
           "type": "number",
           "label": "Jumlah Tidak Pernah Sekolah (usia > 7 tahun)",
-          "hint": "Anggota yang sudah cukup usia sekolah (7 tahun ke atas) tapi tidak pernah bersekolah sama sekali.",
           "required": true
         },
         {
@@ -512,45 +661,45 @@
           "label": "Sedang Bersekolah Saat Ini"
         },
         {
+          "hint": "Anggota yang saat ini aktif bersekolah di TK atau PAUD.",
           "name": "Jumlah_Sedang_TK",
           "type": "number",
           "label": "Sedang TK / PAUD",
-          "hint": "Anggota yang saat ini aktif bersekolah di TK atau PAUD.",
           "required": true
         },
         {
+          "hint": "Anggota yang saat ini aktif bersekolah di SD, MI, atau sederajat.",
           "name": "Jumlah_Sedang_SD",
           "type": "number",
           "label": "Sedang SD / Sederajat",
-          "hint": "Anggota yang saat ini aktif bersekolah di SD, MI, atau sederajat.",
           "required": true
         },
         {
+          "hint": "Anggota yang saat ini aktif bersekolah di SMP, MTs, atau sederajat.",
           "name": "Jumlah_Sedang_SMP",
           "type": "number",
           "label": "Sedang SMP / Sederajat",
-          "hint": "Anggota yang saat ini aktif bersekolah di SMP, MTs, atau sederajat.",
           "required": true
         },
         {
+          "hint": "Anggota yang saat ini aktif bersekolah di SMA, SMK, MA, atau sederajat.",
           "name": "Jumlah_Sedang_SMA",
           "type": "number",
           "label": "Sedang SMA / SMK / Sederajat",
-          "hint": "Anggota yang saat ini aktif bersekolah di SMA, SMK, MA, atau sederajat.",
           "required": true
         },
         {
+          "hint": "Anggota yang saat ini aktif kuliah (Diploma 1 hingga Sarjana S1).",
           "name": "Jumlah_Sedang_D1_S1",
           "type": "number",
           "label": "Sedang Kuliah D1-S1",
-          "hint": "Anggota yang saat ini aktif kuliah (Diploma 1 hingga Sarjana S1).",
           "required": true
         },
         {
+          "hint": "Anggota yang saat ini aktif kuliah Pascasarjana (S2 atau S3).",
           "name": "Jumlah_Sedang_S2",
           "type": "number",
           "label": "Sedang Kuliah S2/S3",
-          "hint": "Anggota yang saat ini aktif kuliah Pascasarjana (S2 atau S3).",
           "required": true
         },
         {
@@ -561,50 +710,50 @@
         {
           "name": "panduan_tamat",
           "type": "html_block",
-          "blockStyle": "info",
           "label": "📋 Petunjuk Pengisian Ijazah Tertinggi",
-          "content": "Bagian ini <strong>hanya untuk anggota yang sudah tidak bersekolah lagi</strong>.<br/>Isikan ijazah atau pendidikan <strong>tertinggi yang berhasil diselesaikan</strong>.<br/>• <em>Contoh</em>: Bapak usia 45 th, sekolah terakhir SMP → masuk <strong>Tamat SMP</strong>.<br/>• <em>Contoh</em>: Ibu usia 30 th, pernah sekolah SD tapi tidak lulus → masuk <strong>Tidak Tamat SD</strong>.<br/>• Seseorang yang sedang sekolah <strong>TIDAK dihitung di sini</strong>."
+          "content": "Bagian ini <strong>hanya untuk anggota yang sudah tidak bersekolah lagi</strong>.<br/>Isikan ijazah atau pendidikan <strong>tertinggi yang berhasil diselesaikan</strong>.<br/>• <em>Contoh</em>: Bapak usia 45 th, sekolah terakhir SMP → masuk <strong>Tamat SMP</strong>.<br/>• <em>Contoh</em>: Ibu usia 30 th, pernah sekolah SD tapi tidak lulus → masuk <strong>Tidak Tamat SD</strong>.<br/>• Seseorang yang sedang sekolah <strong>TIDAK dihitung di sini</strong>.",
+          "blockStyle": "info"
         },
         {
+          "hint": "Pernah masuk SD tapi tidak sampai lulus/ijazah. Sudah tidak sekolah lagi.",
           "name": "Jumlah_Tidak_Tamat_SD",
           "type": "number",
           "label": "Sudah tidak sekolah: Tidak Tamat SD",
-          "hint": "Pernah masuk SD tapi tidak sampai lulus/ijazah. Sudah tidak sekolah lagi.",
           "required": true
         },
         {
+          "hint": "Lulus SD/MI dan tidak melanjutkan sekolah lagi. Ijazah SD adalah yang tertinggi dimiliki.",
           "name": "Jumlah_Tamat_SD",
           "type": "number",
           "label": "Ijazah tertinggi: SD / Sederajat",
-          "hint": "Lulus SD/MI dan tidak melanjutkan sekolah lagi. Ijazah SD adalah yang tertinggi dimiliki.",
           "required": true
         },
         {
+          "hint": "Lulus SMP/MTs dan tidak melanjutkan sekolah lagi. Ijazah SMP adalah yang tertinggi dimiliki.",
           "name": "Jumlah_Tamat_SMP",
           "type": "number",
           "label": "Ijazah tertinggi: SMP / Sederajat",
-          "hint": "Lulus SMP/MTs dan tidak melanjutkan sekolah lagi. Ijazah SMP adalah yang tertinggi dimiliki.",
           "required": true
         },
         {
+          "hint": "Lulus SMA/SMK/MA dan tidak melanjutkan kuliah. Ijazah SMA adalah yang tertinggi dimiliki.",
           "name": "Jumlah_Tamat_SMA",
           "type": "number",
           "label": "Ijazah tertinggi: SMA / SMK / Sederajat",
-          "hint": "Lulus SMA/SMK/MA dan tidak melanjutkan kuliah. Ijazah SMA adalah yang tertinggi dimiliki.",
           "required": true
         },
         {
+          "hint": "Lulus Diploma atau S1 dan sudah tidak kuliah lagi. Ijazah Diploma/S1 adalah yang tertinggi.",
           "name": "Jumlah_Tamat_D1_S1",
           "type": "number",
           "label": "Ijazah tertinggi: Diploma / Sarjana (D1-S1)",
-          "hint": "Lulus Diploma atau S1 dan sudah tidak kuliah lagi. Ijazah Diploma/S1 adalah yang tertinggi.",
           "required": true
         },
         {
+          "hint": "Lulus S2 atau S3 dan sudah tidak kuliah lagi.",
           "name": "Jumlah_Tamat_S2",
           "type": "number",
           "label": "Ijazah tertinggi: Pascasarjana (S2/S3)",
-          "hint": "Lulus S2 atau S3 dan sudah tidak kuliah lagi.",
           "required": true
         },
         {
@@ -612,16 +761,15 @@
           "type": "number",
           "label": "Total Pendidikan (otomatis)",
           "readonly": true,
-          "show_if_fn": "return false;",
           "formula_fn": "return (Number(row.Jumlah_Belum_Sekolah||0)+Number(row.Jumlah_Tidak_Pernah_Sekolah||0)+Number(row.Jumlah_Sedang_TK||0)+Number(row.Jumlah_Sedang_SD||0)+Number(row.Jumlah_Sedang_SMP||0)+Number(row.Jumlah_Sedang_SMA||0)+Number(row.Jumlah_Sedang_D1_S1||0)+Number(row.Jumlah_Sedang_S2||0)+Number(row.Jumlah_Tidak_Tamat_SD||0)+Number(row.Jumlah_Tamat_SD||0)+Number(row.Jumlah_Tamat_SMP||0)+Number(row.Jumlah_Tamat_SMA||0)+Number(row.Jumlah_Tamat_D1_S1||0)+Number(row.Jumlah_Tamat_S2||0));",
+          "show_if_fn": "return false;",
           "validation_js": "const total = Number(row.Total_Pendidikan_Check||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && total !== anggota) { return 'Total status pendidikan (' + total + ') harus sama dengan Jumlah Anggota Keluarga (' + anggota + '). Periksa kembali: setiap anggota harus dihitung tepat 1 kali (baik Sedang Sekolah maupun Ijazah Tertinggi).'; } return null;"
         },
         {
+          "hint": "Daftarkan nama prodi/jurusan dari setiap anggota keluarga yang sedang atau sudah menyelesaikan kuliah.",
           "name": "daftar_jurusan_kuliah",
           "type": "nested_form",
           "label": "Rincian Jurusan Pendidikan Tinggi (D1-S2)",
-          "hint": "Daftarkan nama prodi/jurusan dari setiap anggota keluarga yang sedang atau sudah menyelesaikan kuliah.",
-          "show_if_fn": "return (Number(row.Jumlah_Sedang_D1_S1||0) + Number(row.Jumlah_Sedang_S2||0) + Number(row.Jumlah_Tamat_D1_S1||0) + Number(row.Jumlah_Tamat_S2||0)) > 0;",
           "fields": [
             {
               "name": "nama_mahasiswa",
@@ -633,44 +781,60 @@
               "name": "jenjang_kuliah",
               "type": "select",
               "label": "Jenjang",
-              "required": true,
               "options": [
-                { "value": "D1", "label": "Diploma 1 (D1)" },
-                { "value": "D2", "label": "Diploma 2 (D2)" },
-                { "value": "D3", "label": "Diploma 3 (D3)" },
-                { "value": "D4_S1", "label": "Diploma 4 / Sarjana (S1)" },
-                { "value": "S2_S3", "label": "Pascasarjana (S2/S3)" }
-              ]
+                {
+                  "label": "Diploma 1 (D1)",
+                  "value": "D1"
+                },
+                {
+                  "label": "Diploma 2 (D2)",
+                  "value": "D2"
+                },
+                {
+                  "label": "Diploma 3 (D3)",
+                  "value": "D3"
+                },
+                {
+                  "label": "Diploma 4 / Sarjana (S1)",
+                  "value": "D4_S1"
+                },
+                {
+                  "label": "Pascasarjana (S2/S3)",
+                  "value": "S2_S3"
+                }
+              ],
+              "required": true
             },
             {
+              "hint": "Contoh: Teknik Informatika, Pendidikan Guru, Kehutanan",
               "name": "nama_jurusan",
               "type": "text",
               "label": "Nama Jurusan / Program Studi",
-              "hint": "Contoh: Teknik Informatika, Pendidikan Guru, Kehutanan",
               "required": true
             }
           ],
+          "show_if_fn": "return (Number(row.Jumlah_Sedang_D1_S1||0) + Number(row.Jumlah_Sedang_S2||0) + Number(row.Jumlah_Tamat_D1_S1||0) + Number(row.Jumlah_Tamat_S2||0)) > 0;",
           "validation_js": "const totalKuliah = (Number(row.Jumlah_Sedang_D1_S1||0) + Number(row.Jumlah_Sedang_S2||0) + Number(row.Jumlah_Tamat_D1_S1||0) + Number(row.Jumlah_Tamat_S2||0)); const list = Array.isArray(value) ? value : []; if (list.length !== totalKuliah) { return 'Jumlah baris rincian prodi/jurusan (' + list.length + ') harus cocok dengan total anggota yang sedang/tamat kuliah (' + totalKuliah + ' orang).'; } return null;"
         },
         {
+          "hint": "Hitung anggota usia 7-18 tahun yang seharusnya masih sekolah tapi sudah keluar/berhenti sekolah.",
           "name": "Jumlah_Anggota_Keluarga_Putus_Sekolah",
           "type": "number",
           "label": "Jumlah Anggota Putus Sekolah (usia 7-18 tahun)",
-          "hint": "Hitung anggota usia 7-18 tahun yang seharusnya masih sekolah tapi sudah keluar/berhenti sekolah.",
           "required": true
         },
         {
+          "hint": "Tulis nama-nama anggota yang putus sekolah, pisahkan dengan koma jika lebih dari satu orang.",
           "name": "Nama_Anggota_Keluarga_Putus_Sekolah",
           "type": "text",
           "label": "Nama Anggota Keluarga Putus Sekolah",
-          "hint": "Tulis nama-nama anggota yang putus sekolah, pisahkan dengan koma jika lebih dari satu orang.",
           "show_if_fn": "return Number(row.Jumlah_Anggota_Keluarga_Putus_Sekolah || 0) > 0;"
         },
         {
+          "hint": "Hitung anggota yang mengalami keterbatasan fisik/sensorik/intelektual secara permanen yang menghambat aktivitas sehari-hari.",
           "name": "Jumlah_orang_dengan_Disabilitas",
           "type": "number",
           "label": "Jumlah orang dengan Disabilitas",
-          "hint": "Hitung anggota yang mengalami keterbatasan fisik/sensorik/intelektual secara permanen yang menghambat aktivitas sehari-hari.",
           "required": true
         },
         {
@@ -692,10 +856,10 @@
           "show_if_fn": "return Number(row.Jumlah_orang_dengan_Disabilitas || 0) > 0;"
         },
         {
+          "hint": "Termasuk buruh tani, nelayan, atau yang bertani/berkebun sebagai mata pencaharian utama.",
           "name": "Jumlah_Petani",
           "type": "number",
           "label": "Jumlah Petani / Nelayan / Pekebun",
-          "hint": "Termasuk buruh tani, nelayan, atau yang bertani/berkebun sebagai mata pencaharian utama.",
           "required": true
         },
         {
@@ -717,38 +881,38 @@
           "required": true
         },
         {
+          "hint": "Anggota yang sudah pensiun dari dinas PNS/TNI/Polri dan tidak bekerja lagi.",
           "name": "Jumlah_Pensiunan",
           "type": "number",
           "label": "Jumlah Pensiunan (PNS/TNI/Polri)",
-          "hint": "Anggota yang sudah pensiun dari dinas PNS/TNI/Polri dan tidak bekerja lagi.",
           "required": true
         },
         {
+          "hint": "Termasuk pedagang, pengusaha kecil, buruh pabrik, karyawan swasta, ojek, dll.",
           "name": "Jumlah_Wiraswasta",
           "type": "number",
           "label": "Jumlah Wiraswasta / Buruh Swasta",
-          "hint": "Termasuk pedagang, pengusaha kecil, buruh pabrik, karyawan swasta, ojek, dll.",
           "required": true
         },
         {
+          "hint": "Anggota yang pekerjaannya mengurus rumah tangga secara penuh dan tidak memiliki pekerjaan lain.",
           "name": "Jumlah_Mengurus_Rumah_Tangga",
           "type": "number",
           "label": "Jumlah Ibu Rumah Tangga (Mengurus Rumah)",
-          "hint": "Anggota yang pekerjaannya mengurus rumah tangga secara penuh dan tidak memiliki pekerjaan lain.",
           "required": true
         },
         {
+          "hint": "Anggota yang statusnya pelajar/mahasiswa aktif dan tidak memiliki pekerjaan sampingan.",
           "name": "Jumlah_Pelajar",
           "type": "number",
           "label": "Jumlah Pelajar / Mahasiswa (tidak bekerja)",
-          "hint": "Anggota yang statusnya pelajar/mahasiswa aktif dan tidak memiliki pekerjaan sampingan.",
           "required": true
         },
         {
+          "hint": "Anggota usia kerja (15-64 th) yang tidak memiliki pekerjaan dan sedang mencari kerja.",
           "name": "Jumlah_Belum_Bekerja",
           "type": "number",
           "label": "Jumlah Pengangguran / Belum Bekerja",
-          "hint": "Anggota usia kerja (15-64 th) yang tidak memiliki pekerjaan dan sedang mencari kerja.",
           "required": true
         },
         {
@@ -762,16 +926,15 @@
           "type": "number",
           "label": "Total Pekerjaan (otomatis)",
           "readonly": true,
-          "show_if_fn": "return false;",
           "formula_fn": "return (Number(row.Jumlah_Petani||0)+Number(row.Jumlah_PNS||0)+Number(row.Jumlah_TNI||0)+Number(row.Jumlah_Polri||0)+Number(row.Jumlah_Pensiunan||0)+Number(row.Jumlah_Wiraswasta||0)+Number(row.Jumlah_Mengurus_Rumah_Tangga||0)+Number(row.Jumlah_Pelajar||0)+Number(row.Jumlah_Belum_Bekerja||0)+Number(row.Jumlah_pekerjaan_lainnya||0));",
+          "show_if_fn": "return false;",
           "validation_js": "const total = Number(row.Total_Pekerjaan_Check||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && total !== anggota) { return 'Total jenis pekerjaan (' + total + ') harus sama dengan Jumlah Anggota Keluarga (' + anggota + '). Setiap anggota harus memiliki tepat 1 status pekerjaan.'; } return null;"
         },
         {
+          "hint": "Daftarkan rincian pekerjaan yang tidak tercantum di atas (misal: Montir, Penjahit, Ojek, Buruh Lepas).",
           "name": "daftar_pekerjaan_lainnya",
           "type": "nested_form",
           "label": "Rincian Jenis Pekerjaan Lainnya",
-          "hint": "Daftarkan rincian pekerjaan yang tidak tercantum di atas (misal: Montir, Penjahit, Ojek, Buruh Lepas).",
-          "show_if_fn": "return Number(row.Jumlah_pekerjaan_lainnya || 0) > 0;",
           "fields": [
             {
               "name": "nama_pekerja",
@@ -780,13 +943,14 @@
               "required": true
             },
             {
+              "hint": "Contoh: Montir Bengkel, Tukang Jahit, Driver Ojol, Pemulung",
               "name": "jenis_pekerjaan",
               "type": "text",
               "label": "Rincian Pekerjaan / Profesi",
-              "hint": "Contoh: Montir Bengkel, Tukang Jahit, Driver Ojol, Pemulung",
               "required": true
             }
           ],
+          "show_if_fn": "return Number(row.Jumlah_pekerjaan_lainnya || 0) > 0;",
           "validation_js": "const target = Number(row.Jumlah_pekerjaan_lainnya || 0); const list = Array.isArray(value) ? value : []; if (list.length !== target) { return 'Jumlah baris rincian pekerjaan lainnya (' + list.length + ') harus cocok dengan Jumlah Pekerjaan Lainnya (' + target + ' orang).'; } return null;"
         },
         {
@@ -799,71 +963,70 @@
           "type": "number",
           "label": "Total Usia Kerja (otomatis)",
           "readonly": true,
-          "show_if_fn": "return false;",
-          "formula_fn": "return (Number(row.Jumlah_usia_15_19||0)+Number(row.Jumlah_usia_20_24||0)+Number(row.Jumlah_usia_25_29||0)+Number(row.Jumlah_usia_30_34||0)+Number(row.Jumlah_usia_35_39||0)+Number(row.Jumlah_usia_40_44||0)+Number(row.Jumlah_usia_45_49||0)+Number(row.Jumlah_usia_50_54||0)+Number(row.Jumlah_usia_55_59||0)+Number(row.Jumlah_usia_60_64||0));"
+          "formula_fn": "return (Number(row.Jumlah_usia_15_19||0)+Number(row.Jumlah_usia_20_24||0)+Number(row.Jumlah_usia_25_29||0)+Number(row.Jumlah_usia_30_34||0)+Number(row.Jumlah_usia_35_39||0)+Number(row.Jumlah_usia_40_44||0)+Number(row.Jumlah_usia_45_49||0)+Number(row.Jumlah_usia_50_54||0)+Number(row.Jumlah_usia_55_59||0)+Number(row.Jumlah_usia_60_64||0));",
+          "show_if_fn": "return false;"
         },
         {
+          "hint": "Bekerja: Memiliki pekerjaan/penghasilan aktif (petani, PNS, wiraswasta, buruh, pengrajin, dll).",
           "name": "Jumlah_Penduduk_usia_kerja_bekerja",
           "type": "number",
           "label": "Jumlah Anggota usia kerja (15-64 tahun) yang bekerja",
-          "hint": "Bekerja: Memiliki pekerjaan/penghasilan aktif (petani, PNS, wiraswasta, buruh, pengrajin, dll).",
           "required": true,
           "warning_js": "const bekerja = Number(row.Jumlah_Penduduk_usia_kerja_bekerja||0); const tidakBekerja = Number(row.Jumlah_Penduduk_usia_kerja_tidak_bekerja||0); const usiaKerja = Number(row.Total_UsiaKerja_Check||0); if (usiaKerja > 0 && (bekerja + tidakBekerja) !== usiaKerja) { return '⚠️ Total anggota usia kerja yang bekerja (' + bekerja + ') + tidak bekerja (' + tidakBekerja + ') = ' + (bekerja+tidakBekerja) + ', seharusnya sama dengan total anggota usia 15-64 tahun (' + usiaKerja + ').'; } return null;"
         },
         {
+          "hint": "Tidak Bekerja: Pengangguran, Ibu Rumah Tangga penuh, atau Pelajar/Mahasiswa (tidak aktif bekerja).",
           "name": "Jumlah_Penduduk_usia_kerja_tidak_bekerja",
           "type": "number",
           "label": "Jumlah Anggota usia kerja (15-64 tahun) yang tidak bekerja",
-          "hint": "Tidak Bekerja: Pengangguran, Ibu Rumah Tangga penuh, atau Pelajar/Mahasiswa (tidak aktif bekerja).",
           "required": true,
           "warning_js": "const bekerja = Number(row.Jumlah_Penduduk_usia_kerja_bekerja||0); const tidakBekerja = Number(row.Jumlah_Penduduk_usia_kerja_tidak_bekerja||0); const usiaKerja = Number(row.Total_UsiaKerja_Check||0); if (usiaKerja > 0 && (bekerja + tidakBekerja) !== usiaKerja) { return '⚠️ Total anggota usia kerja yang bekerja (' + bekerja + ') + tidak bekerja (' + tidakBekerja + ') = ' + (bekerja+tidakBekerja) + ', seharusnya sama dengan total anggota usia 15-64 tahun (' + usiaKerja + ').'; } return null;"
         },
         {
+          "hint": "Hitung jumlah usaha aktif yang dijalankan anggota keluarga ini (warung, bengkel, kebun komersial, dll). Isi 0 jika tidak ada.",
           "name": "Jumlah_UMKM_Dalam_Keluarga",
           "type": "number",
           "label": "Jumlah UMKM dalam Keluarga",
-          "hint": "Hitung jumlah usaha aktif yang dijalankan anggota keluarga ini (warung, bengkel, kebun komersial, dll). Isi 0 jika tidak ada.",
           "required": true,
           "warning_js": "const val = Number(row.Jumlah_UMKM_Dalam_Keluarga||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (val > anggota) { return '⚠️ Jumlah UMKM (' + val + ') melebihi jumlah anggota keluarga (' + anggota + '). Pastikan setiap UMKM dijalankan oleh minimal satu anggota.'; } return null;"
         },
         {
+          "hint": "Jumlah usaha perdagangan (warung, toko, kios, dll).",
           "name": "Perdagangan",
           "type": "number",
           "label": "UMKM Perdagangan",
-          "hint": "Jumlah usaha perdagangan (warung, toko, kios, dll).",
           "show_if_fn": "return Number(row.Jumlah_UMKM_Dalam_Keluarga || 0) > 0;",
           "warning_js": "const total = (Number(row.Perdagangan||0)+Number(row.Kuliner||0)+Number(row.Pertanian_UMKM||0)); const jml = Number(row.Jumlah_UMKM_Dalam_Keluarga||0); if (jml > 0 && total !== jml) { return '⚠️ Total kategori UMKM (' + total + ') belum sama dengan Jumlah UMKM (' + jml + '). Pastikan semua usaha sudah dikategorikan.'; } return null;"
         },
         {
+          "hint": "Jumlah usaha kuliner (warung makan, katering, jajanan, dll).",
           "name": "Kuliner",
           "type": "number",
           "label": "UMKM Kuliner",
-          "hint": "Jumlah usaha kuliner (warung makan, katering, jajanan, dll).",
           "show_if_fn": "return Number(row.Jumlah_UMKM_Dalam_Keluarga || 0) > 0;",
           "warning_js": "const total = (Number(row.Perdagangan||0)+Number(row.Kuliner||0)+Number(row.Pertanian_UMKM||0)); const jml = Number(row.Jumlah_UMKM_Dalam_Keluarga||0); if (jml > 0 && total !== jml) { return '⚠️ Total kategori UMKM (' + total + ') belum sama dengan Jumlah UMKM (' + jml + '). Pastikan semua usaha sudah dikategorikan.'; } return null;"
         },
         {
+          "hint": "Jumlah usaha pertanian/perkebunan komersial (bukan konsumsi sendiri).",
           "name": "Pertanian_UMKM",
           "type": "number",
           "label": "UMKM Pertanian / Perkebunan",
-          "hint": "Jumlah usaha pertanian/perkebunan komersial (bukan konsumsi sendiri).",
           "show_if_fn": "return Number(row.Jumlah_UMKM_Dalam_Keluarga || 0) > 0;",
           "warning_js": "const total = (Number(row.Perdagangan||0)+Number(row.Kuliner||0)+Number(row.Pertanian_UMKM||0)+Number(row.UMKM_Lainnya||0)); const jml = Number(row.Jumlah_UMKM_Dalam_Keluarga||0); if (jml > 0 && total !== jml) { return '⚠️ Total kategori UMKM (' + total + ') belum sama dengan Jumlah UMKM (' + jml + '). Pastikan semua usaha sudah dikategorikan.'; } return null;"
         },
         {
+          "hint": "Jumlah usaha lainnya yang tidak masuk kategori Perdagangan, Kuliner, atau Pertanian.",
           "name": "UMKM_Lainnya",
           "type": "number",
           "label": "UMKM Kategori Lainnya",
-          "hint": "Jumlah usaha lainnya yang tidak masuk kategori Perdagangan, Kuliner, atau Pertanian.",
           "show_if_fn": "return Number(row.Jumlah_UMKM_Dalam_Keluarga || 0) > 0;",
           "warning_js": "const total = (Number(row.Perdagangan||0)+Number(row.Kuliner||0)+Number(row.Pertanian_UMKM||0)+Number(row.UMKM_Lainnya||0)); const jml = Number(row.Jumlah_UMKM_Dalam_Keluarga||0); if (jml > 0 && total !== jml) { return '⚠️ Total kategori UMKM (' + total + ') belum sama dengan Jumlah UMKM (' + jml + '). Pastikan semua usaha sudah dikategorikan.'; } return null;"
         },
         {
+          "hint": "Daftarkan rincian nama dan jenis usaha UMKM kategori lainnya.",
           "name": "daftar_umkm_lainnya",
           "type": "nested_form",
           "label": "Rincian Nama & Jenis UMKM Lainnya",
-          "hint": "Daftarkan rincian nama dan jenis usaha UMKM kategori lainnya.",
-          "show_if_fn": "return Number(row.UMKM_Lainnya || 0) > 0;",
           "fields": [
             {
               "name": "nama_usaha",
@@ -872,20 +1035,21 @@
               "required": true
             },
             {
+              "hint": "Contoh: Bengkel Motor, Salon Kecantikan, Jahit Pakaian, Kios Pulsa",
               "name": "jenis_usaha",
               "type": "text",
               "label": "Jenis Usaha / Produk",
-              "hint": "Contoh: Bengkel Motor, Salon Kecantikan, Jahit Pakaian, Kios Pulsa",
               "required": true
             }
           ],
+          "show_if_fn": "return Number(row.UMKM_Lainnya || 0) > 0;",
           "validation_js": "const target = Number(row.UMKM_Lainnya || 0); const list = Array.isArray(value) ? value : []; if (list.length !== target) { return 'Jumlah baris rincian usaha (' + list.length + ') harus cocok dengan Jumlah UMKM Kategori Lainnya (' + target + ' usaha).'; } return null;"
         },
         {
+          "hint": "Hitung anggota keluarga yang kartu BPJS-nya aktif (bisa Mandiri atau PBI/gratis dari pemerintah). Isi 0 jika tidak ada.",
           "name": "Jumlah_ART_Memiliki_BPJS",
           "type": "number",
           "label": "Jumlah Anggota yang memiliki BPJS Kesehatan",
-          "hint": "Hitung anggota keluarga yang kartu BPJS-nya aktif (bisa Mandiri atau PBI/gratis dari pemerintah). Isi 0 jika tidak ada.",
           "required": true,
           "validation_js": "const val = Number(row.Jumlah_ART_Memiliki_BPJS||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (val < 0) { return 'Jumlah tidak boleh negatif.'; } if (anggota > 0 && val > anggota) { return 'Jumlah pemilik BPJS (' + val + ') tidak boleh melebihi jumlah anggota keluarga (' + anggota + ').'; } return null;"
         },
@@ -893,55 +1057,61 @@
           "name": "Filter_Penerima_Bansos",
           "type": "select",
           "label": "Apakah keluarga ini menerima Bantuan Sosial (Bansos)?",
-          "required": true,
           "options": [
-            { "value": "Ya", "label": "Ya" },
-            { "value": "Tidak", "label": "Tidak" }
-          ]
+            {
+              "label": "Ya",
+              "value": "Ya"
+            },
+            {
+              "label": "Tidak",
+              "value": "Tidak"
+            }
+          ],
+          "required": true
         },
         {
+          "hint": "Hitung anggota yang namanya terdaftar sebagai penerima Sembako/BPNT.",
           "name": "Jml_Penerima_Terdaftar_Sembako_BPNT",
           "type": "number",
           "label": "Jumlah Penerima Sembako / BPNT",
-          "hint": "Hitung anggota yang namanya terdaftar sebagai penerima Sembako/BPNT.",
           "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya';",
           "warning_js": "const val = Number(row.Jml_Penerima_Terdaftar_Sembako_BPNT||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && val > anggota) { return '⚠️ Jumlah penerima Sembako (' + val + ') melebihi jumlah anggota keluarga (' + anggota + ').'; } return null;"
         },
         {
+          "hint": "Tulis nama-nama penerima, pisahkan dengan koma jika lebih dari satu.",
           "name": "Nama_Penerima_Terdaftar_Sembako_BPNT",
           "type": "text",
           "label": "Nama Penerima Sembako / BPNT",
-          "hint": "Tulis nama-nama penerima, pisahkan dengan koma jika lebih dari satu.",
           "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya' && Number(row.Jml_Penerima_Terdaftar_Sembako_BPNT || 0) > 0;"
         },
         {
+          "hint": "Hitung anggota yang namanya terdaftar sebagai penerima PKH.",
           "name": "Jml_Penerima_Terdaftar_PKH",
           "type": "number",
           "label": "Jumlah Penerima PKH",
-          "hint": "Hitung anggota yang namanya terdaftar sebagai penerima PKH.",
           "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya';",
           "warning_js": "const val = Number(row.Jml_Penerima_Terdaftar_PKH||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && val > anggota) { return '⚠️ Jumlah penerima PKH (' + val + ') melebihi jumlah anggota keluarga (' + anggota + ').'; } return null;"
         },
         {
+          "hint": "Tulis nama-nama penerima, pisahkan dengan koma jika lebih dari satu.",
           "name": "Nama_Penerima_Terdaftar_PKH",
           "type": "text",
           "label": "Nama Penerima PKH",
-          "hint": "Tulis nama-nama penerima, pisahkan dengan koma jika lebih dari satu.",
           "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya' && Number(row.Jml_Penerima_Terdaftar_PKH || 0) > 0;"
         },
         {
+          "hint": "Hitung anggota yang namanya terdaftar sebagai penerima BLT.",
           "name": "Jml_Penerima_Terdaftar_BLT",
           "type": "number",
           "label": "Jumlah Penerima BLT",
-          "hint": "Hitung anggota yang namanya terdaftar sebagai penerima BLT.",
           "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya';",
           "warning_js": "const val = Number(row.Jml_Penerima_Terdaftar_BLT||0); const anggota = Number(row.Jumlah_Anggota_Keluarga_di_Rumah||0); if (anggota > 0 && val > anggota) { return '⚠️ Jumlah penerima BLT (' + val + ') melebihi jumlah anggota keluarga (' + anggota + ').'; } return null;"
         },
         {
+          "hint": "Tulis nama-nama penerima, pisahkan dengan koma jika lebih dari satu.",
           "name": "Nama_Penerima_Terdaftar_BLT",
           "type": "text",
           "label": "Nama Penerima BLT",
-          "hint": "Tulis nama-nama penerima, pisahkan dengan koma jika lebih dari satu.",
           "show_if_fn": "return row.Filter_Penerima_Bansos === 'Ya' && Number(row.Jml_Penerima_Terdaftar_BLT || 0) > 0;"
         },
         {
@@ -950,83 +1120,167 @@
           "label": "V. Fisik Bangunan Rumah & Sanitasi"
         },
         {
+          "hint": "Pilih status kepemilikan bangunan fisik rumah ini, bukan status kepemilikan tanahnya.",
           "name": "Kepemilikan_Rumah",
           "type": "select",
           "label": "Kepemilikan Rumah",
-          "hint": "Pilih status kepemilikan bangunan fisik rumah ini, bukan status kepemilikan tanahnya.",
-          "required": true,
           "options": [
-            { "value": "Milik Sendiri", "label": "Milik Sendiri" },
-            { "value": "Milik Keluarga/Warisan", "label": "Milik Keluarga/Warisan" },
-            { "value": "Kontrak", "label": "Kontrak" },
-            { "value": "Sewa", "label": "Sewa" },
-            { "value": "Rumah Dinas", "label": "Rumah Dinas" },
-            { "value": "Menumpang", "label": "Menumpang" },
-            { "value": "Rumah Adat/Komunal", "label": "Rumah Adat/Komunal" },
-            { "value": "Lainnya", "label": "Lainnya" }
-          ]
+            {
+              "label": "Milik Sendiri",
+              "value": "Milik Sendiri"
+            },
+            {
+              "label": "Milik Keluarga/Warisan",
+              "value": "Milik Keluarga/Warisan"
+            },
+            {
+              "label": "Kontrak",
+              "value": "Kontrak"
+            },
+            {
+              "label": "Sewa",
+              "value": "Sewa"
+            },
+            {
+              "label": "Rumah Dinas",
+              "value": "Rumah Dinas"
+            },
+            {
+              "label": "Menumpang",
+              "value": "Menumpang"
+            },
+            {
+              "label": "Rumah Adat/Komunal",
+              "value": "Rumah Adat/Komunal"
+            },
+            {
+              "label": "Lainnya",
+              "value": "Lainnya"
+            }
+          ],
+          "required": true
         },
         {
+          "hint": "Pilih material dinding yang paling mendominasi (menempati area terluas) pada bangunan rumah ini.",
           "name": "Jenis_Dinding_Rumah",
           "type": "select",
           "label": "Jenis Dinding Rumah",
-          "hint": "Pilih material dinding yang paling mendominasi (menempati area terluas) pada bangunan rumah ini.",
-          "required": true,
           "options": [
-            { "value": "Tembok Permanen", "label": "Tembok Permanen" },
-            { "value": "Tembok dan Kayu", "label": "Tembok dan Kayu" },
-            { "value": "Kayu", "label": "Kayu" },
-            { "value": "Lainnya", "label": "Lainnya" }
-          ]
+            {
+              "label": "Tembok Permanen",
+              "value": "Tembok Permanen"
+            },
+            {
+              "label": "Tembok dan Kayu",
+              "value": "Tembok dan Kayu"
+            },
+            {
+              "label": "Kayu",
+              "value": "Kayu"
+            },
+            {
+              "label": "Lainnya",
+              "value": "Lainnya"
+            }
+          ],
+          "required": true
         },
         {
+          "hint": "Pilih material lantai yang paling mendominasi (menempati area terluas) di seluruh rumah.",
           "name": "Jenis_Lantai_Rumah",
           "type": "select",
           "label": "Jenis Lantai Rumah",
-          "hint": "Pilih material lantai yang paling mendominasi (menempati area terluas) di seluruh rumah.",
-          "required": true,
           "options": [
-            { "value": "Keramik", "label": "Keramik" },
-            { "value": "Semen", "label": "Semen" },
-            { "value": "Kayu", "label": "Kayu" },
-            { "value": "Tanah", "label": "Tanah" },
-            { "value": "Lainnya", "label": "Lainnya" }
-          ]
+            {
+              "label": "Keramik",
+              "value": "Keramik"
+            },
+            {
+              "label": "Semen",
+              "value": "Semen"
+            },
+            {
+              "label": "Kayu",
+              "value": "Kayu"
+            },
+            {
+              "label": "Tanah",
+              "value": "Tanah"
+            },
+            {
+              "label": "Lainnya",
+              "value": "Lainnya"
+            }
+          ],
+          "required": true
         },
         {
+          "hint": "Pilih material atap yang paling mendominasi (menempati area terluas) pada bangunan rumah ini.",
           "name": "Jenis_Atap_Rumah",
           "type": "select",
           "label": "Jenis Atap Rumah",
-          "hint": "Pilih material atap yang paling mendominasi (menempati area terluas) pada bangunan rumah ini.",
-          "required": true,
           "options": [
-            { "value": "Genteng", "label": "Genteng" },
-            { "value": "Seng", "label": "Seng" },
-            { "value": "Sirap Kayu", "label": "Sirap Kayu" },
-            { "value": "Daun/Rumbia/Nipah", "label": "Daun/Rumbia/Nipah" }
-          ]
+            {
+              "label": "Genteng",
+              "value": "Genteng"
+            },
+            {
+              "label": "Seng",
+              "value": "Seng"
+            },
+            {
+              "label": "Sirap Kayu",
+              "value": "Sirap Kayu"
+            },
+            {
+              "label": "Daun/Rumbia/Nipah",
+              "value": "Daun/Rumbia/Nipah"
+            }
+          ],
+          "required": true
         },
         {
+          "hint": "Pilih fasilitas yang biasa digunakan anggota keluarga untuk BAB. Jika ada lebih dari satu, pilih yang paling sering dipakai.",
           "name": "Fasilitas_BAB",
           "type": "select",
           "label": "Fasilitas Buang Air Besar (BAB)",
-          "hint": "Pilih fasilitas yang biasa digunakan anggota keluarga untuk BAB. Jika ada lebih dari satu, pilih yang paling sering dipakai.",
-          "required": true,
           "options": [
-            { "value": "Jamban Sendiri", "label": "Jamban Sendiri" },
-            { "value": "Jamban Bersama", "label": "Jamban Bersama" },
-            { "value": "MCK Umum", "label": "MCK Umum" },
-            { "value": "Sungai/Kolam/Kebun", "label": "Sungai/Kolam/Kebun" },
-            { "value": "Lainnya", "label": "Lainnya" }
-          ]
+            {
+              "label": "Jamban Sendiri",
+              "value": "Jamban Sendiri"
+            },
+            {
+              "label": "Jamban Bersama",
+              "value": "Jamban Bersama"
+            },
+            {
+              "label": "MCK Umum",
+              "value": "MCK Umum"
+            },
+            {
+              "label": "Sungai/Kolam/Kebun",
+              "value": "Sungai/Kolam/Kebun"
+            },
+            {
+              "label": "Lainnya",
+              "value": "Lainnya"
+            }
+          ],
+          "required": true
         },
         {
           "name": "Keberadaan_Fasilitas_BAB",
           "type": "select",
           "label": "Keberadaan Fasilitas BAB",
           "options": [
-            { "value": "Di dalam rumah", "label": "Di dalam rumah" },
-            { "value": "Di luar rumah", "label": "Di luar rumah" }
+            {
+              "label": "Di dalam rumah",
+              "value": "Di dalam rumah"
+            },
+            {
+              "label": "Di luar rumah",
+              "value": "Di luar rumah"
+            }
           ],
           "show_if_fn": "return ['Jamban Sendiri', 'Jamban Bersama', 'MCK Umum'].includes(row.Fasilitas_BAB);"
         },
@@ -1035,68 +1289,152 @@
           "type": "select",
           "label": "Kondisi Fasilitas BAB",
           "options": [
-            { "value": "Layak", "label": "Layak" },
-            { "value": "Kurang Layak", "label": "Kurang Layak" },
-            { "value": "Rusak/Tidak Bisa Digunakan", "label": "Rusak/Tidak Bisa Digunakan" }
+            {
+              "label": "Layak",
+              "value": "Layak"
+            },
+            {
+              "label": "Kurang Layak",
+              "value": "Kurang Layak"
+            },
+            {
+              "label": "Rusak/Tidak Bisa Digunakan",
+              "value": "Rusak/Tidak Bisa Digunakan"
+            }
           ],
           "show_if_fn": "return ['Jamban Sendiri', 'Jamban Bersama', 'MCK Umum'].includes(row.Fasilitas_BAB);"
         },
         {
+          "hint": "Pilih sumber air yang utama digunakan untuk konsumsi minum dan memasak sehari-hari.",
           "name": "Sumber_Air_Minum",
           "type": "select",
           "label": "Sumber Air Minum",
-          "hint": "Pilih sumber air yang utama digunakan untuk konsumsi minum dan memasak sehari-hari.",
-          "required": true,
           "options": [
-            { "value": "Air Ledeng/PDAM", "label": "Air Ledeng/PDAM" },
-            { "value": "Sumur Bor/Pompa", "label": "Sumur Bor/Pompa" },
-            { "value": "Sumur Gali", "label": "Sumur Gali" },
-            { "value": "Mata Air", "label": "Mata Air" },
-            { "value": "Air Hujan", "label": "Air Hujan" },
-            { "value": "Air isi Ulang (depot)", "label": "Air isi Ulang (depot)" },
-            { "value": "Air kemasan bermerek", "label": "Air kemasan bermerek" }
-          ]
+            {
+              "label": "Air Ledeng/PDAM",
+              "value": "Air Ledeng/PDAM"
+            },
+            {
+              "label": "Sumur Bor/Pompa",
+              "value": "Sumur Bor/Pompa"
+            },
+            {
+              "label": "Sumur Gali",
+              "value": "Sumur Gali"
+            },
+            {
+              "label": "Mata Air",
+              "value": "Mata Air"
+            },
+            {
+              "label": "Air Hujan",
+              "value": "Air Hujan"
+            },
+            {
+              "label": "Air isi Ulang (depot)",
+              "value": "Air isi Ulang (depot)"
+            },
+            {
+              "label": "Air kemasan bermerek",
+              "value": "Air kemasan bermerek"
+            }
+          ],
+          "required": true
         },
         {
+          "hint": "Pilih sumber air yang utama digunakan untuk mandi, mencuci, dan keperluan kebersihan lainnya (boleh berbeda dari air minum).",
           "name": "Sumber_Air_Bersih",
           "type": "select",
           "label": "Sumber Air Bersih",
-          "hint": "Pilih sumber air yang utama digunakan untuk mandi, mencuci, dan keperluan kebersihan lainnya (boleh berbeda dari air minum).",
-          "required": true,
           "options": [
-            { "value": "Air Ledeng/PDAM", "label": "Air Ledeng/PDAM" },
-            { "value": "Sumur Bor/Pompa", "label": "Sumur Bor/Pompa" },
-            { "value": "Sumur Gali", "label": "Sumur Gali" },
-            { "value": "Mata Air", "label": "Mata Air" },
-            { "value": "Air Hujan", "label": "Air Hujan" },
-            { "value": "Air isi Ulang (depot)", "label": "Air isi Ulang (depot)" },
-            { "value": "Air kemasan bermerek", "label": "Air kemasan bermerek" }
-          ]
+            {
+              "label": "Air Ledeng/PDAM",
+              "value": "Air Ledeng/PDAM"
+            },
+            {
+              "label": "Sumur Bor/Pompa",
+              "value": "Sumur Bor/Pompa"
+            },
+            {
+              "label": "Sumur Gali",
+              "value": "Sumur Gali"
+            },
+            {
+              "label": "Mata Air",
+              "value": "Mata Air"
+            },
+            {
+              "label": "Air Hujan",
+              "value": "Air Hujan"
+            },
+            {
+              "label": "Air isi Ulang (depot)",
+              "value": "Air isi Ulang (depot)"
+            },
+            {
+              "label": "Air kemasan bermerek",
+              "value": "Air kemasan bermerek"
+            }
+          ],
+          "required": true
         },
         {
           "name": "Cara_Membuang_Sampah",
           "type": "checkbox",
           "label": "Cara Membuang Sampah (boleh pilih lebih dari satu)",
-          "required": true,
           "options": [
-            { "value": "Dibakar", "label": "Dibakar" },
-            { "value": "Diangkut Petugas", "label": "Diangkut Petugas (petugas kebersihan datang ke rumah)" },
-            { "value": "Dibuang ke TPS/Kontainer Pemda", "label": "Dibuang ke TPS/Kontainer Pemda (tempat sampah besar di tepi jalan)" },
-            { "value": "Disetor ke bank sampah", "label": "Disetor ke bank sampah" },
-            { "value": "Dikelola sendiri (kompos)", "label": "Dikelola sendiri (kompos)" },
-            { "value": "Dikelola sendiri (pakan ternak/maggot)", "label": "Dikelola sendiri (pakan ternak/maggot)" },
-            { "value": "Dibuang ke sungai/saluran drainase/parit", "label": "Dibuang ke sungai/saluran drainase/parit" },
-            { "value": "Dibuang ke lahan kosong", "label": "Dibuang ke lahan kosong" },
-            { "value": "Ditimbun di pekarangan", "label": "Ditimbun di pekarangan" },
-            { "value": "Dibuang sembarangan", "label": "Dibuang sembarangan" },
-            { "value": "Lainnya", "label": "Lainnya" }
-          ]
+            {
+              "label": "Dibakar",
+              "value": "Dibakar"
+            },
+            {
+              "label": "Diangkut Petugas (petugas kebersihan datang ke rumah)",
+              "value": "Diangkut Petugas"
+            },
+            {
+              "label": "Dibuang ke TPS/Kontainer Pemda (tempat sampah besar di tepi jalan)",
+              "value": "Dibuang ke TPS/Kontainer Pemda"
+            },
+            {
+              "label": "Disetor ke bank sampah",
+              "value": "Disetor ke bank sampah"
+            },
+            {
+              "label": "Dikelola sendiri (kompos)",
+              "value": "Dikelola sendiri (kompos)"
+            },
+            {
+              "label": "Dikelola sendiri (pakan ternak/maggot)",
+              "value": "Dikelola sendiri (pakan ternak/maggot)"
+            },
+            {
+              "label": "Dibuang ke sungai/saluran drainase/parit",
+              "value": "Dibuang ke sungai/saluran drainase/parit"
+            },
+            {
+              "label": "Dibuang ke lahan kosong",
+              "value": "Dibuang ke lahan kosong"
+            },
+            {
+              "label": "Ditimbun di pekarangan",
+              "value": "Ditimbun di pekarangan"
+            },
+            {
+              "label": "Dibuang sembarangan",
+              "value": "Dibuang sembarangan"
+            },
+            {
+              "label": "Lainnya",
+              "value": "Lainnya"
+            }
+          ],
+          "required": true
         },
         {
+          "hint": "Ambil foto dari depan rumah sehingga seluruh tampak muka bangunan terlihat jelas. Pastikan pencahayaan cukup dan gambar tidak buram.",
           "name": "Foto_Rumah",
           "type": "image",
           "label": "Foto Tampak Depan Rumah",
-          "hint": "Ambil foto dari depan rumah sehingga seluruh tampak muka bangunan terlihat jelas. Pastikan pencahayaan cukup dan gambar tidak buram.",
           "required": true
         },
         {
@@ -1108,128 +1446,202 @@
           "name": "Petugas",
           "type": "select",
           "label": "Nama Petugas Pendata (Murid SMK)",
-          "required": true,
-          "initial_value_fn": "return ctx.user.name;",
           "options": [
-            { "value": "KAMAL NURTESAR", "label": "KAMAL NURTESAR" },
-            { "value": "FEBRIANTO", "label": "FEBRIANTO" },
-            { "value": "RISKI NAUFAL SAPUTRO", "label": "RISKI NAUFAL SAPUTRO" },
-            { "value": "FATHUR RIDHO", "label": "FATHUR RIDHO" },
-            { "value": "M. Risky Ardiansyah", "label": "M. Risky Ardiansyah" },
-            { "value": "M. Nanda Nur Fajri", "label": "M. Nanda Nur Fajri" },
-            { "value": "Cika Kirana", "label": "Cika Kirana" },
-            { "value": "Abid Taufiqurahman", "label": "Abid Taufiqurahman" },
-            { "value": "Agus Setiawan", "label": "Agus Setiawan" },
-            { "value": "M. Nazhif Fikri", "label": "M. Nazhif Fikri" },
-            { "value": "Juan Tirta Raya", "label": "Juan Tirta Raya" },
-            { "value": "Revan", "label": "Revan" },
-            { "value": "Jaka", "label": "Jaka" },
-            { "value": "Laras", "label": "Laras" },
-            { "value": "Royan", "label": "Royan" },
-            { "value": "Lalungguh", "label": "Lalungguh" },
-            { "value": "Fahrul", "label": "Fahrul" },
-            { "value": "Catur Setiowati", "label": "Catur Setiowati" }
-          ]
+            {
+              "label": "KAMAL NURTESAR",
+              "value": "KAMAL NURTESAR"
+            },
+            {
+              "label": "FEBRIANTO",
+              "value": "FEBRIANTO"
+            },
+            {
+              "label": "RISKI NAUFAL SAPUTRO",
+              "value": "RISKI NAUFAL SAPUTRO"
+            },
+            {
+              "label": "FATHUR RIDHO",
+              "value": "FATHUR RIDHO"
+            },
+            {
+              "label": "M. Risky Ardiansyah",
+              "value": "M. Risky Ardiansyah"
+            },
+            {
+              "label": "M. Nanda Nur Fajri",
+              "value": "M. Nanda Nur Fajri"
+            },
+            {
+              "label": "Cika Kirana",
+              "value": "Cika Kirana"
+            },
+            {
+              "label": "Abid Taufiqurahman",
+              "value": "Abid Taufiqurahman"
+            },
+            {
+              "label": "Agus Setiawan",
+              "value": "Agus Setiawan"
+            },
+            {
+              "label": "M. Nazhif Fikri",
+              "value": "M. Nazhif Fikri"
+            },
+            {
+              "label": "Juan Tirta Raya",
+              "value": "Juan Tirta Raya"
+            },
+            {
+              "label": "Revan",
+              "value": "Revan"
+            },
+            {
+              "label": "Jaka",
+              "value": "Jaka"
+            },
+            {
+              "label": "Laras",
+              "value": "Laras"
+            },
+            {
+              "label": "Royan",
+              "value": "Royan"
+            },
+            {
+              "label": "Lalungguh",
+              "value": "Lalungguh"
+            },
+            {
+              "label": "Fahrul",
+              "value": "Fahrul"
+            },
+            {
+              "label": "Catur Setiowati",
+              "value": "Catur Setiowati"
+            }
+          ],
+          "required": true,
+          "initial_value_fn": "return ctx.user.name;"
         },
         {
           "name": "Tanggal_Pendataan",
           "type": "date",
           "label": "Tanggal Pendataan",
-          "required": true,
           "readonly": true,
+          "required": true,
           "initial_value_fn": "return utils.today();"
         },
         {
           "name": "Status_Pendataan",
           "type": "select",
           "label": "Status Pengisian Form",
-          "required": true,
           "options": [
-            { "value": "Belum Mulai", "label": "Belum Mulai" },
-            { "value": "Sedang Jalan", "label": "Sedang Jalan" },
-            { "value": "Selesai", "label": "Selesai" }
-          ]
+            {
+              "label": "Belum Mulai",
+              "value": "Belum Mulai"
+            },
+            {
+              "label": "Sedang Jalan",
+              "value": "Sedang Jalan"
+            },
+            {
+              "label": "Selesai",
+              "value": "Selesai"
+            }
+          ],
+          "required": true
         }
       ],
       "settings": {
         "icon": "house_fill",
         "actions": {
-          "header": [
-            {
-              "id": "create",
-              "label": "Tambah Baru",
-              "icon": "plus",
-              "type": "create"
-            }
-          ],
           "row": [
             {
               "id": "edit",
-              "label": "Edit",
               "icon": "pencil",
-              "type": "edit"
+              "type": "edit",
+              "label": "Edit"
             },
             {
               "id": "delete",
-              "label": "Hapus",
               "icon": "trash",
               "type": "delete",
-              "color": "red"
+              "color": "red",
+              "label": "Hapus"
             }
           ],
           "swipe": {
-            "left": ["edit"],
-            "right": ["delete"]
-          }
+            "left": [
+              "edit"
+            ],
+            "right": [
+              "delete"
+            ]
+          },
+          "header": [
+            {
+              "id": "create",
+              "icon": "plus",
+              "type": "create",
+              "label": "Tambah Baru"
+            }
+          ]
         }
       }
     }
   },
   "views": {
     "default": {
-      "table": "tabel_sambora",
-      "name": "Daftar Pendataan",
-      "title": "Daftar Pendataan",
-      "type": "deck",
-      "description": "Daftar hasil pendataan lapangan Sambora",
-      "groupBy": ["Nama_RT"],
       "deck": {
-        "primaryHeaderField": "kepala_keluarga_list.0.nama_kk",
-        "secondaryHeaderField": "Nama_RT",
         "imageField": "Foto_Rumah",
-        "imageShape": "square"
+        "imageShape": "square",
+        "primaryHeaderField": "kepala_keluarga_list.0.nama_kk",
+        "secondaryHeaderField": "Nama_RT"
       },
-      "actions": ["edit", "delete"]
+      "name": "Daftar Pendataan",
+      "type": "deck",
+      "table": "tabel_sambora",
+      "title": "Daftar Pendataan",
+      "actions": [
+        "edit",
+        "delete"
+      ],
+      "groupBy": [
+        "Nama_RT"
+      ],
+      "description": "Daftar hasil pendataan lapangan Sambora"
     },
     "map_view": {
-      "table": "tabel_sambora",
-      "name": "Peta Pendataan",
-      "title": "Peta Lokasi Rumah",
-      "type": "map",
-      "description": "Peta sebaran lokasi geotagging pendataan rumah",
       "map": {
-        "gps_column": "Lokasi_Geotagging",
         "label": "kepala_keluarga_list.0.nama_kk",
-        "subtitle": "Nama_RT"
+        "subtitle": "Nama_RT",
+        "gps_column": "Lokasi_Geotagging"
       },
-      "actions": ["edit", "delete"]
+      "name": "Peta Pendataan",
+      "type": "map",
+      "table": "tabel_sambora",
+      "title": "Peta Lokasi Rumah",
+      "actions": [
+        "edit",
+        "delete"
+      ],
+      "description": "Peta sebaran lokasi geotagging pendataan rumah"
     }
   },
   "navigation": [
     {
       "id": "nav_home",
+      "icon": "list_bullet",
       "type": "view",
       "view": "default",
-      "label": "Daftar",
-      "icon": "list_bullet"
+      "label": "Daftar"
     },
     {
       "id": "nav_map",
+      "icon": "map_fill",
       "type": "view",
       "view": "map_view",
-      "label": "Peta Lokasi",
-      "icon": "map_fill"
+      "label": "Peta Lokasi"
     }
   ]
 }
-
