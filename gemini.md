@@ -6,8 +6,9 @@
 Cerdas adalah AppSheet clone - self-hosted, offline-first, no-code app builder untuk data collection.
 
 ## Active Version & Status
-* **Version**: 0.2.40 (Stable Release)
-* **Latest Changes**: Supported optional manual coordinates input in GpsField (controlled by allow_manual_input flag), added nested repeatable forms for Jurusan Pendidikan Tinggi, Pekerjaan Lainnya, and UMKM Lainnya with strict count validations in examples/kuesioner-sambora/schema.json, and preserved active Google Sheets sync configuration on App Schema updates.
+* **Version**: 0.2.43 (Latest Release — GitHub tag `v0.2.43`, APK: `cerdas-v0.2.43.apk`)
+* **Latest Changes**: Fix search input text visibility (CSS UA stylesheet conflict), custom searchbar bypass F7 display:none, fix tab navbar overlap, infinite scroll pagination optimization.
+* ⚠️ **Versioning Note**: `package.json` versi internal (0.2.49) berbeda dari GitHub Release tag (v0.2.43). Lihat `docs/VERSIONING_SOP.md` untuk penjelasan dan cara mencegahnya.
 
 ## Core Technical Stack
 * **Backend**: Laravel 12 (PURE API only - no Blade, no Filament, Sanctum Auth)
@@ -32,8 +33,15 @@ packages/types  - @cerdas/types (shared strict TS types)
 5. **No Browser Tool**: NEVER use browser tools. User will verify manually.
 6. **Double-Spacing / Spacing Rules**: Follow [docs/framework7_vue_theming_best_practices.md](file:///c:/projects/cerdas/docs/framework7_vue_theming_best_practices.md) for custom theming and device notches. Use inline styles with `!important` on `<f7-page-content>` to override F7 page content double-spacing bugs.
 7. **Version Single Source of Truth**: NEVER hardcode version strings in Vue templates. Use `__APP_VERSION__` injected by Vite.
-8. **UI Flow Documentation**: Always update `references/SCREEN_FLOW.md` when changing/fixing UI navigation, routing, or screen states.
-9. **SOP Update Rule**: Update `gemini.md` with important changes or progress to maintain work memory.
+8. **Versioning Discipline — CRITICAL**: NEVER manually edit `package.json` version number. Release Please is the sole authority for version bumping. Violating this causes version disconnect between GitHub tag and package.json. See `docs/VERSIONING_SOP.md`.
+9. **"Bump Version" / "Naikan Versi" Protocol**: When user requests a version bump or release, ALWAYS follow this exact flow — do NOT touch package.json manually:
+   - Step 1: Ensure all commits are pushed to `main` with conventional commit format
+   - Step 2: Find open Release Please PR → `GITHUB_TOKEN="" gh pr list --repo ihkaru/cerdas --label "autorelease: pending"`
+   - Step 3: Merge it → `GITHUB_TOKEN="" gh pr merge <NUMBER> --merge --repo ihkaru/cerdas`
+   - Step 4: Monitor → `GITHUB_TOKEN="" gh run list --repo ihkaru/cerdas --limit 8`
+   - Step 5: Confirm APK available → `GITHUB_TOKEN="" gh release view --repo ihkaru/cerdas`
+10. **UI Flow Documentation**: Always update `references/SCREEN_FLOW.md` when changing/fixing UI navigation, routing, or screen states.
+11. **SOP Update Rule**: Update `gemini.md` with important changes or progress to maintain work memory.
 
 ## Critical Architecture Decisions
 1. **Context Object Pattern**: Use `AppContext` for dependency injection in the service layer.
@@ -55,6 +63,7 @@ packages/types  - @cerdas/types (shared strict TS types)
 * `docs/STATUS_FLOWS.md` - Assignment status state machine diagram
 * `docs/FORM_EDITOR_WORKFLOW.md` - Detailed workflow for the visual form/view editor
 * `docs/framework7_vue_theming_best_practices.md` - F7 theming, notch handling, spacing bug fixes
+* `docs/VERSIONING_SOP.md` - **Versioning SOP**: Release Please + package.json sync rules, conventional commits, release flow
 * `docs/ANDROID_BUILD_GUIDE.md` - Android build, signing, and APK release guide
 * `docs/COOLIFY_GUIDE.md` - Production deployment guide (Coolify + Docker)
 * `docs/DOCKER_DEV.md` - Local development with Docker backend
