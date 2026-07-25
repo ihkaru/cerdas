@@ -114,7 +114,12 @@ const updateFilter = (val: any) => {
 .filter-sticky-container {
     position: relative;
     z-index: 90;
+    /* Pin light-mode colors explicitly - F7 dark mode inherits #fff text color */
     background: #ffffff !important;
+    color: #111827 !important;
+    --f7-text-color: #111827;
+    /* Force light color scheme so browser dark mode doesn't override input text */
+    color-scheme: light;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     padding-bottom: 6px;
 }
@@ -278,14 +283,13 @@ const updateFilter = (val: any) => {
 }
 
 .custom-search-input {
-    width: 100%;
-    height: 100%;
+    /* Visual-only overrides - NO layout/sizing (UA stylesheet handles width correctly) */
     background: transparent;
     border: none;
     outline: none;
+    font-family: inherit;
     font-size: 14px;
-    color: var(--f7-text-color, #111827) !important;
-    padding: 0;
+    caret-color: #111827;
 }
 
 .custom-search-input::placeholder {
