@@ -98,18 +98,29 @@ const updateFilter = (val: any) => {
 
 <style scoped>
 .filter-sticky-container {
-    position: sticky;
-    top: 0;
+    position: relative;
     z-index: 90;
-    background: rgba(255, 255, 255, 0.8) !important;
-    backdrop-filter: blur(16px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    background: #ffffff !important;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     padding-bottom: 6px;
 }
 
 .search-wrapper {
+    display: flex !important;
+    align-items: center !important;
     padding: 10px 12px 6px 12px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.flex-shrink-1 {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+.margin-left-half {
+    margin-left: 6px !important;
+    flex-shrink: 0 !important;
 }
 
 /* Customizing Framework7 searchbar inputs for premium aesthetics */
