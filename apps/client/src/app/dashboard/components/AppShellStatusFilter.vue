@@ -1,11 +1,25 @@
 <template>
     <div class="filter-sticky-container">
         <!-- Search Bar with Actions -->
-        <div class="search-wrapper display-flex align-items-center">
-            <f7-searchbar :disable-button="false" placeholder="Cari data..." :clear-button="true" :value="searchQuery"
-                @input="updateSearch($event.target.value)" @clear="updateSearch('')"
-                class="searchbar-compact flex-shrink-1" inline>
-            </f7-searchbar>
+        <div class="search-wrapper">
+            <div class="custom-searchbar-container flex-shrink-1">
+                <i class="f7-icons search-icon">search</i>
+                <input 
+                    type="text" 
+                    placeholder="Cari data..." 
+                    :value="searchQuery" 
+                    @input="updateSearch(($event.target as HTMLInputElement).value)"
+                    class="custom-search-input"
+                />
+                <button 
+                    v-if="searchQuery" 
+                    type="button" 
+                    @click="updateSearch('')" 
+                    class="clear-button"
+                >
+                    <i class="f7-icons">multiply_circle_fill</i>
+                </button>
+            </div>
 
             <button type="button" class="action-button margin-left-half" @click="$emit('open-sort')" aria-label="Sort">
                 <SvgIcon name="arrow_up_arrow_down" :size="18" />
@@ -123,38 +137,6 @@ const updateFilter = (val: any) => {
     flex-shrink: 0 !important;
 }
 
-/* Customizing Framework7 searchbar inputs for premium aesthetics */
-.searchbar-compact {
-    --f7-searchbar-height: 38px;
-    width: 100%;
-}
-
-:deep(.searchbar) {
-    background: #f3f4f6 !important;
-    border-radius: 12px !important;
-    transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    border: 1px solid transparent !important;
-    box-shadow: none !important;
-}
-
-:deep(.searchbar.searchbar-enabled), :deep(.searchbar-focused) {
-    background: #ffffff !important;
-    border-color: rgba(33, 150, 243, 0.4) !important;
-    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1) !important;
-}
-
-:deep(.searchbar input) {
-    background: transparent !important;
-    border-radius: 12px !important;
-    font-size: 14px !important;
-    padding-left: 36px !important;
-    color: #111827 !important;
-}
-
-:deep(.searchbar-icon) {
-    opacity: 0.5;
-}
-
 /* Premium Rounded Action Buttons */
 .action-button {
     display: flex;
@@ -265,6 +247,66 @@ const updateFilter = (val: any) => {
 .segment-item.active .count-badge {
     background: rgba(33, 150, 243, 0.1);
     color: var(--f7-theme-color, #2196f3);
+}
+
+/* Custom Premium Searchbar */
+.custom-searchbar-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: #f3f4f6;
+    border-radius: 12px;
+    height: 38px;
+    width: 100%;
+    padding: 0 12px;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.custom-searchbar-container:focus-within {
+    background: #ffffff;
+    border-color: rgba(33, 150, 243, 0.4);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.search-icon {
+    font-size: 16px;
+    color: #9ca3af;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.custom-search-input {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: #111827;
+    padding: 0;
+}
+
+.custom-search-input::placeholder {
+    color: #9ca3af;
+}
+
+.clear-button {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+.clear-button i {
+    font-size: 16px;
 }
 </style>
 
