@@ -1,6 +1,6 @@
 {
   "name": "cerdas",
-  "version": "0.2.41",
+  "version": "0.2.42",
   "private": true,
   "type": "module",
   "description": "Self-hosted, offline-first, no-code app builder for data collection",
@@ -26,6 +26,7 @@
     "@commitlint/config-conventional": "^20.4.1",
     "@typescript-eslint/eslint-plugin": "^8.53.0",
     "@typescript-eslint/parser": "^8.53.0",
+    "@vue/tsconfig": "^0.8.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-sonarjs": "^3.0.7",
     "eslint-plugin-vue": "^10.6.2",

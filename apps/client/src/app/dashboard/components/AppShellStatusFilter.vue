@@ -4,7 +4,7 @@
         <div class="search-wrapper display-flex align-items-center">
             <f7-searchbar :disable-button="false" placeholder="Cari data..." :clear-button="true" :value="searchQuery"
                 @input="updateSearch($event.target.value)" @clear="updateSearch('')"
-                class="searchbar-compact flex-shrink-1" inline custom-search>
+                class="searchbar-compact flex-shrink-1" inline>
             </f7-searchbar>
 
             <button type="button" class="action-button margin-left-half" @click="$emit('open-sort')" aria-label="Sort">
