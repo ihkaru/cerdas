@@ -859,6 +859,6 @@ const handleAppNavClick = (item: Record<string, unknown>) => {
 
 /* Fix double navbar offset spacing in Case 1 and Case 2 tabs */
 .tab.page-content {
-    padding-top: 0 !important;
+    padding-top: calc(var(--f7-navbar-height) + var(--f7-safe-area-top, 0px)) !important;
 }
 </style>
