@@ -65,7 +65,7 @@
                                     @action="handleRowAction" />
                                 
                                 <!-- Infinite Loader -->
-                                <div v-if="hasMore" class="padding text-align-center">
+                                <div v-if="hasMore" :ref="setSentinelRef" class="padding text-align-center">
                                     <f7-preloader />
                                 </div>
 
@@ -140,7 +140,7 @@
                                         :actions="rowActions" :swipe-config="swipeConfig" @action="handleRowAction" />
                         
                         <!-- Infinite Loader -->
-                        <div v-if="hasMore" class="padding text-align-center">
+                        <div v-if="hasMore" :ref="setSentinelRef" class="padding text-align-center">
                             <f7-preloader />
                         </div>
                     </div>
@@ -242,7 +242,7 @@
                             @open-assignment="handleShowPreview" @row-action="handleRowAction" />
 
                         <!-- Infinite Loader -->
-                        <div v-if="hasMore" class="padding text-align-center">
+                        <div v-if="hasMore" :ref="setSentinelRef" class="padding text-align-center">
                             <f7-preloader />
                         </div>
                     </div>
@@ -272,7 +272,7 @@
 
 <script setup lang="ts">
 import { f7 } from 'framework7-vue';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
 
 // Version
 const appClientVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
@@ -522,13 +522,57 @@ const refresh = async (done: () => void) => {
 const renderLimit = ref(50);
 const hasMore = computed(() => filteredAssignments.value.length > renderLimit.value);
 
+let isLoadingMore = false;
 const loadMore = () => {
-    if (!hasMore.value) return;
+    if (!hasMore.value || isLoadingMore) return;
+    isLoadingMore = true;
     renderLimit.value += 50;
+    nextTick(() => {
+        isLoadingMore = false;
+    });
 };
 
-watch(() => filteredAssignments.value.length, () => { renderLimit.value = 50; });
+watch([statusFilter, searchQuery, activeView, () => filteredAssignments.value.length], () => {
+    renderLimit.value = 50;
+});
 const displayedAssignments = computed(() => filteredAssignments.value.slice(0, renderLimit.value));
+
+// IntersectionObserver Sentinel for Infinite Scroll
+let observer: IntersectionObserver | null = null;
+const setupObserver = (el: HTMLElement | null) => {
+    if (observer) {
+        observer.disconnect();
+        observer = null;
+    }
+    if (!el) return;
+
+    observer = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        if (entry && entry.isIntersecting) {
+            loadMore();
+        }
+    }, {
+        rootMargin: '150px',
+    });
+
+    observer.observe(el);
+};
+
+const setSentinelRef = (el: any) => {
+    const domEl = el?.$el || el;
+    if (domEl instanceof HTMLElement) {
+        setupObserver(domEl);
+    } else if (!domEl) {
+        setupObserver(null);
+    }
+};
+
+onUnmounted(() => {
+    if (observer) {
+        observer.disconnect();
+        observer = null;
+    }
+});
 
 // --- 5. Action Handlers ---
 const actionsSheetOpen = ref(false);
