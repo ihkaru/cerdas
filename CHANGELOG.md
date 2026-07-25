@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.42](https://github.com/ihkaru/cerdas/compare/v0.2.41...v0.2.42) (2026-07-25)
+
+
+### Bug Fixes
+
+* remove custom-search from searchbar & bump version to 0.2.42 ([bbf4f05](https://github.com/ihkaru/cerdas/commit/bbf4f05eee60b954e660442da216455fa9849336))
+* **sheets:** use valid deterministic UUID v5 for child response ID to fix DB length truncation ([5cd600c](https://github.com/ihkaru/cerdas/commit/5cd600c548d6b48589284ec657ccd10b70d01e94))
+
 ## [0.2.41](https://github.com/ihkaru/cerdas/compare/v0.2.40...v0.2.41) (2026-07-19)
 
 
