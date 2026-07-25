@@ -20,7 +20,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # 5. Sync to Android
 Write-Host "🔄 Syncing to Android..." -ForegroundColor Green
-npx cap sync android
+pnpm exec cap sync android
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Sync Failed!" -ForegroundColor Red
@@ -29,7 +29,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # 6. Run on Connected Device
 Write-Host "📱 Running on connected Android device (Release mode)..." -ForegroundColor Green
-npx cap run android --flavor prod --target release
+pnpm exec cap run android --flavor prod --target release
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Run Failed! Is your device connected and authorized?" -ForegroundColor Red

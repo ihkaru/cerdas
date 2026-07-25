@@ -78,7 +78,7 @@ if ($WebOnly) {
 # Step 3: Capacitor sync
 Write-Host "[3/4] Syncing to Android (cap sync)..." -ForegroundColor Yellow
 Push-Location $CLIENT_DIR
-npx cap sync android
+pnpm exec cap sync android
 $SYNC_EXIT = $LASTEXITCODE
 Pop-Location
 

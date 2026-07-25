@@ -16,12 +16,17 @@ export interface Notification {
     created_at: string;
 }
 
+import { useAuthStore } from '@/stores/auth.store';
+
 export const useNotificationStore = defineStore('notification', () => {
     const notifications = ref<Notification[]>([]);
     const unreadCount = ref(0);
     const loading = ref(false);
 
     async function fetchNotifications() {
+        const authStore = useAuthStore();
+        if (!authStore.token) return;
+
         loading.value = true;
         try {
             const res = await ApiClient.get('/notifications');

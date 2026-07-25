@@ -1,5 +1,5 @@
 import { autocompletion, type CompletionContext, type Completion } from '@codemirror/autocomplete';
-import { type Extension } from '@codemirror/state';
+import type { Extension } from '@codemirror/state';
 
 export interface SchemaField {
     id: string;

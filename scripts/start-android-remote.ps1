@@ -50,7 +50,7 @@ else {
 # 5. Sync Capacitor
 Write-Host "[5/7] Syncing Capacitor..." -ForegroundColor Yellow
 Push-Location $ClientDir
-npx cap sync android
+pnpm exec cap sync android
 Pop-Location
 
 # 6. Start ONLY the client dev server (no backend needed)
@@ -91,7 +91,7 @@ else {
 # 8. Open Android Studio
 Write-Host "[8/8] Opening Android Studio..." -ForegroundColor Yellow
 Push-Location $ClientDir
-npx cap open android
+pnpm exec cap open android
 Pop-Location
 
 Write-Host ""

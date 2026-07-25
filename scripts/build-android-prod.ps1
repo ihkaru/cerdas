@@ -32,7 +32,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # 5. Sync to Android
 Write-Host "🔄 Syncing to Android..." -ForegroundColor Green
-npx cap sync android
+pnpm exec cap sync android
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Sync Failed!" -ForegroundColor Red
@@ -77,7 +77,7 @@ Write-Host "✨ APK Generated: $APK_DEST" -ForegroundColor Cyan
 
 # 8. Open Android Studio (Optional now)
 # Write-Host "🤖 Opening Android Studio..." -ForegroundColor Green
-# npx cap open android
+# pnpm exec cap open android
 
 Write-Host "✅ Build & Signing Complete!" -ForegroundColor Cyan
 Write-Host "🚀 You can find your signed APK at: $APK_DEST" -ForegroundColor Green

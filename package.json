@@ -2,6 +2,7 @@
   "name": "cerdas",
   "version": "0.2.41",
   "private": true,
+  "type": "module",
   "description": "Self-hosted, offline-first, no-code app builder for data collection",
   "scripts": {
     "dev:client": "pnpm --filter client dev",
@@ -16,30 +17,26 @@
     "typecheck": "pnpm -r typecheck",
     "prepare": "husky",
     "sync-version": "node scripts/sync-version.mjs",
-    "version:patch": "cd apps/client && npm version patch --no-git-tag-version && cd ../.. && node scripts/sync-version.mjs",
-    "version:minor": "cd apps/client && npm version minor --no-git-tag-version && cd ../.. && node scripts/sync-version.mjs",
-    "version:major": "cd apps/client && npm version major --no-git-tag-version && cd ../.. && node scripts/sync-version.mjs"
+    "version:patch": "node -e \"const {execSync}=require('child_process');process.chdir('apps/client');execSync('npm version patch --no-git-tag-version');process.chdir('../..');execSync('node scripts/sync-version.mjs');\"",
+    "version:minor": "node -e \"const {execSync}=require('child_process');process.chdir('apps/client');execSync('npm version minor --no-git-tag-version');process.chdir('../..');execSync('node scripts/sync-version.mjs');\"",
+    "version:major": "node -e \"const {execSync}=require('child_process');process.chdir('apps/client');execSync('npm version major --no-git-tag-version');process.chdir('../..');execSync('node scripts/sync-version.mjs');\""
   },
   "devDependencies": {
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
+    "@typescript-eslint/eslint-plugin": "^8.53.0",
+    "@typescript-eslint/parser": "^8.53.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-sonarjs": "^3.0.7",
+    "eslint-plugin-vue": "^10.6.2",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "type-fest": "^5.4.4",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vue-eslint-parser": "^10.4.1"
   },
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@11.17.0",
   "engines": {
     "node": ">=22.0.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "sql.js": "1.11.0",
-      "braces": "3.0.3",
-      "micromatch": "4.0.8",
-      "@isaacs/brace-expansion": "5.0.1"
-    }
   }
 }

@@ -86,7 +86,7 @@ jobs:
       - name: Add & Sync Capacitor Android
         working-directory: apps/client
         run: |
-          npx cap sync android
+          pnpm exec cap sync android
 
       - name: Decode keystore
         run: |

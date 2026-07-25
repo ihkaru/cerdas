@@ -154,8 +154,10 @@ onMounted(() => {
     // Get initial path
     currentPath.value = window.location.pathname;
 
-    // Fetch notifications
-    notificationStore.fetchNotifications();
+    // Fetch notifications if user is logged in
+    if (authStore.isAuthenticated) {
+        notificationStore.fetchNotifications();
+    }
 
     // Listen to real-time notifications
     if (authStore.user?.id) {
