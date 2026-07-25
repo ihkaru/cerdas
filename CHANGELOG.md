@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.43](https://github.com/ihkaru/cerdas/compare/v0.2.42...v0.2.43) (2026-07-25)
+
+
+### Bug Fixes
+
+* **client:** adjust tab padding top offset to prevent navbar overlap & bump 0.2.47 ([0a111f9](https://github.com/ihkaru/cerdas/commit/0a111f9605a1e23fa4fcafe58dc3a67dc548cf33))
+* **client:** fix search input text visibility & layout sizing issues (bump to 0.2.49) ([4d0d3d4](https://github.com/ihkaru/cerdas/commit/4d0d3d4b51ca985628654fc7867479f495759a1a))
+* **client:** fix searchbar display flex and sticky offset & bump 0.2.45 ([53011f8](https://github.com/ihkaru/cerdas/commit/53011f8e5257db1d31d0d161a056b52b7f800aab))
+* **client:** optimize infinite scroll pagination watcher and sentinel & bump version to 0.2.43 ([dc51026](https://github.com/ihkaru/cerdas/commit/dc51026b84839bd1af60eac9a7ec1b19e4ef382c))
+* **client:** use !important to force search input text visibility & bump 0.2.48 ([9b9930d](https://github.com/ihkaru/cerdas/commit/9b9930d87edb2b5d576a1e911367a4270842e4a0))
+* **client:** use bulletproof custom searchbar to bypass F7 display none & bump 0.2.46 ([df82995](https://github.com/ihkaru/cerdas/commit/df829951d344cf866473c3df029c121da19b3310))
+* **docker:** update Node base image to node:22-alpine for pnpm v11 compatibility in Coolify ([bde72e2](https://github.com/ihkaru/cerdas/commit/bde72e2c55dabd8fa6e81c5cec9562b8c61a660d))
+
 ## [0.2.42](https://github.com/ihkaru/cerdas/compare/v0.2.41...v0.2.42) (2026-07-25)
 
 
