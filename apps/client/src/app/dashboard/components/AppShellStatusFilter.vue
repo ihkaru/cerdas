@@ -284,7 +284,7 @@ const updateFilter = (val: any) => {
     border: none;
     outline: none;
     font-size: 14px;
-    color: #111827;
+    color: var(--f7-text-color, #111827) !important;
     padding: 0;
 }
 
