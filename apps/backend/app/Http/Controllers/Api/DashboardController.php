@@ -40,6 +40,9 @@ class DashboardController extends Controller
             $appIds = App::withTrashed()->pluck('id');
         } else {
             $appIds = $user->getAccessibleAppIds();
+            // Ensure creator's soft-deleted apps are tracked for delta sync
+            $createdAppIds = App::withTrashed()->where('created_by', $user->id)->pluck('id')->toArray();
+            $appIds = array_values(array_unique(array_merge($appIds, $createdAppIds)));
         }
 
         $appsQuery = App::query()->whereIn('id', $appIds);
@@ -48,10 +51,11 @@ class DashboardController extends Controller
             $since = \Carbon\Carbon::parse($updatedSince);
 
             // Critical Fix: An app is "updated" for a user if:
-            // 1. The App record itself changed.
+            // 1. The App record itself changed (updated_at) or was soft-deleted (deleted_at).
             // 2. The User's membership for that app was just created/updated.
             $appsQuery->withTrashed()->where(function ($q) use ($since, $user) {
                 $q->where('updated_at', '>=', $since)
+                    ->orWhere('deleted_at', '>=', $since)
                     ->orWhereHas('memberships', function ($mq) use ($since, $user) {
                         $mq->where('user_id', $user->id)
                             ->where('updated_at', '>=', $since);
@@ -108,7 +112,11 @@ class DashboardController extends Controller
         $tablesQuery = Table::whereIn('app_id', $appIds)->with('latestVersion');
 
         if ($updatedSince) {
-            $tablesQuery->withTrashed()->where('updated_at', '>=', \Carbon\Carbon::parse($updatedSince));
+            $since = \Carbon\Carbon::parse($updatedSince);
+            $tablesQuery->withTrashed()->where(function ($q) use ($since) {
+                $q->where('updated_at', '>=', $since)
+                    ->orWhere('deleted_at', '>=', $since);
+            });
         }
 
         $allQueriedTables = $tablesQuery->get();

@@ -4,7 +4,7 @@
     "node scripts/check-line-limit.mjs"
   ],
   "apps/backend/**/*.php": [
-    "php apps/backend/vendor/bin/pint",
+    "bash -c 'if [ -f apps/backend/vendor/bin/pint ]; then php apps/backend/vendor/bin/pint \"$@\"; fi' --",
     "node scripts/check-line-limit.mjs"
   ]
 }

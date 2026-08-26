@@ -135,8 +135,16 @@ const handleSync = async () => {
 };
 
 const refresh = async (done: () => void) => {
-    await dashboardStore.loadData(true);
-    done();
+    try {
+        if (navigator.onLine) {
+            await sync.sync();
+        }
+        await dashboardStore.loadData(true);
+    } catch (e) {
+        console.error('Pull-to-refresh sync error:', e);
+    } finally {
+        done();
+    }
 };
 
 const handleLogout = async () => {
