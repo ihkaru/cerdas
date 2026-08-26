@@ -91,7 +91,7 @@ function validateTypeSpecifics(
         }
     }
 
-    if (fieldType === 'nested_form') {
+    if (fieldType === 'nested_form' || fieldType === 'nested') {
         if (!Array.isArray(f.fields)) {
             errors.push({ path: `${path}.fields`, message: 'Nested form must have a "fields" array', severity: 'error' });
         } else {
