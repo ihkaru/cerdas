@@ -63,6 +63,13 @@
                     <f7-icon f7="building_2_fill" />
                     <span>Organizations</span>
                 </a>
+                <a href="javascript:void(0)" @click.prevent="showTrashModal = true" class="nav-item">
+                    <f7-icon f7="trash_fill" />
+                    <span>Trash</span>
+                    <span v-if="appStore.trashedApps?.length" class="sidebar-badge margin-left-auto">
+                        {{ appStore.trashedApps.length }}
+                    </span>
+                </a>
             </nav>
 
             <div class="sidebar-section">
@@ -81,6 +88,9 @@
                 </a>
             </div>
         </aside>
+
+        <!-- App Trash Modal -->
+        <AppTrashModal v-model:opened="showTrashModal" @restored="onAppRestored" />
     </div>
 </template>
 
@@ -92,11 +102,13 @@ import { f7, f7ready } from 'framework7-vue';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
 import NotificationList from './NotificationList.vue';
+import AppTrashModal from '@/pages/components/AppTrashModal.vue';
 
 const authStore = useAuthStore();
 const appStore = useAppStore();
 const notificationStore = useNotificationStore();
 const { unreadCount } = storeToRefs(notificationStore);
+const showTrashModal = ref(false);
 
 // ============================================================================
 // State
@@ -154,9 +166,10 @@ onMounted(() => {
     // Get initial path
     currentPath.value = window.location.pathname;
 
-    // Fetch notifications if user is logged in
+    // Fetch notifications & trashed apps if user is logged in
     if (authStore.isAuthenticated) {
         notificationStore.fetchNotifications();
+        appStore.fetchTrashedApps();
     }
 
     // Listen to real-time notifications
@@ -176,9 +189,17 @@ onMounted(() => {
         f7.on('routeChange', (newRoute: { path: string }) => {
             console.log('[LAYOUT] Route changed to:', newRoute.path);
             currentPath.value = newRoute.path;
+            if (authStore.isAuthenticated) {
+                appStore.fetchTrashedApps();
+            }
         });
     });
 });
+
+function onAppRestored() {
+    appStore.fetchApps();
+    appStore.fetchTrashedApps();
+}
 
 // Helper for navigation since this component is outside f7-view
 const navigate = (path: string) => {
@@ -196,6 +217,18 @@ const navigate = (path: string) => {
 </script>
 
 <style scoped>
+.sidebar-badge {
+    background: #ef4444;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 10px;
+}
+
+.margin-left-auto {
+    margin-left: auto;
+}
 /* ============================================================================
    Shared Desktop Layout Styles
    ============================================================================ */

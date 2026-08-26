@@ -95,11 +95,12 @@ async function restore(table: any) {
 
 function forceDelete(id: string | number) {
     f7.dialog.prompt(
-        'This action is IRREVERSIBLE. It will permanently delete this Data Source and all its records and assignments. Type "EXACTLY DELETE" to confirm:',
+        'This action is IRREVERSIBLE. It will permanently delete this Data Source and all its records and assignments. Type "DELETE" to confirm:',
         'Permanently Delete Data Source?',
         async (val) => {
-            if (val !== 'EXACTLY DELETE') {
-                f7.dialog.alert('Typo in confirmation. Deletion cancelled.');
+            const normalized = val?.trim().toUpperCase();
+            if (normalized !== 'DELETE' && normalized !== 'EXACTLY DELETE') {
+                f7.dialog.alert('Confirmation text did not match. Permanent deletion cancelled.');
                 return;
             }
             f7.preloader.show();

@@ -627,24 +627,126 @@ class AppController extends Controller
     }
 
     /**
-     * Delete an app (Soft Delete)
+     * Get soft-deleted apps for the current user (Trash / Bin)
+     */
+    public function trashed(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->isSuperAdmin()) {
+            $apps = App::onlyTrashed()
+                ->withCount(['tables', 'memberships'])
+                ->orderBy('deleted_at', 'desc')
+                ->get();
+        } else {
+            $apps = App::onlyTrashed()
+                ->where(function ($query) use ($user) {
+                    $query->where('created_by', $user->id)
+                        ->orWhereHas('memberships', function ($q) use ($user) {
+                            $q->where('user_id', $user->id)
+                                ->where('role', 'app_admin');
+                        });
+                })
+                ->withCount(['tables', 'memberships'])
+                ->orderBy('deleted_at', 'desc')
+                ->get();
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $apps,
+        ]);
+    }
+
+    /**
+     * Delete an app (Soft Delete / Move to Trash)
      */
     public function destroy(Request $request, App $app): JsonResponse
     {
         $user = $request->user();
 
         $membership = $user->getMembershipForApp($app->id);
-        if (! $membership || $membership->role !== 'app_admin') {
-            if (! $user->isSuperAdmin()) {
-                return response()->json(['success' => false, 'message' => 'Access denied. Admin privileges required.'], 403);
-            }
+        $isCreator = $app->created_by === $user->id;
+        $isAdmin = $membership && $membership->role === 'app_admin';
+
+        if (! $isCreator && ! $isAdmin && ! $user->isSuperAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Access denied. Admin privileges required.'], 403);
         }
 
         $app->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'App deleted successfully',
+            'message' => 'App moved to trash successfully. You can restore it within 30 days.',
+        ]);
+    }
+
+    /**
+     * Restore a soft-deleted app
+     */
+    public function restore(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+
+        $app = App::onlyTrashed()->where(function ($q) use ($id) {
+            $q->where('id', $id)->orWhere('slug', $id);
+        })->firstOrFail();
+
+        $isCreator = $app->created_by === $user->id;
+        $membership = AppMembership::where('app_id', $app->id)->where('user_id', $user->id)->first();
+        $isAdmin = $membership && $membership->role === 'app_admin';
+
+        if (! $isCreator && ! $isAdmin && ! $user->isSuperAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Access denied. Admin privileges required.'], 403);
+        }
+
+        $app->restore();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'App restored successfully',
+            'data' => $app->fresh(['tables', 'memberships']),
+        ]);
+    }
+
+    /**
+     * Permanently delete an app from trash
+     */
+    public function forceDestroy(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+
+        $app = App::onlyTrashed()->where(function ($q) use ($id) {
+            $q->where('id', $id)->orWhere('slug', $id);
+        })->firstOrFail();
+
+        $isCreator = $app->created_by === $user->id;
+        $membership = AppMembership::where('app_id', $app->id)->where('user_id', $user->id)->first();
+        $isAdmin = $membership && $membership->role === 'app_admin';
+
+        if (! $isCreator && ! $isAdmin && ! $user->isSuperAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Access denied. Admin privileges required.'], 403);
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($app) {
+            foreach ($app->tables()->withTrashed()->get() as $table) {
+                \App\Models\AppRecord::withTrashed()->where('table_id', $table->id)->forceDelete();
+                \App\Models\Assignment::withTrashed()->where('table_id', $table->id)->forceDelete();
+                $table->versions()->delete();
+                $table->forceDelete();
+            }
+
+            $app->views()->delete();
+            $app->joinLinks()->delete();
+            $app->invitations()->delete();
+            $app->memberships()->delete();
+            $app->organizations()->detach();
+            $app->forceDelete();
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'App and all associated data permanently deleted',
         ]);
     }
 }

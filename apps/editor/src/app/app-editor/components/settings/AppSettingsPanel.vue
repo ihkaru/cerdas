@@ -174,11 +174,11 @@
             <f7-list-item group-title>Danger Zone</f7-list-item>
             <f7-list-item>
                 <div class="display-flex flex-direction-column w-full padding-vertical-half gap-half">
-                    <div class="text-color-red font-bold">Delete Application</div>
-                    <div class="text-color-gray size-12">Once deleted, all data, tables, and surveyor submissions associated with this app will be permanently removed.</div>
+                    <div class="text-color-red font-bold">Move Application to Trash</div>
+                    <div class="text-color-gray size-12">Formulir dan akses pengumpulan data akan dinonaktifkan. Aplikasi akan disimpan aman di tempat sampah selama 30 hari sebelum dihapus permanen.</div>
                     <f7-button fill color="red" @click="handleDeleteApp" class="margin-top">
                         <f7-icon f7="trash_fill" class="margin-right-half" />
-                        Delete Application
+                        Move to Trash
                     </f7-button>
                 </div>
             </f7-list-item>
@@ -392,20 +392,33 @@ async function toggleAppStatus(checkedState: boolean) {
 
 async function handleDeleteApp() {
     if (!appStore.currentApp) return;
+    const appName = appStore.currentApp.name;
+    const appId = appStore.currentApp.id;
+
     f7.dialog.confirm(
-        `Are you sure you want to delete "${appStore.currentApp.name}"? This action cannot be undone and will delete all tables and data.`,
-        'Delete Application',
+        `Pindahkan aplikasi "${appName}" ke Sampah?\n\nFormulir dan akses survei akan dinonaktifkan. Anda dapat memulihkannya kembali kapan saja dalam 30 hari ke depan.`,
+        'Pindahkan ke Sampah',
         async () => {
-            f7.dialog.preloader('Deleting application...');
+            f7.dialog.preloader('Memindahkan ke sampah...');
             try {
-                const appId = appStore.currentApp!.id;
                 await appStore.deleteApp(appId);
                 f7.dialog.close();
-                f7.toast.show({ text: 'Application deleted', position: 'center', closeTimeout: 2000 });
-                f7.views.main.router.navigate('/');
+                f7.toast.show({
+                    text: `Aplikasi "${appName}" dipindahkan ke Sampah`,
+                    position: 'center',
+                    closeTimeout: 2000,
+                    cssClass: 'color-orange'
+                });
+                
+                const f7Instance = f7 || (window as any).f7;
+                if (f7Instance?.views?.main?.router) {
+                    f7Instance.views.main.router.navigate('/applications');
+                } else {
+                    window.location.href = '/applications';
+                }
             } catch (e: any) {
                 f7.dialog.close();
-                f7.dialog.alert('Delete failed: ' + e.message);
+                f7.dialog.alert('Gagal memindahkan ke sampah: ' + e.message);
             }
         }
     );

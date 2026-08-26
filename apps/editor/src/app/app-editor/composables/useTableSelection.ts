@@ -197,17 +197,24 @@ export function useTableSelection(
     }
 
     function handleDeleteTable(table: any) {
-        f7.dialog.prompt(
-            `Type the name of the table exactly (<b>${table.name}</b>) to confirm deletion:`,
-            'Delete Data Source',
-            (typedName) => {
-                if (typedName !== table.name) {
-                    f7.dialog.alert('Name does not match. Deletion cancelled.');
-                    return;
+        f7.dialog.create({
+            title: 'Delete Data Source',
+            text: `Are you sure you want to move Data Source <b>"${table.name}"</b> to Trash?<br><br><span style="color: #64748b; font-size: 13px;">You can restore it anytime from Trash within 30 days.</span>`,
+            buttons: [
+                {
+                    text: 'Cancel',
+                    color: 'gray'
+                },
+                {
+                    text: 'Move to Trash',
+                    color: 'red',
+                    cssClass: 'font-bold',
+                    onClick: () => {
+                        doDelete(table.id, false);
+                    }
                 }
-                doDelete(table.id, false);
-            }
-        );
+            ]
+        }).open();
     }
 
     return {

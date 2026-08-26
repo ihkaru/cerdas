@@ -123,9 +123,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('apps')->group(function () {
         Route::get('/', [AppController::class, 'index']);
         Route::post('/', [AppController::class, 'store']);
+        Route::get('/trashed', [AppController::class, 'trashed']);
         Route::get('/{app}', [AppController::class, 'show']);
         Route::put('/{app}', [AppController::class, 'update']);
         Route::delete('/{app}', [AppController::class, 'destroy']);
+        Route::post('/{id}/restore', [AppController::class, 'restore']);
+        Route::delete('/{id}/force', [AppController::class, 'forceDestroy']);
         Route::get('/{app}/context', [AppController::class, 'context']);
         Route::get('/{app}/responses', [ResponseController::class, 'indexForEditor']);
 

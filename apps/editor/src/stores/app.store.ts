@@ -9,6 +9,7 @@ export interface AppModel {
     description: string;
     slug: string;
     created_at: string;
+    deleted_at?: string;
     pending_tasks?: number;
     tables_count?: number;
     memberships_count?: number;
@@ -37,6 +38,7 @@ export interface RecentTable {
 
 export const useAppStore = defineStore('app', () => {
     const apps = ref<AppModel[]>([]);
+    const trashedApps = ref<AppModel[]>([]);
     const currentApp = ref<AppModel | null>(null);
     const stats = ref<DashboardStats>({
         totalApps: 0,
@@ -60,6 +62,22 @@ export const useAppStore = defineStore('app', () => {
         } catch (e: any) {
             error.value = e.message || 'Failed to fetch apps';
             log.error('fetchApps failed', e);
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function fetchTrashedApps() {
+        const log = useLogger('AppStore');
+        log.debug('fetchTrashedApps called');
+        loading.value = true;
+        try {
+            const res = await ApiClient.get('/apps/trashed');
+            trashedApps.value = res.data.data || [];
+            log.debug('fetchTrashedApps received:', trashedApps.value.length, 'apps');
+        } catch (e: any) {
+            error.value = e.message || 'Failed to fetch trashed apps';
+            log.error('fetchTrashedApps failed', e);
         } finally {
             loading.value = false;
         }
@@ -166,13 +184,53 @@ export const useAppStore = defineStore('app', () => {
     async function deleteApp(idOrSlug: number | string) {
         loading.value = true;
         try {
+            const target = apps.value.find(a => String(a.id) === String(idOrSlug) || a.slug === idOrSlug);
             await ApiClient.delete(`/apps/${idOrSlug}`);
             apps.value = apps.value.filter(a => String(a.id) !== String(idOrSlug) && a.slug !== idOrSlug);
             if (currentApp.value && (String(currentApp.value.id) === String(idOrSlug) || currentApp.value.slug === idOrSlug)) {
                 currentApp.value = null;
             }
+            if (target) {
+                trashedApps.value.unshift({
+                    ...target,
+                    deleted_at: new Date().toISOString()
+                });
+            }
         } catch (e: any) {
             error.value = e.message || 'Failed to delete app';
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function restoreApp(idOrSlug: number | string) {
+        loading.value = true;
+        try {
+            const res = await ApiClient.post(`/apps/${idOrSlug}/restore`);
+            const restored = res.data.data;
+            trashedApps.value = trashedApps.value.filter(a => String(a.id) !== String(idOrSlug) && a.slug !== idOrSlug);
+            if (restored) {
+                apps.value.push(restored);
+            } else {
+                await fetchApps();
+            }
+            return restored;
+        } catch (e: any) {
+            error.value = e.message || 'Failed to restore app';
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function forceDeleteApp(idOrSlug: number | string) {
+        loading.value = true;
+        try {
+            await ApiClient.delete(`/apps/${idOrSlug}/force`);
+            trashedApps.value = trashedApps.value.filter(a => String(a.id) !== String(idOrSlug) && a.slug !== idOrSlug);
+        } catch (e: any) {
+            error.value = e.message || 'Failed to permanently delete app';
             throw e;
         } finally {
             loading.value = false;
@@ -185,17 +243,21 @@ export const useAppStore = defineStore('app', () => {
 
     return {
         apps,
+        trashedApps,
         currentApp,
         stats,
         recentTables,
         loading,
         error,
         fetchApps,
+        fetchTrashedApps,
         fetchDashboard,
         fetchApp,
         createApp,
         updateApp,
         deleteApp,
+        restoreApp,
+        forceDeleteApp,
         resetCurrentApp
     };
 });

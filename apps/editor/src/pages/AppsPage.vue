@@ -6,10 +6,19 @@
                 <h1>Apps</h1>
                 <p>Manage your data collection applications</p>
             </div>
-            <f7-button fill @click="showCreateDialog" class="create-btn">
-                <f7-icon f7="plus" />
-                New App
-            </f7-button>
+            <div class="header-actions display-flex align-items-center gap-half">
+                <f7-button outline @click="showTrashModal = true" class="trash-btn">
+                    <f7-icon f7="trash" />
+                    Trash
+                    <span v-if="appStore.trashedApps?.length" class="trash-count-badge">
+                        {{ appStore.trashedApps.length }}
+                    </span>
+                </f7-button>
+                <f7-button fill @click="showCreateDialog" class="create-btn">
+                    <f7-icon f7="plus" />
+                    New App
+                </f7-button>
+            </div>
         </div>
 
         <!-- Apps Grid -->
@@ -20,7 +29,7 @@
                         {{ app.name.substring(0, 2).toUpperCase() }}
                     </div>
                     <div class="card-menu">
-                        <f7-link icon-f7="ellipsis" @click.prevent="showAppMenu(app)" />
+                        <f7-link icon-f7="ellipsis" @click.prevent.stop="showAppMenu(app)" />
                     </div>
                 </div>
                 <div class="card-body">
@@ -80,6 +89,9 @@
                 </div>
             </div>
         </section>
+
+        <!-- App Trash Modal -->
+        <AppTrashModal v-model:opened="showTrashModal" @restored="onAppRestored" />
 
         <!-- Create App Popup - MUST be inside f7-page for proper lifecycle management -->
         <f7-popup class="create-app-popup" v-model:opened="createPopupOpened" @popup:closed="resetCreateForm"
@@ -149,7 +161,8 @@
 <script setup lang="ts">
 import { useAppStore } from '@/stores';
 import { f7 } from 'framework7-vue';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, onMounted, onBeforeUnmount } from 'vue';
+import AppTrashModal from './components/AppTrashModal.vue';
 
 const appStore = useAppStore();
 
@@ -157,6 +170,7 @@ const appStore = useAppStore();
 // State
 // ============================================================================
 
+const showTrashModal = ref(false);
 const createPopupOpened = ref(false);
 const isCreating = ref(false);
 const newApp = reactive({
@@ -245,33 +259,124 @@ async function handleCreateApp() {
     }
 }
 
-import { onMounted } from 'vue';
-
 function showAppMenu(app: any) {
-    f7.toast.show({ text: `Menu for ${app.name}`, position: 'center', closeTimeout: 1500 });
+    const actions = f7.actions.create({
+        buttons: [
+            [
+                {
+                    text: `Aplikasi: ${app.name}`,
+                    label: true,
+                },
+                {
+                    text: 'Open Application',
+                    onClick: () => {
+                        const f7Instance = f7 || (window as any).f7;
+                        if (f7Instance?.views?.main?.router) {
+                            f7Instance.views.main.router.navigate(`/apps/${app.slug || app.id}`);
+                        } else {
+                            window.location.href = `/apps/${app.slug || app.id}`;
+                        }
+                    }
+                },
+                {
+                    text: 'Edit App Settings & Tables',
+                    onClick: () => {
+                        const f7Instance = f7 || (window as any).f7;
+                        if (f7Instance?.views?.main?.router) {
+                            f7Instance.views.main.router.navigate(`/editor/${app.slug || app.id}`);
+                        } else {
+                            window.location.href = `/editor/${app.slug || app.id}`;
+                        }
+                    }
+                }
+            ],
+            [
+                {
+                    text: 'Move to Trash',
+                    color: 'red',
+                    onClick: () => {
+                        confirmMoveToTrash(app);
+                    }
+                }
+            ],
+            [
+                {
+                    text: 'Cancel',
+                    color: 'gray',
+                }
+            ]
+        ]
+    });
+    actions.open();
+}
+
+function confirmMoveToTrash(app: any) {
+    f7.dialog.confirm(
+        `Pindahkan aplikasi "${app.name}" ke Sampah?\n\nFormulir akan dinonaktifkan untuk surveyor. Anda dapat memulihkannya kembali kapan saja dalam 30 hari.`,
+        'Pindahkan ke Sampah',
+        async () => {
+            f7.preloader.show();
+            try {
+                await appStore.deleteApp(app.id);
+                f7.preloader.hide();
+                
+                // Toast notification with UNDO action
+                const undoToast = f7.toast.create({
+                    text: `"${app.name}" dipindahkan ke Sampah`,
+                    position: 'bottom',
+                    closeButton: true,
+                    closeButtonText: 'Batalkan (Undo)',
+                    closeButtonColor: 'yellow',
+                    closeTimeout: 7000,
+                    on: {
+                        closeButtonClick: async () => {
+                            try {
+                                await appStore.restoreApp(app.id);
+                                f7.toast.show({
+                                    text: `Aplikasi "${app.name}" telah dipulihkan!`,
+                                    position: 'center',
+                                    closeTimeout: 2000,
+                                    cssClass: 'color-green'
+                                });
+                            } catch (e: any) {
+                                f7.dialog.alert(e.message || 'Gagal memulihkan aplikasi');
+                            }
+                        }
+                    }
+                });
+                undoToast.open();
+            } catch (e: any) {
+                f7.preloader.hide();
+                f7.dialog.alert(e.message || 'Gagal memindahkan aplikasi ke sampah');
+            }
+        }
+    );
+}
+
+function onAppRestored() {
+    appStore.fetchApps();
+    appStore.fetchTrashedApps();
 }
 
 function onPageAfterIn() {
     console.log('[AppsPage] page:afterin triggered, current apps:', appStore.apps.length);
-    // Ensure popup is closed when entering page
     createPopupOpened.value = false;
     appStore.fetchApps();
+    appStore.fetchTrashedApps();
 }
 
 function onPageReinit() {
     console.log('[AppsPage] page:reinit triggered, current apps:', appStore.apps.length);
-    // Ensure popup is closed when page is reinitialized
     createPopupOpened.value = false;
     appStore.fetchApps();
+    appStore.fetchTrashedApps();
 }
-
-import { onBeforeUnmount } from 'vue';
 
 onMounted(() => {
     console.log('[AppsPage] MOUNTED, current apps:', appStore.apps.length);
-    // Ensure popup is closed on mount
     createPopupOpened.value = false;
     appStore.fetchApps();
+    appStore.fetchTrashedApps();
 });
 
 onBeforeUnmount(() => {
@@ -290,12 +395,37 @@ onBeforeUnmount(() => {
     background: #f8fafc;
 }
 
-/* Create Button - consistent styling */
+/* Create & Trash Buttons - consistent styling */
 .create-btn {
     --f7-button-bg-color: #2563eb;
     --f7-button-hover-bg-color: #1d4ed8;
     border-radius: 8px;
     font-weight: 500;
+}
+
+.trash-btn {
+    --f7-button-text-color: #64748b;
+    --f7-button-border-color: #cbd5e1;
+    border-radius: 8px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.trash-btn:hover {
+    --f7-button-text-color: #dc2626;
+    --f7-button-border-color: #fca5a5;
+    background: #fef2f2;
+}
+
+.trash-count-badge {
+    background: #ef4444;
+    color: white;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 600;
 }
 
 /* Page Header */
