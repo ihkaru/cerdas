@@ -250,12 +250,17 @@ class AppSchemaController extends Controller
             $viewsToDelete = array_diff($existingViewNames, $newViewNames);
             $app->views()->whereIn('name', $viewsToDelete)->delete();
 
-            // SYNC FIX: Ensure view_configs column on App model is in sync for Client Offline Sync
+            // SYNC FIX: Ensure view_configs column on App model is in sync for Client Offline Sync and Visual View Editor
             $viewConfigs = [];
             foreach ($data['views'] ?? [] as $viewKey => $viewData) {
-                $table = $app->tables->firstWhere('slug', $viewData['table']);
-                $viewConfigs[$viewKey] = array_merge($viewData, [
+                $table = $app->tables->firstWhere('slug', $viewData['table'] ?? '');
+                $flattened = $viewData;
+                if (! empty($viewData['config']) && is_array($viewData['config'])) {
+                    $flattened = array_merge($viewData['config'], $flattened);
+                }
+                $viewConfigs[$viewKey] = array_merge($flattened, [
                     'table_id' => $table ? $table->id : null,
+                    'title' => $viewData['title'] ?? $viewData['name'] ?? $viewKey,
                 ]);
             }
             $app->update(['view_configs' => $viewConfigs]);

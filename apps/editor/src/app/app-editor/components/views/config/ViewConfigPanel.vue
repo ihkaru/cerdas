@@ -97,15 +97,15 @@
                 <f7-list-item accordion-item title="Layout Configuration" class="accordion-layout" opened>
                     <f7-accordion-content>
                         <div class="px-0 pb-0">
-                            <DeckViewConfig v-if="view.type === 'deck' && view.deck" :deck-config="view.deck"
+                            <DeckViewConfig v-if="view.type === 'deck'" :deck-config="effectiveDeckConfig"
                                 :fields="fields" @update="(k, v) => $emit('update:deckConfig', k, v)" />
 
-                            <MapViewConfig v-if="view.type === 'map' && view.map" :map-config="view.map"
+                            <MapViewConfig v-if="view.type === 'map'" :map-config="effectiveMapConfig"
                                 :fields="fields" @update="(k, v) => $emit('update:mapConfig', k, v)" />
 
                             <div v-if="view.type !== 'deck' && view.type !== 'map'"
                                 class="p-4 text-center text-gray-400 italic">
-                                No specific layout settings for this view type.
+                                No specific layout settings for this view type. (Default {{ view.type }} layout will be used)
                             </div>
                         </div>
                     </f7-accordion-content>
@@ -158,6 +158,29 @@ const emit = defineEmits<{
 const viewTableId = computed({
     get: () => props.view.table_id || '',
     set: (val: unknown) => emit('update:viewProp', 'table_id', val)
+});
+
+const effectiveDeckConfig = computed(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const v = props.view as any;
+    return v.deck || v.config?.deck || {
+        primaryHeaderField: '',
+        secondaryHeaderField: '',
+        imageField: null,
+        imageShape: 'square'
+    };
+});
+
+const effectiveMapConfig = computed(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const v = props.view as any;
+    return v.map || v.config?.map || {
+        mapbox_style: 'satellite',
+        gps_column: '',
+        label: '',
+        subtitle: '',
+        format_rules: []
+    };
 });
 
 function updateProp(key: string, value: unknown) {
