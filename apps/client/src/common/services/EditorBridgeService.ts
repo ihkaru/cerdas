@@ -287,7 +287,13 @@ export class EditorBridgeService {
     }
 
     private async handleRefreshData() {
-        this.log.info('Forcing data refresh from DB');
+        this.log.info('Forcing data refresh and server sync');
+        try {
+            const { syncService } = await import('./SyncService');
+            await syncService.syncGlobal();
+        } catch (e) {
+            this.log.warn('Server sync failed during REFRESH_DATA:', e);
+        }
         await this.notifyStores();
         
         if (f7?.view?.main) {
