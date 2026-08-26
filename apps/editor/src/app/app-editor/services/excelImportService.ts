@@ -4,11 +4,27 @@ export interface ExcelSheet {
     name: string;
 }
 
+export type ImportFieldType =
+    | 'text'
+    | 'number'
+    | 'date'
+    | 'time'
+    | 'datetime'
+    | 'select'
+    | 'radio'
+    | 'checkbox'
+    | 'gps'
+    | 'image'
+    | 'signature'
+    | 'url';
+
 export interface ExcelColumn {
     original_header: string;
     name: string; // slug
-    type: 'text' | 'number' | 'date' | 'boolean';
-    is_primary: boolean;
+    label?: string;
+    type: ImportFieldType;
+    options?: Array<{ label: string; value: string }>;
+    is_primary?: boolean;
     source_index?: number;
 }
 
