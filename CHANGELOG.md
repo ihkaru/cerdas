@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.50](https://github.com/ihkaru/cerdas/compare/v0.2.49...v0.2.50) (2026-08-31)
+
+
+### Features
+
+* **apps:** implement industry-standard 30-day app trash lifecycle, recovery, and force delete ([1fec7aa](https://github.com/ihkaru/cerdas/commit/1fec7aaa793e26186ce875ed053000ed61182511))
+* **editor:** upgrade AI context prompt generator with epistemic manual ([d175d07](https://github.com/ihkaru/cerdas/commit/d175d075015f64e5b05021350188a7827df9c940))
+* implement gsheet 2-way sync, prelist in-place upsert, and workflow mode status styling ([7109d46](https://github.com/ihkaru/cerdas/commit/7109d465aa36b3abf71dad4127272db187e23bfe))
+* **import:** upgrade column type detection and support full Cerdas field types ([a837cee](https://github.com/ihkaru/cerdas/commit/a837cee5ea9beae6c147a8e555024bc6e8394119))
+
+
+### Bug Fixes
+
+* **editor:** add url, lookup, and nested to valid field types in json validator ([50dc4d7](https://github.com/ihkaru/cerdas/commit/50dc4d7a7e55eb9545f3bf0484ef3075b42a28b7))
+* **editor:** resolve empty layout configuration for map and deck views ([7a73301](https://github.com/ihkaru/cerdas/commit/7a73301e766530b1374c43c2b8a60bfc0c52f67c))
+* **editor:** trigger full network sync on iframe preview refresh ([06d216a](https://github.com/ihkaru/cerdas/commit/06d216a8d405d3db9666f3d7a178df0f1799ce28))
+* **sync:** include soft-deleted apps in delta sync and enable network pull-to-refresh ([0c8049c](https://github.com/ihkaru/cerdas/commit/0c8049cdccb2907456548452d751f4dba106e15e))
+
 ## [0.2.49](https://github.com/ihkaru/cerdas/compare/v0.2.48...v0.2.49) (2026-07-25)
 
 
