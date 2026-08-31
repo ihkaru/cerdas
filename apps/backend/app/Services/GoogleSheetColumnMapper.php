@@ -157,6 +157,50 @@ class GoogleSheetColumnMapper
     }
 
     /**
+     * Build row values for direct-column sync (where Google Sheet headers match field names exactly,
+     * without Cerdas system metadata columns).
+     *
+     * @param  array  $responseData  The form response data (or prelist fallback)
+     * @param  array  $fields  TableVersion.fields schema
+     * @param  array<string>  $sheetHeaders  The header column names from the Google Sheet
+     * @return array<mixed> Ordered values matching $sheetHeaders
+     */
+    public function buildDirectRowValues(array $responseData, array $fields, array $sheetHeaders = []): array
+    {
+        $row = [];
+
+        if (! empty($sheetHeaders)) {
+            foreach ($sheetHeaders as $header) {
+                $val = $responseData[$header] ?? $responseData[strtolower((string) $header)] ?? null;
+                if ($val === null || $val === '') {
+                    foreach ($fields as $field) {
+                        $fName = $field['name'] ?? $field['key'] ?? '';
+                        $fLabel = $field['label'] ?? '';
+                        if (strcasecmp((string) $fName, (string) $header) === 0 || strcasecmp((string) $fLabel, (string) $header) === 0) {
+                            $val = $responseData[$fName] ?? $responseData[$field['key'] ?? ''] ?? '';
+                            break;
+                        }
+                    }
+                }
+                $row[] = $this->flattenValue($val ?? '');
+            }
+
+            return $row;
+        }
+
+        foreach ($fields as $field) {
+            if ($this->isLayoutField($field) || $this->isRepeatableField($field)) {
+                continue;
+            }
+            $key = $field['name'] ?? $field['key'] ?? null;
+            $val = $key ? ($responseData[$key] ?? '') : '';
+            $row[] = $this->flattenValue($val);
+        }
+
+        return $row;
+    }
+
+    /**
      * Resolve the sub-fields of a deeply nested repeatable field using dot notation path.
      */
     public function getSubFieldsForPath(array $fields, string $path): array

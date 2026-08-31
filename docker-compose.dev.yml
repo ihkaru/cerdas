@@ -17,6 +17,10 @@ services:
     depends_on:
       - mariadb
     volumes:
+      - ./apps/backend/app:/var/www/html/app
+      - ./apps/backend/routes:/var/www/html/routes
+      - ./apps/backend/config:/var/www/html/config
+      - ./apps/backend/database:/var/www/html/database
       - laravel_storage:/var/www/html/storage
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
@@ -47,6 +51,10 @@ services:
       mariadb:
         condition: service_started
     volumes:
+      - ./apps/backend/app:/var/www/html/app
+      - ./apps/backend/routes:/var/www/html/routes
+      - ./apps/backend/config:/var/www/html/config
+      - ./apps/backend/database:/var/www/html/database
       - laravel_storage:/var/www/html/storage
     healthcheck:
       test: ["CMD", "php", "artisan", "reverb:start", "--help"]
@@ -130,6 +138,10 @@ services:
       backend:
         condition: service_healthy
     volumes:
+      - ./apps/backend/app:/var/www/html/app
+      - ./apps/backend/routes:/var/www/html/routes
+      - ./apps/backend/config:/var/www/html/config
+      - ./apps/backend/database:/var/www/html/database
       - laravel_storage:/var/www/html/storage
 
   # ==========================================
@@ -150,6 +162,10 @@ services:
       backend:
         condition: service_healthy
     volumes:
+      - ./apps/backend/app:/var/www/html/app
+      - ./apps/backend/routes:/var/www/html/routes
+      - ./apps/backend/config:/var/www/html/config
+      - ./apps/backend/database:/var/www/html/database
       - laravel_storage:/var/www/html/storage
 
 volumes:

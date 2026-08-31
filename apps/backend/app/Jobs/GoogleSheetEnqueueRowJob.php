@@ -72,6 +72,21 @@ class GoogleSheetEnqueueRowJob implements ShouldQueue
         }
 
         $tabs = $sheetConfig['tabs'] ?? [];
+        if (empty($tabs) && ! empty($sheetConfig['sheet_name'])) {
+            $tabs = [
+                [
+                    'sheet_name' => $sheetConfig['sheet_name'],
+                    'type' => 'root',
+                    'field_key' => null,
+                ],
+            ];
+        }
+
+        $syncMode = $sheetConfig['sync_mode'] ?? (
+            (! empty($sheetConfig['inbound_sync_enabled']) || ! empty($sheetConfig['columns'])) ? 'direct_columns' : 'mirror'
+        );
+        $sheetHeaders = $sheetConfig['columns'] ?? [];
+
         $fields = $response->assignment?->tableVersion?->fields ?? $table->publishedVersion?->fields ?? $table->currentVersion?->fields ?? [];
 
         // Build maps for root and nested tabs
@@ -102,44 +117,72 @@ class GoogleSheetEnqueueRowJob implements ShouldQueue
                     'row_data' => null,
                 ]);
             } else {
-                $rawStatus = $response->assignment?->status ?? 'submitted';
-                $statusLabel = match ($rawStatus) {
-                    'submitted' => 'Submitted',
-                    'in_progress' => 'In Progress',
-                    'verified', 'approved' => 'Approved',
-                    'rejected' => 'Rejected',
-                    default => ucfirst(str_replace('_', ' ', $rawStatus)),
-                };
+                if ($syncMode === 'direct_columns') {
+                    $rowDataValues = $mapper->buildDirectRowValues(
+                        responseData: $response->data ?? [],
+                        fields: $fields,
+                        sheetHeaders: $sheetHeaders
+                    );
 
-                $metadata = [
-                    'response_id' => $response->id,
-                    'status' => $statusLabel,
-                    'enumerator' => $response->assignment?->enumerator?->name ?? 'Unassigned',
-                    'submitted_at' => $response->created_at?->toISOString() ?? '',
-                    'status_updated_at' => $response->assignment?->updated_at?->toISOString() ?? $response->updated_at?->toISOString() ?? '',
-                    'status_history' => $mapper->formatStatusHistory($response->assignment?->status_history),
-                    'synced_at' => now()->toISOString(),
-                    'assignment' => $response->assignment?->id ?? '',
-                ];
+                    $prelist = is_array($response->assignment?->prelist_data)
+                        ? $response->assignment->prelist_data
+                        : (json_decode($response->assignment?->prelist_data ?? '{}', true) ?: []);
+                    $sourceRowIndex = $prelist['_source_row_index'] ?? null;
 
-                $rowData = $mapper->buildRowValues(
-                    responseData: $response->data ?? [],
-                    fields: $fields,
-                    isRoot: true,
-                    metadata: $metadata,
-                    nestedFieldKey: null
-                );
+                    $pendingPayload = $sourceRowIndex
+                        ? ['__target_row' => (int) $sourceRowIndex, '__values' => $rowDataValues]
+                        : $rowDataValues;
 
-                PendingSheetRow::create([
-                    'spreadsheet_id' => $sheetConfig['spreadsheet_id'],
-                    'sheet_name' => $tabName,
-                    'tab_type' => 'root',
-                    'app_id' => $table->app_id,
-                    'table_id' => $table->id,
-                    'response_id' => $response->id,
-                    'operation' => 'upsert',
-                    'row_data' => $rowData,
-                ]);
+                    PendingSheetRow::create([
+                        'spreadsheet_id' => $sheetConfig['spreadsheet_id'],
+                        'sheet_name' => $tabName,
+                        'tab_type' => 'root',
+                        'app_id' => $table->app_id,
+                        'table_id' => $table->id,
+                        'response_id' => $response->id,
+                        'operation' => 'upsert',
+                        'row_data' => $pendingPayload,
+                    ]);
+                } else {
+                    $rawStatus = $response->assignment?->status ?? 'submitted';
+                    $statusLabel = match ($rawStatus) {
+                        'submitted' => 'Submitted',
+                        'in_progress' => 'In Progress',
+                        'verified', 'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                        default => ucfirst(str_replace('_', ' ', $rawStatus)),
+                    };
+
+                    $metadata = [
+                        'response_id' => $response->id,
+                        'status' => $statusLabel,
+                        'enumerator' => $response->assignment?->enumerator?->name ?? 'Unassigned',
+                        'submitted_at' => $response->created_at?->toISOString() ?? '',
+                        'status_updated_at' => $response->assignment?->updated_at?->toISOString() ?? $response->updated_at?->toISOString() ?? '',
+                        'status_history' => $mapper->formatStatusHistory($response->assignment?->status_history),
+                        'synced_at' => now()->toISOString(),
+                        'assignment' => $response->assignment?->id ?? '',
+                    ];
+
+                    $rowData = $mapper->buildRowValues(
+                        responseData: $response->data ?? [],
+                        fields: $fields,
+                        isRoot: true,
+                        metadata: $metadata,
+                        nestedFieldKey: null
+                    );
+
+                    PendingSheetRow::create([
+                        'spreadsheet_id' => $sheetConfig['spreadsheet_id'],
+                        'sheet_name' => $tabName,
+                        'tab_type' => 'root',
+                        'app_id' => $table->app_id,
+                        'table_id' => $table->id,
+                        'response_id' => $response->id,
+                        'operation' => 'upsert',
+                        'row_data' => $rowData,
+                    ]);
+                }
             }
         }
 

@@ -116,16 +116,13 @@ class ImportGoogleSheetRowsAction
             // Delete preview records for fresh pull (idempotent overwrite)
             AppRecord::where('table_id', $table->id)->forceDelete();
 
-            // Fetch existing untouched 'assigned' assignments for this table
-            $existingAssignments = Assignment::where('table_id', $table->id)
-                ->where('status', 'assigned')
-                ->whereDoesntHave('responses')
-                ->get();
+            // Fetch ALL existing assignments for this table to prevent duplicates when records are submitted
+            $allAssignments = Assignment::where('table_id', $table->id)->get();
 
             $existingByKey = [];
             $unkeyedList = [];
 
-            foreach ($existingAssignments as $existing) {
+            foreach ($allAssignments as $existing) {
                 if (! empty($existing->external_id)) {
                     $existingByKey[$existing->external_id] = $existing;
                 } else {
@@ -162,6 +159,9 @@ class ImportGoogleSheetRowsAction
                     $recordData['address'] = $recordData[$addressField];
                 }
 
+                // Save exact source row number in sheet (row 1 is header, data starts at row 2)
+                $recordData['_source_row_index'] = $rowIndex + 2;
+
                 $recordId = Str::orderedUuid()->toString();
                 $jsonData = json_encode($recordData);
 
@@ -186,14 +186,25 @@ class ImportGoogleSheetRowsAction
                 }
 
                 if ($matchedAssignment) {
-                    // In-Place Update: Keep existing UUID intact!
-                    $matchedAssignment->table_version_id = $versionId;
-                    $matchedAssignment->external_id = $externalKey;
-                    $matchedAssignment->prelist_data = $recordData;
-                    $matchedAssignment->updated_at = $now;
-                    $matchedAssignment->save();
-
                     $usedAssignmentIds[] = $matchedAssignment->id;
+
+                    $currentPrelist = is_array($matchedAssignment->prelist_data)
+                        ? $matchedAssignment->prelist_data
+                        : (json_decode($matchedAssignment->prelist_data ?? '{}', true) ?: []);
+                    $currentPrelist['_source_row_index'] = $rowIndex + 2;
+
+                    // Only overwrite prelist values if assignment has NOT been submitted / completed
+                    if ($matchedAssignment->status === 'assigned' && ! $matchedAssignment->responses()->exists()) {
+                        $matchedAssignment->table_version_id = $versionId;
+                        $matchedAssignment->external_id = $externalKey;
+                        $matchedAssignment->prelist_data = array_merge($currentPrelist, $recordData);
+                        $matchedAssignment->updated_at = $now;
+                        $matchedAssignment->save();
+                    } else {
+                        // Assignment is in_progress/submitted: update source row index metadata only
+                        $matchedAssignment->prelist_data = $currentPrelist;
+                        $matchedAssignment->save();
+                    }
                 } else {
                     // Create New Assignment with deterministic external_id
                     $newAssignment = new Assignment();
@@ -224,8 +235,11 @@ class ImportGoogleSheetRowsAction
             }
 
             // Soft-delete any untouched 'assigned' assignments that were removed from the Google Sheet
-            // This generates valid soft-delete tombstones so all offline clients delete the old records!
-            $unusedAssignments = $existingAssignments->whereNotIn('id', $usedAssignmentIds);
+            $unusedAssignments = Assignment::where('table_id', $table->id)
+                ->where('status', 'assigned')
+                ->whereDoesntHave('responses')
+                ->whereNotIn('id', $usedAssignmentIds)
+                ->get();
             foreach ($unusedAssignments as $orphan) {
                 $orphan->delete(); // Soft delete generates tombstone
             }

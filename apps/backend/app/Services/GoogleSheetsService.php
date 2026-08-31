@@ -404,6 +404,18 @@ class GoogleSheetsService
                 continue;
             }
 
+            // Direct column sync target row
+            if (isset($rowData['__target_row'])) {
+                $targetRow = (int) $rowData['__target_row'];
+                $actualValues = $rowData['__values'] ?? [];
+                $updateRanges[] = [
+                    'range' => "{$tabName}!A{$targetRow}",
+                    'values' => [$actualValues],
+                ];
+
+                continue;
+            }
+
             $existingRow = $existingIndex[$responseId] ?? null;
 
             if ($existingRow !== null) {

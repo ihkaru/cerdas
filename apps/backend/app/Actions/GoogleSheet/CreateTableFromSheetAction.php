@@ -77,8 +77,18 @@ class CreateTableFromSheetAction
                         'spreadsheet_id' => $spreadsheetId,
                         'spreadsheet_url' => $spreadsheetUrl,
                         'sheet_name' => $sheetName,
+                        'tabs' => [
+                            [
+                                'sheet_name' => $sheetName,
+                                'sheet_gid' => 0,
+                                'type' => 'root',
+                                'field_key' => null,
+                            ],
+                        ],
                         'sync_enabled' => true,
                         'inbound_sync_enabled' => true,
+                        'sync_mode' => 'direct_columns',
+                        'columns' => array_map(fn ($c) => $c['name'], $columns),
                         'key_column' => $keyColumn,
                         'connected_at' => now()->toISOString(),
                     ],
