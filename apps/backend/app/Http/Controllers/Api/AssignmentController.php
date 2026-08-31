@@ -10,6 +10,7 @@ use App\Models\TableVersion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Maatwebsite\Excel\Facades\Excel;
 
 class AssignmentController extends Controller
@@ -17,12 +18,14 @@ class AssignmentController extends Controller
     /**
      * List assignments for the current user
      */
-    /**
-     * List assignments for the current user
-     */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        $tableId = $request->input('table_id');
+        if ($tableId) {
+            $this->maybeSyncFromGoogleSheet((string) $tableId);
+        }
 
         $query = Assignment::query()
             ->whereHas('tableVersion.table', function ($q) use ($user) {
@@ -60,9 +63,9 @@ class AssignmentController extends Controller
             $query->where('status', $request->status);
         }
 
-        if ($request->has('table_id')) {
-            $query->whereHas('tableVersion', function ($q) use ($request) {
-                $q->where('table_id', $request->table_id);
+        if ($tableId) {
+            $query->whereHas('tableVersion', function ($q) use ($tableId) {
+                $q->where('table_id', $tableId);
             });
         }
 
@@ -467,5 +470,53 @@ class AssignmentController extends Controller
             'message' => 'Data prelist berhasil diperbarui',
             'data' => $assignment,
         ]);
+    }
+
+    /**
+     * Proactively sync latest changes from Google Sheet on client pull (rate-limited to max 1 per 5s).
+     */
+    private function maybeSyncFromGoogleSheet(string $tableId): void
+    {
+        $rateKey = "gsheet_sync_on_pull:{$tableId}";
+        RateLimiter::attempt($rateKey, 1, function () use ($tableId) {
+            $table = \App\Models\Table::with(['app', 'versions'])->find($tableId);
+            if (! $table || $table->source_type !== 'google_sheets') {
+                return;
+            }
+
+            $sourceConfig = $table->source_config['google_sheet'] ?? null;
+            if (! $sourceConfig || empty($sourceConfig['sync_enabled']) || empty($sourceConfig['inbound_sync_enabled']) || empty($sourceConfig['spreadsheet_id'])) {
+                return;
+            }
+
+            // Echo guard: don't pull if we just wrote outbound in the last 10s
+            if (! empty($sourceConfig['last_flushed_at'])) {
+                $flushedTime = strtotime($sourceConfig['last_flushed_at']);
+                if ($flushedTime && (time() - $flushedTime) < 10) {
+                    return;
+                }
+            }
+
+            $app = $table->app;
+            if (! $app) {
+                return;
+            }
+
+            $version = $table->getWorkingVersion();
+            $fields = $version?->fields ?? [];
+
+            try {
+                $importAction = app(\App\Actions\GoogleSheet\ImportGoogleSheetRowsAction::class);
+                $importAction->execute(
+                    $app,
+                    $table,
+                    $sourceConfig['spreadsheet_id'],
+                    $sourceConfig['sheet_name'] ?? $table->name,
+                    $fields
+                );
+            } catch (\Throwable $e) {
+                Log::warning("maybeSyncFromGoogleSheet failed for table [{$tableId}]: ".$e->getMessage());
+            }
+        }, decaySeconds: 5);
     }
 }
