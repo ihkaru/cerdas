@@ -19,6 +19,7 @@ export function useTableSelection(
         ) => void;
         showNewSourceModal: Ref<boolean>;
         showExcelImportModal: Ref<boolean>;
+        importSourceType?: Ref<'file' | 'google_sheets'>;
         isGlobalDirty?: () => boolean;
         handleSave?: () => Promise<void>;
         /** Called after a successful Excel/CSV import with the new table_id */
@@ -116,10 +117,14 @@ export function useTableSelection(
         callbacks.showNewSourceModal.value = true;
     }
 
-    function handleSourceSelect(type: 'blank' | 'excel') {
+    function handleSourceSelect(type: 'blank' | 'excel' | 'google_sheets') {
         if (type === 'blank') {
             createBlankTable();
         } else if (type === 'excel') {
+            if (callbacks.importSourceType) callbacks.importSourceType.value = 'file';
+            callbacks.showExcelImportModal.value = true;
+        } else if (type === 'google_sheets') {
+            if (callbacks.importSourceType) callbacks.importSourceType.value = 'google_sheets';
             callbacks.showExcelImportModal.value = true;
         }
     }

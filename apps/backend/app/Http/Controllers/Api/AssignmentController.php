@@ -248,4 +248,224 @@ class AssignmentController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Smart Import JSON Prelist with Strategies:
+     * - 'upsert': Match and update in-place, insert new (default)
+     * - 'merge_columns': Merge new columns into existing prelists by match_key
+     * - 'append': Add new rows only
+     * - 'replace_prelist': Replace untouched assigned tasks
+     */
+    public function importJson(Request $request): JsonResponse
+    {
+        $request->validate([
+            'table_id' => 'required|string',
+            'rows' => 'required|array|min:1',
+            'strategy' => 'nullable|string|in:upsert,merge_columns,append,replace_prelist',
+            'match_key' => 'nullable|string',
+        ]);
+
+        $user = $request->user();
+        $tableId = $request->input('table_id');
+        $rows = $request->input('rows');
+        $strategy = $request->input('strategy', 'upsert');
+        $matchKey = $request->input('match_key');
+
+        $table = \App\Models\Table::find($tableId);
+        if (! $table) {
+            return response()->json(['success' => false, 'message' => 'Table not found'], 404);
+        }
+
+        if (! $user->hasAppAccess($table->app_id) && ! $user->isSuperAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Access denied'], 403);
+        }
+
+        $versionModel = $table->versions()->latest('version')->first();
+        $versionId = $versionModel?->id;
+        $defaultOrgId = $table->app->organizations()->first()?->id;
+        $now = now();
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+
+        try {
+            // Existing untouched 'assigned' assignments for this table
+            $existingAssignments = Assignment::where('table_id', $tableId)
+                ->where('status', 'assigned')
+                ->whereDoesntHave('responses')
+                ->get();
+
+            $existingMap = [];
+            $unkeyedList = [];
+
+            if (! empty($matchKey)) {
+                $isIdMatch = in_array(strtolower(trim($matchKey)), ['id', 'assignment_id', 'assignment id', 'external_id', '_cerdas_id']);
+                foreach ($existingAssignments as $existing) {
+                    $val = $isIdMatch 
+                        ? ($existing->id ?? $existing->external_id) 
+                        : ($existing->prelist_data[$matchKey] ?? $existing->external_id ?? $existing->id);
+
+                    if ($val !== null && trim((string) $val) !== '') {
+                        $existingMap[trim(strtolower((string) $val))] = $existing;
+                    } else {
+                        $unkeyedList[] = $existing;
+                    }
+                }
+            } else {
+                $unkeyedList = $existingAssignments->all();
+            }
+
+            $unkeyedIndex = 0;
+            $usedAssignmentIds = [];
+            $updatedCount = 0;
+            $createdCount = 0;
+            $insertRecords = [];
+
+            $metadataKeys = array_flip([
+                'Assignment ID', 'assignment_id', 'id',
+                'Status', 'status',
+                'Submitted Version', 'submitted_version',
+                'Created At', 'created_at',
+                'Updated At', 'updated_at',
+                'Deleted At', 'deleted_at',
+                'Status History', 'status_history',
+                'Enumerator', 'enumerator',
+                'Supervisor', 'supervisor',
+                'Organization', 'organization'
+            ]);
+
+            foreach ($rows as $rowIndex => $rowData) {
+                if (! is_array($rowData) || empty($rowData)) {
+                    continue;
+                }
+
+                // Clean system metadata columns so they don't pollute prelist attributes
+                $cleanRowData = array_diff_key($rowData, $metadataKeys);
+                if (empty($cleanRowData)) {
+                    $cleanRowData = $rowData; // Fallback if entire row was in metadata keys
+                }
+
+                $recordId = \Illuminate\Support\Str::orderedUuid()->toString();
+                $jsonData = json_encode($cleanRowData);
+
+                $insertRecords[] = [
+                    'id' => $recordId,
+                    'app_id' => $table->app_id,
+                    'table_id' => $table->id,
+                    'data' => $jsonData,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+
+                $matchedAssignment = null;
+
+                if ($strategy !== 'append') {
+                    if (! empty($matchKey) && isset($rowData[$matchKey])) {
+                        $matchVal = trim(strtolower((string) $rowData[$matchKey]));
+                        $matchedAssignment = $existingMap[$matchVal] ?? null;
+                    } elseif (isset($unkeyedList[$unkeyedIndex])) {
+                        $matchedAssignment = $unkeyedList[$unkeyedIndex];
+                        $unkeyedIndex++;
+                    }
+                }
+
+                if ($matchedAssignment) {
+                    // Update in place
+                    if ($strategy === 'merge_columns') {
+                        $merged = array_merge($matchedAssignment->prelist_data ?? [], $cleanRowData);
+                        $matchedAssignment->prelist_data = $merged;
+                    } else {
+                        $matchedAssignment->prelist_data = $cleanRowData;
+                    }
+
+                    $matchedAssignment->table_version_id = $versionId;
+                    $matchedAssignment->updated_at = $now;
+                    $matchedAssignment->save();
+
+                    $usedAssignmentIds[] = $matchedAssignment->id;
+                    $updatedCount++;
+                } else {
+                    // Create New Assignment
+                    $newAssignment = new Assignment();
+                    $newAssignment->id = (string) \Illuminate\Support\Str::uuid();
+                    $newAssignment->table_id = $table->id;
+                    $newAssignment->table_version_id = $versionId;
+                    $newAssignment->organization_id = $defaultOrgId;
+                    $newAssignment->supervisor_id = null;
+                    $newAssignment->enumerator_id = null;
+                    $newAssignment->status = 'assigned';
+                    $newAssignment->prelist_data = $cleanRowData;
+                    $newAssignment->created_at = $now;
+                    $newAssignment->updated_at = $now;
+                    $newAssignment->save();
+
+                    $usedAssignmentIds[] = $newAssignment->id;
+                    $createdCount++;
+                }
+            }
+
+            // Sync to AppRecord for Data Preview (Replace cleanly)
+            \App\Models\AppRecord::where('table_id', $table->id)->forceDelete();
+            if (! empty($insertRecords)) {
+                foreach (array_chunk($insertRecords, 250) as $chunk) {
+                    \App\Models\AppRecord::insert($chunk);
+                }
+            }
+
+            // If replace_prelist strategy, soft-delete untouched prelists that were not present
+            $softDeletedCount = 0;
+            if ($strategy === 'replace_prelist') {
+                $unusedAssignments = $existingAssignments->whereNotIn('id', $usedAssignmentIds);
+                foreach ($unusedAssignments as $orphan) {
+                    $orphan->delete();
+                    $softDeletedCount++;
+                }
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data prelist berhasil diproses',
+                'updated' => $updatedCount,
+                'created' => $createdCount,
+                'soft_deleted' => $softDeletedCount,
+                'total' => $updatedCount + $createdCount,
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            Log::error("[AssignmentController] importJson failed: {$e->getMessage()}");
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memproses import data: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Quick Prelist Edit (In-Place Update for Single Typo Fixes)
+     */
+    public function updatePrelist(Request $request, Assignment $assignment): JsonResponse
+    {
+        $request->validate([
+            'prelist_data' => 'required|array',
+        ]);
+
+        $user = $request->user();
+        $assignment->loadMissing('tableVersion.table');
+        $table = $assignment->tableVersion?->table;
+
+        if ($table && ! $user->hasAppAccess($table->app_id) && ! $user->isSuperAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Access denied'], 403);
+        }
+
+        $assignment->prelist_data = $request->input('prelist_data');
+        $assignment->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data prelist berhasil diperbarui',
+            'data' => $assignment,
+        ]);
+    }
 }

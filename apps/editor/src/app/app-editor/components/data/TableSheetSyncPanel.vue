@@ -122,8 +122,8 @@
                     <span class="info-value monospace">{{ state.config.spreadsheet_id.substring(0, 20) }}...</span>
                 </div>
                 <div class="info-row" v-if="syncStatus?.config?.last_synced_at">
-                    <f7-icon f7="clock" size="16" color="gray" />
-                    <span class="info-label">Sync terakhir:</span>
+                    <f7-icon f7="arrow_up_circle" size="16" color="blue" />
+                    <span class="info-label">Export terakhir:</span>
                     <span class="info-value">{{ formatRelativeTime(syncStatus.config.last_synced_at) }}</span>
                 </div>
                 <div class="info-row" v-if="syncStatus?.config?.total_rows_synced">
@@ -135,6 +135,51 @@
                     <f7-icon f7="hourglass" size="16" color="orange" />
                     <span class="info-label">Menunggu flush:</span>
                     <span class="info-value">{{ syncStatus.pending_rows }} baris</span>
+                </div>
+                <div class="info-row">
+                    <f7-icon f7="arrow_2_squarepath" size="16" :color="isInboundEnabled ? 'green' : 'gray'" />
+                    <span class="info-label">Inbound Auto-Pull:</span>
+                    <span class="info-value" :style="{ color: isInboundEnabled ? '#16a34a' : '#64748b', fontWeight: 600 }">
+                        {{ isInboundEnabled ? 'Aktif (Tiap 10 Menit)' : 'Nonaktif (One-Way Mode)' }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Sync Mode Switcher -->
+            <div class="sync-mode-card">
+                <div class="sync-mode-header">
+                    <span class="sync-mode-title">Mode Sinkronisasi</span>
+                    <span class="sync-mode-current-badge" :class="isInboundEnabled ? 'two-way' : 'one-way'">
+                        {{ isInboundEnabled ? '2-Way Sync' : 'One-Way Export' }}
+                    </span>
+                </div>
+                <div class="sync-mode-options">
+                    <div
+                        class="sync-mode-option"
+                        :class="{ active: !isInboundEnabled }"
+                        @click="handleToggleSyncMode(false)"
+                    >
+                        <div class="mode-radio">
+                            <span class="radio-dot" v-if="!isInboundEnabled"></span>
+                        </div>
+                        <div class="mode-info">
+                            <div class="mode-name">📤 One-Way Export (Cerdas ➔ Sheet)</div>
+                            <div class="mode-desc">Hanya mengirim respon dari Cerdas ke Sheet. Sheet berfungsi sebagai live report / backup.</div>
+                        </div>
+                    </div>
+                    <div
+                        class="sync-mode-option"
+                        :class="{ active: isInboundEnabled }"
+                        @click="handleToggleSyncMode(true)"
+                    >
+                        <div class="mode-radio">
+                            <span class="radio-dot" v-if="isInboundEnabled"></span>
+                        </div>
+                        <div class="mode-info">
+                            <div class="mode-name">🔄 Two-Way Sync (Cerdas ⇄ Sheet)</div>
+                            <div class="mode-desc">Sinkronisasi 2 arah. Perubahan data di Google Sheet otomatis terdorong ke aplikasi Cerdas.</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -157,9 +202,33 @@
                     color="blue"
                     :loading="isLoading"
                     @click="handleManualExport"
+                    title="Kirim seluruh data Cerdas ke Google Sheets"
                 >
-                    <f7-icon f7="arrow_clockwise" size="16" class="margin-right-half" />
-                    Sync Sekarang
+                    <f7-icon f7="arrow_up_circle" size="16" class="margin-right-half" />
+                    Export ke Sheet
+                </f7-button>
+                <f7-button
+                    id="btn-pull-now"
+                    small
+                    outline
+                    color="green"
+                    :loading="isLoading"
+                    @click="handlePullFromSheet"
+                    title="Tarik data terbaru dari Google Sheets ke Cerdas"
+                >
+                    <f7-icon f7="arrow_down_circle" size="16" class="margin-right-half" />
+                    Pull dari Sheet
+                </f7-button>
+                <f7-button
+                    id="btn-webhook-info"
+                    small
+                    outline
+                    color="orange"
+                    @click="showWebhookModal = true"
+                    title="Pengaturan Push Real-time via Google Apps Script"
+                >
+                    <f7-icon f7="bolt_fill" size="16" class="margin-right-half" />
+                    Apps Script Push
                 </f7-button>
                 <f7-button
                     id="btn-disconnect-sheet"
@@ -200,6 +269,51 @@
             </f7-button>
         </div>
 
+        <!-- ========== Apps Script Webhook Modal ========== -->
+        <f7-popup
+            :opened="showWebhookModal"
+            @popup:closed="showWebhookModal = false"
+            class="webhook-popup"
+        >
+            <f7-page>
+                <f7-navbar title="⚡ Real-time Push (Apps Script)">
+                    <f7-nav-right>
+                        <f7-link popup-close>Tutup</f7-link>
+                    </f7-nav-right>
+                </f7-navbar>
+                <f7-block class="margin-top">
+                    <p>
+                        Secara bawaan, Cerdas otomatis menarik data baru dari Google Sheet setiap <strong>10 menit</strong>.
+                        Jika Anda ingin perubahan langsung terdorong secara <strong>instan (real-time sub-detik)</strong> saat diedit di Google Sheet:
+                    </p>
+                    <ol style="font-size: 13px; line-height: 1.6; padding-left: 20px;">
+                        <li>Buka Google Spreadsheet Anda di browser.</li>
+                        <li>Klik menu <strong>Extensions &gt; Apps Script</strong>.</li>
+                        <li>Hapus semua teks di editor, lalu paste kode di bawah ini:</li>
+                    </ol>
+                    <pre class="webhook-code-box"><code>function onChange(e) {
+  UrlFetchApp.fetch("{{ webhookEndpointUrl }}", {
+    method: "post",
+    muteHttpExceptions: true
+  });
+}</code></pre>
+                    <ol start="4" style="font-size: 13px; line-height: 1.6; padding-left: 20px;">
+                        <li>Klik <strong>Triggers (Ikon Jam di bilah kiri) &gt; Add Trigger</strong>.</li>
+                        <li>Pilih <code>onChange</code> pada event type, lalu klik <strong>Save</strong>.</li>
+                    </ol>
+                    <f7-button
+                        fill
+                        color="blue"
+                        class="margin-top"
+                        @click="copyWebhookScript"
+                    >
+                        <f7-icon f7="doc_on_doc" size="16" class="margin-right-half" />
+                        {{ isCopied ? '✓ Berhasil Disalin!' : 'Salin Kode Apps Script' }}
+                    </f7-button>
+                </f7-block>
+            </f7-page>
+        </f7-popup>
+
         <!-- ========== Disconnect Confirm Dialog ========== -->
         <f7-dialog
             :opened="showDisconnectConfirm"
@@ -217,8 +331,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useGoogleSheetSync } from '../../composables/useGoogleSheetSync';
+import { f7 } from 'framework7-vue';
 
 const props = defineProps<{
     tableId: string;
@@ -227,6 +342,8 @@ const props = defineProps<{
 
 const spreadsheetUrlInput = ref('');
 const showDisconnectConfirm = ref(false);
+const showWebhookModal = ref(false);
+const isCopied = ref(false);
 
 const {
     state,
@@ -237,11 +354,24 @@ const {
     connectSheet,
     disconnectSheet,
     triggerManualExport,
+    triggerPullFromSheet,
+    setSyncMode,
     clearError,
 } = useGoogleSheetSync(
     ref(props.tableId),
     ref(props.appId)
 );
+
+const isInboundEnabled = computed(() => {
+    if (state.value.status === 'connected') {
+        return Boolean(syncStatus.value?.config?.inbound_sync_enabled ?? state.value.config?.inbound_sync_enabled);
+    }
+    return false;
+});
+
+const webhookEndpointUrl = computed(() => {
+    return `${window.location.origin.replace(':9982', ':9980')}/api/webhooks/sheets/${props.tableId}`;
+});
 
 // ========== Handlers ==========
 
@@ -257,6 +387,46 @@ async function handleDisconnect() {
 
 async function handleManualExport() {
     await triggerManualExport();
+}
+
+async function handleToggleSyncMode(enable: boolean) {
+    if (isInboundEnabled.value === enable) return;
+    try {
+        await setSyncMode(enable);
+        f7.toast.show({
+            text: enable ? '✓ Mode 2-Way Sync diaktifkan' : '✓ Mode One-Way Export diaktifkan',
+            closeTimeout: 2000,
+        });
+    } catch (e: unknown) {
+        const err = e as { message?: string };
+        f7.dialog.alert(err?.message || 'Gagal mengubah mode sinkronisasi');
+    }
+}
+
+async function handlePullFromSheet() {
+    try {
+        const res = await triggerPullFromSheet();
+        f7.toast.show({
+            text: res.message || `Berhasil menarik ${res.rows_imported} baris data!`,
+            closeTimeout: 2500,
+        });
+    } catch (e: unknown) {
+        const err = e as { message?: string };
+        f7.dialog.alert(err?.message || 'Gagal menarik data dari Google Sheet');
+    }
+}
+
+async function copyWebhookScript() {
+    const script = `function onChange(e) {\n  UrlFetchApp.fetch("${webhookEndpointUrl.value}", {\n    method: "post",\n    muteHttpExceptions: true\n  });\n}`;
+    try {
+        await navigator.clipboard.writeText(script);
+        isCopied.value = true;
+        setTimeout(() => {
+            isCopied.value = false;
+        }, 3000);
+    } catch {
+        f7.dialog.alert('Gagal menyalin kode. Silakan salin secara manual.');
+    }
 }
 
 // ========== Utilities ==========
@@ -433,6 +603,117 @@ watch(() => props.tableId, async (newId) => {
     font-size: 12px;
 }
 
+/* Sync Mode Card */
+.sync-mode-card {
+    width: 100%;
+    background: var(--f7-card-bg-color, #ffffff);
+    border: 1px solid var(--f7-list-border-color, #e2e8f0);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sync-mode-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sync-mode-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--f7-text-color);
+}
+
+.sync-mode-current-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.sync-mode-current-badge.two-way {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.sync-mode-current-badge.one-way {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.sync-mode-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sync-mode-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1.5px solid var(--f7-list-border-color, #e2e8f0);
+    background: var(--f7-list-bg-color, #f8fafc);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sync-mode-option:hover {
+    border-color: #93c5fd;
+    background: #f0f9ff;
+}
+
+.sync-mode-option.active {
+    border-color: var(--f7-color-blue, #2563eb);
+    background: #eff6ff;
+}
+
+.mode-radio {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.sync-mode-option.active .mode-radio {
+    border-color: var(--f7-color-blue, #2563eb);
+}
+
+.radio-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--f7-color-blue, #2563eb);
+}
+
+.mode-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mode-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--f7-text-color);
+}
+
+.mode-desc {
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.4;
+}
+
 .tabs-list {
     width: 100%;
     text-align: left;
@@ -488,5 +769,16 @@ watch(() => props.tableId, async (newId) => {
 
 .sync-error .error-message {
     color: var(--f7-color-red);
+}
+
+.webhook-code-box {
+    background: #1e293b;
+    color: #38bdf8;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: monospace;
+    overflow-x: auto;
+    border: 1px solid #334155;
 }
 </style>

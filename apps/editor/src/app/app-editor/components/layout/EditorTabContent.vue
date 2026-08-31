@@ -72,7 +72,7 @@
                         <button class="schema-subtab-btn" :class="{ active: activeSchemaSubTab === 'data' }"
                             @click="activeSchemaSubTab = 'data'">
                             <f7-icon f7="table_badge_more" size="11" />
-                            Data Preview
+                            Records
                         </button>
                         <button class="schema-subtab-btn" :class="{ active: activeSchemaSubTab === 'sync' }"
                             @click="activeSchemaSubTab = 'sync'">

@@ -48,28 +48,34 @@ class GoogleSheetBatchFlushJob implements ShouldQueue
 
     public function handle(GoogleSheetsService $sheetsService): void
     {
-        // Load pending rows, grouped by spreadsheet + tab, oldest first
-        $groups = PendingSheetRow::query()
-            ->orderBy('created_at')
-            ->get()
-            ->groupBy(fn (PendingSheetRow $row) => $row->spreadsheet_id.'|||'.$row->sheet_name);
+        // 1. Fetch distinct spreadsheet + tab targets (max 50 per 30s flush)
+        $targets = PendingSheetRow::query()
+            ->select('spreadsheet_id', 'sheet_name')
+            ->distinct()
+            ->limit(self::MAX_SPREADSHEETS_PER_FLUSH)
+            ->get();
 
-        if ($groups->isEmpty()) {
+        if ($targets->isEmpty()) {
             return;
         }
 
         $processedCount = 0;
         $spreadsheetCount = 0;
 
-        foreach ($groups as $groupKey => $rows) {
-            if ($spreadsheetCount >= self::MAX_SPREADSHEETS_PER_FLUSH) {
-                Log::info('GoogleSheetBatchFlushJob: circuit breaker hit, deferring remaining groups', [
-                    'remaining_groups' => $groups->count() - $spreadsheetCount,
-                ]);
-                break;
-            }
+        foreach ($targets as $target) {
+            $spreadsheetId = $target->spreadsheet_id;
+            $tabName = $target->sheet_name;
 
-            [$spreadsheetId, $tabName] = explode('|||', $groupKey, 2);
+            // Load up to 500 pending rows for this target in one chunk
+            $rows = PendingSheetRow::where('spreadsheet_id', $spreadsheetId)
+                ->where('sheet_name', $tabName)
+                ->orderBy('created_at')
+                ->limit(500)
+                ->get();
+
+            if ($rows->isEmpty()) {
+                continue;
+            }
 
             /** @var Collection<PendingSheetRow> $rows */
             $firstRow = $rows->first();
@@ -112,6 +118,16 @@ class GoogleSheetBatchFlushJob implements ShouldQueue
 
                 // Clean up processed rows
                 PendingSheetRow::whereIn('id', $rows->pluck('id'))->delete();
+
+                // Update last_flushed_at on linked tables (prevents echo-loop on inbound sync)
+                \App\Models\Table::where('source_type', 'google_sheets')
+                    ->whereJsonContains('source_config->google_sheet->spreadsheet_id', $spreadsheetId)
+                    ->get()
+                    ->each(function ($t) {
+                        $cfg = $t->source_config ?? [];
+                        $cfg['google_sheet']['last_flushed_at'] = now()->toISOString();
+                        $t->update(['source_config' => $cfg]);
+                    });
 
                 $processedCount += count($rows);
                 $spreadsheetCount += 1;

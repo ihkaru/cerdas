@@ -91,3 +91,51 @@ export interface OAuthCallbackRequest {
   code: string;
   state: string;
 }
+
+// ========== Schema Inspection & Creation Shapes ==========
+
+export interface GoogleSheetInferredColumn {
+  name: string;
+  label: string;
+  original_header: string;
+  type: string;
+  options?: Array<{ label: string; value: string }>;
+  source_index: number;
+}
+
+export interface InspectSheetSchemaResponse {
+  spreadsheet_id: string;
+  spreadsheet_url: string;
+  title: string;
+  sheets: string[];
+  selected_sheet: string;
+  columns: GoogleSheetInferredColumn[];
+  suggested_key: string;
+  preview: Array<Array<unknown>>;
+}
+
+export interface CreateTableFromSheetRequest {
+  spreadsheet_url?: string;
+  spreadsheet_id?: string;
+  table_name: string;
+  sheet_name?: string;
+  columns: GoogleSheetInferredColumn[];
+  key_column?: string;
+}
+
+export interface CreateAppFromSheetRequest {
+  name: string;
+  description?: string;
+  mode?: 'simple' | 'complex';
+  start_date?: string | null;
+  end_date?: string | null;
+  expired_behavior?: 'read_only' | 'hidden';
+  temp_app_id?: string;
+  spreadsheet_url?: string;
+  spreadsheet_id?: string;
+  table_name?: string;
+  sheet_name?: string;
+  columns: GoogleSheetInferredColumn[];
+  key_column?: string;
+}
+

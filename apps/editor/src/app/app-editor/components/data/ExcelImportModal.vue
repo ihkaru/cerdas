@@ -22,46 +22,123 @@
                     </div>
 
                     <!-- ── Step 1: Upload ── -->
+                    <!-- ── Step 1: Select & Connect Source ── -->
                     <div v-if="step === 1" class="wizard-step">
-                        <div class="step-header">
+                        <!-- Source Selector Tabs -->
+                        <div class="segmented segmented-raised margin-bottom" style="margin-bottom: 20px;">
+                            <button
+                                type="button"
+                                class="button"
+                                :class="{ 'button-active': sourceType === 'file' }"
+                                @click="selectSourceType('file')"
+                            >
+                                <f7-icon f7="arrow_up_doc_fill" size="16" class="margin-right-half" />
+                                Upload File (Excel / CSV)
+                            </button>
+                            <button
+                                type="button"
+                                class="button"
+                                :class="{ 'button-active': sourceType === 'google_sheets' }"
+                                @click="selectSourceType('google_sheets')"
+                            >
+                                <f7-icon f7="logo_google" size="16" class="margin-right-half" />
+                                Google Sheets (2-Way Sync)
+                            </button>
                         </div>
 
-                        <div class="upload-area" :class="{ dragging: isDragging, uploading: isUploading }"
-                            @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
-                            @drop.prevent="handleDrop" @click="triggerFileSelect">
-                            <input type="file" ref="fileInput" accept=".xlsx,.xls,.csv" @change="handleFileSelect"
-                                style="display:none;" />
-                            <div v-if="!isUploading" class="upload-idle">
-                                <div class="upload-icon-wrapper">
-                                    <f7-icon f7="arrow_up_doc" size="32" class="upload-icon"></f7-icon>
+                        <!-- Mode A: File Upload Dropzone -->
+                        <div v-if="sourceType === 'file'">
+                            <div class="upload-area" :class="{ dragging: isDragging, uploading: isUploading }"
+                                @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
+                                @drop.prevent="handleDrop" @click="triggerFileSelect">
+                                <input type="file" ref="fileInput" accept=".xlsx,.xls,.csv" @change="handleFileSelect"
+                                    style="display:none;" />
+                                <div v-if="!isUploading" class="upload-idle">
+                                    <div class="upload-icon-wrapper">
+                                        <f7-icon f7="arrow_up_doc" size="32" class="upload-icon"></f7-icon>
+                                    </div>
+                                    <p class="upload-title">Drag & Drop or Click to Upload</p>
+                                    <p class="upload-hint">.xlsx · .xls · .csv</p>
                                 </div>
-                                <p class="upload-title">Drag & Drop or Click to Upload</p>
-                                <p class="upload-hint">.xlsx · .xls · .csv</p>
-                            </div>
-                            <div v-else class="upload-loading">
-                                <f7-preloader color="blue"></f7-preloader>
-                                <p class="upload-loading-text">Uploading ({{ uploadProgress }}%)</p>
-                                <div class="import-progress-track" style="width: 100%; max-width: 200px; margin: 8px auto 0;">
-                                    <div class="import-progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+                                <div v-else class="upload-loading">
+                                    <f7-preloader color="blue"></f7-preloader>
+                                    <p class="upload-loading-text">Uploading ({{ uploadProgress }}%)</p>
+                                    <div class="import-progress-track" style="width: 100%; max-width: 200px; margin: 8px auto 0;">
+                                        <div class="import-progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="divider-row">
-                            <div class="divider-line"></div>
-                            <span class="divider-text">or connect a source</span>
-                            <div class="divider-line"></div>
-                        </div>
+                        <!-- Mode B: Google Sheets URL & Inspect -->
+                        <div v-else-if="sourceType === 'google_sheets'" class="google-sheets-panel">
+                            <div class="card margin-0" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
+                                <div class="card-content card-content-padding">
+                                    <div class="display-flex align-items-center margin-bottom">
+                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: #dcfce7; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                            <f7-icon f7="table" size="22" color="green" />
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 600; font-size: 15px; color: #1e293b;">Google Spreadsheet 2-Way Sync</div>
+                                            <div style="font-size: 12px; color: #64748b;">Sinkronisasi data otomatis dengan Google Sheet Anda.</div>
+                                        </div>
+                                    </div>
 
-                        <div class="source-option source-option--disabled">
-                            <div class="source-option-icon">
-                                <f7-icon f7="table" size="20" color="gray"></f7-icon>
+                                    <!-- Google Auth Status: Connected -->
+                                    <div v-if="hasGoogleToken" class="display-flex align-items-center justify-content-space-between margin-bottom" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px;">
+                                        <div class="display-flex align-items-center" style="gap: 10px;">
+                                            <div style="width: 32px; height: 32px; border-radius: 50%; background: #dcfce7; display: flex; align-items: center; justify-content: center;">
+                                                <f7-icon f7="checkmark_seal_fill" size="20" color="green" />
+                                            </div>
+                                            <div>
+                                                <div style="font-weight: 600; font-size: 13px; color: #166534;">Akun Google Terhubung</div>
+                                                <div style="font-size: 11px; color: #15803d;">{{ formattedTokenOwner }}</div>
+                                            </div>
+                                        </div>
+                                        <span style="font-size: 11px; background: #dcfce7; color: #15803d; font-weight: 600; padding: 4px 10px; border-radius: 20px;">
+                                            ✓ Active
+                                        </span>
+                                    </div>
+
+                                    <!-- Google Auth Prompt: If Not Connected -->
+                                    <div v-else class="display-flex align-items-center justify-content-space-between margin-bottom" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px;">
+                                        <div class="display-flex align-items-center" style="gap: 10px;">
+                                            <f7-icon f7="logo_google" size="24" color="blue" />
+                                            <div>
+                                                <div style="font-weight: 600; font-size: 13px; color: #1e3a8a;">Hubungkan Akun Google</div>
+                                                <div style="font-size: 11px; color: #3b82f6;">Izin akses Google Drive diperlukan untuk membaca spreadsheet.</div>
+                                            </div>
+                                        </div>
+                                        <f7-button fill small color="blue" :loading="isAuthenticating" @click="handleConnectOAuth">
+                                            Connect
+                                        </f7-button>
+                                    </div>
+
+                                    <f7-list inset class="margin-0" style="margin-bottom: 12px;">
+                                        <f7-list-input
+                                            label="Google Spreadsheet URL"
+                                            type="url"
+                                            placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit"
+                                            :value="spreadsheetUrl"
+                                            @input="spreadsheetUrl = ($event.target as HTMLInputElement).value"
+                                            clear-button
+                                            required
+                                        />
+                                    </f7-list>
+
+                                    <f7-button
+                                        fill
+                                        large
+                                        :color="hasGoogleToken ? 'green' : 'blue'"
+                                        :disabled="!spreadsheetUrl || isLoadingPreview || isAuthenticating"
+                                        :loading="isLoadingPreview || isAuthenticating"
+                                        @click="loadGoogleSheetPreview"
+                                    >
+                                        <f7-icon :f7="hasGoogleToken ? 'sparkles' : 'logo_google'" size="18" class="margin-right-half" />
+                                        {{ hasGoogleToken ? 'Inspect Google Sheet' : 'Hubungkan Akun & Inspect' }}
+                                    </f7-button>
+                                </div>
                             </div>
-                            <div class="source-option-text">
-                                <div class="source-option-title">Google Sheets</div>
-                                <div class="source-option-sub">2-Way Sync</div>
-                            </div>
-                            <span class="source-option-badge">Soon</span>
                         </div>
                     </div>
 
@@ -174,13 +251,18 @@
 
 <script setup lang="ts">
 import { f7 } from 'framework7-vue';
-import { computed, onUnmounted, ref } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { ExcelImportService, type ExcelColumn } from '../../services/excelImportService';
+import { GoogleSheetApi } from '@/common/api/GoogleSheetApi';
+import { useGoogleOAuthPopup } from '@/common/composables/useGoogleOAuthPopup';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     opened: boolean;
     appId: string | number;
-}>();
+    initialSourceType?: 'file' | 'google_sheets';
+}>(), {
+    initialSourceType: 'file',
+});
 
 const emit = defineEmits(['update:opened', 'imported']);
 
@@ -191,6 +273,8 @@ const isOpen = computed({
 
 // State
 const step = ref(1);
+const sourceType = ref<'file' | 'google_sheets'>(props.initialSourceType || 'file');
+const spreadsheetUrl = ref('');
 const isDragging = ref(false);
 const isUploading = ref(false);
 const uploadProgress = ref(0);
@@ -198,12 +282,63 @@ const isLoadingPreview = ref(false);
 const isImporting = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
+// Google OAuth Integration
+const { isAuthenticating, triggerOAuthPopup } = useGoogleOAuthPopup();
+const hasGoogleToken = ref(false);
+const tokenOwner = ref<string | null>(null);
+
+const formattedTokenOwner = computed(() => {
+    if (!tokenOwner.value) return 'Izin Google Drive & Sheets aktif';
+    try {
+        const parsed = typeof tokenOwner.value === 'string' && tokenOwner.value.startsWith('{')
+            ? JSON.parse(tokenOwner.value)
+            : tokenOwner.value;
+        if (typeof parsed === 'object' && parsed !== null) {
+            return `${parsed.name || ''} (${parsed.email || ''})`.trim();
+        }
+        return String(parsed);
+    } catch {
+        return String(tokenOwner.value);
+    }
+});
+
+async function checkTokenStatus() {
+    if (!props.appId) return;
+    try {
+        const res = await GoogleSheetApi.getTokenStatus(String(props.appId));
+        hasGoogleToken.value = res.has_token && !res.is_expired;
+        tokenOwner.value = res.owner || null;
+    } catch {
+        hasGoogleToken.value = false;
+    }
+}
+
+watch(() => props.opened, (val) => {
+    if (val) {
+        if (props.initialSourceType) {
+            sourceType.value = props.initialSourceType;
+        }
+        checkTokenStatus();
+    }
+});
+
+async function handleConnectOAuth() {
+    const ok = await triggerOAuthPopup(String(props.appId));
+    if (ok) {
+        await checkTokenStatus();
+        if (hasGoogleToken.value) {
+            f7.toast.show({ text: 'Akun Google berhasil dihubungkan!', closeTimeout: 2000 });
+        }
+    }
+}
+
 // Data
 const filePath = ref('');
 const sheets = ref<string[]>([]);
 const selectedSheet = ref('');
 const tableName = ref('');
 const columns = ref<ExcelColumn[]>([]);
+const keyColumn = ref('');
 const previewData = ref<Record<string, unknown>[]>([]);
 const totalRows = ref(0);
 const importStatus = ref('');
@@ -231,11 +366,14 @@ function handleClosed() {
 
 function reset() {
     step.value = 1;
+    sourceType.value = 'file';
+    spreadsheetUrl.value = '';
     filePath.value = '';
     sheets.value = [];
     selectedSheet.value = '';
     tableName.value = '';
     columns.value = [];
+    keyColumn.value = '';
     previewData.value = [];
     totalRows.value = 0;
     importStatus.value = '';
@@ -246,8 +384,16 @@ function reset() {
     isDragging.value = false;
 }
 
+function selectSourceType(type: 'file' | 'google_sheets') {
+    sourceType.value = type;
+    if (type === 'google_sheets') {
+        checkTokenStatus();
+    }
+}
+
 function triggerFileSelect() {
     if (!isUploading.value) {
+        sourceType.value = 'file';
         fileInput.value?.click();
     }
 }
@@ -279,6 +425,7 @@ async function uploadFile(file: File) {
 
     isUploading.value = true;
     uploadProgress.value = 0;
+    sourceType.value = 'file';
 
     try {
         const result = await ExcelImportService.uploadChunked(file, (percent) => {
@@ -323,9 +470,54 @@ async function loadPreview() {
     }
 }
 
+async function loadGoogleSheetPreview() {
+    if (!spreadsheetUrl.value.trim()) {
+        f7.dialog.alert('Masukkan URL Google Spreadsheet');
+        return;
+    }
+
+    // Auto-prompt Google OAuth if token is not yet connected
+    if (!hasGoogleToken.value) {
+        const ok = await triggerOAuthPopup(String(props.appId));
+        if (!ok) return;
+        await checkTokenStatus();
+    }
+
+    isLoadingPreview.value = true;
+
+    try {
+        const res = await GoogleSheetApi.inspectSchema(String(props.appId), {
+            spreadsheet_url: spreadsheetUrl.value.trim(),
+            sheet_name: selectedSheet.value || undefined,
+        });
+
+        sheets.value = res.sheets;
+        selectedSheet.value = res.selected_sheet;
+        columns.value = res.columns as any;
+        keyColumn.value = res.suggested_key;
+        previewData.value = res.preview as any;
+        totalRows.value = res.preview.length;
+
+        if (!tableName.value) {
+            tableName.value = res.selected_sheet || res.title || 'Sheet Data';
+        }
+
+        step.value = 2;
+    } catch (e: any) {
+        const msg = e.response?.data?.message || (e instanceof Error ? e.message : 'Gagal membaca Google Sheet');
+        f7.dialog.alert(msg);
+    } finally {
+        isLoadingPreview.value = false;
+    }
+}
+
 function handleSheetChange(e: Event) {
     selectedSheet.value = (e.target as HTMLSelectElement).value;
-    loadPreview();
+    if (sourceType.value === 'google_sheets') {
+        loadGoogleSheetPreview();
+    } else {
+        loadPreview();
+    }
 }
 
 function getPreviewValue(col: ExcelColumn): string {
@@ -358,6 +550,19 @@ async function doImport() {
     importProgress.value = '';
 
     try {
+        if (sourceType.value === 'google_sheets') {
+            const res = await GoogleSheetApi.createTableFromSheet(String(props.appId), {
+                spreadsheet_url: spreadsheetUrl.value,
+                table_name: tableName.value,
+                sheet_name: selectedSheet.value || undefined,
+                columns: columns.value as any,
+                key_column: keyColumn.value || undefined,
+            });
+
+            finishImport(res.table_id);
+            return;
+        }
+
         const result = await ExcelImportService.import(
             props.appId,
             tableName.value,
@@ -375,7 +580,7 @@ async function doImport() {
         }
     } catch (e) {
         const err = e as Record<string, any>;
-        const msg = err?.response?.data?.error ?? (e instanceof Error ? e.message : 'Import failed');
+        const msg = err?.response?.data?.error || err?.response?.data?.message || (e instanceof Error ? e.message : 'Import failed');
         f7.dialog.alert(msg);
         isImporting.value = false;
         importStatus.value = '';

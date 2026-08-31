@@ -115,18 +115,48 @@
 
                 <!-- Prelist fallback if no submission yet -->
                 <div v-else-if="response?.prelist_data" class="data-rendering-container prelist-box">
-                    <div class="prelist-notice">
-                        <f7-icon f7="info_circle" size="20" />
-                        <span>Data Pre-list (Belum ada respon yang dikirim)</span>
-                    </div>
-                    <div v-for="(val, key) in response.prelist_data" :key="key" class="data-field-row">
-                        <div class="field-label-wrapper">
-                            <span class="field-label-text">{{ key }}</span>
+                    <div class="prelist-notice display-flex justify-content-space-between align-items-center">
+                        <div class="display-flex align-items-center gap-half">
+                            <f7-icon f7="info_circle" size="20" />
+                            <span>Data Pre-list (Belum ada respon yang dikirim)</span>
                         </div>
-                        <div class="flat-field-value">
-                            {{ val !== null ? val : '-' }}
+                        <f7-button v-if="!isEditingPrelist" small outline color="blue" @click="startEditPrelist">
+                            <f7-icon f7="pencil" size="14" class="margin-right-half" /> Edit Prelist
+                        </f7-button>
+                    </div>
+
+                    <!-- Edit Mode Active -->
+                    <div v-if="isEditingPrelist" class="prelist-edit-container margin-top">
+                        <div v-for="(val, key) in editablePrelist" :key="key" class="data-field-row edit-row">
+                            <div class="field-label-wrapper">
+                                <span class="field-label-text font-bold">{{ key }}</span>
+                            </div>
+                            <div class="field-input-wrapper">
+                                <input type="text" v-model="editablePrelist[key]" class="prelist-input" />
+                            </div>
+                        </div>
+                        <div class="display-flex gap-half margin-top justify-content-flex-end">
+                            <f7-button small outline color="gray" @click="isEditingPrelist = false" :disabled="savingPrelist">
+                                Batal
+                            </f7-button>
+                            <f7-button small fill color="blue" @click="savePrelist" :disabled="savingPrelist">
+                                <f7-icon f7="checkmark" size="14" class="margin-right-half" />
+                                {{ savingPrelist ? 'Menyimpan...' : 'Simpan Perubahan' }}
+                            </f7-button>
                         </div>
                     </div>
+
+                    <!-- Readonly View -->
+                    <template v-else>
+                        <div v-for="(val, key) in response.prelist_data" :key="key" class="data-field-row">
+                            <div class="field-label-wrapper">
+                                <span class="field-label-text">{{ key }}</span>
+                            </div>
+                            <div class="flat-field-value">
+                                {{ val !== null ? val : '-' }}
+                            </div>
+                        </div>
+                    </template>
                 </div>
 
                 <!-- Actions Container -->
@@ -188,6 +218,33 @@ const isOpen = computed({
 });
 
 const processing = ref(false);
+const isEditingPrelist = ref(false);
+const savingPrelist = ref(false);
+const editablePrelist = ref<Record<string, any>>({});
+
+function startEditPrelist() {
+    if (props.response?.prelist_data) {
+        editablePrelist.value = JSON.parse(JSON.stringify(props.response.prelist_data));
+        isEditingPrelist.value = true;
+    }
+}
+
+async function savePrelist() {
+    if (!props.response?.id) return;
+    savingPrelist.value = true;
+    try {
+        await ApiClient.put(`/assignments/${props.response.id}/prelist`, {
+            prelist_data: editablePrelist.value
+        });
+        f7.toast.show({ text: '✓ Data prelist berhasil diperbarui', position: 'center', closeTimeout: 2000 });
+        isEditingPrelist.value = false;
+        emit('action-complete');
+    } catch (e: any) {
+        f7.dialog.alert('Gagal memperbarui prelist: ' + (e.message || e), 'Error');
+    } finally {
+        savingPrelist.value = false;
+    }
+}
 
 const canAction = computed(() => {
     return (props.response?.status === 'submitted' || props.response?.status === 'completed') && props.response?.responses?.[0];
@@ -527,6 +584,27 @@ async function handleReject() {
 
 .legacy-value {
     color: #475569;
+}
+
+.prelist-input {
+    width: 100%;
+    padding: 6px 10px;
+    font-size: 13px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #ffffff;
+    box-sizing: border-box;
+    margin-top: 4px;
+}
+
+.prelist-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.edit-row {
+    margin-bottom: 12px;
 }
 
 /* Prelist Box */

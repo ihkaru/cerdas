@@ -11,17 +11,11 @@
 
     <f7-list v-else media-list strong-ios dividers-ios inset-ios class="assignment-list no-margin-top">
         <f7-list-item v-for="(assignment, idx) in assignments" :key="assignment.id" swipeout link="#" no-chevron
-            class="no-ripple enter-animation" :style="{ animationDelay: `${idx * 0.03}s` }"
+            class="no-ripple enter-animation" :class="[getStatusCardClass(assignment.status)]"
+            :style="{ animationDelay: `${idx * 0.03}s` }"
             @click.prevent="$emit('open-assignment', assignment.id)">
-            <!-- Status Indicator -->
-            <template #media>
-                <div class="status-dot" :class="`bg-color-${statusColor(assignment.status)}`"></div>
-            </template>
-            <template #after>
-                <f7-badge v-if="!assignment.enumerator_id" color="blue">OPEN</f7-badge>
-            </template>
             <template #title>
-                <span data-inspect-target="views" data-view-id="default" data-inspect-option="primaryHeaderField">
+                <span class="task-title-text" data-inspect-target="views" data-view-id="default" data-inspect-option="primaryHeaderField">
                     {{ resolveTitle(assignment) }}
                 </span>
             </template>
@@ -74,13 +68,16 @@
 <script setup lang="ts">
 import type { Assignment } from '../types';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     assignments: Assignment[];
     totalCount?: number;
     loading: boolean;
     rowActions?: any[];
     swipeConfig?: { left: string[]; right: string[] };
-}>();
+    mode?: 'simple' | 'complex';
+}>(), {
+    mode: 'simple'
+});
 
 const emit = defineEmits<{
     (e: 'open-assignment', id: string): void;
@@ -88,18 +85,13 @@ const emit = defineEmits<{
     (e: 'row-action', payload: { actionId: string; assignmentId: string }): void;
 }>();
 
-const statusColor = (status: string) => {
-    switch (status) {
-        case 'assigned':    return 'gray';
-        case 'in_progress': return 'blue';
-        case 'submitted':   return 'orange';
-        case 'approved':    return 'teal';
-        case 'synced':      return 'teal';
-        case 'rejected':    return 'red';
-        default:            return 'gray';
+const getStatusCardClass = (status?: string) => {
+    const s = status || 'assigned';
+    if (s === 'submitted') {
+        return props.mode === 'complex' ? 'status-card-submitted-complex' : 'status-card-submitted-simple';
     }
+    return `status-card-${s}`;
 };
-
 
 const ensureObject = (data: any) => {
     if (typeof data === 'string') {
@@ -131,14 +123,46 @@ const emitRowAction = (actionId: string, assignmentId: string) => {
 
 <style scoped>
 .assignment-list :deep(.item-content) {
-    padding-left: 0;
+    padding-left: 12px;
 }
 
-.status-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-left: 16px;
+/* Status Indicators & Soft Pastel Background Tints (Clean Color-Only) */
+.status-card-assigned :deep(.item-content) {
+    border-left: 5px solid #94a3b8 !important;
+    background-color: #ffffff !important;
+}
+
+.status-card-in_progress :deep(.item-content) {
+    border-left: 5px solid #0284c7 !important;
+    background-color: #f0f9ff !important;
+}
+
+/* Mode Simple: Submitted = Selesai (Hijau) */
+.status-card-submitted-simple :deep(.item-content),
+.status-card-approved :deep(.item-content),
+.status-card-synced :deep(.item-content),
+.status-card-completed :deep(.item-content) {
+    border-left: 5px solid #16a34a !important;
+    background-color: #f0fdf4 !important;
+}
+
+/* Mode Complex: Submitted = Menunggu Review (Oranye/Amber) */
+.status-card-submitted-complex :deep(.item-content) {
+    border-left: 5px solid #f59e0b !important;
+    background-color: #fffbeb !important;
+}
+
+/* Mode Complex: Rejected = Dikembalikan / Perlu Revisi (Merah) */
+.status-card-rejected :deep(.item-content) {
+    border-left: 5px solid #ef4444 !important;
+    background-color: #fef2f2 !important;
+}
+
+.task-title-text {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 15px;
+    line-height: 1.3;
 }
 
 .height-50 {

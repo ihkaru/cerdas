@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\GoogleSheetInitialExportJob;
+use App\Actions\GoogleSheet\CreateAppFromSheetAction;
+use App\Actions\GoogleSheet\CreateTableFromSheetAction;
+use App\Actions\GoogleSheet\ImportGoogleSheetRowsAction;
 use App\Models\App;
 use App\Models\GoogleOAuthToken;
 use App\Models\Table;
+use App\Models\View;
 use App\Services\GoogleOAuthService;
 use App\Services\GoogleSheetColumnMapper;
 use App\Services\GoogleSheetsService;
+use App\Services\SchemaInferenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -21,13 +26,18 @@ use Illuminate\Support\Facades\Log;
  * - App-level OAuth token management (connect/disconnect Google Account)
  * - Table-level Sheet connection (link/unlink a Sheet tab to a Table)
  * - Initial export trigger and sync status
+ * - Schema inspection & auto Table/App creation from Google Sheet
  */
 class GoogleSheetSyncController extends Controller
 {
     public function __construct(
         private readonly GoogleOAuthService $oauthService,
         private readonly GoogleSheetsService $sheetsService,
-        private readonly GoogleSheetColumnMapper $mapper
+        private readonly GoogleSheetColumnMapper $mapper,
+        private readonly SchemaInferenceService $schemaInferenceService,
+        private readonly CreateTableFromSheetAction $createTableAction,
+        private readonly CreateAppFromSheetAction $createAppAction,
+        private readonly ImportGoogleSheetRowsAction $importRowsAction
     ) {}
 
     // ========== App-Level OAuth ==========
@@ -363,6 +373,302 @@ class GoogleSheetSyncController extends Controller
             ],
             'pending_rows' => $pendingRows,
         ]);
+    }
+
+    /**
+     * PATCH /api/tables/{table}/sheets/mode
+     *
+     * Update sync mode (e.g. toggle inbound_sync_enabled between One-Way and Two-Way).
+     */
+    public function updateSyncMode(Request $request, Table $table): JsonResponse
+    {
+        $this->authorizeAppAdmin($request, $table->app);
+
+        if ($table->source_type !== 'google_sheets') {
+            return response()->json(['message' => 'Table ini belum dihubungkan ke Google Sheet.'], 422);
+        }
+
+        $request->validate([
+            'inbound_sync_enabled' => 'required|boolean',
+        ]);
+
+        $sourceConfig = $table->source_config ?? [];
+        $sourceConfig['google_sheet']['inbound_sync_enabled'] = $request->boolean('inbound_sync_enabled');
+        $table->update(['source_config' => $sourceConfig]);
+
+        $modeName = $sourceConfig['google_sheet']['inbound_sync_enabled'] ? 'Two-Way (2 Arah)' : 'One-Way Export (1 Arah)';
+
+        return response()->json([
+            'success' => true,
+            'config' => $sourceConfig['google_sheet'],
+            'message' => "Mode sinkronisasi berhasil diubah menjadi {$modeName}.",
+        ]);
+    }
+
+    // ========== Schema Inspection & Auto Creation ==========
+
+    /**
+     * POST /api/google/sheets/inspect-schema/{app}
+     *
+     * Inspect a Google Spreadsheet's tabs and infer schema from sample rows.
+     */
+    public function inspectSchema(Request $request, App $app): JsonResponse
+    {
+        $this->authorizeAppAdmin($request, $app);
+
+        $request->validate([
+            'spreadsheet_url' => 'required_without:spreadsheet_id|nullable|string',
+            'spreadsheet_id' => 'required_without:spreadsheet_url|nullable|string',
+            'sheet_name' => 'nullable|string',
+        ]);
+
+        $rawInput = (string) ($request->input('spreadsheet_url') ?? $request->input('spreadsheet_id'));
+        $spreadsheetId = $this->sheetsService->extractSpreadsheetId($rawInput);
+
+        if (! $spreadsheetId) {
+            return response()->json(['message' => 'URL atau ID Spreadsheet tidak valid.'], 422);
+        }
+
+        try {
+            // 1. Fetch metadata (sheet tab names & title)
+            $meta = $this->sheetsService->getSpreadsheetMeta($app, $spreadsheetId);
+
+            if (empty($meta['sheets'])) {
+                return response()->json(['message' => 'Spreadsheet tidak memiliki lembar kerja (tab).'], 422);
+            }
+
+            // 2. Select target sheet (default to first tab)
+            $selectedSheet = $request->input('sheet_name');
+            if (! $selectedSheet || ! in_array($selectedSheet, $meta['sheets'], true)) {
+                $selectedSheet = $meta['sheets'][0];
+            }
+
+            // 3. Fetch sample rows (up to 30 rows)
+            $rows = $this->sheetsService->getSampleSheetRows($app, $spreadsheetId, $selectedSheet, 30);
+
+            // 4. Infer schema definition
+            $inference = $this->schemaInferenceService->inferSchema($rows);
+
+            return response()->json([
+                'spreadsheet_id' => $spreadsheetId,
+                'spreadsheet_url' => "https://docs.google.com/spreadsheets/d/{$spreadsheetId}/edit",
+                'title' => $meta['title'],
+                'sheets' => $meta['sheets'],
+                'selected_sheet' => $selectedSheet,
+                'columns' => $inference['columns'],
+                'suggested_key' => $inference['suggested_key'],
+                'preview' => $inference['preview'],
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Exception $e) {
+            Log::error('GoogleSheetSyncController: inspectSchema failed', [
+                'app_id' => $app->id,
+                'spreadsheet_id' => $spreadsheetId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Gagal membaca spreadsheet: '.$e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * POST /api/google/sheets/create-table-from-sheet/{app}
+     *
+     * Create a new Table in the App from an inspected Google Sheet schema and bind 2-way sync.
+     */
+    public function createTableFromSheet(Request $request, App $app): JsonResponse
+    {
+        $this->authorizeAppAdmin($request, $app);
+
+        $request->validate([
+            'spreadsheet_url' => 'required_without:spreadsheet_id|nullable|string',
+            'spreadsheet_id' => 'required_without:spreadsheet_url|nullable|string',
+            'table_name' => 'required|string|max:255',
+            'sheet_name' => 'nullable|string',
+            'columns' => 'required|array|min:1',
+            'key_column' => 'nullable|string',
+        ]);
+
+        $rawInput = (string) ($request->input('spreadsheet_url') ?? $request->input('spreadsheet_id'));
+        $spreadsheetId = $this->sheetsService->extractSpreadsheetId($rawInput);
+
+        try {
+            $result = $this->createTableAction->execute(
+                $app,
+                $spreadsheetId,
+                trim((string) $request->input('table_name')),
+                (string) ($request->input('sheet_name') ?? 'Sheet1'),
+                $request->input('columns'),
+                (string) ($request->input('key_column') ?? '_cerdas_id')
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => "Tabel '{$result['table']->name}' berhasil dibuat dan terhubung ke Google Sheets.",
+                'table_id' => $result['table']->id,
+                'app_id' => $app->id,
+                'view_id' => $result['view']->id,
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('GoogleSheetSyncController: createTableFromSheet failed', [
+                'app_id' => $app->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Gagal membuat tabel dari sheet: '.$e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * POST /api/google/sheets/create-app-from-sheet
+     *
+     * Create a new App along with its primary Table from an inspected Google Sheet.
+     */
+    public function createAppFromSheet(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'mode' => 'nullable|string|in:simple,complex',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'expired_behavior' => 'nullable|string|in:read_only,hidden',
+            'temp_app_id' => 'nullable|uuid',
+            'spreadsheet_url' => 'required_without:spreadsheet_id|nullable|string',
+            'spreadsheet_id' => 'required_without:spreadsheet_url|nullable|string',
+            'table_name' => 'nullable|string|max:255',
+            'sheet_name' => 'nullable|string',
+            'columns' => 'required|array|min:1',
+            'key_column' => 'nullable|string',
+        ]);
+
+        $rawInput = (string) ($request->input('spreadsheet_url') ?? $request->input('spreadsheet_id'));
+        $validated['spreadsheet_id'] = $this->sheetsService->extractSpreadsheetId($rawInput);
+
+        try {
+            $result = $this->createAppAction->execute($request->user(), $validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => "App '{$result['app']->name}' berhasil dibuat dan terhubung ke Google Sheets.",
+                'app_id' => $result['app']->id,
+                'table_id' => $result['table']->id,
+                'view_id' => $result['view']->id,
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('GoogleSheetSyncController: createAppFromSheet failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Gagal membuat aplikasi dari Google Sheet: '.$e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * POST /api/tables/{table}/sheets/pull
+     *
+     * Pull/refresh latest records from the connected Google Sheet into the Table's AppRecords and Assignments.
+     */
+    public function pullSheetData(Request $request, Table $table): JsonResponse
+    {
+        $app = $table->app;
+        $this->authorizeAppAdmin($request, $app);
+
+        $sourceConfig = $table->source_config['google_sheet'] ?? null;
+        if (! $sourceConfig || empty($sourceConfig['spreadsheet_id'])) {
+            return response()->json([
+                'message' => 'Tabel ini tidak terhubung ke Google Sheet.',
+            ], 422);
+        }
+
+        $spreadsheetId = $sourceConfig['spreadsheet_id'];
+        $sheetName = $sourceConfig['sheet_name'] ?? $table->name;
+
+        $tableVersion = $table->getWorkingVersion();
+        $fields = $tableVersion?->fields ?? [];
+
+        try {
+            $importedCount = $this->importRowsAction->execute(
+                $app,
+                $table,
+                $spreadsheetId,
+                $sheetName,
+                $fields
+            );
+
+            return response()->json([
+                'success' => true,
+                'rows_imported' => $importedCount,
+                'message' => "Berhasil menyinkronkan {$importedCount} baris data dari Google Sheet.",
+            ]);
+        } catch (\Exception $e) {
+            Log::error('GoogleSheetSyncController: pullSheetData failed', [
+                'table_id' => $table->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Gagal menarik data dari Google Sheet: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /api/webhooks/sheets/{tableId}
+     *
+     * Inbound webhook endpoint triggered by Google Apps Script onChange/onEdit.
+     * Ingests latest rows from the Google Sheet into Cerdas.
+     */
+    public function handleWebhook(Request $request, string $tableId): JsonResponse
+    {
+        $table = Table::find($tableId);
+        if (! $table || $table->source_type !== 'google_sheets') {
+            return response()->json(['message' => 'Table not found or not connected to Google Sheets'], 404);
+        }
+
+        $sourceConfig = $table->source_config['google_sheet'] ?? null;
+        if (! $sourceConfig || empty($sourceConfig['spreadsheet_id'])) {
+            return response()->json(['message' => 'Sheet configuration missing'], 422);
+        }
+
+        $app = $table->app;
+        if (! $app) {
+            return response()->json(['message' => 'App not found'], 404);
+        }
+
+        $spreadsheetId = $sourceConfig['spreadsheet_id'];
+        $sheetName = $sourceConfig['sheet_name'] ?? $table->name;
+        $version = $table->getWorkingVersion();
+        $fields = $version?->fields ?? [];
+
+        try {
+            $count = $this->importRowsAction->execute(
+                $app,
+                $table,
+                $spreadsheetId,
+                $sheetName,
+                $fields
+            );
+
+            $fullConfig = $table->source_config ?? [];
+            $fullConfig['google_sheet']['last_inbound_synced_at'] = now()->toISOString();
+            $fullConfig['google_sheet']['inbound_rows_count'] = $count;
+            $table->update(['source_config' => $fullConfig]);
+
+            return response()->json([
+                'success' => true,
+                'rows_synced' => $count,
+                'message' => "Webhook processed successfully. {$count} rows synced.",
+            ]);
+        } catch (\Exception $e) {
+            Log::error('GoogleSheetSyncController: webhook error', [
+                'table_id' => $tableId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Webhook processing failed: '.$e->getMessage()], 500);
+        }
     }
 
     // ========== Private Helpers ==========

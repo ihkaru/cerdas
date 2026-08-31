@@ -28,10 +28,20 @@ class GoogleOAuthService
      */
     private function buildClient(): GoogleClient
     {
+        $clientId = config('services.google.client_id') ?: env('GOOGLE_CLIENT_ID');
+        $clientSecret = config('services.google.client_secret') ?: env('GOOGLE_CLIENT_SECRET');
+        $redirectUri = config('services.google.redirect_uri') ?: env('GOOGLE_REDIRECT_URI', 'http://localhost:9982/oauth-callback.html');
+
+        if (empty($clientId)) {
+            throw new \RuntimeException('GOOGLE_CLIENT_ID is not configured in backend .env.');
+        }
+
         $client = new GoogleClient;
-        $client->setClientId(config('services.google.client_id'));
-        $client->setClientSecret(config('services.google.client_secret'));
-        $client->setRedirectUri(config('services.google.redirect_uri'));
+        $client->setClientId($clientId);
+        if (! empty($clientSecret)) {
+            $client->setClientSecret($clientSecret);
+        }
+        $client->setRedirectUri($redirectUri);
         $client->setAccessType('offline');          // Required to get refresh_token
         $client->setPrompt('consent');              // Force consent to always get refresh_token
         $client->setScopes(self::SCOPES);

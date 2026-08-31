@@ -121,6 +121,10 @@ class ExcelImportController extends Controller
         ]);
     }
 
+    public function __construct(
+        private readonly \App\Services\SchemaInferenceService $schemaInferenceService
+    ) {}
+
     /**
      * Preview columns and infer types from a specific sheet
      */
@@ -165,11 +169,11 @@ class ExcelImportController extends Controller
                 return response()->json(['error' => 'Sheet not found'], 404);
             }
 
-            // Read first 25 rows for preview and accurate type inference
+            // Read first 30 rows for preview and accurate type inference
             $rows = [];
             $rowCount = 0;
             foreach ($targetSheet->getRowIterator() as $row) {
-                if ($rowCount >= 25) {
+                if ($rowCount >= 30) {
                     break;
                 }
 
@@ -188,199 +192,18 @@ class ExcelImportController extends Controller
 
             $reader->close();
 
-            // Infer columns
-            $headers = $rows[0] ?? [];
-            $previewData = array_slice($rows, 1);
-            $columns = [];
-
-            foreach ($headers as $index => $header) {
-                $headerStr = trim((string)$header);
-                $sampleValues = array_column($previewData, $index);
-                $inferenceResult = $this->inferColumnType($headerStr, $sampleValues);
-
-                $columns[] = [
-                    'name' => Str::slug($headerStr, '_') ?: 'col_'.$index,
-                    'label' => $headerStr,
-                    'original_header' => $headerStr, // Frontend matches this
-                    'type' => $inferenceResult['type'],
-                    'options' => $inferenceResult['options'] ?? [],
-                    'source_index' => $index,
-                ];
-            }
+            // Infer columns and preview via SchemaInferenceService
+            $inference = $this->schemaInferenceService->inferSchema($rows);
 
             return response()->json([
                 'sheets' => $sheetNames,
-                'columns' => $columns,
-                'preview' => $previewData,
+                'columns' => $inference['columns'],
+                'suggested_key' => $inference['suggested_key'],
+                'preview' => $inference['preview'],
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
-    }
-
-    /**
-     * Infer column type and optional categorical options based on header and sample values
-     */
-    private function inferColumnType(string $header, array $sampleValues): array
-    {
-        $h = strtolower(trim($header));
-
-        // Filter non-empty trimmed values
-        $nonEmpty = [];
-        foreach ($sampleValues as $v) {
-            if ($v !== null) {
-                $str = trim((string)$v);
-                if ($str !== '') {
-                    $nonEmpty[] = $str;
-                }
-            }
-        }
-
-        // 1. Text Protection for Codes, IDs, NIK, Phone, Zip (Prevent Loss of Leading Zeros / Text IDs)
-        if (preg_match('/(^|_)(nik|nokk|no_kk|kk|ktp|id_|kode_|kd_|rt|rw|telepon|telp|hp|wa|phone|postal|kodepos|nip|nisn)($|_)/i', $h)) {
-            return ['type' => 'text'];
-        }
-
-        // 2. Keyword check for GPS coordinates
-        if (preg_match('/(^|_)(gps|koordinat|coordinate|lat_long|latlong|lat_lng|titik_lokasi)($|_)/i', $h)) {
-            return ['type' => 'gps'];
-        }
-
-        // 3. Keyword check for Image / Photo
-        if (preg_match('/(^|_)(foto|photo|gambar|image|lampiran|file_ktp|file_kk)($|_)/i', $h)) {
-            return ['type' => 'image'];
-        }
-
-        // 4. Keyword check for Signature
-        if (preg_match('/(^|_)(ttd|signature|paraf|tanda_tangan)($|_)/i', $h)) {
-            return ['type' => 'signature'];
-        }
-
-        // 5. Keyword check for URL / Link
-        if (preg_match('/(^|_)(url|link|tautan|website|web)($|_)/i', $h)) {
-            return ['type' => 'url'];
-        }
-
-        // 6. If no sample values are available, use header hints or default to 'text'
-        if (empty($nonEmpty)) {
-            if (preg_match('/(^|_)(tgl|tanggal|date|tgl_lahir|birth_date)($|_)/i', $h)) {
-                return ['type' => 'date'];
-            }
-            if (preg_match('/(^|_)(jam|pukul|time)($|_)/i', $h)) {
-                return ['type' => 'time'];
-            }
-            if (preg_match('/(^|_)(nominal|jumlah|total|harga|biaya|pengeluaran|pendapatan|gaji|omset|target|kuota|usia|umur|skor|nilai|bobot|luas|volume|berat|tinggi)($|_)/i', $h)) {
-                return ['type' => 'number'];
-            }
-            return ['type' => 'text'];
-        }
-
-        // 7. Value Pattern Analysis on Non-Empty Values
-
-        // 7a. Check GPS coordinates pattern (e.g. "-0.4791, 108.9585" or "-0.4791,108.9585")
-        $isGps = true;
-        foreach ($nonEmpty as $val) {
-            if (!preg_match('/^-?\d{1,3}\.\d+,\s*-?\d{1,3}\.\d+$/', $val)) {
-                $isGps = false;
-                break;
-            }
-        }
-        if ($isGps) {
-            return ['type' => 'gps'];
-        }
-
-        // 7b. Check URL pattern
-        $isUrl = true;
-        foreach ($nonEmpty as $val) {
-            if (!filter_var($val, FILTER_VALIDATE_URL) && !preg_match('/^https?:\/\//i', $val)) {
-                $isUrl = false;
-                break;
-            }
-        }
-        if ($isUrl) {
-            return ['type' => 'url'];
-        }
-
-        // 7c. Check Image filename pattern
-        $isImage = true;
-        foreach ($nonEmpty as $val) {
-            if (!preg_match('/\.(jpg|jpeg|png|webp|gif|svg)$/i', $val)) {
-                $isImage = false;
-                break;
-            }
-        }
-        if ($isImage) {
-            return ['type' => 'image'];
-        }
-
-        // 7d. Check Time pattern (HH:MM or HH:MM:SS)
-        $isTime = true;
-        foreach ($nonEmpty as $val) {
-            if (!preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $val)) {
-                $isTime = false;
-                break;
-            }
-        }
-        if ($isTime) {
-            return ['type' => 'time'];
-        }
-
-        // 7e. Check Date / DateTime pattern
-        $isDate = true;
-        $isDateTime = false;
-        foreach ($nonEmpty as $val) {
-            $isIsoDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $val);
-            $isIsoDateTime = preg_match('/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?/', $val);
-            $isDmy = preg_match('/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}$/', $val);
-
-            if ($isIsoDateTime) {
-                $isDateTime = true;
-            } elseif ($isIsoDate || $isDmy) {
-                // ok date
-            } else {
-                $isDate = false;
-                break;
-            }
-        }
-        if ($isDate) {
-            return ['type' => $isDateTime ? 'datetime' : 'date'];
-        }
-
-        // 7f. Check Numeric (Numbers without leading zeros, or clean decimals)
-        $isNumeric = true;
-        foreach ($nonEmpty as $val) {
-            // Check if purely numeric
-            if (!is_numeric($val)) {
-                $isNumeric = false;
-                break;
-            }
-            // Check for leading zero like "01", "08123" (which indicates code/string, except "0" or "0.5")
-            if (preg_match('/^0\d+/', $val)) {
-                $isNumeric = false;
-                break;
-            }
-        }
-        if ($isNumeric) {
-            return ['type' => 'number'];
-        }
-
-        // 7g. Check Categorical Choices (Options like "1. Ya", "2. Tidak", or survey codes)
-        $uniqueValues = array_values(array_unique($nonEmpty));
-        $hasNumberedPrefix = false;
-        foreach ($uniqueValues as $uv) {
-            if (preg_match('/^\d+[\.\-\)]\s*.+/', $uv)) {
-                $hasNumberedPrefix = true;
-                break;
-            }
-        }
-
-        if ($hasNumberedPrefix && count($uniqueValues) <= 15) {
-            $options = array_map(fn($v) => ['label' => $v, 'value' => $v], $uniqueValues);
-            return ['type' => 'select', 'options' => $options];
-        }
-
-        // 8. Default to text
-        return ['type' => 'text'];
     }
 
     /**

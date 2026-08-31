@@ -61,6 +61,9 @@ Route::get('/apk/latest/download', [ApkController::class, 'downloadLatestApk']);
 Route::get('/tables/{table}/export/download-raw/{job}', [ExportController::class, 'downloadRaw'])
     ->name('table.export.download.raw');
 
+// Public Webhook for Inbound Google Sheets Sync
+Route::post('/webhooks/sheets/{table}', [GoogleSheetSyncController::class, 'handleWebhook']);
+
 // ========== Protected Routes ==========
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -203,15 +206,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{table}/sheets/connect', [GoogleSheetSyncController::class, 'connectSheet']);
         Route::delete('/{table}/sheets/disconnect', [GoogleSheetSyncController::class, 'disconnectSheet']);
         Route::post('/{table}/sheets/export-all', [GoogleSheetSyncController::class, 'triggerInitialExport']);
+        Route::post('/{table}/sheets/pull', [GoogleSheetSyncController::class, 'pullSheetData']);
+        Route::patch('/{table}/sheets/mode', [GoogleSheetSyncController::class, 'updateSyncMode']);
         Route::get('/{table}/sheets/status', [GoogleSheetSyncController::class, 'syncStatus']);
     });
 
-    // Google Sheet Sync — App-level OAuth token management
+    // Google Sheet Sync — App-level OAuth token management & Schema Inspection
     Route::prefix('google/sheets')->group(function () {
         Route::get('/auth-url/{app}', [GoogleSheetSyncController::class, 'getAuthUrl']);
         Route::post('/callback', [GoogleSheetSyncController::class, 'handleCallback']);
         Route::get('/token-status/{app}', [GoogleSheetSyncController::class, 'tokenStatus']);
         Route::delete('/disconnect/{app}', [GoogleSheetSyncController::class, 'disconnectApp']);
+        Route::post('/inspect-schema/{app}', [GoogleSheetSyncController::class, 'inspectSchema']);
+        Route::post('/create-table-from-sheet/{app}', [GoogleSheetSyncController::class, 'createTableFromSheet']);
+        Route::post('/create-app-from-sheet', [GoogleSheetSyncController::class, 'createAppFromSheet']);
     });
 
     // Client/Enumeration Routes
@@ -220,6 +228,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{assignment}', [AssignmentController::class, 'show']);
         Route::delete('/{assignment}', [AssignmentController::class, 'destroy']);
         Route::post('/import', [AssignmentController::class, 'import']);
+        Route::post('/import-json', [AssignmentController::class, 'importJson']);
+        Route::put('/{assignment}/prelist', [AssignmentController::class, 'updatePrelist']);
     });
 
     Route::get('/responses', [ResponseController::class, 'index']);

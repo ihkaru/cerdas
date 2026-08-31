@@ -22,3 +22,6 @@ Schedule::job(new \App\Jobs\GoogleSheetBatchFlushJob)->everyThirtySeconds();
 
 // Google Sheet Sync — proactive token refresh (runs hourly)
 Schedule::job(new \App\Jobs\GoogleSheetTokenRefreshJob)->hourly();
+
+// Google Sheet Sync — automatic background inbound sync (runs every 10 minutes)
+Schedule::job(new \App\Jobs\GoogleSheetInboundSyncJob)->everyTenMinutes();

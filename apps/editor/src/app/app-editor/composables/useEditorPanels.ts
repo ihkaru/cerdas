@@ -35,6 +35,7 @@ export function useEditorPanels() {
     // Modals
     const showNewSourceModal = ref(false);
     const showExcelImportModal = ref(false);
+    const importSourceType = ref<'file' | 'google_sheets'>('file');
 
     // Persist widths on change (debounced via watch)
     watch([fieldListWidth, dataListWidth, codeEditorWidth], ([fl, dl, ce]) => {
@@ -50,6 +51,7 @@ export function useEditorPanels() {
         codeEditorWidth,
         codeEditorBaseWidth,
         showNewSourceModal,
-        showExcelImportModal
+        showExcelImportModal,
+        importSourceType
     };
 }

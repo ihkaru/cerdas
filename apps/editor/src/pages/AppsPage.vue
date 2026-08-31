@@ -14,6 +14,10 @@
                         {{ appStore.trashedApps.length }}
                     </span>
                 </f7-button>
+                <f7-button fill color="green" @click="showSheetModal = true" class="sheet-btn">
+                    <f7-icon f7="logo_google" size="16" class="margin-right-half" />
+                    From Google Sheets
+                </f7-button>
                 <f7-button fill @click="showCreateDialog" class="create-btn">
                     <f7-icon f7="plus" />
                     New App
@@ -59,8 +63,17 @@
                 <div class="add-icon">
                     <f7-icon f7="app_badge_fill" />
                 </div>
-                <span>Create New App</span>
-                <p>Start building a new data collection app</p>
+                <span>Create Blank App</span>
+                <p>Start building a form from scratch</p>
+            </div>
+
+            <!-- Start from Google Sheets Card -->
+            <div class="app-card add-card sheet-add-card" @click="showSheetModal = true">
+                <div class="add-icon sheet-add-icon">
+                    <f7-icon f7="logo_google" />
+                </div>
+                <span>From Google Sheets</span>
+                <p>Import columns &amp; 2-way sync replica</p>
             </div>
         </div>
 
@@ -92,6 +105,9 @@
 
         <!-- App Trash Modal -->
         <AppTrashModal v-model:opened="showTrashModal" @restored="onAppRestored" />
+
+        <!-- Create App From Sheet Modal -->
+        <CreateAppFromSheetModal v-model:opened="showSheetModal" @created="onAppCreatedFromSheet" />
 
         <!-- Create App Popup - MUST be inside f7-page for proper lifecycle management -->
         <f7-popup class="create-app-popup" v-model:opened="createPopupOpened" @popup:closed="resetCreateForm"
@@ -163,6 +179,7 @@ import { useAppStore } from '@/stores';
 import { f7 } from 'framework7-vue';
 import { computed, reactive, ref, onMounted, onBeforeUnmount } from 'vue';
 import AppTrashModal from './components/AppTrashModal.vue';
+import CreateAppFromSheetModal from './components/CreateAppFromSheetModal.vue';
 
 const appStore = useAppStore();
 
@@ -171,6 +188,7 @@ const appStore = useAppStore();
 // ============================================================================
 
 const showTrashModal = ref(false);
+const showSheetModal = ref(false);
 const createPopupOpened = ref(false);
 const isCreating = ref(false);
 const newApp = reactive({
@@ -182,6 +200,10 @@ const newApp = reactive({
     end_date: '',
     expired_behavior: 'read_only'
 });
+
+async function onAppCreatedFromSheet() {
+    await appStore.fetchApps();
+}
 
 const apps = computed(() => {
     const colors = ['#2563eb', '#16a34a', '#ea580c', '#9333ea', '#ec4899'];
@@ -589,6 +611,15 @@ onBeforeUnmount(() => {
     font-size: 13px;
     color: #64748b;
     margin-top: 4px;
+}
+
+.sheet-add-card:hover {
+    border-color: #16a34a;
+    background: #f0fdf4;
+}
+
+.sheet-add-icon {
+    color: #16a34a;
 }
 
 /* Activity Section */

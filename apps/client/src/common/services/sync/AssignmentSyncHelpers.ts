@@ -36,18 +36,25 @@ export async function handleTombstones(db: any, deletedIds: string[]) {
     }
 }
 
-/** Remove local assignments not present on server (initial sync only) */
+/** Remove local untouched assigned prelists not present on server */
 export async function cleanupOrphanAssignments(db: any, tableId: string, fetchedIds: string[]) {
     if (fetchedIds.length === 0) {
-        await db.run(`DELETE FROM assignments WHERE table_id = ?`, [tableId]);
-        logger.warn(`[Sync] No assignments from server for table ${tableId}, cleared local`);
+        await db.run(
+            `DELETE FROM assignments WHERE table_id = ? AND status = 'assigned' AND id NOT IN (SELECT assignment_id FROM responses WHERE assignment_id IS NOT NULL)`,
+            [tableId]
+        );
+        logger.warn(`[Sync] No assignments from server for table ${tableId}, cleared local untouched prelists`);
         return;
     }
 
-    const localResult = await db.query('SELECT id FROM assignments WHERE table_id = ?', [tableId]);
+    const localResult = await db.query(
+        `SELECT a.id FROM assignments a 
+         WHERE a.table_id = ? AND a.status = 'assigned' AND a.id NOT IN (SELECT assignment_id FROM responses WHERE assignment_id IS NOT NULL)`,
+        [tableId]
+    );
     const localIds: string[] = (localResult.values || []).map((r: { id: string }) => r.id);
 
-    logger.debug(`[SyncService] Cleanup Orphans. Local: ${localIds.length}, Fetched: ${fetchedIds.length}`);
+    logger.debug(`[SyncService] Cleanup Orphans. Local untouched prelists: ${localIds.length}, Fetched: ${fetchedIds.length}`);
 
     const fetchedSet = new Set(fetchedIds);
     const orphanIds = localIds.filter((id: string) => !fetchedSet.has(id));
@@ -56,7 +63,6 @@ export async function cleanupOrphanAssignments(db: any, tableId: string, fetched
         logger.debug(`[Sync] Removing ${orphanIds.length} orphan assignments for table ${tableId}`);
         for (const id of orphanIds) {
             await db.run('DELETE FROM assignments WHERE id = ?', [id]);
-            await db.run('DELETE FROM responses WHERE assignment_id = ?', [id]);
         }
     } else {
         logger.debug(`[Sync] No orphan assignments found for table ${tableId}`);

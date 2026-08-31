@@ -20,28 +20,43 @@
     const state = params.get('state');
     const error = params.get('error');
 
-    if (error) {
-        // User denied access or error occurred
-        if (window.opener) {
-            window.opener.postMessage(
-                { type: 'GOOGLE_OAUTH_ERROR', error },
-                window.location.origin
-            );
+    const payload = (code && state)
+        ? { type: 'GOOGLE_OAUTH_SUCCESS', code, state }
+        : { type: 'GOOGLE_OAUTH_ERROR', error: error || 'Missing code or state parameter' };
+
+    // 1. BroadcastChannel (modern & immune to COOP / window.opener stripping)
+    try {
+        if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('google_oauth_channel');
+            bc.postMessage(payload);
+            bc.close();
         }
-        window.close();
-    } else if (code && state) {
-        // Send code + state back to parent window
-        if (window.opener) {
-            window.opener.postMessage(
-                { type: 'GOOGLE_OAUTH_SUCCESS', code, state },
-                window.location.origin
-            );
-        }
-        // Close the popup
-        window.close();
-    } else {
-        document.body.innerHTML = '<p>OAuth callback error: missing code or state parameter.</p>';
+    } catch (e) {
+        console.error('BroadcastChannel error:', e);
     }
+
+    // 2. localStorage fallback for cross-window communication
+    try {
+        localStorage.setItem('google_oauth_event', JSON.stringify({ ...payload, _t: Date.now() }));
+    } catch (e) {
+        console.error('localStorage error:', e);
+    }
+
+    // 3. window.opener postMessage fallback
+    try {
+        if (window.opener) {
+            window.opener.postMessage(payload, '*');
+        }
+    } catch (e) {
+        console.error('postMessage error:', e);
+    }
+
+    // Close popup shortly
+    setTimeout(() => {
+        try {
+            window.close();
+        } catch (e) {}
+    }, 400);
 </script>
 <p style="font-family: sans-serif; color: #666; text-align: center; margin-top: 48px;">
     Menyelesaikan autentikasi Google... Jendela ini akan menutup otomatis.

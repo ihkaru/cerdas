@@ -3,7 +3,10 @@ import type {
   AuthUrlResponse,
   ConnectSheetRequest,
   ConnectSheetResponse,
+  CreateAppFromSheetRequest,
+  CreateTableFromSheetRequest,
   GoogleSheetTokenStatus,
+  InspectSheetSchemaResponse,
   SheetSyncStatus,
 } from '@cerdas/types';
 
@@ -73,9 +76,47 @@ export const GoogleSheetApi = {
       .then(res => res.data),
 
   /**
+   * Pull/refresh latest records from the connected Google Sheet into the Table.
+   */
+  pullSheetData: (tableId: string): Promise<{ success: boolean; rows_imported: number; message: string }> =>
+    ApiClient.post<{ success: boolean; rows_imported: number; message: string }>(`/tables/${tableId}/sheets/pull`)
+      .then(res => res.data),
+
+  /**
+   * Update sync mode (inbound_sync_enabled: true/false).
+   */
+  updateSyncMode: (tableId: string, payload: { inbound_sync_enabled: boolean }): Promise<{ success: boolean; config: GoogleSheetConfig; message: string }> =>
+    ApiClient.patch<{ success: boolean; config: GoogleSheetConfig; message: string }>(`/tables/${tableId}/sheets/mode`, payload)
+      .then(res => res.data),
+
+  /**
    * Get the current sync status for a Table's Sheet connection.
    */
   getSyncStatus: (tableId: string): Promise<SheetSyncStatus> =>
     ApiClient.get<SheetSyncStatus>(`/tables/${tableId}/sheets/status`)
       .then(res => res.data),
+
+  // ========== Schema Inspection & Creation ==========
+
+  /**
+   * Inspect a Google Spreadsheet's tabs, headers, and inferred column types.
+   */
+  inspectSchema: (appId: string, payload: { spreadsheet_url?: string; spreadsheet_id?: string; sheet_name?: string }): Promise<InspectSheetSchemaResponse> =>
+    ApiClient.post<InspectSheetSchemaResponse>(`/google/sheets/inspect-schema/${appId}`, payload)
+      .then(res => res.data),
+
+  /**
+   * Create a new Table in the App directly from an inspected Google Sheet and configure 2-way sync.
+   */
+  createTableFromSheet: (appId: string, payload: CreateTableFromSheetRequest): Promise<{ success: boolean; table_id: string; app_id: string; view_id: string; message: string }> =>
+    ApiClient.post(`/google/sheets/create-table-from-sheet/${appId}`, payload)
+      .then(res => res.data),
+
+  /**
+   * Create a new App and primary Table in one step from an inspected Google Sheet.
+   */
+  createAppFromSheet: (payload: CreateAppFromSheetRequest): Promise<{ success: boolean; app_id: string; table_id: string; view_id: string; message: string }> =>
+    ApiClient.post(`/google/sheets/create-app-from-sheet`, payload)
+      .then(res => res.data),
 };
+

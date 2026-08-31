@@ -178,6 +178,12 @@ window.addEventListener('unhandledrejection', (event) => {
     }
 });
 
+// Auto-recover from outdated Vite dynamic chunks after new deployment
+window.addEventListener('vite:preloadError', (event) => {
+    logger.warn('[Vite] Dynamic chunk import failed (likely new deployment). Reloading page...', event);
+    window.location.reload();
+});
+
 // Initialize Framework7-Vue Plugin
 Framework7.use(Framework7Vue);
 

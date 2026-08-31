@@ -37,11 +37,11 @@
 
                             <!-- Option 3: Google Sheets -->
                             <div class="col-50 tablet-50 desktop-33">
-                                <div class="card source-option disabled">
+                                <div class="card source-option" @click="selectOption('google_sheets')">
                                     <div class="card-content card-content-padding text-align-center">
-                                        <f7-icon f7="logo_google" size="48" class="text-color-gray margin-bottom-half" />
-                                        <div class="font-bold text-color-gray margin-bottom-half">Google Sheets</div>
-                                        <div class="text-color-gray size-12">2-way sync with Google Sheets (Coming Soon)</div>
+                                        <f7-icon f7="logo_google" size="48" class="text-color-green margin-bottom-half" />
+                                        <div class="font-bold margin-bottom-half">Google Sheets</div>
+                                        <div class="text-color-gray size-12">2-way sync replica with Google Sheets</div>
                                     </div>
                                 </div>
                             </div>
@@ -54,13 +54,16 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
+defineProps<{
     opened: boolean;
 }>();
 
-const emit = defineEmits(['update:opened', 'select']);
+const emit = defineEmits<{
+    (e: 'update:opened', val: boolean): void;
+    (e: 'select', type: 'blank' | 'excel' | 'google_sheets'): void;
+}>();
 
-function selectOption(type: 'blank' | 'excel') {
+function selectOption(type: 'blank' | 'excel' | 'google_sheets') {
     emit('select', type);
     emit('update:opened', false);
 }

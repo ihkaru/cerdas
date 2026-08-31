@@ -1,10 +1,10 @@
 <template>
     <div class="deck-view-container height-100 overflow-auto">
         <f7-list media-list v-if="preparedData.length">
-            <f7-list-item v-for="item in preparedData" :key="item.id || item.local_id" :class="[`status-border-${item.status}`]"
+            <f7-list-item v-for="item in preparedData" :key="item.id || item.local_id" :class="[getStatusCardClass(item.status)]"
                 :swipeout="hasSwipe" @click="$emit('click', item)" link="#">
                 <template #title>
-                    <span data-inspect-target="views" :data-view-id="config.id || 'default'" data-inspect-option="primaryHeaderField">
+                    <span class="deck-title-text" data-inspect-target="views" :data-view-id="config.id || 'default'" data-inspect-option="primaryHeaderField">
                         {{ item._resolvedTitle }}
                     </span>
                 </template>
@@ -60,27 +60,43 @@
 </template>
 
 <style scoped>
-/* Status Indicators */
-.status-border-assigned :deep(.item-content) {
-    border-left: 4px solid var(--f7-color-gray);
+/* Status Indicators & Soft Pastel Background Tints (Clean Color-Only) */
+.status-card-assigned :deep(.item-content) {
+    border-left: 5px solid #94a3b8 !important;
+    background-color: #ffffff !important;
 }
 
-.status-border-in_progress :deep(.item-content) {
-    border-left: 4px solid var(--f7-color-blue);
+.status-card-in_progress :deep(.item-content) {
+    border-left: 5px solid #0284c7 !important;
+    background-color: #f0f9ff !important;
 }
 
-.status-border-submitted :deep(.item-content) {
-    border-left: 4px solid var(--f7-color-orange);
+/* Mode Simple: Submitted = Selesai (Hijau) */
+.status-card-submitted-simple :deep(.item-content),
+.status-card-approved :deep(.item-content),
+.status-card-synced :deep(.item-content),
+.status-card-completed :deep(.item-content) {
+    border-left: 5px solid #16a34a !important;
+    background-color: #f0fdf4 !important;
 }
 
-.status-border-approved :deep(.item-content),
-.status-border-synced :deep(.item-content),
-.status-border-completed :deep(.item-content) {
-    border-left: 4px solid var(--f7-color-teal);
+/* Mode Complex: Submitted = Menunggu Review (Oranye/Amber) */
+.status-card-submitted-complex :deep(.item-content) {
+    border-left: 5px solid #f59e0b !important;
+    background-color: #fffbeb !important;
 }
 
-.status-border-rejected :deep(.item-content) {
-    border-left: 4px solid var(--f7-color-red);
+/* Mode Complex: Rejected = Dikembalikan / Perlu Revisi (Merah) */
+.status-card-rejected :deep(.item-content) {
+    border-left: 5px solid #ef4444 !important;
+    background-color: #fef2f2 !important;
+}
+
+.deck-title-text {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 15px;
+    line-height: 1.3;
 }
 
 
@@ -175,6 +191,18 @@ const props = defineProps<{
 }>();
 
 defineEmits(['click', 'action']);
+
+const isComplexMode = computed(() => {
+    return props.config?.workflow_mode === 'complex' || props.config?.mode === 'complex';
+});
+
+const getStatusCardClass = (status?: string) => {
+    const s = status || 'assigned';
+    if (s === 'submitted') {
+        return isComplexMode.value ? 'status-card-submitted-complex' : 'status-card-submitted-simple';
+    }
+    return `status-card-${s}`;
+};
 
 const getActionDef = (id: string) => {
     const action = props.actions?.find(a => a.id === id);

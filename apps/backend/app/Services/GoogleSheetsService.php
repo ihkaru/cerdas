@@ -120,7 +120,20 @@ class GoogleSheetsService
         }
     }
 
-    // ========== Spreadsheet Access Verification ==========
+    // ========== Spreadsheet Access & Metadata ==========
+
+    /**
+     * Extract a spreadsheet ID from a full Google Sheets URL or return raw ID.
+     */
+    public function extractSpreadsheetId(string $urlOrId): string
+    {
+        $trimmed = trim($urlOrId);
+        if (preg_match('/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/', $trimmed, $matches)) {
+            return $matches[1];
+        }
+
+        return $trimmed;
+    }
 
     /**
      * Verify that the App's token has read/write access to the given spreadsheet.
@@ -143,6 +156,92 @@ class GoogleSheetsService
             ]);
 
             return false;
+        }
+    }
+
+    /**
+     * Fetch spreadsheet title and sheet tab names.
+     *
+     * @return array{spreadsheet_id: string, title: string, sheets: array<int, string>}
+     */
+    public function getSpreadsheetMeta(App $app, string $spreadsheetId): array
+    {
+        $client = $this->clientForApp($app);
+        $service = $this->sheetsService($client);
+        $spreadsheet = $service->spreadsheets->get($spreadsheetId);
+
+        $sheets = [];
+        foreach ($spreadsheet->getSheets() as $sheet) {
+            $sheets[] = $sheet->getProperties()->getTitle();
+        }
+
+        return [
+            'spreadsheet_id' => $spreadsheetId,
+            'title' => $spreadsheet->getProperties()->getTitle() ?? 'Untitled Spreadsheet',
+            'sheets' => $sheets,
+        ];
+    }
+
+    /**
+     * Fetch sample rows from a specific sheet/tab for schema inference (up to $limit rows).
+     *
+     * @return array<int, array<int, mixed>>
+     */
+    public function getSampleSheetRows(App $app, string $spreadsheetId, string $tabName, int $limit = 30): array
+    {
+        $client = $this->clientForApp($app);
+        $service = $this->sheetsService($client);
+
+        // Sanitize tabName for A1 range: wrap in single quotes if contains spaces or symbols
+        $escapedTab = "'".str_replace("'", "''", $tabName)."'";
+        $range = "{$escapedTab}!A1:ZZ{$limit}";
+
+        try {
+            $response = $service->spreadsheets_values->get($spreadsheetId, $range, [
+                'valueRenderOption' => 'FORMATTED_VALUE',
+                'dateTimeRenderOption' => 'FORMATTED_STRING',
+            ]);
+
+            return $response->getValues() ?? [];
+        } catch (\Exception $e) {
+            Log::error('GoogleSheetsService: getSampleSheetRows failed', [
+                'app_id' => $app->id,
+                'spreadsheet_id' => $spreadsheetId,
+                'tab' => $tabName,
+                'error' => $e->getMessage(),
+            ]);
+            throw new \RuntimeException('Failed to read Google Sheet data: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Fetch all rows from a specific sheet/tab.
+     *
+     * @return array<int, array<int, mixed>>
+     */
+    public function getAllSheetRows(App $app, string $spreadsheetId, string $tabName): array
+    {
+        $client = $this->clientForApp($app);
+        $service = $this->sheetsService($client);
+
+        $escapedTab = "'".str_replace("'", "''", $tabName)."'";
+        $range = "{$escapedTab}!A1:ZZ";
+
+        try {
+            $response = $this->executeWithRetry(fn () => $service->spreadsheets_values->get($spreadsheetId, $range, [
+                'valueRenderOption' => 'FORMATTED_VALUE',
+                'dateTimeRenderOption' => 'FORMATTED_STRING',
+            ]));
+
+            return $response->getValues() ?? [];
+        } catch (\Exception $e) {
+            Log::error('GoogleSheetsService: getAllSheetRows failed', [
+                'app_id' => $app->id,
+                'spreadsheet_id' => $spreadsheetId,
+                'tab' => $tabName,
+                'error' => $e->getMessage(),
+            ]);
+            throw new \RuntimeException('Failed to read Google Sheet data: '.$e->getMessage());
         }
     }
 

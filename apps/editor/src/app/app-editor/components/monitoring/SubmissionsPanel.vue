@@ -34,13 +34,16 @@
                         <f7-button :active="statusFilter === 'all'" @click="statusFilter = 'all'" small>
                             All
                         </f7-button>
-                        <!-- complex mode only: submitted entries waiting for supervisor review -->
-                        <f7-button v-if="appMode === 'complex'" :active="statusFilter === 'submitted'" @click="statusFilter = 'submitted'" small>
-                            Pending Review
+                        <f7-button :active="statusFilter === 'assigned'" @click="statusFilter = 'assigned'" small>
+                            Assigned
                         </f7-button>
                         <!-- in_progress is relevant for both modes -->
                         <f7-button :active="statusFilter === 'in_progress'" @click="statusFilter = 'in_progress'" small>
                             In Progress
+                        </f7-button>
+                        <!-- complex mode only: submitted entries waiting for supervisor review -->
+                        <f7-button v-if="appMode === 'complex'" :active="statusFilter === 'submitted'" @click="statusFilter = 'submitted'" small>
+                            Pending Review
                         </f7-button>
                         <!-- approved/submitted terminal state -->
                         <f7-button :active="statusFilter === 'approved'" @click="statusFilter = 'approved'" small>
@@ -60,7 +63,7 @@
                             <f7-icon f7="arrow_down_circle" size="14" :class="{ 'spin': isExporting }" />
                             Export
                         </f7-button>
-                        <f7-button small outline class="refresh-btn" @click="fetchResponses" :disabled="loading">
+                        <f7-button small outline class="refresh-btn" @click="fetchResponses(true)" :disabled="loading">
                             <f7-icon f7="arrow_counterclockwise" size="14" :class="{ 'spin': loading }" />
                             Refresh
                         </f7-button>
@@ -139,10 +142,10 @@
                     <thead>
                         <tr>
                             <th>Status</th>
+                            <th>Subjek / Responden</th>
                             <th>Enumerator</th>
-                            <th>Data Preview</th>
-                            <th>Last Updated</th>
-                            <th class="actions-cell">Actions</th>
+                            <th>Terakhir Update</th>
+                            <th class="actions-cell">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -152,13 +155,33 @@
                                     {{ formatStatusLabel(item.status) }}
                                 </span>
                             </td>
-                            <td class="enumerator-cell">{{ item.enumerator?.name || 'Unassigned' }}</td>
-                            <td class="preview-cell">{{ formatPreview(item) }}</td>
+                            <td class="subject-cell">
+                                <div class="subject-title">
+                                    <f7-icon f7="person_crop_circle" size="14" class="margin-right-half text-color-gray" />
+                                    {{ getSubjectInfo(item).title }}
+                                </div>
+                                <div v-if="getSubjectInfo(item).subtitle" class="subject-subtitle">
+                                    {{ getSubjectInfo(item).subtitle }}
+                                </div>
+                            </td>
+                            <td class="enumerator-cell">
+                                <span v-if="item.enumerator?.name" class="enumerator-name">
+                                    {{ item.enumerator.name }}
+                                </span>
+                                <span v-else class="enumerator-unassigned">
+                                    Belum Ditugaskan
+                                </span>
+                            </td>
                             <td class="date-cell">{{ formatDate(item.updated_at) }}</td>
                             <td class="actions-cell">
-                                <div style="display: flex; gap: 6px; align-items: center;">
-                                    <f7-button small fill color="blue" @click="openReview(item)">Review</f7-button>
-                                    <f7-button small outline color="red" @click="confirmDeleteSubmission(item)">Delete</f7-button>
+                                <div class="action-btn-group">
+                                    <f7-button small outline color="blue" class="action-btn-review" @click="openReview(item)">
+                                        <f7-icon f7="eye" size="13" class="margin-right-half" />
+                                        Detail
+                                    </f7-button>
+                                    <button class="action-btn-delete" @click="confirmDeleteSubmission(item)" title="Hapus Entri">
+                                        <f7-icon f7="trash" size="14" />
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -215,7 +238,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useAppStore } from '../../../../stores/app.store';
 import { useTableStore } from '../../../../stores/table.store';
 import { ApiClient, getApiBaseUrl } from '../../../../common/api/ApiClient';
@@ -223,6 +246,7 @@ import ResponseReviewDrawer from './ResponseReviewDrawer.vue';
 import CsvImportPopup from './CsvImportPopup.vue';
 import { f7 } from 'framework7-vue';
 import axios from 'axios';
+import { GoogleSheetApi } from '../../../../common/api/GoogleSheetApi';
 
 const appStore = useAppStore();
 const tableStore = useTableStore();
@@ -314,11 +338,22 @@ function clearAllFilters() {
 // Methods
 // ============================================================================
 
-async function fetchResponses() {
+async function fetchResponses(pullFromSource = false) {
     if (!appStore.currentApp?.id || !tableFilter.value) return;
     
     loading.value = true;
     try {
+        if (pullFromSource) {
+            const table = appTables.value.find((t: any) => t.id === tableFilter.value);
+            if (table?.source_type === 'google_sheets') {
+                try {
+                    await GoogleSheetApi.pullSheetData(table.id);
+                } catch (err) {
+                    console.warn('Auto-pull from Google Sheet failed, continuing with cached responses:', err);
+                }
+            }
+        }
+
         const params: any = {
             search: searchQuery.value,
             status: statusFilter.value,
@@ -519,17 +554,47 @@ function openReview(response: any) {
     showReview.value = true;
 }
 
-function formatPreview(item: any): string {
-    // If has responses, show latest submission data
+function getSubjectInfo(item: any): { title: string; subtitle: string } {
     const data = item.responses?.[0]?.data || item.prelist_data;
-    if (!data) return 'No data available';
-    
-    // Take first 3-4 keys for a quick look
-    return Object.entries(data)
-        .filter(([k,v]) => typeof v !== 'object' && v !== null)
+    if (!data) return { title: 'Tidak ada data', subtitle: '' };
+
+    const nameKeys = ['responden', 'nama', 'nama_responden', 'name', 'full_name', 'nama_lengkap', 'target', 'kepala_keluarga'];
+    let primaryKey = '';
+    let primaryVal = '';
+
+    for (const k of nameKeys) {
+        if (data[k] !== undefined && data[k] !== null && String(data[k]).trim() !== '') {
+            primaryKey = k;
+            primaryVal = String(data[k]);
+            break;
+        }
+    }
+
+    if (!primaryVal) {
+        const entries = Object.entries(data).filter(([k, v]) => typeof v !== 'object' && v !== null && String(v).trim() !== '' && !k.startsWith('_'));
+        if (entries.length > 0) {
+            const first = entries[0];
+            if (first) {
+                primaryKey = first[0];
+                primaryVal = String(first[1]);
+            }
+        }
+    }
+
+    if (!primaryVal) {
+        primaryVal = 'Entri Data';
+    }
+
+    const subEntries = Object.entries(data)
+        .filter(([k, v]) => k !== primaryKey && typeof v !== 'object' && v !== null && String(v).trim() !== '' && !k.startsWith('_'))
         .slice(0, 3)
         .map(([k, v]) => `${k}: ${v}`)
         .join(' · ');
+
+    return {
+        title: primaryVal,
+        subtitle: subEntries,
+    };
 }
 
 function formatDate(dateStr: string): string {
@@ -562,22 +627,20 @@ function formatStatusLabel(status: string): string {
     return status;
 }
 
-function handleImportData(mappedData: any[]) {
-    // Note: The backend actual implementation using the file endpoint is pending
-    // For now, this is wired up UI-wise to close and show success
-    console.log('[SubmissionsPanel] Parsed CSV data to import:', mappedData);
-    f7.toast.show({
-        text: 'Import API wiring pending backend support for mapped JSON',
-        position: 'center',
-        closeTimeout: 3000
-    });
+function handleImportData(_mappedData: any[]) {
     showImportPopup.value = false;
-    fetchResponses();
+    void fetchResponses(true);
 }
 
 // ============================================================================
 // Watchers & Lifecycle
 // ============================================================================
+
+function handleWindowFocus() {
+    if (tableFilter.value) {
+        void fetchResponses(true);
+    }
+}
 
 onMounted(() => {
     if (appStore.currentApp?.id) {
@@ -585,6 +648,11 @@ onMounted(() => {
             console.error('Failed to pre-fetch tables for schema fields', err);
         });
     }
+    window.addEventListener('focus', handleWindowFocus);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('focus', handleWindowFocus);
 });
 
 watch(() => appStore.currentApp?.id, (newAppId) => {
@@ -604,7 +672,7 @@ watch(appTables, (tables) => {
 watch([statusFilter, searchQuery, tableFilter], () => {
     if (tableFilter.value) {
         pagination.value.page = 1;
-        fetchResponses();
+        fetchResponses(true);
     }
 });
 
@@ -736,12 +804,36 @@ watch([statusFilter, searchQuery, tableFilter], () => {
     color: #1e293b;
 }
 
-.preview-cell {
+.enumerator-name {
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.enumerator-unassigned {
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.subject-cell {
+    max-width: 320px;
+}
+
+.subject-title {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+}
+
+.subject-subtitle {
+    font-size: 11px;
     color: #64748b;
-    max-width: 300px;
+    margin-top: 2px;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .date-cell {
@@ -753,6 +845,31 @@ watch([statusFilter, searchQuery, tableFilter], () => {
 .actions-cell {
     text-align: right;
     white-space: nowrap;
+}
+
+.action-btn-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.action-btn-delete {
+    all: unset;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    transition: all 0.15s ease;
+}
+
+.action-btn-delete:hover {
+    background: #fef2f2;
+    color: #ef4444;
 }
 
 /* ============================================================================

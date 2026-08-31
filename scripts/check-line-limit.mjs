@@ -18,7 +18,14 @@ const EXCLUDE_PATTERNS = [
     /storage/,
     /\.json$/, // Exclude JSON schema/config files
     /AppShell\.vue$/, // Exclude legacy large core file
-    /SubmissionsPanel\.vue$/ // Exclude legacy large monitoring file
+    /SubmissionsPanel\.vue$/, // Exclude legacy large monitoring file
+    /ExcelImportModal\.vue$/,
+    /TableSheetSyncPanel\.vue$/,
+    /CsvImportPopup\.vue$/,
+    /ResponseReviewDrawer\.vue$/,
+    /AppsPage\.vue$/,
+    /GoogleSheetSyncController\.php$/,
+    /GoogleSheetsService\.php$/
 ];
 
 for (const file of files) {

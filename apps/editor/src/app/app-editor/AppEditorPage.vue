@@ -32,7 +32,7 @@
             <NewSourceModal v-model:opened="showNewSourceModal"
                 @select="tableSelection.handleSourceSelect" />
             <ExcelImportModal v-if="appStore.currentApp" v-model:opened="showExcelImportModal"
-                :app-id="appStore.currentApp.id" @imported="tableSelection.handleExcelImported" />
+                :app-id="appStore.currentApp.id" :initial-source-type="importSourceType" @imported="tableSelection.handleExcelImported" />
             <PublishDialog :visible="showPublishDialog" @confirm="onPublishConfirm"
                 @cancel="showPublishDialog = false" />
         </template>
@@ -76,7 +76,7 @@ const tableStore = useTableStore();
 
 // 1. Panels & UI State
 const panels = useEditorPanels();
-const { activeTab, showNewSourceModal, showExcelImportModal } = panels;
+const { activeTab, showNewSourceModal, showExcelImportModal, importSourceType } = panels;
 provide('activeTab', activeTab);
 const highlightedViewOption = ref<string>('');
 provide('highlightedViewOption', highlightedViewOption);
@@ -106,6 +106,7 @@ const tableSelection = useTableSelection(
         onTableLoaded: (...args) => loadTable(...args),
         showNewSourceModal,
         showExcelImportModal,
+        importSourceType,
         isGlobalDirty: () => isGlobalDirty.value,
         handleSave: () => handleSave(),
         onImportSuccess: (_tableId: string) => {
