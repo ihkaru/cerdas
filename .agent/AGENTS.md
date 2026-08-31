@@ -6,7 +6,7 @@
 **Cerdas** adalah AppSheet clone - self-hosted, offline-first, no-code/low-code app builder untuk pengumpulan data survey lapangan (data collection & field management).
 
 ## Active Version & Status
-* **Version**: 0.2.49 (Latest Release — GitHub tag `v0.2.49`, APK: `cerdas-v0.2.49.apk`)
+* **Version**: 0.2.50 (Latest Release — GitHub tag `v0.2.50`, APK: `cerdas-v0.2.50.apk`)
 * **Core Functionalities**: Offline SQLite storage, reactive JavaScript form closures, multi-modal deck/map/table views, Google Sheets bidirectional sync with hierarchical sub-tab lineage.
 * ⚠️ **Versioning Rule**: `package.json` version number must NEVER be edited manually. Release Please is the sole authority for version bumping. See `docs/VERSIONING_SOP.md`.
 
