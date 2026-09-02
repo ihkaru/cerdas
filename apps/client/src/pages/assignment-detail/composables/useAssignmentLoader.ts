@@ -19,6 +19,7 @@ export function useAssignmentLoader(assignmentId: string) {
     const pinnedSchemaVersion = ref<number | null>(null);
     const currentTableVersion = ref<number | null>(null);
     const isReadOnly = ref(false);
+    const hasExistingDraft = ref(false);
 
     /**
      * Normalize raw fields into an AppSchema object.
@@ -147,6 +148,7 @@ export function useAssignmentLoader(assignmentId: string) {
             const prelistData = assignment.value?.prelist_data || {};
             const existingResponse = await DashboardRepository.getResponse(conn, assignmentId);
             const existingData = existingResponse?.data || null;
+            hasExistingDraft.value = !!existingResponse && existingResponse.is_synced === 0;
 
             formData.value = {
                 ...prelistData,
@@ -161,7 +163,8 @@ export function useAssignmentLoader(assignmentId: string) {
             log.info('[AssignmentDetail] Form data initialized', { 
                 formKeys: Object.keys(formData.value),
                 schemaFields: schema.value?.fields?.length,
-                isReadOnly: isReadOnly.value
+                isReadOnly: isReadOnly.value,
+                hasExistingDraft: hasExistingDraft.value
             });
 
         } catch (e: unknown) {
@@ -182,6 +185,7 @@ export function useAssignmentLoader(assignmentId: string) {
         pinnedSchemaVersion,
         currentTableVersion,
         isReadOnly,
+        hasExistingDraft,
         loadData
     };
 }

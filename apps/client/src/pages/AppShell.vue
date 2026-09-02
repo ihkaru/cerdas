@@ -33,7 +33,7 @@
                             <f7-icon f7="wifi_slash" size="14"></f7-icon>
                             OFFLINE MODE
                         </div>
-                        <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
+                        <AppShellSyncBanner :count="pendingUploadCount" @sync="handleBannerSync" />
                         <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                             :counts="statusCounts" :active-filter-count="activeFilters.length"
                             @open-sort="sortSheetOpen = true" @open-filter="filterSheetOpen = true" />
@@ -97,7 +97,7 @@
                     <f7-icon f7="wifi_slash" size="14"></f7-icon>
                     OFFLINE MODE
                 </div>
-                <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
+                <AppShellSyncBanner :count="pendingUploadCount" @sync="handleBannerSync" />
                 <AppShellStatusFilter v-if="!isSchemaEmpty" v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                     :counts="statusCounts" :active-filter-count="activeFilters.length" @open-sort="sortSheetOpen = true"
                     @open-filter="filterSheetOpen = true"
@@ -168,7 +168,7 @@
             <f7-tabs animated>
                 <f7-tab v-for="viewKey in (layout?.navigation?.primary || [])" :key="viewKey" :id="viewKey"
                     :tab-active="activeView === viewKey" class="page-content">
-                    <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
+                    <AppShellSyncBanner :count="pendingUploadCount" @sync="handleBannerSync" />
                     <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                         :counts="statusCounts" :active-filter-count="activeFilters.length"
                         @open-sort="sortSheetOpen = true" @open-filter="filterSheetOpen = true" />
@@ -200,7 +200,7 @@
                 </div>
 
                 <!-- Sync Pending Warning -->
-                <AppShellSyncBanner :count="pendingUploadCount" @sync="syncApp()" />
+                <AppShellSyncBanner :count="pendingUploadCount" @sync="handleBannerSync" />
 
                 <!-- Search Bar & Filters -->
                 <div v-if="!isSchemaEmpty" class="search-filter-container sticky-top"
@@ -516,6 +516,16 @@ const openMenuPanel = () => {
         appVersion: appVersion.value,
         buildTimestamp: buildTimestamp
     });
+};
+
+const handleBannerSync = () => {
+    f7.dialog.confirm(
+        `Terdapat ${pendingUploadCount.value} data yang akan dikirim ke server. Kirim data sekarang?`,
+        'Sinkronisasi ke Server',
+        () => {
+            syncApp();
+        }
+    );
 };
 
 const refresh = async (done: () => void) => {

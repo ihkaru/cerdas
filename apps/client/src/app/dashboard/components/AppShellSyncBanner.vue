@@ -27,9 +27,9 @@ const isPreview = computed(() => {
 
 const message = computed(() => {
     if (isPreview.value) {
-        return `${props.count} Data disimpan lokal. Klik untuk info Sync.`;
+        return `${props.count} Data disimpan lokal. Ketuk untuk info Sync.`;
     }
-    return `${props.count} Data belum disinkronisasi. Ketuk untuk Sync.`;
+    return `${props.count} Data siap dikirim ke server. Ketuk untuk Sync.`;
 });
 </script>
 

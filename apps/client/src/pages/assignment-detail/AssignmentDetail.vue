@@ -9,10 +9,11 @@
             <f7-nav-title class="premium-title">{{ pageTitle }}</f7-nav-title>
             <f7-nav-right>
                 <span v-if="isReadOnly" class="nav-readonly-badge">Read Only</span>
-                <f7-link v-else-if="!saving" @click="confirmSubmit" class="nav-finish-btn" aria-label="Selesai">
-                    Finish
+                <f7-link v-else-if="!saving && isDirty" @click="saveDraft" class="nav-draft-btn" aria-label="Simpan Draft">
+                    <f7-icon f7="floppy_disk" size="16" class="margin-right-2" />
+                    <span>Draft</span>
                 </f7-link>
-                <f7-preloader v-else size="20" class="margin-right" />
+                <f7-preloader v-else-if="saving" size="20" class="margin-right" />
             </f7-nav-right>
         </f7-navbar>
 
@@ -35,6 +36,25 @@
             <FormRenderer :key="previewRevision" ref="formRenderer" :schema="schema" :initial-data="formData" :readonly="isReadOnly"
                 :context="{ user: userContext, assignment: assignment, resolveAssetUrl: resolveAssetUrl }"
                 @update:data="handleUpdate" />
+
+            <!-- Bottom Form Completion Actions -->
+            <div v-if="!isReadOnly" class="bottom-form-actions block padding-horizontal margin-top-lg margin-bottom-xl">
+                <f7-button fill large color="green" class="btn-submit-form" :loading="saving" @click="confirmSubmit">
+                    <f7-icon f7="paperplane_fill" size="18" class="margin-right-half" />
+                    <span>Selesaikan &amp; Kirim Survei</span>
+                </f7-button>
+
+                <div class="display-flex margin-top-half" style="gap: 8px;">
+                    <f7-button v-if="isDirty" tonal large color="blue" class="flex-1" :disabled="saving" @click="saveDraft">
+                        <f7-icon f7="floppy_disk" size="18" class="margin-right-half" />
+                        <span>Simpan Draft</span>
+                    </f7-button>
+                    <f7-button v-if="hasExistingDraft" tonal large color="red" class="flex-1" :disabled="saving" @click="discardDraft">
+                        <f7-icon f7="trash" size="18" class="margin-right-half" />
+                        <span>Buang Draft</span>
+                    </f7-button>
+                </div>
+            </div>
         </div>
 
         <!-- Validation Summary FAB - Teleported to body to float above everything -->
@@ -97,7 +117,7 @@ const userContext = computed(() => ({
 // 1. Data Loading
 const {
     loading, error, assignment, schema, formData,
-    pinnedSchemaVersion, currentTableVersion, isReadOnly, loadData
+    pinnedSchemaVersion, currentTableVersion, isReadOnly, hasExistingDraft, loadData
 } = useAssignmentLoader(props.assignmentId);
 
 // 2. Dirty Tracking
@@ -124,8 +144,8 @@ const { migrating, handleMigrateVersion } = useVersionPinning(
 const versionGate = useVersionGate(() => assignment.value?.table_id || null);
 
 // 6. Saving Logic
-const { saving, saveDraft, confirmSubmit } = useAssignmentSave(
-    props.assignmentId, formData, clearDirty, formRenderer
+const { saving, saveDraft, confirmSubmit, discardDraft } = useAssignmentSave(
+    props.assignmentId, formData, clearDirty, formRenderer, assignment, hasExistingDraft
 );
 
 // 7. Live Preview
@@ -154,19 +174,11 @@ const handleBack = () => {
     }
 
     f7.dialog.create({
-        title: 'Perubahan Belum Disimpan',
-        text: 'Anda memiliki perubahan yang belum disimpan. Apa yang ingin dilakukan?',
+        title: 'Keluar dari Formulir?',
+        text: 'Terdapat perubahan data yang belum disimpan. Apa yang ingin Anda lakukan?',
         buttons: [
             {
-                text: 'Buang',
-                color: 'red',
-                onClick: () => {
-                    formData.value = revert();
-                    f7.view.main.router.back();
-                }
-            },
-            {
-                text: 'Simpan Draft',
+                text: 'Simpan sebagai Draft',
                 color: 'green',
                 onClick: async () => {
                     await saveDraft();
@@ -174,7 +186,15 @@ const handleBack = () => {
                 }
             },
             {
-                text: 'Batal',
+                text: 'Buang Perubahan & Keluar',
+                color: 'red',
+                onClick: () => {
+                    formData.value = revert();
+                    f7.view.main.router.back();
+                }
+            },
+            {
+                text: 'Lanjut Mengisi',
                 color: 'gray'
             }
         ],
@@ -259,25 +279,34 @@ onUnmounted(() => {
 }
 
 /*
- * nav-finish-btn: Lightweight text action — NOT a filled button.
- * Primary submit action is the FAB (more prominent, thumb-friendly).
- * This is a secondary affordance for users who look at the navbar.
+ * nav-draft-btn: Tonal draft indicator when form is dirty.
  */
-.nav-finish-btn {
+.nav-draft-btn {
     display: flex;
     align-items: center;
-    padding: 0 12px;
-    height: 40px;
-    font-size: 15px;
+    padding: 0 10px;
+    height: 32px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--f7-theme-color, #2196f3) !important;
-    border-radius: 8px;
+    background: rgba(var(--f7-theme-color-rgb, 33, 150, 243), 0.1);
+    border-radius: 6px;
     transition: background 0.15s, opacity 0.15s;
 }
 
-.nav-finish-btn:active {
-    background: rgba(var(--f7-theme-color-rgb, 33, 150, 243), 0.08);
-    opacity: 0.8;
+.nav-draft-btn:active {
+    background: rgba(var(--f7-theme-color-rgb, 33, 150, 243), 0.2);
+}
+
+.bottom-form-actions {
+    margin-top: 24px;
+}
+
+.btn-submit-form {
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    box-shadow: 0 4px 14px rgba(76, 175, 80, 0.3);
+    border-radius: 12px;
 }
 
 .warning-bg {
