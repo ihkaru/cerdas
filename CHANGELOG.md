@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.52](https://github.com/ihkaru/cerdas/compare/v0.2.51...v0.2.52) (2026-09-02)
+
+
+### Features
+
+* **client:** implement safety guards for form completion, empty submissions, and accidental sync ([ae710d9](https://github.com/ihkaru/cerdas/commit/ae710d9db13ccf85c35ed5dcb9faa7d1a2f1062f))
+* **form-engine:** add instant timestamp capture mode and quick now action for date/time fields ([9bb7f68](https://github.com/ihkaru/cerdas/commit/9bb7f6875ed254204e0193b774eb5a6e4eb0b124))
+* **sync:** prevent unsubmitted drafts from polluting Google Sheet in direct columns mode ([8121949](https://github.com/ihkaru/cerdas/commit/8121949a5649bb9ca417f6c1e05419049f33296e))
+
+
+### Bug Fixes
+
+* **deploy:** optimize Dockerfile.prod base images and eliminate external composer image ([9dbd720](https://github.com/ihkaru/cerdas/commit/9dbd720c671c4c8ee4e720c7c16bb9aed22705a4))
+* **deploy:** use AWS ECR public mirror and image tags to prevent Docker Hub TLS timeout ([b098f87](https://github.com/ihkaru/cerdas/commit/b098f87ca3b1fa72e434be546fa0f10b16e61272))
+* **editor:** ensure live preview reactivity updates immediately on field config changes ([a79a3ac](https://github.com/ihkaru/cerdas/commit/a79a3acccaef2b1a08e230bfdffdf658c25ddfd5))
+* **sync:** resolve direct-column header shift and preview tab desync ([1979788](https://github.com/ihkaru/cerdas/commit/1979788c4d649a4ffec1862a6af67eac921d45f8))
+
 ## [0.2.51](https://github.com/ihkaru/cerdas/compare/v0.2.50...v0.2.51) (2026-09-02)
 
 
