@@ -6,7 +6,7 @@
 **Cerdas** adalah AppSheet clone - self-hosted, offline-first, no-code/low-code app builder untuk pengumpulan data survey lapangan (data collection & field management).
 
 ## Active Version & Status
-* **Version**: 0.2.50 (Latest Release — GitHub tag `v0.2.50`, APK: `cerdas-v0.2.50.apk`)
+* **Version**: 0.2.51 (Latest Release — GitHub tag `v0.2.51`, APK: `cerdas-v0.2.51.apk`)
 * **Core Functionalities**: Offline SQLite storage, reactive JavaScript form closures, multi-modal deck/map/table views, Google Sheets bidirectional sync with hierarchical sub-tab lineage.
 * ⚠️ **Versioning Rule**: `package.json` version number must NEVER be edited manually. Release Please is the sole authority for version bumping. See `docs/VERSIONING_SOP.md`.
 
@@ -135,4 +135,12 @@ packages/expression-engine - @cerdas/expression-engine (expression evaluation)
 - **2026-08-26**: Upgrade Komprehensif AI Context Engine & Tombol AI Prompt Generator:
   - **Super-Context v4.0**: Memperbarui `generateAIPrompt.ts` dengan Technical Manual lengkap (16 tipe field, kontrak 8 closure, Google Sheet multi-tab sync, 7 production blueprints Sambora).
   - **SOP & Workspace Memory**: Menyelaraskan `GEMINI.md`, `gemini.md`, `.agents/AGENTS.md`, dan `.agent/AGENTS.md`.
+- **2026-09-02**: Rilis v0.2.51 — Multi-Tab Sheet Sync, Long Text, Auto-Wrap Read-Only, & Compact Form UI:
+  - **Multi-Tab Sheet Wizard**: Creator dapat mengimpor 1 atau banyak tab sheet sekaligus menjadi tabel-tabel terpisah dengan stage 1 workbook introspection dan atomic batch provisioning.
+  - **Data Source IA Refactor**: In-place renaming pada kartu tabel, breadcrumb navbar kontekstual, dan pemisahan transparan Table Name vs Sheet Tab (Google AppSheet pattern).
+  - **Google Sheet Header Reconciliation**: Auto-reconciliation Baris 1 saat Publish dan tombol on-demand "Perbarui Kolom Sheet".
+  - **Tipe Field Long Text (`long_text`)**: Komponen multi-line textarea dengan konfigurasi `rows` & `maxLength`, serta tampilan read-only bebas truncation.
+  - **Auto-Wrap Read-Only Display**: Seluruh input teks dan select secara otomatis membungkus teks multi-baris saat readonly, mencegah pemotongan teks survei panjang.
+  - **Tipografi Layar Kecil (iPhone SE 375px)**: Penskalaan responsif 40px input height, 13.5px font size, menghemat 40-50% ruang layar.
+  - **Ergonomi Radio & Checkbox**: Top-aligned indicators (`align-items: flex-start`), smart inline grid untuk pilihan pendek (Ya/Tidak menghemat 62% ruang vertikal), dan high-signal read-only badge.
 
