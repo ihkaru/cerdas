@@ -32,7 +32,7 @@
             :versionGate="versionGate" :migrating="migrating" @upgrade="handleMigrateVersion" />
 
         <div v-if="schema && assignment" class="padding-top padding-bottom-xl">
-            <FormRenderer ref="formRenderer" :schema="schema" :initial-data="formData" :readonly="isReadOnly"
+            <FormRenderer :key="previewRevision" ref="formRenderer" :schema="schema" :initial-data="formData" :readonly="isReadOnly"
                 :context="{ user: userContext, assignment: assignment, resolveAssetUrl: resolveAssetUrl }"
                 @update:data="handleUpdate" />
         </div>
@@ -129,7 +129,7 @@ const { saving, saveDraft, confirmSubmit } = useAssignmentSave(
 );
 
 // 7. Live Preview
-const { handleSchemaOverrideUpdate } = useLivePreview(schema, assignment);
+const { previewRevision, handleSchemaOverrideUpdate } = useLivePreview(schema, assignment);
 
 // Page Title
 const pageTitle = computed(() => {

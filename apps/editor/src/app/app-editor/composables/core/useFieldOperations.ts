@@ -48,6 +48,7 @@ export function useFieldOperations() {
     if (field) {
       Object.assign(field, updates);
       editorState.isDirty = true;
+      editorState.fields = [...editorState.fields];
     }
   }
 

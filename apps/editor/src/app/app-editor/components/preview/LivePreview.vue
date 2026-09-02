@@ -210,9 +210,10 @@ watch(() => props.selectedViewId, (newId, oldId) => {
     }
 });
 
-// Watch for changes in schema or layout and push to iframe
+// Watch for changes in schema, fields, or layout and push to iframe
 watch([
-    schemaForPreview, 
+    schemaForPreview,
+    () => editorState.fields,
     () => editorState.layout, 
     () => props.appViews, 
     () => props.viewsVersion,

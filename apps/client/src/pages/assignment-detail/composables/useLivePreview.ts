@@ -1,5 +1,5 @@
 import { type AppSchema } from '@cerdas/form-engine';
-import { type Ref } from 'vue';
+import { ref, type Ref } from 'vue';
 import type { Assignment } from '../../../app/dashboard/types';
 import { useLogger } from '../../../common/utils/logger';
 
@@ -8,6 +8,7 @@ export function useLivePreview(
     assignment: Ref<Assignment | null>
 ) {
     const log = useLogger('AssignmentDetail:LivePreview');
+    const previewRevision = ref(0);
 
     // Live Preview: Listen for schema updates from Editor
     const handleSchemaOverrideUpdate = (event: CustomEvent) => {
@@ -35,10 +36,12 @@ export function useLivePreview(
 
             log.info('[LivePreview] Schema updated in preview mode, re-rendering form');
             schema.value = newSchema as unknown as AppSchema;
+            previewRevision.value++;
         }
     };
 
     return {
+        previewRevision,
         handleSchemaOverrideUpdate
     };
 }
