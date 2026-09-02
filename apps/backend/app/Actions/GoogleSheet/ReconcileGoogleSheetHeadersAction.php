@@ -108,8 +108,9 @@ class ReconcileGoogleSheetHeadersAction
             }
         }
 
+        $syncMode = $sheetConfig['sync_mode'] ?? 'standard';
         $rootTabName = $rootTab['sheet_name'] ?? $sheetConfig['sheet_name'] ?? $table->name;
-        $rootHeaders = $this->mapper->buildHeaders($fields, isRoot: true);
+        $rootHeaders = $this->mapper->buildHeaders($fields, isRoot: true, nestedFieldKey: null, syncMode: $syncMode);
 
         // 1. Reconcile Root Tab Headers
         $this->sheetsService->writeHeaders($app, $spreadsheetId, $rootTabName, $rootHeaders);
@@ -118,6 +119,7 @@ class ReconcileGoogleSheetHeadersAction
             'spreadsheet_id' => $spreadsheetId,
             'tab' => $rootTabName,
             'headers_count' => count($rootHeaders),
+            'sync_mode' => $syncMode,
         ]);
 
         // 2. Reconcile Nested Tab Headers (if any repeatable fields exist)
@@ -131,7 +133,7 @@ class ReconcileGoogleSheetHeadersAction
             // Ensure tab exists
             $this->sheetsService->ensureTabExists($app, $spreadsheetId, $nestedTabName);
 
-            $nestedHeaders = $this->mapper->buildHeaders($fields, isRoot: false, nestedFieldKey: $fieldKey);
+            $nestedHeaders = $this->mapper->buildHeaders($fields, isRoot: false, nestedFieldKey: $fieldKey, syncMode: $syncMode);
             $this->sheetsService->writeHeaders($app, $spreadsheetId, $nestedTabName, $nestedHeaders);
 
             $nestedResults[$nestedTabName] = $nestedHeaders;

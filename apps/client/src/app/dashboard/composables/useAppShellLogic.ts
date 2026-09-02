@@ -138,8 +138,12 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
                 
                 try {
                     resolvedTableId.value = targetTableId as string;
-                    // Reload Schema & Data for new table
-                    await schemaLoader.loadTable(resolvedTableId.value);
+                    const schema = await schemaLoader.loadTable(resolvedTableId.value);
+                    if (!schema) {
+                        log.info(`[AppShell] Table ${resolvedTableId.value} not cached locally, syncing...`);
+                        await handleMissingSchema(resolvedTableId.value);
+                        await schemaLoader.loadTable(resolvedTableId.value);
+                    }
                     filters.activeFilters.value = []; // Reset filters on table switch
                     await refreshDataFn();
                 } catch (e) {
@@ -193,20 +197,27 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
     const handleMissingSchema = async (targetTableId: string): Promise<boolean> => {
         if (!networkService.isOnline()) return false;
         log.warn(`[AppShell] No local schema for ${targetTableId}, triggering automatic initial sync...`);
+        const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
         try {
             await syncApp(targetTableId);
             const recheckedSchema = await schemaLoader.loadTable(targetTableId);
             if (!recheckedSchema) {
-                f7.popup.close();
-                f7.toast.show({ text: 'Menu configuration is outdated or the table was deleted.', position: 'bottom', closeTimeout: 3000, cssClass: 'color-red' });
-                f7.views.main.router.navigate('/dashboard/', { reloadCurrent: true });
+                if (!isInIframe) {
+                    f7.popup.close();
+                    f7.toast.show({ text: 'Menu configuration is outdated or the table was deleted.', position: 'bottom', closeTimeout: 3000, cssClass: 'color-red' });
+                    f7.views.main.router.navigate('/dashboard/', { reloadCurrent: true });
+                }
                 return true;
             }
         } catch (syncError: unknown) {
             const msg = syncError instanceof Error ? syncError.message : '';
-            f7.popup.close();
-            f7.toast.show({ text: msg.includes('404') ? 'Application data not found on server.' : 'Failed to sync application data.', position: 'bottom', closeTimeout: 3000, cssClass: 'color-red' });
-            f7.views.main.router.navigate('/dashboard/', { reloadCurrent: true });
+            if (!isInIframe) {
+                f7.popup.close();
+                f7.toast.show({ text: msg.includes('404') ? 'Application data not found on server.' : 'Failed to sync application data.', position: 'bottom', closeTimeout: 3000, cssClass: 'color-red' });
+                f7.views.main.router.navigate('/dashboard/', { reloadCurrent: true });
+            } else {
+                log.warn('[AppShell] Preview missing schema sync error (ignored in iframe):', msg);
+            }
             return true;
         }
         return false;
@@ -268,19 +279,17 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
             resolvedTableId.value = targetTableId;
 
             // STEP 3: Load Table Schema (Layout + groupByConfig)
-            const schema = await schemaLoader.loadTable(targetTableId); 
+            let schema = await schemaLoader.loadTable(targetTableId); 
             
             // AUTO-SYNC FIX: If local database has no schema for this table, trigger sync
             if (!schema && !isRefresh) {
-                state.loading.value = false;
-                isLoadingApp.value = false;
-                
-                // Do not auto-sync on missing schema if we are running in the Editor Preview iframe
-                const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
-                if (!isInIframe) {
-                    await handleMissingSchema(targetTableId);
+                await handleMissingSchema(targetTableId);
+                schema = await schemaLoader.loadTable(targetTableId);
+                if (!schema) {
+                    state.loading.value = false;
+                    isLoadingApp.value = false;
+                    return;
                 }
-                return;
             }
 
             // STEP 4: SHOW UI IMMEDIATELY — schema is ready, let the page render

@@ -420,6 +420,21 @@ watch(routeViewId, (newId) => {
     activeView.value = newId || 'default';
 }, { immediate: true });
 
+// Synchronize activeView with Framework7 physical tab elements
+watch(activeView, (newId) => {
+    if (newId) {
+        nextTick(() => {
+            if (f7?.tab) {
+                try {
+                    f7.tab.show(`#view-${newId}`, false);
+                } catch (err) {
+                    console.warn(`[AppShell] Failed to switch tab to #view-${newId}:`, err);
+                }
+            }
+        });
+    }
+}, { immediate: true });
+
 const pageTitle = computed(() => {
     // 1. If we have an active view, use its title
     if (currentViewConfig.value) {

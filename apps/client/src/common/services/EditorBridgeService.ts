@@ -307,6 +307,14 @@ export class EditorBridgeService {
 
         this.log.info(`Remote navigation request to view: ${viewId}`);
 
+        if (f7?.tab) {
+            try {
+                f7.tab.show(`#view-${viewId}`, false);
+            } catch (err) {
+                this.log.warn(`Could not show tab #view-${viewId}:`, err);
+            }
+        }
+
         if (f7?.view?.main) {
             const currentRoute = f7.view.main.router.currentRoute;
             const newUrl = `${currentRoute.path}?view=${viewId}`;

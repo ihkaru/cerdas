@@ -44,12 +44,19 @@ class GoogleSheetColumnMapper
      * @param  array  $fields  TableVersion.fields array
      * @param  bool  $isRoot  True for root tab, false for nested tab
      * @param  string|null  $nestedFieldKey  For nested tabs: the field_key of the repeatable section
+     * @param  string  $syncMode  'standard' (with Cerdas system audit columns) or 'direct_columns' (pure form fields matching sheet)
      * @return array<string> Ordered list of column headers (human-readable labels)
      */
-    public function buildHeaders(array $fields, bool $isRoot = true, ?string $nestedFieldKey = null): array
-    {
+    public function buildHeaders(
+        array $fields,
+        bool $isRoot = true,
+        ?string $nestedFieldKey = null,
+        string $syncMode = 'standard'
+    ): array {
+        $isDirect = ($syncMode === 'direct_columns');
+
         if ($isRoot) {
-            $headers = array_values(self::SYSTEM_COLUMNS_ROOT);
+            $headers = $isDirect ? [] : array_values(self::SYSTEM_COLUMNS_ROOT);
 
             foreach ($fields as $field) {
                 // Skip layout-only / structural fields (separators, html blocks) that carry no data
@@ -67,7 +74,7 @@ class GoogleSheetColumnMapper
         }
 
         // Nested tab: find the repeatable field and use its sub-fields
-        $headers = array_values(self::SYSTEM_COLUMNS_NESTED);
+        $headers = $isDirect ? [] : array_values(self::SYSTEM_COLUMNS_NESTED);
 
         $subFields = $this->getSubFieldsForPath($fields, $nestedFieldKey);
 
@@ -276,8 +283,12 @@ class GoogleSheetColumnMapper
      *
      * @return array<string>
      */
-    public function getSystemColumnKeys(bool $isRoot = true): array
+    public function getSystemColumnKeys(bool $isRoot = true, string $syncMode = 'standard'): array
     {
+        if ($syncMode === 'direct_columns') {
+            return [];
+        }
+
         return array_keys($isRoot ? self::SYSTEM_COLUMNS_ROOT : self::SYSTEM_COLUMNS_NESTED);
     }
 

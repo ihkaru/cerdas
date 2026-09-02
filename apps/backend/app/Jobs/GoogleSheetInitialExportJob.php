@@ -80,6 +80,8 @@ class GoogleSheetInitialExportJob implements ShouldQueue
 
         $totalRowsSynced = 0;
 
+        $syncMode = $sheetConfig['sync_mode'] ?? 'standard';
+
         foreach ($tabs as $tab) {
             $tabName = $tab['sheet_name'];
             $tabType = $tab['type'];
@@ -88,11 +90,11 @@ class GoogleSheetInitialExportJob implements ShouldQueue
             try {
                 if ($tabType === 'root') {
                     $totalRowsSynced += $this->exportRootResponses(
-                        $sheetsService, $mapper, $app, $table, $spreadsheetId, $tabName, $fields
+                        $sheetsService, $mapper, $app, $table, $spreadsheetId, $tabName, $fields, $syncMode
                     );
                 } else {
                     $totalRowsSynced += $this->exportNestedResponses(
-                        $sheetsService, $mapper, $app, $table, $spreadsheetId, $tabName, $fields, $fieldKey
+                        $sheetsService, $mapper, $app, $table, $spreadsheetId, $tabName, $fields, $fieldKey, $syncMode
                     );
                 }
             } catch (\Throwable $e) {
@@ -122,10 +124,11 @@ class GoogleSheetInitialExportJob implements ShouldQueue
         Table $table,
         string $spreadsheetId,
         string $tabName,
-        array $fields
+        array $fields,
+        string $syncMode = 'standard'
     ): int {
         // Write fresh headers first to guarantee alignment with metadata columns
-        $headers = $mapper->buildHeaders($fields, isRoot: true);
+        $headers = $mapper->buildHeaders($fields, isRoot: true, nestedFieldKey: null, syncMode: $syncMode);
         $sheetsService->writeHeaders($app, $spreadsheetId, $tabName, $headers);
 
         $exported = 0;
@@ -188,9 +191,10 @@ class GoogleSheetInitialExportJob implements ShouldQueue
         string $spreadsheetId,
         string $tabName,
         array $fields,
-        ?string $fieldKey
+        ?string $fieldKey,
+        string $syncMode = 'standard'
     ): int {
-        $headers = $mapper->buildHeaders($fields, isRoot: false, nestedFieldKey: $fieldKey);
+        $headers = $mapper->buildHeaders($fields, isRoot: false, nestedFieldKey: $fieldKey, syncMode: $syncMode);
         $sheetsService->writeHeaders($app, $spreadsheetId, $tabName, $headers);
 
         $exported = 0;

@@ -93,59 +93,82 @@ export const AppMetadataService = {
         if (!navigator.onLine) return null;
         
         try {
-             // 1. Get App Details
-              const appApiRes = await apiClient.get(`/apps/${appId}`);
-              let appData = null;
-              if (appApiRes.success && appApiRes.data) {
-                  const d = appApiRes.data;
-                  appData = {
-                      navigation: d.navigation || [],
-                      viewConfigs: d.view_configs || {},
-                      version: d.version || 'Draft'
-                  };
-                  
-                  // Extract Role
-                  try {
-                      const authStore = useAuthStore();
-                      if (authStore.user && d.memberships) {
-                          const membership = d.memberships.find((m: any) => m.user_id === authStore.user?.id);
-                          if (membership) {
-                               localStorage.setItem(`app_role_${appId}`, membership.role);
-                          }
-                      }
-                  } catch (e) { console.warn('Role extract error', e); }
-                  
-                  // Update Local DB
-                  await db.run(
-                      `INSERT OR REPLACE INTO apps (id, slug, name, description, navigation, view_configs, version, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                      [d.id, d.slug, d.name, d.description, JSON.stringify(d.navigation || []), JSON.stringify(d.view_configs || {}), d.version, new Date().toISOString()]
-                  );
-              }
+            // 1. Get App Details
+            const appApiRes = await apiClient.get(`/apps/${appId}`);
+            let appData = null;
+            if (appApiRes.success && appApiRes.data) {
+                const d = appApiRes.data;
+                appData = {
+                    navigation: d.navigation || [],
+                    viewConfigs: d.view_configs || {},
+                    version: d.version || 'Draft'
+                };
+                
+                extractUserRole(d.memberships, appId);
+                
+                // Update Local DB
+                await db.run(
+                    `INSERT OR REPLACE INTO apps (id, slug, name, description, navigation, view_configs, version, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [d.id, d.slug, d.name, d.description, JSON.stringify(d.navigation || []), JSON.stringify(d.view_configs || {}), d.version, new Date().toISOString()]
+                );
+            }
 
-              // 2. Get Tables List (Renamed from Forms)
-              const tablesApiRes = await apiClient.get(`/tables?app_id=${appId}`);
-              let tables = [];
-              if (tablesApiRes.success && tablesApiRes.data) {
-                  tables = tablesApiRes.data.map((t: any) => ({
-                      id: t.id,
-                      name: t.name,
-                      description: t.description,
-                      icon: t.settings?.icon || 'doc_text_search'
-                  }));
-                  
-                  // Need to sync tables content too? Or handled by other syncs?
-                  // Currently SyncAppShellSync might handle full sync. 
-                  // But here we likely just want basic list for menu?
-                  // Actually, we should probably insert into tables table minimally?
-                  // The useAppShellSync likely handles detailed sync. 
-                  // But wait, if useTableLoader tries to load local table, it needs data.
-                  // Only minimal data here for listing.
-              }
-              
-              return { appData, tables };
+            // 2. Get Tables List (Renamed from Forms)
+            const tablesApiRes = await apiClient.get(`/tables?app_id=${appId}`);
+            let tables: any[] = [];
+            if (tablesApiRes.success && tablesApiRes.data) {
+                await cacheSiblingTables(db, tablesApiRes.data, appId);
+
+                tables = tablesApiRes.data.map((t: any) => ({
+                    id: t.id,
+                    name: t.name,
+                    description: t.description,
+                    icon: t.settings?.icon || 'doc_text_search'
+                }));
+            }
+            
+            return { appData, tables };
         } catch (e) {
             console.warn('Failed to fetch remote app metadata', e);
             throw e;
         }
     }
 };
+
+function extractUserRole(memberships: any[] | undefined, appId: string) {
+    try {
+        const authStore = useAuthStore();
+        if (authStore.user && memberships) {
+            const membership = memberships.find((m: any) => m.user_id === authStore.user?.id);
+            if (membership) {
+                localStorage.setItem(`app_role_${appId}`, membership.role);
+            }
+        }
+    } catch (e) {
+        console.warn('Role extract error', e);
+    }
+}
+
+async function cacheSiblingTables(db: SQLiteDBConnection, tables: any[], appId: string) {
+    for (const t of tables) {
+        const ver = t.latest_published_version || t.latestPublishedVersion || {};
+        try {
+            await db.run(
+                `INSERT OR REPLACE INTO tables (id, app_id, name, description, fields, layout, settings, version, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    t.id,
+                    t.app_id || appId,
+                    t.name,
+                    t.description || '',
+                    JSON.stringify(ver.fields || []),
+                    JSON.stringify(ver.layout || {}),
+                    JSON.stringify(t.settings || {}),
+                    ver.version || 1,
+                    new Date().toISOString()
+                ]
+            );
+        } catch (err) {
+            console.warn('[AppMetadata] Failed to cache sibling table in SQLite:', t.id, err);
+        }
+    }
+}

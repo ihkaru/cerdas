@@ -172,8 +172,7 @@ function syncSchema() {
             schema: schemaForPreview.value,
             layout: editorState.layout,
             navigation: props.navigation, // Pass live navigation
-            viewConfigs: props.appViews,
-            activeViewId: props.selectedViewId // NEW: include active view for sync
+            viewConfigs: props.appViews
         }
     })), '*');
 }
@@ -197,10 +196,10 @@ watch(() => props.role, () => {
     syncAuth();
 });
 
-// Watch for selection change and tell iframe to navigate
-watch(() => props.selectedViewId, (newId) => {
-    if (newId && iframeRef.value?.contentWindow) {
-        console.log('[LivePreview] Proposing navigation to view:', newId);
+// Watch for explicit selection change in editor menu and tell iframe to navigate
+watch(() => props.selectedViewId, (newId, oldId) => {
+    if (newId && newId !== oldId && iframeRef.value?.contentWindow) {
+        console.log('[LivePreview] User switched view selection to:', newId);
         iframeRef.value.contentWindow.postMessage({
             type: 'NAVIGATE_TO',
             payload: { viewId: newId }

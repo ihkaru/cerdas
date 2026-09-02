@@ -289,6 +289,14 @@ class GoogleSheetsService
         $client = $this->clientForApp($app);
         $service = $this->sheetsService($client);
 
+        // Clear row 1 before writing to ensure trailing old headers don't remain
+        try {
+            $clearRequest = new \Google\Service\Sheets\ClearValuesRequest();
+            $service->spreadsheets_values->clear($spreadsheetId, "{$tabName}!A1:ZZ1", $clearRequest);
+        } catch (\Throwable $e) {
+            // Fallback/continue if clear fails
+        }
+
         $range = "{$tabName}!A1:".$this->mapper->indexToColumnLetter(count($headers) - 1).'1';
         $valueRange = new ValueRange(['values' => [$headers]]);
 

@@ -232,10 +232,12 @@ class GoogleSheetSyncController extends Controller
         // Build tab definitions
         $tabs = [];
 
+        $syncMode = $request->input('sync_mode', $table->source_config['google_sheet']['sync_mode'] ?? 'standard');
+
         // Root tab (use user-specified tab name if provided, otherwise default to Table name)
         $rootTabName = $request->filled('sheet_name') ? trim((string) $request->input('sheet_name')) : $tableName;
         $rootGid = $this->sheetsService->ensureTabExists($app, $spreadsheetId, $rootTabName);
-        $rootHeaders = $this->mapper->buildHeaders($fields, isRoot: true);
+        $rootHeaders = $this->mapper->buildHeaders($fields, isRoot: true, nestedFieldKey: null, syncMode: $syncMode);
         $this->sheetsService->writeHeaders($app, $spreadsheetId, $rootTabName, $rootHeaders);
 
         $tabs[] = [
@@ -249,7 +251,7 @@ class GoogleSheetSyncController extends Controller
         foreach ($repeatableFields as $fieldKey => $fieldLabel) {
             $nestedTabName = "{$tableName} - {$fieldLabel}";
             $nestedGid = $this->sheetsService->ensureTabExists($app, $spreadsheetId, $nestedTabName);
-            $nestedHeaders = $this->mapper->buildHeaders($fields, isRoot: false, nestedFieldKey: $fieldKey);
+            $nestedHeaders = $this->mapper->buildHeaders($fields, isRoot: false, nestedFieldKey: $fieldKey, syncMode: $syncMode);
             $this->sheetsService->writeHeaders($app, $spreadsheetId, $nestedTabName, $nestedHeaders);
 
             $tabs[] = [
