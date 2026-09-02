@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.53](https://github.com/ihkaru/cerdas/compare/v0.2.52...v0.2.53) (2026-09-02)
+
+
+### Bug Fixes
+
+* **client:** resolve type error on hasExistingDraft in useAssignmentLoader ([a607f6b](https://github.com/ihkaru/cerdas/commit/a607f6b2e1cf726d2e012aef6230fe6b970c99af))
+
 ## [0.2.52](https://github.com/ihkaru/cerdas/compare/v0.2.51...v0.2.52) (2026-09-02)
 
 
