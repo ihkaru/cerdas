@@ -29,6 +29,36 @@
                 <f7-toggle slot="after" :checked="field.config?.use24h"
                     @toggle:change="emit('update', { config: { ...field.config, use24h: $event } })" />
             </f7-list-item>
+
+            <f7-list-item title="Mode Input">
+                <f7-segmented slot="after" strong>
+                    <f7-button :active="!field.config?.capture_mode || field.config?.capture_mode === 'standard'"
+                        @click="emit('update', { config: { ...field.config, capture_mode: 'standard' } })">
+                        Picker
+                    </f7-button>
+                    <f7-button :active="field.config?.capture_mode === 'instant_button'"
+                        @click="emit('update', { config: { ...field.config, capture_mode: 'instant_button' } })">
+                        1-Klik
+                    </f7-button>
+                </f7-segmented>
+            </f7-list-item>
+
+            <f7-list-input v-if="field.config?.capture_mode === 'instant_button'" label="Label Tombol" type="text"
+                :value="field.config?.button_label || ''"
+                :placeholder="field.type === 'time' ? 'Catat Jam Sekarang' : (field.type === 'date' ? 'Catat Tanggal Hari Ini' : 'Catat Waktu Sekarang')"
+                @input="emit('update', { config: { ...field.config, button_label: ($event.target as HTMLInputElement).value } })" />
+
+            <f7-list-item v-if="!field.config?.capture_mode || field.config?.capture_mode === 'standard'">
+                <span>Tombol "Sekarang"</span>
+                <f7-toggle slot="after" :checked="field.config?.show_now_button ?? true"
+                    @toggle:change="emit('update', { config: { ...field.config, show_now_button: $event } })" />
+            </f7-list-item>
+
+            <f7-list-item>
+                <span>Kunci Setelah Direkam</span>
+                <f7-toggle slot="after" :checked="field.config?.lock_after_capture ?? false"
+                    @toggle:change="emit('update', { config: { ...field.config, lock_after_capture: $event } })" />
+            </f7-list-item>
         </template>
 
         <template v-if="field.type === 'nested_form'">

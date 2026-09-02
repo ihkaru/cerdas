@@ -37,10 +37,19 @@ export interface FieldConfig {
   step?: number;
   decimal?: number;
   
-  // Date fields
+  // Date & Time fields
   minDate?: string;
   maxDate?: string;
   format?: string;
+  use24h?: boolean;
+  captureMode?: 'standard' | 'instant_button';
+  capture_mode?: 'standard' | 'instant_button';
+  showNowButton?: boolean;
+  show_now_button?: boolean;
+  lockAfterCapture?: boolean;
+  lock_after_capture?: boolean;
+  buttonLabel?: string;
+  button_label?: string;
   
   // Select/Radio/Checkbox fields
   options?: FieldOption[];

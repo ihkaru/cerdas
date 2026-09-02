@@ -6,15 +6,46 @@
     </label>
 
     <div class="input-wrapper">
-      <div class="date-input-container" :class="{ 'is-readonly': field.readonly }" @click="openPicker">
-        <span class="date-value" :class="{ 'is-placeholder': !displayValue }">
-          {{ displayValue || field.placeholder || 'Select...' }}
-        </span>
-        <f7-icon
-          :f7="field.type === 'time' ? 'clock' : field.type === 'datetime' ? 'calendar_badge_clock' : 'calendar'"
-          size="18"
-          class="date-icon"
-        />
+      <!-- 1. Instant Button Mode -->
+      <InstantTimestampControl
+        v-if="isInstantMode"
+        :field="field"
+        :safe-value="safeValue"
+        :display-value="displayValue"
+        :is-field-locked="isFieldLocked"
+        :button-label="buttonLabel"
+        :picker-icon="pickerIcon"
+        @capture="captureNow"
+        @clear="clearValue"
+      />
+
+      <!-- 2. Standard Picker Mode -->
+      <div v-else class="date-control-group">
+        <div class="date-input-container flex-1" :class="{ 'is-readonly': isFieldLocked }" @click="openPicker">
+          <span class="date-value" :class="{ 'is-placeholder': !displayValue }">
+            {{ displayValue || field.placeholder || 'Select...' }}
+          </span>
+          <f7-icon
+            :f7="pickerIcon"
+            size="18"
+            class="date-icon"
+          />
+        </div>
+
+        <!-- Quick Now Button -->
+        <f7-button
+          v-if="showNowButton && !isFieldLocked"
+          type="button"
+          small
+          tonal
+          color="blue"
+          class="btn-quick-now"
+          title="Isi dengan Waktu Sekarang"
+          @click.stop="captureNow"
+        >
+          <f7-icon f7="bolt_fill" size="13" class="margin-right-2" />
+          <span>Sekarang</span>
+        </f7-button>
       </div>
 
       <!-- Hidden input for F7 to attach pickers to -->
@@ -35,6 +66,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { f7 } from 'framework7-vue';
 import type { FieldDefinition } from '../../types/schema';
+import InstantTimestampControl from './InstantTimestampControl.vue';
 
 const props = withDefaults(defineProps<{
   field: FieldDefinition;
@@ -52,8 +84,39 @@ const pickerInstance = ref<any>(null);
 const calendarInstance = ref<any>(null);
 
 const safeValue = computed(() => props.value ?? '');
-
 const use24h = computed(() => props.field.config?.use24h ?? false);
+
+const isInstantMode = computed(() => {
+  const mode = props.field.config?.capture_mode || props.field.config?.captureMode;
+  return mode === 'instant_button';
+});
+
+const showNowButton = computed(() => {
+  return props.field.config?.show_now_button ?? props.field.config?.showNowButton ?? true;
+});
+
+const lockAfterCapture = computed(() => {
+  return props.field.config?.lock_after_capture ?? props.field.config?.lockAfterCapture ?? false;
+});
+
+const isFieldLocked = computed(() => {
+  return props.field.readonly || (lockAfterCapture.value && !!safeValue.value);
+});
+
+const pickerIcon = computed(() => {
+  if (props.field.type === 'time') return 'clock';
+  if (props.field.type === 'datetime') return isInstantMode.value ? 'stopwatch' : 'calendar_badge_clock';
+  return 'calendar';
+});
+
+const buttonLabel = computed(() => {
+  if (props.field.config?.button_label || props.field.config?.buttonLabel) {
+    return props.field.config?.button_label || props.field.config?.buttonLabel;
+  }
+  if (props.field.type === 'time') return 'Catat Jam Sekarang';
+  if (props.field.type === 'date') return 'Catat Tanggal Hari Ini';
+  return 'Catat Waktu Sekarang';
+});
 
 // Human-readable display value
 const displayValue = computed(() => {
@@ -70,9 +133,14 @@ const displayValue = computed(() => {
 
   if (props.field.type === 'datetime') {
     const datePart = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-    const timePart = use24h.value
-      ? date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false })
-      : date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const hasSeconds = raw.split(':').length >= 3;
+    const timeOptions: Intl.DateTimeFormatOptions = {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: hasSeconds ? '2-digit' : undefined,
+      hour12: !use24h.value
+    };
+    const timePart = date.toLocaleTimeString('id-ID', timeOptions);
     return `${datePart}, ${timePart}`;
   }
 
@@ -93,9 +161,34 @@ const formatTimeDisplay = (val: string) => {
   return `${h.toString().padStart(2, '0')}:${m} ${ampm}`;
 };
 
+const captureNow = () => {
+  if (isFieldLocked.value) return;
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  const hours = now.getHours().toString().padStart(2, '0');
+  const mins = now.getMinutes().toString().padStart(2, '0');
+  const secs = now.getSeconds().toString().padStart(2, '0');
+
+  if (props.field.type === 'time') {
+    emit('update:value', `${hours}:${mins}`);
+  } else if (props.field.type === 'date') {
+    emit('update:value', `${year}-${month}-${day}`);
+  } else {
+    emit('update:value', `${year}-${month}-${day} ${hours}:${mins}:${secs}`);
+  }
+};
+
+const clearValue = () => {
+  if (isFieldLocked.value) return;
+  emit('update:value', '');
+};
+
 // === F7 Calendar (for date / datetime) ===
 const openPicker = () => {
-  if (props.field.readonly) return;
+  if (isFieldLocked.value) return;
 
   if (props.field.type === 'time') {
     if (pickerInstance.value) pickerInstance.value.open();
@@ -225,7 +318,7 @@ const parseValueForPicker = (val: string) => {
 };
 
 onMounted(() => {
-  if (props.field.type === 'time') {
+  if (props.field.type === 'time' && !isInstantMode.value) {
     setupTimePicker();
   }
 });
@@ -242,12 +335,11 @@ onUnmounted(() => {
 });
 
 watch(() => use24h.value, () => {
-  // Destroy and recreate calendar with updated 24h setting
   if (calendarInstance.value) {
     calendarInstance.value.destroy();
     calendarInstance.value = null;
   }
-  if (props.field.type === 'time') {
+  if (props.field.type === 'time' && !isInstantMode.value) {
     setTimeout(setupTimePicker, 0);
   }
 });
@@ -270,6 +362,27 @@ watch(() => use24h.value, () => {
 
 .input-wrapper {
   position: relative;
+}
+
+/* Control Group for Standard Input + Quick Now Button */
+.date-control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.btn-quick-now {
+  flex-shrink: 0;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: none;
 }
 
 .date-input-container {
@@ -357,6 +470,13 @@ watch(() => use24h.value, () => {
     height: 40px;
     font-size: 13.5px;
     padding: 6px 10px;
+    border-radius: 7px;
+  }
+
+  .btn-quick-now {
+    height: 40px;
+    padding: 0 10px;
+    font-size: 12px;
     border-radius: 7px;
   }
 }
