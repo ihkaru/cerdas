@@ -6,7 +6,7 @@
 **Cerdas** adalah AppSheet clone - self-hosted, offline-first, no-code/low-code app builder untuk pengumpulan data survey lapangan (data collection & field management).
 
 ## Active Version & Status
-* **Version**: 0.2.51 (Latest Release — GitHub tag `v0.2.51`, APK: `cerdas-v0.2.51.apk`)
+* **Version**: 0.2.53 (Latest Release — GitHub tag `v0.2.53`, APK: `cerdas-v0.2.53.apk`)
 * **Core Functionalities**: Offline SQLite storage, reactive JavaScript form closures, multi-modal deck/map/table views, Google Sheets bidirectional sync with hierarchical sub-tab lineage.
 * ⚠️ **Versioning Rule**: `package.json` version number must NEVER be edited manually. Release Please is the sole authority for version bumping. See `docs/VERSIONING_SOP.md`.
 
@@ -143,4 +143,12 @@ packages/expression-engine - @cerdas/expression-engine (expression evaluation)
   - **Auto-Wrap Read-Only Display**: Seluruh input teks dan select secara otomatis membungkus teks multi-baris saat readonly, mencegah pemotongan teks survei panjang.
   - **Tipografi Layar Kecil (iPhone SE 375px)**: Penskalaan responsif 40px input height, 13.5px font size, menghemat 40-50% ruang layar.
   - **Ergonomi Radio & Checkbox**: Top-aligned indicators (`align-items: flex-start`), smart inline grid untuk pilihan pendek (Ya/Tidak menghemat 62% ruang vertikal), dan high-signal read-only badge.
+- **2026-09-03**: Rilis v0.2.53 — Instant Timestamps, Form Safety Guards, Accidental Submit/Sync Protection, & Direct-Columns Draft Protection:
+  - **Instant Timestamp Capture**: Mode 1-klik timestamp otomatis dan tombol aksi cepat `Sekarang` untuk kolom tanggal & waktu.
+  - **Form Ergonomics & Action Hierarchy**: Menghilangkan tombol sakral dari navbar atas, memindahkan `[ Selesaikan & Kirim Survei ]` ke bawah formulir, dilengkapi tombol `[ Simpan Draft ]` dan `[ Buang Draft ]`.
+  - **Anti-Empty Submission Guard**: Validasi proteksi penolakan penyelesaian form jika 0 isian data yang dimasukkan.
+  - **Accidental Sync Confirmation**: Dialog konfirmasi pada banner sync utama guna mencegah unggah data tak sengaja saat scrolling.
+  - **Direct-Columns Draft Guard (2-Way Sync Protection)**: Worker backend otomatis menahan draf parsial agar tidak mengotori baris Google Sheet pada mode 2-way sync langsung tanpa kolom status.
+  - **Live Preview Instant Reactivity**: Sinkronisasi instan konfigurasi field ke form preview tanpa jeda re-mount.
+
 
