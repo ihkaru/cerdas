@@ -89,6 +89,30 @@ class GoogleSheetEnqueueRowJob implements ShouldQueue
 
         $fields = $response->assignment?->tableVersion?->fields ?? $table->publishedVersion?->fields ?? $table->currentVersion?->fields ?? [];
 
+        $rawStatus = $response->assignment?->status ?? 'submitted';
+        $isFinal = in_array($rawStatus, ['submitted', 'approved', 'verified'], true);
+
+        // Guard: In direct_columns 2-way sync, unsubmitted drafts must NOT pollute the Google Sheet
+        // unless the sheet explicitly has a user-defined status column.
+        if ($syncMode === 'direct_columns' && ! $isFinal && $this->operation === 'upsert') {
+            $hasUserStatusColumn = false;
+            foreach ($sheetHeaders as $header) {
+                if (in_array(strtolower(trim($header)), ['status', 'state'], true)) {
+                    $hasUserStatusColumn = true;
+                    break;
+                }
+            }
+
+            if (! $hasUserStatusColumn) {
+                Log::info('GoogleSheetEnqueueRowJob: Skipped enqueueing draft in direct_columns mode without status column', [
+                    'responseId' => $response->id,
+                    'status' => $rawStatus,
+                ]);
+
+                return;
+            }
+        }
+
         // Build maps for root and nested tabs
         $nestedTabsMap = [];
         $rootTab = null;
