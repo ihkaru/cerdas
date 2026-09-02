@@ -72,6 +72,7 @@ export type SheetSyncState =
 
 export interface ConnectSheetRequest {
   spreadsheet_url: string;
+  sheet_name?: string;
 }
 
 export interface ConnectSheetResponse {
@@ -93,6 +94,13 @@ export interface OAuthCallbackRequest {
 }
 
 // ========== Schema Inspection & Creation Shapes ==========
+
+export interface GoogleSheetWorkbookMeta {
+  spreadsheet_id: string;
+  spreadsheet_url: string;
+  title: string;
+  sheets: string[];
+}
 
 export interface GoogleSheetInferredColumn {
   name: string;
@@ -123,6 +131,34 @@ export interface CreateTableFromSheetRequest {
   key_column?: string;
 }
 
+export interface SheetTabProvisionConfig {
+  sheet_name: string;
+  table_name: string;
+  columns: GoogleSheetInferredColumn[];
+  key_column?: string;
+}
+
+export interface BatchCreateTablesFromSheetRequest {
+  spreadsheet_url?: string;
+  spreadsheet_id?: string;
+  tabs: SheetTabProvisionConfig[];
+}
+
+export interface BatchCreateTablesResultItem {
+  table_id: string;
+  table_name: string;
+  sheet_name: string;
+  view_id: string;
+  rows_imported: number;
+}
+
+export interface BatchCreateTablesFromSheetResponse {
+  success: boolean;
+  message: string;
+  app_id: string;
+  results: BatchCreateTablesResultItem[];
+}
+
 export interface CreateAppFromSheetRequest {
   name: string;
   description?: string;
@@ -135,7 +171,8 @@ export interface CreateAppFromSheetRequest {
   spreadsheet_id?: string;
   table_name?: string;
   sheet_name?: string;
-  columns: GoogleSheetInferredColumn[];
+  columns?: GoogleSheetInferredColumn[];
   key_column?: string;
+  tabs?: SheetTabProvisionConfig[];
 }
 

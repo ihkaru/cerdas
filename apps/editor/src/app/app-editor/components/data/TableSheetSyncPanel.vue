@@ -49,7 +49,26 @@
                         @input="spreadsheetUrlInput = ($event.target as HTMLInputElement).value"
                         clear-button
                     />
+                    <f7-list-item v-if="availableTabs.length > 0" title="Target Tab Sheet" smart-select :smart-select-params="{ openIn: 'popover' }">
+                        <select v-model="selectedTabName">
+                            <option value="">(Buat Tab Baru Otomatis)</option>
+                            <option v-for="t in availableTabs" :key="t" :value="t">{{ t }}</option>
+                        </select>
+                    </f7-list-item>
                 </f7-list>
+            </div>
+
+            <div v-if="spreadsheetUrlInput && availableTabs.length === 0" class="margin-horizontal margin-bottom-half">
+                <f7-button
+                    small
+                    outline
+                    color="blue"
+                    :loading="isCheckingTabs"
+                    @click="handleCheckTabs"
+                >
+                    <f7-icon f7="search" size="14" class="margin-right-half" />
+                    Periksa Lembar Kerja (Tab)
+                </f7-button>
             </div>
 
             <div class="action-buttons">
@@ -77,7 +96,7 @@
 
             <p class="sync-hint">
                 <f7-icon f7="info_circle" size="14" />
-                Tab akan dibuat otomatis: satu tab utama + satu tab per section repeatable.
+                {{ selectedTabName ? `Tabel ini akan disinkronkan langsung ke tab '${selectedTabName}'.` : 'Tab akan dibuat otomatis: satu tab utama + satu tab per section repeatable.' }}
             </p>
         </div>
 
@@ -195,6 +214,18 @@
 
             <!-- Actions -->
             <div class="connected-actions">
+                <f7-button
+                    id="btn-sync-headers"
+                    small
+                    outline
+                    color="purple"
+                    :loading="isSyncingHeaders"
+                    @click="handleSyncHeaders"
+                    title="Selaraskan judul kolom di Baris 1 Google Sheet dengan field terbaru di Cerdas"
+                >
+                    <f7-icon f7="rectangle_grid_1x2" size="16" class="margin-right-half" />
+                    Perbarui Kolom Sheet
+                </f7-button>
                 <f7-button
                     id="btn-sync-now"
                     small
@@ -341,6 +372,9 @@ const props = defineProps<{
 }>();
 
 const spreadsheetUrlInput = ref('');
+const availableTabs = ref<string[]>([]);
+const selectedTabName = ref<string>('');
+const isCheckingTabs = ref(false);
 const showDisconnectConfirm = ref(false);
 const showWebhookModal = ref(false);
 const isCopied = ref(false);
@@ -349,13 +383,16 @@ const {
     state,
     syncStatus,
     isLoading,
+    isSyncingHeaders,
     refreshStatus,
     startOAuthFlow,
     connectSheet,
+    inspectSpreadsheetTabs,
     disconnectSheet,
     triggerManualExport,
     triggerPullFromSheet,
     setSyncMode,
+    reconcileHeaders,
     clearError,
 } = useGoogleSheetSync(
     ref(props.tableId),
@@ -375,9 +412,44 @@ const webhookEndpointUrl = computed(() => {
 
 // ========== Handlers ==========
 
+async function handleSyncHeaders() {
+    f7.dialog.preloader('Menyelaraskan header Google Sheet...');
+    try {
+        const res = await reconcileHeaders();
+        f7.dialog.close();
+        if (res.success) {
+            f7.toast.show({
+                text: 'Header Google Sheet berhasil diselaraskan dengan field formulir!',
+                position: 'center',
+                closeTimeout: 3000
+            });
+        } else {
+            f7.dialog.alert(res.message || 'Gagal menyelaraskan header.');
+        }
+    } catch (e: any) {
+        f7.dialog.close();
+        f7.dialog.alert(e?.message || 'Terjadi kesalahan saat menyelaraskan header.');
+    }
+}
+
+async function handleCheckTabs() {
+    if (!spreadsheetUrlInput.value) return;
+    try {
+        isCheckingTabs.value = true;
+        availableTabs.value = await inspectSpreadsheetTabs(spreadsheetUrlInput.value);
+        if (availableTabs.value.length > 0) {
+            f7.toast.show({ text: `${availableTabs.value.length} tab ditemukan!`, closeTimeout: 2000 });
+        } else {
+            f7.toast.show({ text: 'Tidak ada tab ditemukan atau spreadsheet tidak dapat diakses.', closeTimeout: 2500 });
+        }
+    } finally {
+        isCheckingTabs.value = false;
+    }
+}
+
 async function handleConnectSheet() {
     if (!spreadsheetUrlInput.value) return;
-    await connectSheet(spreadsheetUrlInput.value);
+    await connectSheet(spreadsheetUrlInput.value, selectedTabName.value || undefined);
 }
 
 async function handleDisconnect() {

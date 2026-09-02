@@ -32,14 +32,27 @@
                                 <f7-icon f7="doc_text_fill" size="18" />
                             </div>
                             <div class="form-details">
-                                <div class="form-title">{{ table.name }}</div>
-                                <div class="form-desc">{{ table.description || 'No description' }}</div>
+                                <div class="form-title">
+                                    {{ tableSelection.currentTableId === table.id ? tableEditor.tableName : table.name }}
+                                </div>
+                                <div class="form-desc">
+                                    <span v-if="table.source_config?.google_sheet?.sheet_name" class="sheet-badge" :title="'Sheet Tab: ' + table.source_config.google_sheet.sheet_name">
+                                        <f7-icon f7="logo_google" size="9" />
+                                        {{ table.source_config.google_sheet.sheet_name }}
+                                    </span>
+                                    <span class="desc-text">
+                                        {{ tableSelection.currentTableId === table.id ? (tableEditor.description || 'No description') : (table.description || 'No description') }}
+                                    </span>
+                                </div>
                             </div>
                             <div v-if="tableSelection.currentTableId === table.id" class="active-check">
                                 <f7-icon f7="checkmark_circle_fill" size="16" />
                             </div>
-                            <button class="form-action-btn" @click.stop="tableSelection.handleDeleteTable(table)" title="Delete">
-                                <f7-icon f7="trash" size="14" />
+                            <button class="form-action-btn" @click.stop="handleEditTable(table)" title="Edit Table Name">
+                                <f7-icon f7="pencil" size="12" />
+                            </button>
+                            <button class="form-action-btn form-action-btn--delete" @click.stop="tableSelection.handleDeleteTable(table)" title="Delete Table">
+                                <f7-icon f7="trash" size="13" />
                             </button>
                         </div>
                     </div>
@@ -62,6 +75,33 @@
                         flexDirection: 'column',
                         overflow: 'hidden'
                     }">
+                    <!-- Contextual Table Header -->
+                    <div class="table-context-header">
+                        <div class="table-context-main">
+                            <div class="table-context-icon">
+                                <f7-icon f7="doc_text_fill" size="16" />
+                            </div>
+                            <div class="table-context-titles">
+                                <div class="table-title-row">
+                                    <span class="table-heading" @click="handleRenameCurrentTable" title="Klik untuk mengubah nama tabel">
+                                        {{ tableEditor.tableName }}
+                                    </span>
+                                    <button class="table-inline-btn" @click="handleRenameCurrentTable" title="Ubah Nama Tabel">
+                                        <f7-icon f7="pencil" size="11" />
+                                    </button>
+                                    <span v-if="currentTableSheetTab" class="table-source-tag" @click="activeSchemaSubTab = 'sync'" title="Lihat konfigurasi Google Sheet Sync">
+                                        <f7-icon f7="logo_google" size="10" />
+                                        Tab: {{ currentTableSheetTab }}
+                                    </span>
+                                    <span v-if="tableEditor.isDirty" class="table-dirty-tag">Unsaved</span>
+                                </div>
+                                <div class="table-desc-row" @click="handleEditCurrentTableDesc" title="Klik untuk mengubah deskripsi tabel">
+                                    {{ tableEditor.description || 'Tambahkan deskripsi tabel...' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Sub-tab header -->
                     <div class="schema-subtab-bar">
                         <button class="schema-subtab-btn" :class="{ active: activeSchemaSubTab === 'fields' }"
@@ -167,7 +207,8 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { f7 } from 'framework7-vue';
+import { computed, reactive, ref } from 'vue';
 
 // Layout Components
 import EditorEmptyState from '../shared/EditorEmptyState.vue';
@@ -214,10 +255,42 @@ const showTrashModal = ref(false);
 // Sub-tab for schema panel right side: 'fields' | 'data'
 const activeSchemaSubTab = ref<'fields' | 'data' | 'sync'>('fields');
 
+const currentTableSheetTab = computed(() => {
+    const t = tableSelection.appTables?.find((table: { id: string | number; source_config?: { google_sheet?: { sheet_name?: string } } }) => String(table.id) === String(tableSelection.currentTableId));
+    return t?.source_config?.google_sheet?.sheet_name || '';
+});
+
 // Expose so parent (AppEditorPage) can switch to data preview after import
 function switchToDataPreview() {
     activeSchemaSubTab.value = 'data';
 }
+
+function handleEditTable(table: { id: string | number; name: string }) {
+    if (String(tableSelection.currentTableId) !== String(table.id)) {
+        tableSelection.selectTable(table.id);
+    }
+    const currentName = String(tableSelection.currentTableId) === String(table.id) ? tableEditor.tableName : table.name;
+    f7.dialog.prompt('Ubah Nama Data Source (Tabel)', 'Rename Table', (newName: string) => {
+        if (!newName || !newName.trim() || newName.trim() === currentName) return;
+        tableEditor.updateTableName(newName.trim());
+    }, () => {}, currentName);
+}
+
+function handleRenameCurrentTable() {
+    const currentName = tableEditor.tableName;
+    f7.dialog.prompt('Ubah Nama Data Source (Tabel)', 'Rename Table', (newName: string) => {
+        if (!newName || !newName.trim() || newName.trim() === currentName) return;
+        tableEditor.updateTableName(newName.trim());
+    }, () => {}, currentName);
+}
+
+function handleEditCurrentTableDesc() {
+    const currentDesc = tableEditor.description || '';
+    f7.dialog.prompt('Deskripsi Data Source (Tabel)', 'Table Description', (newDesc: string) => {
+        tableEditor.updateDescription(newDesc.trim());
+    }, () => {}, currentDesc);
+}
+
 defineExpose({ switchToDataPreview });
 </script>
 
@@ -304,8 +377,148 @@ defineExpose({ switchToDataPreview });
 }
 
 .form-action-btn:hover {
+    background: #f1f5f9;
+    color: #2563eb;
+}
+
+.form-action-btn.form-action-btn--delete:hover {
     background: rgba(239, 68, 68, 0.08);
     color: #ef4444;
+}
+
+/* ── Contextual Table Header ── */
+.table-context-header {
+    padding: 8px 14px;
+    background: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.table-context-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.table-context-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background: #eff6ff;
+    color: #3b82f6;
+    flex-shrink: 0;
+}
+
+.table-context-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.table-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.table-heading {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #1e293b;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.15s ease;
+}
+
+.table-heading:hover {
+    color: #2563eb;
+}
+
+.table-inline-btn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    color: #94a3b8;
+    transition: color 0.15s, background 0.15s;
+}
+
+.table-inline-btn:hover {
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.table-dirty-tag {
+    font-size: 9.5px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+}
+
+.table-desc-row {
+    font-size: 11px;
+    color: #94a3b8;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.15s ease;
+}
+
+.table-desc-row:hover {
+    color: #64748b;
+}
+
+.sheet-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    font-size: 10px;
+    font-weight: 600;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+.table-source-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.table-source-tag:hover {
+    background: #dcfce7;
+    border-color: #86efac;
 }
 
 /* ── Schema Sub-tab Bar (Fields | Data Preview) ── */

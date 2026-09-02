@@ -6,9 +6,14 @@
     </label>
 
     <div class="input-wrapper select-wrapper">
-      <select class="custom-input custom-select" :value="safeValue"
-        @change="$emit('update:value', ($event.target as HTMLSelectElement).value)" :required="field.required"
-        :disabled="field.readonly">
+      <!-- Read-Only Mode: Display selected label with natural text wrapping -->
+      <div v-if="field.readonly" class="custom-input-readonly">
+        {{ selectedLabel || '—' }}
+      </div>
+
+      <!-- Editable Mode: Native select -->
+      <select v-else class="custom-input custom-select" :value="safeValue"
+        @change="$emit('update:value', ($event.target as HTMLSelectElement).value)" :required="field.required">
         <option value="" disabled selected>{{ field.placeholder || 'Select an option' }}</option>
         <option v-for="opt in options" :key="getValue(opt)" :value="getValue(opt)">
           {{ getLabel(opt) }}
@@ -42,6 +47,12 @@ const safeValue = computed(() => props.value ?? '');
 
 const getValue = (opt: any) => typeof opt === 'object' ? opt.value : opt;
 const getLabel = (opt: any) => typeof opt === 'object' ? opt.label : opt;
+
+const selectedLabel = computed(() => {
+  if (props.value === null || props.value === undefined || props.value === '') return '';
+  const match = options.value.find(opt => String(getValue(opt)) === String(props.value));
+  return match ? getLabel(match) : String(props.value);
+});
 </script>
 
 <style scoped>
@@ -99,7 +110,55 @@ const getLabel = (opt: any) => typeof opt === 'object' ? opt.label : opt;
   border-color: #ddd;
   pointer-events: none;
   opacity: 1;
-  /* Override browser default opacity */
+}
+
+.custom-input-readonly {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 14.5px;
+  color: #334155;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  line-height: 1.5;
+  word-break: break-word;
+  white-space: pre-wrap;
+  user-select: text;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .field-box {
+    margin-bottom: 12px;
+    padding: 0 14px;
+  }
+
+  .field-label {
+    font-size: 13px;
+    margin-bottom: 5px;
+    line-height: 1.35;
+  }
+
+  .custom-input {
+    height: 40px;
+    font-size: 13.5px;
+    padding: 6px 10px;
+    border-radius: 7px;
+  }
+
+  .custom-select {
+    padding-right: 26px;
+    background-size: 18px;
+  }
+
+  .custom-input-readonly {
+    min-height: 38px;
+    font-size: 13.5px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    line-height: 1.45;
+  }
 }
 
 .field-error {

@@ -1,4 +1,6 @@
 import { computed, reactive } from 'vue';
+import { useAppStore } from '@/stores/app.store';
+import { useTableStore } from '@/stores/table.store';
 import type {
     EditableFieldDefinition,
     LayoutConfig,
@@ -114,12 +116,34 @@ export function useEditorState() {
   function updateTableName(name: string): void {
     editorState.tableName = name;
     editorState.isDirty = true;
+
+    if (editorState.tableId) {
+      try {
+        const appStore = useAppStore();
+        const tableStore = useTableStore();
+        appStore.updateAppTableLocally(editorState.tableId, { name });
+        tableStore.updateTableLocally(editorState.tableId, { name });
+      } catch {
+        // Safe fallback if called outside active pinia instance
+      }
+    }
   }
 
   /** Update Description */
   function updateDescription(desc: string): void {
     editorState.description = desc;
     editorState.isDirty = true;
+
+    if (editorState.tableId) {
+      try {
+        const appStore = useAppStore();
+        const tableStore = useTableStore();
+        appStore.updateAppTableLocally(editorState.tableId, { description: desc });
+        tableStore.updateTableLocally(editorState.tableId, { description: desc });
+      } catch {
+        // Safe fallback if called outside active pinia instance
+      }
+    }
   }
 
   /** Update Table Settings */

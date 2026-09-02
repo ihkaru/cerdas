@@ -1,11 +1,16 @@
 import { ApiClient } from './ApiClient';
 import type {
   AuthUrlResponse,
+  BatchCreateTablesFromSheetRequest,
+  BatchCreateTablesFromSheetResponse,
+  BatchCreateTablesResultItem,
   ConnectSheetRequest,
   ConnectSheetResponse,
   CreateAppFromSheetRequest,
   CreateTableFromSheetRequest,
+  GoogleSheetConfig,
   GoogleSheetTokenStatus,
+  GoogleSheetWorkbookMeta,
   InspectSheetSchemaResponse,
   SheetSyncStatus,
 } from '@cerdas/types';
@@ -55,9 +60,10 @@ export const GoogleSheetApi = {
    * Connect a Google Sheet URL to a Table.
    * Creates tabs, writes headers, and dispatches initial export if data exists.
    */
-  connectSheet: (tableId: string, spreadsheetUrl: string): Promise<ConnectSheetResponse> =>
+  connectSheet: (tableId: string, spreadsheetUrl: string, sheetName?: string): Promise<ConnectSheetResponse> =>
     ApiClient.post<ConnectSheetResponse>(`/tables/${tableId}/sheets/connect`, {
       spreadsheet_url: spreadsheetUrl,
+      sheet_name: sheetName,
     } as ConnectSheetRequest).then(res => res.data),
 
   /**
@@ -96,10 +102,25 @@ export const GoogleSheetApi = {
     ApiClient.get<SheetSyncStatus>(`/tables/${tableId}/sheets/status`)
       .then(res => res.data),
 
+  /**
+   * Reconcile Google Sheet headers with the current Table fields.
+   * Updates Row 1 in the connected Google Sheet to match all fields in Cerdas.
+   */
+  syncHeaders: (tableId: string): Promise<{ success: boolean; message: string; root_headers: string[]; nested_headers: Record<string, string[]> }> =>
+    ApiClient.post(`/tables/${tableId}/sheets/sync-headers`)
+      .then(res => res.data),
+
   // ========== Schema Inspection & Creation ==========
 
   /**
-   * Inspect a Google Spreadsheet's tabs, headers, and inferred column types.
+   * Inspect a Google Spreadsheet workbook: fetch title and tab names (fast, metadata only).
+   */
+  inspectWorkbook: (appId: string, payload: { spreadsheet_url?: string; spreadsheet_id?: string }): Promise<GoogleSheetWorkbookMeta> =>
+    ApiClient.post<GoogleSheetWorkbookMeta>(`/google/sheets/inspect-workbook/${appId}`, payload)
+      .then(res => res.data),
+
+  /**
+   * Inspect a Google Spreadsheet's tabs, headers, and inferred column types for a specific tab.
    */
   inspectSchema: (appId: string, payload: { spreadsheet_url?: string; spreadsheet_id?: string; sheet_name?: string }): Promise<InspectSheetSchemaResponse> =>
     ApiClient.post<InspectSheetSchemaResponse>(`/google/sheets/inspect-schema/${appId}`, payload)
@@ -113,9 +134,16 @@ export const GoogleSheetApi = {
       .then(res => res.data),
 
   /**
-   * Create a new App and primary Table in one step from an inspected Google Sheet.
+   * Batch create multiple Tables in an existing App from multiple Google Spreadsheet tabs.
    */
-  createAppFromSheet: (payload: CreateAppFromSheetRequest): Promise<{ success: boolean; app_id: string; table_id: string; view_id: string; message: string }> =>
+  batchCreateTablesFromSheet: (appId: string, payload: BatchCreateTablesFromSheetRequest): Promise<BatchCreateTablesFromSheetResponse> =>
+    ApiClient.post<BatchCreateTablesFromSheetResponse>(`/google/sheets/batch-create-tables-from-sheet/${appId}`, payload)
+      .then(res => res.data),
+
+  /**
+   * Create a new App and its Tables in one step from an inspected Google Sheet.
+   */
+  createAppFromSheet: (payload: CreateAppFromSheetRequest): Promise<{ success: boolean; app_id: string; table_id: string; view_id: string; message: string; results?: BatchCreateTablesResultItem[] }> =>
     ApiClient.post(`/google/sheets/create-app-from-sheet`, payload)
       .then(res => res.data),
 };

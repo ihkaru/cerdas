@@ -248,4 +248,29 @@ const onBlur = () => {
 .gap-5 {
   gap: 8px;
 }
+
+@media (max-width: 480px) {
+  .field-box {
+    margin-bottom: 12px;
+    padding: 0 14px;
+  }
+
+  .field-label {
+    font-size: 13px;
+    margin-bottom: 5px;
+    line-height: 1.35;
+  }
+
+  .custom-input {
+    height: 40px;
+    font-size: 13.5px;
+    padding: 6px 10px;
+    border-radius: 7px;
+  }
+
+  .url-button {
+    padding: 8px 12px;
+    font-size: 12.5px;
+  }
+}
 </style>

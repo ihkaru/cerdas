@@ -192,6 +192,7 @@ export interface FieldTypeMeta {
   hasOptions: boolean;
   supportsFormula: boolean;
   category: 'basic' | 'choice' | 'media' | 'advanced';
+  hidden?: boolean;
 }
 
 // ============================================================================
@@ -283,6 +284,25 @@ export const FIELD_TYPE_META: Record<FieldType, FieldTypeMeta> = {
     hasOptions: false,
     supportsFormula: true,
     category: 'basic',
+  },
+  long_text: {
+    type: 'long_text',
+    label: 'Long Text / Catatan',
+    icon: 'text_alignleft',
+    description: 'Multi-line text, catatan, atau deskripsi panjang',
+    hasOptions: false,
+    supportsFormula: true,
+    category: 'basic',
+  },
+  textarea: {
+    type: 'textarea',
+    label: 'Long Text / Catatan',
+    icon: 'text_alignleft',
+    description: 'Multi-line text, catatan, atau deskripsi panjang',
+    hasOptions: false,
+    supportsFormula: true,
+    category: 'basic',
+    hidden: true,
   },
   number: {
     type: 'number',

@@ -340,4 +340,24 @@ watch(() => use24h.value, () => {
   font-size: 12px;
   margin-top: 4px;
 }
+
+@media (max-width: 480px) {
+  .field-box {
+    margin-bottom: 12px;
+    padding: 0 14px;
+  }
+
+  .field-label {
+    font-size: 13px;
+    margin-bottom: 5px;
+    line-height: 1.35;
+  }
+
+  .date-input-container {
+    height: 40px;
+    font-size: 13.5px;
+    padding: 6px 10px;
+    border-radius: 7px;
+  }
+}
 </style>

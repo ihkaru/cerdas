@@ -4,14 +4,27 @@
             <a href="#" class="back-btn" @click.prevent="emit('back')">
                 <f7-icon f7="chevron_left" />
             </a>
-            <div class="form-title" @click="emit('rename')">
+            <div class="form-title">
                 <span class="title-text">
-                    <span v-if="appName" class="app-name">{{ appName }}</span>
-                    <span v-if="appName" class="breadcrumb-separator">/</span>
-                    {{ title }}
+                    <span v-if="appName" class="app-name-wrap" @click.stop="emit('rename-app')" title="Ubah Nama Aplikasi">
+                        <span class="app-name">{{ appName }}</span>
+                        <f7-icon f7="pencil" class="app-edit-icon" size="11" />
+                    </span>
+
+                    <span class="breadcrumb-separator">/</span>
+
+                    <!-- When in Schema tab and a table is active: show Table Name with rename -->
+                    <span v-if="isSchemaTab && hasTableSelected" class="table-name-wrap" @click.stop="emit('rename-table')" title="Ubah Nama Tabel">
+                        <span class="table-name">{{ title }}</span>
+                        <span v-if="isDirty" class="dirty-dot" title="Perubahan belum disimpan"></span>
+                        <f7-icon f7="pencil" class="edit-icon" size="11" />
+                    </span>
+
+                    <!-- When in other tabs or no table selected in schema: show Section Name -->
+                    <span v-else class="section-name-wrap">
+                        <span class="section-name">{{ currentSectionLabel }}</span>
+                    </span>
                 </span>
-                <span v-if="isDirty" class="dirty-dot"></span>
-                <f7-icon f7="pencil" class="edit-icon" />
             </div>
         </div>
 
@@ -59,19 +72,43 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 interface Props {
     title: string;
-    appName?: string; // New prop
+    appName?: string;
+    activeTab?: string;
+    hasTableSelected?: boolean;
     isDirty: boolean;
     isPublished: boolean;
     version?: number;
     canPublish?: boolean;
 }
 
-defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    appName: '',
+    activeTab: 'schema',
+    hasTableSelected: false,
+    version: undefined,
+    canPublish: true,
+});
+
+const sectionLabels: Record<string, string> = {
+    schema: 'Data & Schema',
+    settings: 'Settings',
+    views: 'Views',
+    data_monitoring: 'Monitoring',
+    actions: 'Actions',
+    code: 'Code',
+};
+
+const currentSectionLabel = computed(() => sectionLabels[props.activeTab] || 'Editor');
+const isSchemaTab = computed(() => props.activeTab === 'schema');
 
 const emit = defineEmits<{
     rename: [];
+    'rename-app': [];
+    'rename-table': [];
     save: [];
     publish: [];
     back: [];
@@ -120,22 +157,33 @@ const emit = defineEmits<{
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-.form-title:hover {
-    background: #f1f5f9;
 }
 
 .title-text {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     color: #1e293b;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.35rem;
+}
+
+.app-name-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.app-name-wrap:hover {
+    background: #f1f5f9;
+}
+
+.app-name-wrap:hover .app-name {
+    color: #0f172a;
 }
 
 .app-name {
@@ -144,21 +192,53 @@ const emit = defineEmits<{
     font-size: 14px;
 }
 
+.table-name-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.table-name-wrap:hover {
+    background: #f1f5f9;
+}
+
 .breadcrumb-separator {
     color: #cbd5e1;
     font-size: 14px;
+    user-select: none;
 }
 
 .dirty-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: #f97316;
 }
 
+.app-edit-icon,
 .edit-icon {
+    font-size: 12px;
+    color: #3b82f6;
+    opacity: 0;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.app-name-wrap:hover .app-edit-icon,
+.table-name-wrap:hover .edit-icon {
+    opacity: 1;
+}
+
+.section-name-wrap {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    color: #1e293b;
     font-size: 14px;
-    color: #94a3b8;
+    font-weight: 600;
 }
 
 .header-center {

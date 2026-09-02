@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\GoogleSheetInitialExportJob;
+use App\Actions\GoogleSheet\BatchCreateTablesFromSheetAction;
 use App\Actions\GoogleSheet\CreateAppFromSheetAction;
 use App\Actions\GoogleSheet\CreateTableFromSheetAction;
 use App\Actions\GoogleSheet\ImportGoogleSheetRowsAction;
+use App\Actions\GoogleSheet\ReconcileGoogleSheetHeadersAction;
 use App\Models\App;
 use App\Models\GoogleOAuthToken;
 use App\Models\Table;
@@ -36,8 +38,10 @@ class GoogleSheetSyncController extends Controller
         private readonly GoogleSheetColumnMapper $mapper,
         private readonly SchemaInferenceService $schemaInferenceService,
         private readonly CreateTableFromSheetAction $createTableAction,
+        private readonly BatchCreateTablesFromSheetAction $batchCreateTablesAction,
         private readonly CreateAppFromSheetAction $createAppAction,
-        private readonly ImportGoogleSheetRowsAction $importRowsAction
+        private readonly ImportGoogleSheetRowsAction $importRowsAction,
+        private readonly ReconcileGoogleSheetHeadersAction $reconcileHeadersAction
     ) {}
 
     // ========== App-Level OAuth ==========
@@ -189,6 +193,7 @@ class GoogleSheetSyncController extends Controller
     {
         $request->validate([
             'spreadsheet_url' => 'required|string|url',
+            'sheet_name' => 'nullable|string',
         ]);
 
         $app = $table->app;
@@ -227,8 +232,8 @@ class GoogleSheetSyncController extends Controller
         // Build tab definitions
         $tabs = [];
 
-        // Root tab
-        $rootTabName = $tableName;
+        // Root tab (use user-specified tab name if provided, otherwise default to Table name)
+        $rootTabName = $request->filled('sheet_name') ? trim((string) $request->input('sheet_name')) : $tableName;
         $rootGid = $this->sheetsService->ensureTabExists($app, $spreadsheetId, $rootTabName);
         $rootHeaders = $this->mapper->buildHeaders($fields, isRoot: true);
         $this->sheetsService->writeHeaders($app, $spreadsheetId, $rootTabName, $rootHeaders);
@@ -342,6 +347,42 @@ class GoogleSheetSyncController extends Controller
     }
 
     /**
+     * POST /api/tables/{table}/sheets/sync-headers
+     *
+     * Reconcile Google Sheet headers with the current Table fields.
+     * Writes updated header labels to Row 1 of the connected Google Sheet.
+     */
+    public function syncHeaders(Request $request, Table $table): JsonResponse
+    {
+        $this->authorizeAppAdmin($request, $table->app);
+
+        if ($table->source_type !== 'google_sheets') {
+            return response()->json(['message' => 'Table ini belum dihubungkan ke Google Sheet.'], 422);
+        }
+
+        try {
+            $result = $this->reconcileHeadersAction->execute($table);
+
+            return response()->json([
+                'success' => $result['success'],
+                'message' => $result['message'],
+                'root_headers' => $result['root_headers'],
+                'nested_headers' => $result['nested_headers'],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('GoogleSheetSyncController: syncHeaders failed', [
+                'table_id' => $table->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyelaraskan header Google Sheet: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * GET /api/tables/{table}/sheets/status
      *
      * Get the current sync status for a Table's Sheet connection.
@@ -406,6 +447,50 @@ class GoogleSheetSyncController extends Controller
     }
 
     // ========== Schema Inspection & Auto Creation ==========
+
+    /**
+     * POST /api/google/sheets/inspect-workbook/{app}
+     *
+     * Lightweight inspection of a Google Spreadsheet: fetches title and tab names
+     * without fetching data rows or inferring column schemas.
+     */
+    public function inspectWorkbook(Request $request, App $app): JsonResponse
+    {
+        $this->authorizeAppAdmin($request, $app);
+
+        $request->validate([
+            'spreadsheet_url' => 'required_without:spreadsheet_id|nullable|string',
+            'spreadsheet_id' => 'required_without:spreadsheet_url|nullable|string',
+        ]);
+
+        $rawInput = (string) ($request->input('spreadsheet_url') ?? $request->input('spreadsheet_id'));
+        $spreadsheetId = $this->sheetsService->extractSpreadsheetId($rawInput);
+
+        if (! $spreadsheetId) {
+            return response()->json(['message' => 'URL atau ID Spreadsheet tidak valid.'], 422);
+        }
+
+        try {
+            $meta = $this->sheetsService->getSpreadsheetMeta($app, $spreadsheetId);
+
+            return response()->json([
+                'spreadsheet_id' => $spreadsheetId,
+                'spreadsheet_url' => "https://docs.google.com/spreadsheets/d/{$spreadsheetId}/edit",
+                'title' => $meta['title'],
+                'sheets' => $meta['sheets'],
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Exception $e) {
+            Log::error('GoogleSheetSyncController: inspectWorkbook failed', [
+                'app_id' => $app->id,
+                'spreadsheet_id' => $spreadsheetId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Gagal membaca spreadsheet: '.$e->getMessage()], 500);
+        }
+    }
 
     /**
      * POST /api/google/sheets/inspect-schema/{app}
@@ -521,9 +606,58 @@ class GoogleSheetSyncController extends Controller
     }
 
     /**
+     * POST /api/google/sheets/batch-create-tables-from-sheet/{app}
+     *
+     * Batch create multiple Tables in an existing App from multiple Google Spreadsheet tabs.
+     */
+    public function batchCreateTablesFromSheet(Request $request, App $app): JsonResponse
+    {
+        $this->authorizeAppAdmin($request, $app);
+
+        $request->validate([
+            'spreadsheet_url' => 'required_without:spreadsheet_id|nullable|string',
+            'spreadsheet_id' => 'required_without:spreadsheet_url|nullable|string',
+            'tabs' => 'required|array|min:1',
+            'tabs.*.sheet_name' => 'required|string',
+            'tabs.*.table_name' => 'required|string|max:255',
+            'tabs.*.columns' => 'required|array|min:1',
+            'tabs.*.key_column' => 'nullable|string',
+        ]);
+
+        $rawInput = (string) ($request->input('spreadsheet_url') ?? $request->input('spreadsheet_id'));
+        $spreadsheetId = $this->sheetsService->extractSpreadsheetId($rawInput);
+
+        if (! $spreadsheetId) {
+            return response()->json(['message' => 'URL atau ID Spreadsheet tidak valid.'], 422);
+        }
+
+        try {
+            $result = $this->batchCreateTablesAction->execute(
+                $app,
+                $spreadsheetId,
+                $request->input('tabs')
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => count($result['results']).' tabel berhasil dibuat dan terhubung ke Google Sheets.',
+                'app_id' => $app->id,
+                'results' => $result['results'],
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('GoogleSheetSyncController: batchCreateTablesFromSheet failed', [
+                'app_id' => $app->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Gagal membuat tabel dari sheet: '.$e->getMessage()], 500);
+        }
+    }
+
+    /**
      * POST /api/google/sheets/create-app-from-sheet
      *
-     * Create a new App along with its primary Table from an inspected Google Sheet.
+     * Create a new App along with its Tables from an inspected Google Sheet (single or multi-tab).
      */
     public function createAppFromSheet(Request $request): JsonResponse
     {
@@ -539,8 +673,13 @@ class GoogleSheetSyncController extends Controller
             'spreadsheet_id' => 'required_without:spreadsheet_url|nullable|string',
             'table_name' => 'nullable|string|max:255',
             'sheet_name' => 'nullable|string',
-            'columns' => 'required|array|min:1',
+            'columns' => 'required_without:tabs|nullable|array',
             'key_column' => 'nullable|string',
+            'tabs' => 'nullable|array|min:1',
+            'tabs.*.sheet_name' => 'required_with:tabs|string',
+            'tabs.*.table_name' => 'required_with:tabs|string|max:255',
+            'tabs.*.columns' => 'required_with:tabs|array|min:1',
+            'tabs.*.key_column' => 'nullable|string',
         ]);
 
         $rawInput = (string) ($request->input('spreadsheet_url') ?? $request->input('spreadsheet_id'));
@@ -549,12 +688,16 @@ class GoogleSheetSyncController extends Controller
         try {
             $result = $this->createAppAction->execute($request->user(), $validated);
 
+            $primaryTableId = $result['table']?->id ?? ($result['results'][0]['table_id'] ?? null);
+            $primaryViewId = $result['view']?->id ?? ($result['results'][0]['view_id'] ?? null);
+
             return response()->json([
                 'success' => true,
                 'message' => "App '{$result['app']->name}' berhasil dibuat dan terhubung ke Google Sheets.",
                 'app_id' => $result['app']->id,
-                'table_id' => $result['table']->id,
-                'view_id' => $result['view']->id,
+                'table_id' => $primaryTableId,
+                'view_id' => $primaryViewId,
+                'results' => $result['results'] ?? [],
             ], 201);
         } catch (\Exception $e) {
             Log::error('GoogleSheetSyncController: createAppFromSheet failed', [

@@ -209,6 +209,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{table}/sheets/pull', [GoogleSheetSyncController::class, 'pullSheetData']);
         Route::patch('/{table}/sheets/mode', [GoogleSheetSyncController::class, 'updateSyncMode']);
         Route::get('/{table}/sheets/status', [GoogleSheetSyncController::class, 'syncStatus']);
+        Route::post('/{table}/sheets/sync-headers', [GoogleSheetSyncController::class, 'syncHeaders']);
     });
 
     // Google Sheet Sync — App-level OAuth token management & Schema Inspection
@@ -217,8 +218,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/callback', [GoogleSheetSyncController::class, 'handleCallback']);
         Route::get('/token-status/{app}', [GoogleSheetSyncController::class, 'tokenStatus']);
         Route::delete('/disconnect/{app}', [GoogleSheetSyncController::class, 'disconnectApp']);
+        Route::post('/inspect-workbook/{app}', [GoogleSheetSyncController::class, 'inspectWorkbook']);
         Route::post('/inspect-schema/{app}', [GoogleSheetSyncController::class, 'inspectSchema']);
         Route::post('/create-table-from-sheet/{app}', [GoogleSheetSyncController::class, 'createTableFromSheet']);
+        Route::post('/batch-create-tables-from-sheet/{app}', [GoogleSheetSyncController::class, 'batchCreateTablesFromSheet']);
         Route::post('/create-app-from-sheet', [GoogleSheetSyncController::class, 'createAppFromSheet']);
     });
 

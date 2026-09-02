@@ -241,6 +241,18 @@ export const useAppStore = defineStore('app', () => {
         currentApp.value = null;
     }
 
+    /**
+     * Update an individual table inside currentApp.tables reactively.
+     * Keeps all consumers of appStore.currentApp.tables (Views, Monitoring, Table Selection) in sync.
+     */
+    function updateAppTableLocally(tableId: string | number, updates: Record<string, unknown>) {
+        if (!currentApp.value || !currentApp.value.tables) return;
+        const idx = currentApp.value.tables.findIndex(t => String(t.id) === String(tableId));
+        if (idx !== -1 && currentApp.value.tables[idx]) {
+            currentApp.value.tables[idx] = { ...currentApp.value.tables[idx], ...updates };
+        }
+    }
+
     return {
         apps,
         trashedApps,
@@ -258,6 +270,7 @@ export const useAppStore = defineStore('app', () => {
         deleteApp,
         restoreApp,
         forceDeleteApp,
-        resetCurrentApp
+        resetCurrentApp,
+        updateAppTableLocally,
     };
 });

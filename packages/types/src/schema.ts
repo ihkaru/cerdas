@@ -4,6 +4,8 @@
 
 export type FieldType =
   | 'text'
+  | 'long_text'
+  | 'textarea'
   | 'number'
   | 'url'
   | 'date'
@@ -22,10 +24,12 @@ export type FieldType =
   | 'html_block';
 
 export interface FieldConfig {
-  // Text fields
+  // Text & Long Text fields
   maxLength?: number;
   placeholder?: string;
   pattern?: string;
+  rows?: number;
+  autoGrow?: boolean;
   
   // Number fields
   min?: number;

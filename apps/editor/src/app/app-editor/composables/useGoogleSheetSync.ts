@@ -92,14 +92,14 @@ export function useGoogleSheetSync(tableId: Ref<string>, appId: Ref<string>) {
   /**
    * Connect a Google Sheet URL to the current Table.
    */
-  async function connectSheet(url: string): Promise<void> {
+  async function connectSheet(url: string, sheetName?: string): Promise<void> {
     if (!tableId.value) return;
 
     state.value = { status: 'connecting' };
     errorMessage.value = null;
 
     try {
-      const result = await GoogleSheetApi.connectSheet(tableId.value, url);
+      const result = await GoogleSheetApi.connectSheet(tableId.value, url, sheetName);
 
       // Immediately update state to connected
       const config: GoogleSheetConfig = {
@@ -127,6 +127,20 @@ export function useGoogleSheetSync(tableId: Ref<string>, appId: Ref<string>) {
       const message = err?.response?.data?.message || 'Gagal menghubungkan Google Sheet. Coba lagi.';
       state.value = { status: 'error', message, can_reconnect: false };
       errorMessage.value = message;
+    }
+  }
+
+  /**
+   * Introspect available tabs in a spreadsheet.
+   */
+  async function inspectSpreadsheetTabs(url: string): Promise<string[]> {
+    if (!appId.value || !url.trim()) return [];
+    try {
+      const meta = await GoogleSheetApi.inspectWorkbook(appId.value, { spreadsheet_url: url.trim() });
+      return meta.sheets || [];
+    } catch (e) {
+      console.warn('[useGoogleSheetSync] inspectSpreadsheetTabs failed', e);
+      return [];
     }
   }
 
@@ -242,11 +256,32 @@ export function useGoogleSheetSync(tableId: Ref<string>, appId: Ref<string>) {
     }
   }
 
+  const isSyncingHeaders = ref(false);
+
+  /**
+   * Reconcile Google Sheet headers with the current Table fields.
+   */
+  async function reconcileHeaders(): Promise<{ success: boolean; message: string }> {
+    if (!tableId.value) return { success: false, message: 'No table selected' };
+    try {
+      isSyncingHeaders.value = true;
+      const res = await GoogleSheetApi.syncHeaders(tableId.value);
+      await refreshStatus();
+      return res;
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Gagal menyelaraskan header Google Sheet';
+      return { success: false, message: msg };
+    } finally {
+      isSyncingHeaders.value = false;
+    }
+  }
+
   return {
     // State
     state,
     syncStatus,
     isLoading,
+    isSyncingHeaders,
     errorMessage,
 
     // Computed
@@ -258,10 +293,12 @@ export function useGoogleSheetSync(tableId: Ref<string>, appId: Ref<string>) {
     refreshStatus,
     startOAuthFlow,
     connectSheet,
+    inspectSpreadsheetTabs,
     disconnectSheet,
     triggerManualExport,
     triggerPullFromSheet,
     setSyncMode,
+    reconcileHeaders,
     clearError,
   };
 }

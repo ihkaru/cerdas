@@ -1,9 +1,11 @@
 <template>
     <EditorShell>
         <template #header>
-            <EditorHeader :title="tableName" :app-name="appStore.currentApp?.name" :is-dirty="isGlobalDirty"
+            <EditorHeader :title="tableName" :app-name="appStore.currentApp?.name"
+                :active-tab="activeTab" :has-table-selected="hasTableSelected" :is-dirty="isGlobalDirty"
                 :is-published="isPublished" :version="currentVersion" :can-publish="!isPublished"
-                @rename="handleRename" @save="handleSave" @publish="onPublish" @back="() => handleBack(isGlobalDirty)"
+                @rename="handleRename" @rename-table="handleRename" @rename-app="handleRenameApp"
+                @save="handleSave" @publish="onPublish" @back="() => handleBack(isGlobalDirty)"
                 @export="exportTable" />
         </template>
 
@@ -130,6 +132,21 @@ const isGlobalDirty = computed(() => isDirty.value || isNavDirty.value || isView
 // 5. Handlers
 const handlers = useEditorHandlers(props, { tableStore, navManagement, tableEditor, tableSelection, appViewManagement, isGlobalDirty });
 const { handleSave, handlePublish, confirmPublish, handleRename, handleBack, exportTable, handleCodeApply } = handlers;
+
+function handleRenameApp() {
+    const currentName = appStore.currentApp?.name || '';
+    f7.dialog.prompt('Ubah Nama Aplikasi', 'Rename App', async (newName: string) => {
+        if (!newName || !newName.trim() || newName.trim() === currentName) return;
+        try {
+            if (appStore.currentApp?.id) {
+                await appStore.updateApp(appStore.currentApp.id, { name: newName.trim() });
+                f7.toast.show({ text: 'Nama aplikasi berhasil diubah', closeTimeout: 2000 });
+            }
+        } catch (err: unknown) {
+            f7.dialog.alert(err instanceof Error ? err.message : 'Gagal mengubah nama aplikasi');
+        }
+    }, () => {}, currentName);
+}
 
 // Publish Dialog State
 const showPublishDialog = ref(false);

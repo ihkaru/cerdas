@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { ApiClient } from '../common/api/ApiClient';
+import { useAppStore } from './app.store';
 
 export interface TableModel {
     id: string;
@@ -121,6 +122,10 @@ export const useTableStore = defineStore('table', () => {
                 currentTable.value = { ...currentTable.value, ...res.data.data };
             }
 
+            // Sync with appStore.currentApp.tables
+            const appStore = useAppStore();
+            appStore.updateAppTableLocally(tableId, res.data.data);
+
             return res.data;
         } catch (e: any) {
             error.value = e.message || 'Failed to update table metadata';
@@ -238,6 +243,16 @@ export const useTableStore = defineStore('table', () => {
         }
     }
 
+    function updateTableLocally(tableId: string | number, updates: Record<string, unknown>) {
+        const idx = tables.value.findIndex(t => String(t.id) === String(tableId));
+        if (idx !== -1 && tables.value[idx]) {
+            tables.value[idx] = { ...tables.value[idx]!, ...updates };
+        }
+        if (currentTable.value && String(currentTable.value.id) === String(tableId)) {
+            currentTable.value = { ...currentTable.value, ...updates };
+        }
+    }
+
     return {
         tables,
         trashedTables,
@@ -257,6 +272,7 @@ export const useTableStore = defineStore('table', () => {
         createDraft,
         updateTable,
         updateVersion,
-        publishVersion
+        publishVersion,
+        updateTableLocally,
     };
 });

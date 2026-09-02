@@ -139,7 +139,7 @@ const localFields = computed({
 // ============================================================================
 
 // Group field types by category
-const allTypes = Object.values(FIELD_TYPE_META);
+const allTypes = Object.values(FIELD_TYPE_META).filter(t => !t.hidden);
 const basicTypes = computed(() => allTypes.filter(t => t.category === 'basic'));
 const choiceTypes = computed(() => allTypes.filter(t => t.category === 'choice'));
 const mediaTypes = computed(() => allTypes.filter(t => t.category === 'media'));

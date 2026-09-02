@@ -38,9 +38,13 @@
                 @input="emit('update', { max: parseFloat(($event.target as HTMLInputElement).value) })" />
         </template>
 
-        <template v-if="field.type === 'text'">
+        <template v-if="field.type === 'text' || field.type === 'long_text' || field.type === 'textarea'">
             <f7-list-input label="Placeholder" type="text" :value="field.placeholder"
                 @input="emit('update', { placeholder: ($event.target as HTMLInputElement).value })" />
+            <f7-list-input v-if="field.type === 'long_text' || field.type === 'textarea'" label="Jumlah Baris (Rows)" type="number" :value="field.config?.rows || 3" placeholder="3"
+                @input="emit('update', { config: { ...field.config, rows: parseInt(($event.target as HTMLInputElement).value) || 3 } })" />
+            <f7-list-input label="Batas Karakter (Max Length)" type="number" :value="field.config?.maxLength" placeholder="Tak terbatas"
+                @input="emit('update', { config: { ...field.config, maxLength: parseInt(($event.target as HTMLInputElement).value) || undefined } })" />
         </template>
 
         <template v-if="field.type === 'html_block'">

@@ -530,6 +530,11 @@ class TableController extends Controller
             $table->update(['settings' => $settings]);
         }
 
+        // Auto-reconcile Google Sheet headers if table is connected to Google Sheets
+        if ($table->source_type === 'google_sheets') {
+            \App\Jobs\GoogleSheetReconcileHeadersJob::dispatch($table->id, $tableVersion->version);
+        }
+
         // Auto-create new draft version removed.
         // User should explicitly create draft when they start editing again.
 

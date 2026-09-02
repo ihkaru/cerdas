@@ -64,7 +64,7 @@ export function useLogicHelpers() {
     // Helper to group fields for select menu
     function getFieldsByCategory(category: string) {
         return Object.fromEntries(
-            Object.entries(FIELD_TYPE_META).filter(([_, meta]) => meta.category === category)
+            Object.entries(FIELD_TYPE_META).filter(([_, meta]) => meta.category === category && !meta.hidden)
         );
     }
 

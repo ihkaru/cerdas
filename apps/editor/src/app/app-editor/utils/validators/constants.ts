@@ -1,7 +1,7 @@
 import type { FieldType, TableSourceType } from '../../types/editor.types';
 
 export const VALID_FIELD_TYPES: FieldType[] = [
-    'text', 'number', 'url', 'date', 'time', 'datetime', 'select', 'radio', 'checkbox',
+    'text', 'long_text', 'textarea', 'number', 'url', 'date', 'time', 'datetime', 'select', 'radio', 'checkbox',
     'gps', 'image', 'signature', 'html_block', 'nested', 'nested_form', 'lookup', 'separator'
 ];
 

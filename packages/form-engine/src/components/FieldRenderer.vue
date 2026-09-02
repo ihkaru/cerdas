@@ -32,6 +32,7 @@ import NumberField from './fields/NumberField.vue';
 import RadioField from './fields/RadioField.vue';
 import SelectField from './fields/SelectField.vue';
 import TextField from './fields/TextField.vue';
+import LongTextField from './fields/LongTextField.vue';
 import UrlField from './fields/UrlField.vue';
 import CheckboxField from './fields/CheckboxField.vue';
 
@@ -56,6 +57,8 @@ const modelValue = computed({
 
 const componentMap: Partial<Record<FieldType | string, any>> = {
   text: TextField,
+  long_text: LongTextField,
+  textarea: LongTextField,
   number: NumberField,
   select: SelectField,
   checkbox: CheckboxField,

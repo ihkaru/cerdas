@@ -6,9 +6,14 @@
     </label>
 
     <div class="input-wrapper">
-      <!-- Use native input without v-model to avoid reactivity overhead -->
-      <input ref="inputRef" class="custom-input" type="text" :placeholder="field.placeholder" @input="onInput"
-        @blur="onBlur" :required="field.required" :readonly="field.readonly" />
+      <!-- Read-Only Mode: Natural wrapping container displaying complete text -->
+      <div v-if="field.readonly" class="custom-input-readonly">
+        {{ (value !== null && value !== undefined && String(value).trim() !== '') ? String(value) : '—' }}
+      </div>
+
+      <!-- Editable Mode: Native input -->
+      <input v-else ref="inputRef" class="custom-input" type="text" :placeholder="field.placeholder" @input="onInput"
+        @blur="onBlur" :required="field.required" />
 
       <!-- Smart Detection Helper -->
       <div v-if="detectedCoords && !field.readonly"
@@ -167,11 +172,48 @@ const onBlur = () => {
   background-color: #fff;
 }
 
-.custom-input[readonly] {
-  background-color: #f0f0f0;
-  color: #666;
-  border-color: #ddd;
-  pointer-events: none;
+.custom-input-readonly {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 14.5px;
+  color: #334155;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  line-height: 1.5;
+  word-break: break-word;
+  white-space: pre-wrap;
+  user-select: text;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .field-box {
+    margin-bottom: 12px;
+    padding: 0 14px;
+  }
+
+  .field-label {
+    font-size: 13px;
+    margin-bottom: 5px;
+    line-height: 1.35;
+  }
+
+  .custom-input {
+    height: 40px;
+    font-size: 13.5px;
+    padding: 6px 10px;
+    border-radius: 7px;
+  }
+
+  .custom-input-readonly {
+    min-height: 38px;
+    font-size: 13.5px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    line-height: 1.45;
+  }
 }
 
 .field-error {
