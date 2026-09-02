@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.51](https://github.com/ihkaru/cerdas/compare/v0.2.50...v0.2.51) (2026-09-02)
+
+
+### Features
+
+* **form:** add long_text, auto-wrap read-only fields & multi-tab sync ([34f901e](https://github.com/ihkaru/cerdas/commit/34f901e19c2b9409538eb533b39b96f2b8d3295e))
+* **sync:** enable instant on-demand Google Sheet inbound sync on client pull ([ac39560](https://github.com/ihkaru/cerdas/commit/ac395609ff1b93af126771a7de849de3d1379bca))
+
+
+### Bug Fixes
+
+* **deploy:** ensure GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI are passed to backend container ([3407d86](https://github.com/ihkaru/cerdas/commit/3407d861aa287a50256e350d90f4d37c82a02974))
+* **gsheet:** prevent duplicate assignments and enable in-place sheet updates ([d38b31e](https://github.com/ihkaru/cerdas/commit/d38b31e807e9e9a98c9f77cf998ead79ad2afb13))
+
 ## [0.2.50](https://github.com/ihkaru/cerdas/compare/v0.2.49...v0.2.50) (2026-08-31)
 
 
