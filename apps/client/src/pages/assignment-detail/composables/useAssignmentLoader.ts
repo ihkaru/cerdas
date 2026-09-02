@@ -148,7 +148,7 @@ export function useAssignmentLoader(assignmentId: string) {
             const prelistData = assignment.value?.prelist_data || {};
             const existingResponse = await DashboardRepository.getResponse(conn, assignmentId);
             const existingData = existingResponse?.data || null;
-            hasExistingDraft.value = !!existingResponse && existingResponse.is_synced === 0;
+            hasExistingDraft.value = !!existingResponse && assignment.value?.status === 'in_progress';
 
             formData.value = {
                 ...prelistData,
