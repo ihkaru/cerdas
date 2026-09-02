@@ -3,6 +3,7 @@ services:
   # BACKEND (Laravel API)
   # ==========================================
   backend:
+    image: cerdas-backend:prod
     build:
       context: ./apps/backend
       dockerfile: Dockerfile.prod
@@ -60,6 +61,7 @@ services:
   # REALTIME (Laravel Reverb)
   # ==========================================
   reverb:
+    image: cerdas-backend:prod
     build:
       context: ./apps/backend
       dockerfile: Dockerfile.prod
@@ -108,6 +110,7 @@ services:
   # CLIENT (Mobile PWA)
   # ==========================================
   client:
+    image: cerdas-client:prod
     build:
       context: .
       dockerfile: apps/client/Dockerfile.prod
@@ -152,6 +155,7 @@ services:
   # EDITOR (Web Dashboard)
   # ==========================================
   editor:
+    image: cerdas-editor:prod
     build:
       context: .
       dockerfile: apps/editor/Dockerfile.prod
@@ -196,6 +200,7 @@ services:
   # WORKER (Queue)
   # ==========================================
   worker:
+    image: cerdas-backend:prod
     build:
       context: ./apps/backend
       dockerfile: Dockerfile.prod
@@ -237,6 +242,7 @@ services:
   # SCHEDULER (Cron)
   # ==========================================
   scheduler:
+    image: cerdas-backend:prod
     build:
       context: ./apps/backend
       dockerfile: Dockerfile.prod
