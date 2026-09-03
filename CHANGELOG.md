@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.54](https://github.com/ihkaru/cerdas/compare/v0.2.53...v0.2.54) (2026-09-03)
+
+
+### Features
+
+* **sync:** anchor sheet sync to natural primary key and prevent duplicate ghost assignments ([e6cd256](https://github.com/ihkaru/cerdas/commit/e6cd256a80e3eafac0e854f175106cd591ef21aa))
+
 ## [0.2.53](https://github.com/ihkaru/cerdas/compare/v0.2.52...v0.2.53) (2026-09-02)
 
 
