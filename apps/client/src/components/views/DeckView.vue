@@ -254,12 +254,26 @@ const options = computed(() => {
  * PREPARED DATA PATTERN
  * Parsing JSON and resolving paths once per data change, 
  * instead of hundreds of times per render frame.
+ * Includes defensive deduplication for ghost duplicate assignments.
  */
 const preparedData = computed(() => {
     const opts = options.value;
 
+    const candidateIdKeys = [
+        'no_usulan_perkimtan',
+        'no_usulan',
+        'nomor_usulan',
+        'nik_pemohon',
+        'nik',
+        'no_kk',
+        'id_responden',
+        'id_penerima',
+        'id_pelanggan',
+        'id',
+        'uuid'
+    ];
 
-    const result = (props.data || []).map(item => {
+    const mapped = (props.data || []).map(item => {
         // Memoize parsed objects
         const responseData = ensureObject(item.response_data);
         const prelistData = ensureObject(item.prelist_data);
@@ -275,6 +289,22 @@ const preparedData = computed(() => {
             resolvedSubtitle = `Status: ${statusLabel(item.status || 'assigned')}`;
         }
 
+        // Determine natural deduplication key
+        let dedupKey: string | null = null;
+        for (const k of candidateIdKeys) {
+            const val = responseData[k] ?? prelistData[k];
+            if (val !== undefined && val !== null && String(val).trim() !== '') {
+                dedupKey = `k_${k}_${String(val).trim()}`;
+                break;
+            }
+        }
+        if (!dedupKey && resolvedTitle && !resolvedTitle.startsWith('Draf Baru')) {
+            dedupKey = `title_${resolvedTitle.trim().toLowerCase()}__${resolvedSubtitle.trim().toLowerCase()}`;
+        }
+        if (!dedupKey) {
+            dedupKey = `raw_${item.id}`;
+        }
+
         // Return rich object with pre-resolved fields
         return {
             ...item,
@@ -282,11 +312,34 @@ const preparedData = computed(() => {
             _parsedPrelist: prelistData,
             _resolvedTitle: resolvedTitle,
             _resolvedSubtitle: resolvedSubtitle,
-            _resolvedImage: resolvePath(item, responseData, prelistData, opts.image)
+            _resolvedImage: resolvePath(item, responseData, prelistData, opts.image),
+            _dedupKey: dedupKey
         };
     });
 
-    return result;
+    // Deduplicate: If multiple cards share the exact same natural key,
+    // submitted/completed cards always take precedence over empty pending ('assigned') cards.
+    const dedupMap = new Map<string, typeof mapped[0]>();
+    for (const card of mapped) {
+        const key = card._dedupKey;
+        if (!dedupMap.has(key)) {
+            dedupMap.set(key, card);
+            continue;
+        }
+
+        const existing = dedupMap.get(key)!;
+        const getScore = (c: typeof mapped[0]): number => {
+            if (c.status === 'submitted' || c.status === 'verified' || c.status === 'approved') return 3;
+            if (c.status === 'in_progress') return 2;
+            return 1;
+        };
+
+        if (getScore(card) > getScore(existing)) {
+            dedupMap.set(key, card);
+        }
+    }
+
+    return Array.from(dedupMap.values());
 });
 
 // Helper to safely parse JSON if needed

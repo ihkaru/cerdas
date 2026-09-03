@@ -53,7 +53,12 @@
                     <tbody>
                         <tr v-for="(col, idx) in currentColumns" :key="col.name">
                             <td>
-                                <div class="col-name-main">{{ col.original_header }}</div>
+                                <div class="col-name-main" style="display: flex; align-items: center; gap: 6px;">
+                                    <span>{{ col.original_header }}</span>
+                                    <span v-if="col.name === currentKeyColumn" class="badge color-orange" style="font-size: 9px; padding: 2px 6px;">
+                                        🔑 Key
+                                    </span>
+                                </div>
                                 <div class="col-name-slug">key: {{ col.name }}</div>
                             </td>
                             <td>
@@ -82,17 +87,51 @@
             </div>
         </div>
 
-        <!-- Primary Key Selection -->
-        <f7-list strong-ios inset-ios class="margin-vertical">
-            <f7-list-item title="Primary Key / Kolom Kunci" smart-select :smart-select-params="{ openIn: 'popover' }">
-                <select :value="currentKeyColumn" @change="handleKeyChange(($event.target as HTMLSelectElement).value)">
-                    <option value="_cerdas_id">_cerdas_id (Otomatis Tambah UUID Unik)</option>
-                    <option v-for="col in currentColumns" :key="col.name" :value="col.name">
-                        {{ col.original_header }} (Gunakan kolom ini sebagai kunci)
-                    </option>
-                </select>
-            </f7-list-item>
-        </f7-list>
+        <!-- Primary Key Selection Card -->
+        <div class="schema-mapping-card margin-vertical">
+            <div class="mapping-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <f7-icon f7="key_fill" size="18" color="orange" />
+                    <span style="font-size: 14px; font-weight: 700; color: #1e293b;">Primary Key (Kunci Alami Sasaran)</span>
+                </div>
+                <span class="badge color-orange" style="font-size: 10px; font-weight: 600;">Penting untuk Integritas</span>
+            </div>
+            <div style="padding: 14px 16px;">
+                <p style="font-size: 12px; color: #64748b; margin: 0 0 12px 0; line-height: 1.5;">
+                    Pilih kolom yang berisi ID unik untuk setiap baris sasaran (misal: <strong>No Usulan, NIK, ID</strong>). Menggunakan kunci alami memastikan penugasan lapangan <strong>tidak akan menduplikasi</strong> meskipun spreadsheet disortir, difilter, atau baris bergeser di kemudian hari.
+                </p>
+
+                <div v-if="candidateKeyColumns.length > 0 && currentKeyColumn === '_cerdas_id'" class="margin-bottom-half" style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 8px 12px; display: flex; align-items: center; gap: 8px;">
+                    <f7-icon f7="sparkles" size="16" color="green" />
+                    <span style="font-size: 11px; color: #065f46;">
+                        Kolom ID unik terdeteksi: <strong>{{ candidateKeyColumns.map(c => c.original_header).join(', ') }}</strong>. Disarankan memilih salah satu kolom tersebut.
+                    </span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <select
+                        :value="currentKeyColumn"
+                        class="type-select"
+                        style="width: 100%; font-weight: 600; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px;"
+                        @change="handleKeyChange(($event.target as HTMLSelectElement).value)"
+                    >
+                        <optgroup v-if="candidateKeyColumns.length > 0" label="✨ Rekomendasi (Kolom ID Alami)">
+                            <option v-for="col in candidateKeyColumns" :key="col.name" :value="col.name">
+                                🔑 {{ col.original_header }} (Disarankan)
+                            </option>
+                        </optgroup>
+                        <optgroup label="Seluruh Kolom Sheet">
+                            <option v-for="col in currentColumns" :key="col.name" :value="col.name">
+                                {{ col.original_header }}
+                            </option>
+                        </optgroup>
+                        <optgroup label="Fallback Sistem">
+                            <option value="_cerdas_id">_cerdas_id (Otomatis Tambah Kolom UUID ke Sheet)</option>
+                        </optgroup>
+                    </select>
+                </div>
+            </div>
+        </div>
 
         <!-- Sample Data Preview -->
         <div v-if="currentPreview && currentPreview.length > 0" class="sample-preview-card">
@@ -146,6 +185,32 @@ const currentColumns = computed<GoogleSheetInferredColumn[]>(() => {
 
 const currentKeyColumn = computed<string>(() => {
     return props.tabKeyColumns[props.activeTab] || '_cerdas_id';
+});
+
+const candidateKeyColumns = computed<GoogleSheetInferredColumn[]>(() => {
+    const priority = [
+        'no_usulan_perkimtan',
+        'no_usulan',
+        'nomor_usulan',
+        'nik_pemohon',
+        'nik',
+        'no_kk',
+        'id_responden',
+        'id_penerima',
+        'id',
+        'uuid',
+    ];
+    return currentColumns.value.filter((col) => {
+        const slug = col.name.toLowerCase();
+        return (
+            priority.includes(slug) ||
+            slug.startsWith('no_') ||
+            slug.startsWith('nomor_') ||
+            slug.includes('nik') ||
+            slug.includes('id') ||
+            slug.includes('kode')
+        );
+    });
 });
 
 const currentPreview = computed<Array<Array<unknown>>>(() => {

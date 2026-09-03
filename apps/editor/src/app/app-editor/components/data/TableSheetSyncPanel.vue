@@ -162,6 +162,13 @@
                         {{ isInboundEnabled ? 'Aktif (Tiap 10 Menit)' : 'Nonaktif (One-Way Mode)' }}
                     </span>
                 </div>
+                <div class="info-row">
+                    <f7-icon f7="key_fill" size="16" color="orange" />
+                    <span class="info-label">Primary Key:</span>
+                    <span class="info-value" style="font-weight: 600; color: #b45309;">
+                        🔑 {{ primaryKeyDisplay }}
+                    </span>
+                </div>
             </div>
 
             <!-- Sync Mode Switcher -->
@@ -404,6 +411,16 @@ const isInboundEnabled = computed(() => {
         return Boolean(syncStatus.value?.config?.inbound_sync_enabled ?? state.value.config?.inbound_sync_enabled);
     }
     return false;
+});
+
+const primaryKeyDisplay = computed(() => {
+    if (state.value.status === 'connected') {
+        const key = syncStatus.value?.config?.key_column ?? (state.value.config as any)?.key_column;
+        if (key && key !== '_cerdas_id') {
+            return key;
+        }
+    }
+    return 'Otomatis (Kunci Alami / ID Baris)';
 });
 
 const webhookEndpointUrl = computed(() => {

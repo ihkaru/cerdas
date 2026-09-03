@@ -110,6 +110,11 @@ class ImportGoogleSheetRowsAction
         $insertAssignments = [];
         $importedCount = 0;
 
+        $configuredKeyCol = $table->source_config['google_sheet']['key_column'] ?? null;
+        if ($configuredKeyCol === '_cerdas_id') {
+            $configuredKeyCol = null;
+        }
+
         DB::beginTransaction();
 
         try {
@@ -120,6 +125,7 @@ class ImportGoogleSheetRowsAction
             $allAssignments = Assignment::where('table_id', $table->id)->get();
 
             $existingByKey = [];
+            $existingByBizKey = [];
             $unkeyedList = [];
 
             foreach ($allAssignments as $existing) {
@@ -127,6 +133,19 @@ class ImportGoogleSheetRowsAction
                     $existingByKey[$existing->external_id] = $existing;
                 } else {
                     $unkeyedList[] = $existing;
+                }
+
+                // Also index existing assignments by business key from prelist_data
+                $prelist = is_array($existing->prelist_data)
+                    ? $existing->prelist_data
+                    : (json_decode($existing->prelist_data ?? '{}', true) ?: []);
+
+                $existingBizKey = $this->extractBusinessKey($prelist, $configuredKeyCol);
+                if ($existingBizKey !== null) {
+                    $isSubmitted = $existing->status === 'submitted' || $existing->responses()->exists();
+                    if (! isset($existingByBizKey[$existingBizKey]) || $isSubmitted) {
+                        $existingByBizKey[$existingBizKey] = $existing;
+                    }
                 }
             }
 
@@ -174,12 +193,20 @@ class ImportGoogleSheetRowsAction
                     'updated_at' => $now,
                 ];
 
-                $externalKey = $this->generateDeterministicUuid("gsheet_{$table->id}_{$rowIndex}");
+                $bizKey = $this->extractBusinessKey($recordData, $configuredKeyCol);
+                $externalKey = $bizKey !== null
+                    ? $this->generateDeterministicUuid("gsheet_{$table->id}_key_{$bizKey}")
+                    : $this->generateDeterministicUuid("gsheet_{$table->id}_{$rowIndex}");
 
                 // 1. Check if an assignment already exists with this exact externalKey
                 $matchedAssignment = $existingByKey[$externalKey] ?? null;
 
-                // 2. Fallback: match from unkeyed legacy prelists if available
+                // 2. Match by natural business key (handles shifted rows & upgrades legacy row keys!)
+                if (! $matchedAssignment && $bizKey !== null && isset($existingByBizKey[$bizKey])) {
+                    $matchedAssignment = $existingByBizKey[$bizKey];
+                }
+
+                // 3. Fallback: match from unkeyed legacy prelists if available
                 if (! $matchedAssignment && isset($unkeyedList[$unkeyedIndex])) {
                     $matchedAssignment = $unkeyedList[$unkeyedIndex];
                     $unkeyedIndex++;
@@ -193,10 +220,12 @@ class ImportGoogleSheetRowsAction
                         : (json_decode($matchedAssignment->prelist_data ?? '{}', true) ?: []);
                     $currentPrelist['_source_row_index'] = $rowIndex + 2;
 
+                    // Upgrade external_id to the stable natural business key
+                    $matchedAssignment->external_id = $externalKey;
+
                     // Only overwrite prelist values if assignment has NOT been submitted / completed
                     if ($matchedAssignment->status === 'assigned' && ! $matchedAssignment->responses()->exists()) {
                         $matchedAssignment->table_version_id = $versionId;
-                        $matchedAssignment->external_id = $externalKey;
                         $matchedAssignment->prelist_data = array_merge($currentPrelist, $recordData);
                         $matchedAssignment->updated_at = $now;
                         $matchedAssignment->save();
@@ -234,7 +263,8 @@ class ImportGoogleSheetRowsAction
                 }
             }
 
-            // Soft-delete any untouched 'assigned' assignments that were removed from the Google Sheet
+            // Soft-delete any untouched 'assigned' assignments that were removed from Google Sheet
+            // or are duplicate ghosts resulting from past row shifts
             $unusedAssignments = Assignment::where('table_id', $table->id)
                 ->where('status', 'assigned')
                 ->whereDoesntHave('responses')
@@ -264,11 +294,69 @@ class ImportGoogleSheetRowsAction
     }
 
     /**
+     * Extract a natural business key from row/prelist data.
+     */
+    private function extractBusinessKey(array $data, ?string $configuredKey = null): ?string
+    {
+        // 1. Check explicitly configured key column (if not _cerdas_id)
+        if ($configuredKey && $configuredKey !== '_cerdas_id') {
+            if (isset($data[$configuredKey]) && trim((string) $data[$configuredKey]) !== '') {
+                return trim((string) $data[$configuredKey]);
+            }
+        }
+
+        // 2. High-priority known domain natural ID keys (e.g. BSPS, Perkimtan, Social Surveys)
+        $priorityKeys = [
+            'no_usulan_perkimtan',
+            'no_usulan',
+            'nomor_usulan',
+            'nik_pemohon',
+            'nik',
+            'no_kk',
+            'nomor_kk',
+            'id_responden',
+            'kode_responden',
+            'kode_keluarga',
+            'id_penerima',
+            'id_pelanggan',
+            'id',
+            'uuid',
+        ];
+
+        foreach ($priorityKeys as $key) {
+            if (isset($data[$key]) && trim((string) $data[$key]) !== '') {
+                return trim((string) $data[$key]);
+            }
+        }
+
+        // 3. Heuristic pattern search for any key starting with no_ or ending with _id / _kode
+        foreach ($data as $k => $v) {
+            if ($v === null || trim((string) $v) === '' || str_starts_with((string) $k, '_')) {
+                continue;
+            }
+            $slug = strtolower((string) $k);
+            if (preg_match('/(^|_)(nik|id|kode|uuid)($|_)/i', $slug) || str_starts_with($slug, 'no_') || str_starts_with($slug, 'nomor_')) {
+                return trim((string) $v);
+            }
+        }
+
+        // 4. Natural composite fallback: name + address / location if both exist
+        $name = $data['name'] ?? $data['nama'] ?? $data['nama_calon_penerima'] ?? null;
+        $address = $data['address'] ?? $data['alamat'] ?? $data['desa_kelurahan'] ?? $data['nama_sls'] ?? null;
+        if ($name && $address && trim((string) $name) !== '' && trim((string) $address) !== '') {
+            return strtolower(trim((string) $name)).'__'.strtolower(trim((string) $address));
+        }
+
+        return null;
+    }
+
+    /**
      * Generate a deterministic valid UUID v4 formatted string from a seed.
      */
     private function generateDeterministicUuid(string $seed): string
     {
         $hash = md5($seed);
+
         return sprintf('%08s-%04s-%04s-%04s-%12s',
             substr($hash, 0, 8),
             substr($hash, 8, 4),

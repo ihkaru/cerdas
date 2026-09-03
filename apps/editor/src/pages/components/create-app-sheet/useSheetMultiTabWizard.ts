@@ -16,6 +16,37 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback;
 }
 
+function findBestKeyColumn(columns: GoogleSheetInferredColumn[], suggestedKey?: string): string {
+  if (suggestedKey && suggestedKey !== '_cerdas_id') {
+    return suggestedKey;
+  }
+
+  const priorityKeys = [
+    'no_usulan_perkimtan',
+    'no_usulan',
+    'nomor_usulan',
+    'nik_pemohon',
+    'nik',
+    'no_kk',
+    'id_responden',
+    'id_penerima',
+    'id',
+    'uuid',
+  ];
+
+  for (const p of priorityKeys) {
+    const match = columns.find((c) => c.name.toLowerCase() === p);
+    if (match) return match.name;
+  }
+
+  const heuristic = columns.find((c) => {
+    const s = c.name.toLowerCase();
+    return s.startsWith('no_') || s.startsWith('nomor_') || s.includes('nik') || s.includes('id') || s.includes('kode');
+  });
+
+  return heuristic?.name || '_cerdas_id';
+}
+
 /**
  * useSheetMultiTabWizard
  *
@@ -177,7 +208,7 @@ export function useSheetMultiTabWizard() {
             sheet_name: tab,
           });
           tabSchemas.value[tab] = res.columns;
-          tabKeyColumns.value[tab] = res.suggested_key || '_cerdas_id';
+          tabKeyColumns.value[tab] = findBestKeyColumn(res.columns, res.suggested_key);
           tabPreviews.value[tab] = res.preview;
         }
       }
