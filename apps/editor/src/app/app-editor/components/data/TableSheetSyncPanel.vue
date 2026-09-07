@@ -273,7 +273,7 @@
                     small
                     outline
                     color="red"
-                    @click="showDisconnectConfirm = true"
+                    @click="confirmDisconnect"
                 >
                     <f7-icon f7="xmark_circle" size="16" class="margin-right-half" />
                     Disconnect
@@ -351,20 +351,6 @@
                 </f7-block>
             </f7-page>
         </f7-popup>
-
-        <!-- ========== Disconnect Confirm Dialog ========== -->
-        <f7-dialog
-            :opened="showDisconnectConfirm"
-            title="Disconnect Google Sheet?"
-            @dialog:closed="showDisconnectConfirm = false"
-        >
-            <f7-dialog-text>
-                Data di Google Sheet <strong>tidak akan dihapus</strong>. Hanya koneksi sinkronisasi yang diputus.
-                Response baru tidak akan tersync ke Sheet setelah ini.
-            </f7-dialog-text>
-            <f7-dialog-button @click="handleDisconnect" color="red">Ya, Disconnect</f7-dialog-button>
-            <f7-dialog-button @click="showDisconnectConfirm = false">Batal</f7-dialog-button>
-        </f7-dialog>
     </div>
 </template>
 
@@ -382,7 +368,6 @@ const spreadsheetUrlInput = ref('');
 const availableTabs = ref<string[]>([]);
 const selectedTabName = ref<string>('');
 const isCheckingTabs = ref(false);
-const showDisconnectConfirm = ref(false);
 const showWebhookModal = ref(false);
 const isCopied = ref(false);
 
@@ -469,9 +454,14 @@ async function handleConnectSheet() {
     await connectSheet(spreadsheetUrlInput.value, selectedTabName.value || undefined);
 }
 
-async function handleDisconnect() {
-    showDisconnectConfirm.value = false;
-    await disconnectSheet();
+function confirmDisconnect() {
+    f7.dialog.confirm(
+        'Data di Google Sheet tidak akan dihapus. Hanya koneksi sinkronisasi yang diputus. Response baru tidak akan tersync ke Sheet setelah ini.',
+        'Disconnect Google Sheet?',
+        async () => {
+            await disconnectSheet();
+        }
+    );
 }
 
 async function handleManualExport() {
