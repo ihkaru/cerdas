@@ -551,7 +551,7 @@ class GoogleSheetsService
 
         $this->executeWithRetry(fn () => $service->spreadsheets_values->append(
             $spreadsheetId,
-            "{$tabName}!A1",
+            $tabName,
             $valueRange,
             [
                 'valueInputOption' => 'RAW',
