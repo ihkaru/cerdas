@@ -369,7 +369,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch, toRef } from 'vue';
 import { useGoogleSheetSync } from '../../composables/useGoogleSheetSync';
 import { f7 } from 'framework7-vue';
 
@@ -402,8 +402,8 @@ const {
     reconcileHeaders,
     clearError,
 } = useGoogleSheetSync(
-    ref(props.tableId),
-    ref(props.appId)
+    toRef(props, 'tableId'),
+    toRef(props, 'appId')
 );
 
 const isInboundEnabled = computed(() => {

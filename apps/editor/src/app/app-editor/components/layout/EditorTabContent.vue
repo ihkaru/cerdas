@@ -132,8 +132,8 @@
                         <DataPreviewPanel v-else-if="activeSchemaSubTab === 'data'" style="flex:1; min-height:0;" />
                         <div v-else-if="activeSchemaSubTab === 'sync'" style="flex:1; min-height:0; overflow-y:auto;">
                             <TableSheetSyncPanel
-                                :table-id="tableSelection.currentTableId"
-                                :app-id="tableSelection.appTables?.find((t: any) => t.id === tableSelection.currentTableId)?.app_id ?? ''"
+                                :table-id="String(tableSelection.currentTableId || '')"
+                                :app-id="String(tableSelection.appTables?.find((t: any) => String(t.id) === String(tableSelection.currentTableId))?.app_id ?? '')"
                             />
                         </div>
                     </div>

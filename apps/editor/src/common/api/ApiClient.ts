@@ -71,6 +71,7 @@ export const ApiClient = {
     get: <T = any>(url: string, params?: any) => api.get<T>(url, { params }),
     post: <T = any>(url: string, data?: any, config?: any) => api.post<T>(url, data, config),
     put: <T = any>(url: string, data?: any, config?: any) => api.put<T>(url, data, config),
+    patch: <T = any>(url: string, data?: any, config?: any) => api.patch<T>(url, data, config),
     delete: <T = any>(url: string) => api.delete<T>(url),
     getAssetUrl: (path: string) => {
         if (!path) return '';
