@@ -1,5 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\Agent\AgentAppController;
+use App\Http\Controllers\Api\Agent\AgentDataController;
+use App\Http\Controllers\Api\Agent\AgentSchemaController;
+use App\Http\Controllers\Api\Agent\AgentSyncController;
+use App\Http\Controllers\Api\Agent\AgentSystemController;
 use App\Http\Controllers\Api\ApkController;
 use App\Http\Controllers\Api\AppController;
 use App\Http\Controllers\Api\AppSchemaController;
@@ -247,4 +252,40 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/excel/import', [ExcelImportController::class, 'import']);
     Route::get('/excel/status/{jobId}', [ExcelImportController::class, 'checkStatus']);
 
+});
+
+// ========================================================================
+// Agentic Super Admin REST API (v1)
+// Dedicated programmatic interface for AI agents, diagnostics, & hotfixes
+// Protected via Master SUPERADMIN_API_KEY (X-Super-Admin-Key or Bearer token)
+// ========================================================================
+Route::prefix('agent/v1')->middleware('agent.auth')->group(function () {
+
+    // 1. Apps & High-Level Blueprints
+    Route::get('/apps', [AgentAppController::class, 'index']);
+    Route::get('/apps/{app}', [AgentAppController::class, 'show']);
+    Route::patch('/apps/{app}', [AgentAppController::class, 'update']);
+
+    // 2. Schema & Form Field Definitions & Hotfixes
+    Route::get('/apps/{app}/tables/{table}', [AgentSchemaController::class, 'showTable']);
+    Route::patch('/apps/{app}/tables/{table}/field', [AgentSchemaController::class, 'patchField']);
+    Route::post('/apps/{app}/tables/{table}/publish', [AgentSchemaController::class, 'publishTable']);
+
+    // 3. Submissions, Querying, & Data Remediation
+    Route::get('/apps/{app}/submissions', [AgentDataController::class, 'submissions']);
+    Route::get('/submissions/{response}', [AgentDataController::class, 'showSubmission']);
+    Route::patch('/submissions/{response}', [AgentDataController::class, 'patchSubmission']);
+    Route::get('/apps/{app}/assignments', [AgentDataController::class, 'assignments']);
+    Route::patch('/assignments/{assignment}/status', [AgentDataController::class, 'patchAssignmentStatus']);
+
+    // 4. Google Sheets Sync & Queue Diagnostics
+    Route::get('/sync/queue', [AgentSyncController::class, 'queue']);
+    Route::post('/sync/flush', [AgentSyncController::class, 'flush']);
+    Route::post('/submissions/{response}/re-sync', [AgentSyncController::class, 'reSyncSubmission']);
+    Route::post('/tables/{table}/reconcile-headers', [AgentSyncController::class, 'reconcileHeaders']);
+
+    // 5. System Telemetry & Queue Health
+    Route::get('/system/health', [AgentSystemController::class, 'health']);
+    Route::get('/system/failed-jobs', [AgentSystemController::class, 'failedJobs']);
+    Route::post('/system/failed-jobs/retry', [AgentSystemController::class, 'retryFailedJob']);
 });

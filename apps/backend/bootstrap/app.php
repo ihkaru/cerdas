@@ -27,6 +27,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return route('login');
         });
+        $middleware->alias([
+            'agent.auth' => \App\Http\Middleware\AuthenticateSuperAdminApiKey::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Return JSON 401 for API authentication failures instead of redirect
