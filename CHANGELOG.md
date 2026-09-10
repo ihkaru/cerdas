@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.54](https://github.com/ihkaru/cerdas/compare/v0.2.53...v0.2.54) (2026-09-10)
+
+
+### Features
+
+* **backend:** implement agentic super admin REST API for production monitoring and remediation ([8bac66d](https://github.com/ihkaru/cerdas/commit/8bac66d91f13f0ea6e96430713ae2779eb27c42b))
+* **sync:** anchor sheet sync to natural primary key and prevent duplicate ghost assignments ([e6cd256](https://github.com/ihkaru/cerdas/commit/e6cd256a80e3eafac0e854f175106cd591ef21aa))
+
+
+### Bug Fixes
+
+* **backend:** append rows after table instead of inserting at row A1 ([25c6b51](https://github.com/ihkaru/cerdas/commit/25c6b51f527929538fecac4b28cf8071cc5f4abc))
+* **editor:** resolve runtime error and missing patch method in Google Sheet sync panel ([3ba75f2](https://github.com/ihkaru/cerdas/commit/3ba75f2c689d6a627b9c056bee82496dd754e4d5))
+
 ## [0.2.53](https://github.com/ihkaru/cerdas/compare/v0.2.52...v0.2.53) (2026-09-02)
 
 
