@@ -62,9 +62,6 @@ services:
   # ==========================================
   reverb:
     image: cerdas-backend:prod
-    build:
-      context: ./apps/backend
-      dockerfile: Dockerfile.prod
     restart: always
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8081"]
     expose:
@@ -201,9 +198,6 @@ services:
   # ==========================================
   worker:
     image: cerdas-backend:prod
-    build:
-      context: ./apps/backend
-      dockerfile: Dockerfile.prod
     restart: always
     command: ["php", "artisan", "queue:work", "--queue=default,sheets-enqueue,sheets-batch", "--tries=3", "--timeout=900", "--memory=1024"]
     environment:
@@ -243,9 +237,6 @@ services:
   # ==========================================
   scheduler:
     image: cerdas-backend:prod
-    build:
-      context: ./apps/backend
-      dockerfile: Dockerfile.prod
     restart: always
     command: ["php", "artisan", "schedule:work"]
     environment:
