@@ -245,6 +245,64 @@ class GoogleSheetsService
         }
     }
 
+    /**
+     * Fetch a specific row range from a sheet (e.g. row 2 to 5001).
+     * Used for chunked, range-based streaming to prevent API response payload overflow on 100k+ rows.
+     *
+     * @return array<int, array<int, mixed>>
+     */
+    public function getSheetRowRange(
+        App $app,
+        string $spreadsheetId,
+        string $tabName,
+        int $startRow,
+        int $endRow,
+        string $lastColumn = 'ZZ'
+    ): array {
+        $client = $this->clientForApp($app);
+        $service = $this->sheetsService($client);
+
+        $escapedTab = "'".str_replace("'", "''", $tabName)."'";
+        $range = "{$escapedTab}!A{$startRow}:{$lastColumn}{$endRow}";
+
+        try {
+            $response = $this->executeWithRetry(fn () => $service->spreadsheets_values->get($spreadsheetId, $range, [
+                'valueRenderOption' => 'FORMATTED_VALUE',
+                'dateTimeRenderOption' => 'FORMATTED_STRING',
+            ]));
+
+            return $response->getValues() ?? [];
+        } catch (\Exception $e) {
+            Log::error('GoogleSheetsService: getSheetRowRange failed', [
+                'app_id' => $app->id,
+                'spreadsheet_id' => $spreadsheetId,
+                'tab' => $tabName,
+                'range' => $range,
+                'error' => $e->getMessage(),
+            ]);
+            throw new \RuntimeException("Failed to read Google Sheet range {$range}: ".$e->getMessage());
+        }
+    }
+
+    /**
+     * Convert 1-based column index to Excel-style column letter (1 -> A, 26 -> Z, 27 -> AA, etc.)
+     */
+    public function columnIndexToLetter(int $index): string
+    {
+        if ($index <= 0) {
+            return 'ZZ';
+        }
+
+        $letter = '';
+        while ($index > 0) {
+            $rem = ($index - 1) % 26;
+            $letter = chr(65 + $rem).$letter;
+            $index = (int) (($index - $rem) / 26);
+        }
+
+        return $letter ?: 'ZZ';
+    }
+
     // ========== Tab (Sheet) Management ==========
 
     /**

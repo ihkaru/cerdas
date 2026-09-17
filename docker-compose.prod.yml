@@ -205,7 +205,7 @@ services:
       context: ./apps/backend
       dockerfile: Dockerfile.prod
     restart: always
-    command: ["php", "artisan", "queue:work", "--queue=default,sheets-enqueue,sheets-batch", "--tries=3", "--timeout=600"]
+    command: ["php", "artisan", "queue:work", "--queue=default,sheets-enqueue,sheets-batch", "--tries=3", "--timeout=900", "--memory=1024"]
     environment:
       - APP_ENV=production
       - APP_KEY=${APP_KEY}
@@ -236,7 +236,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 1024M
 
   # ==========================================
   # SCHEDULER (Cron)

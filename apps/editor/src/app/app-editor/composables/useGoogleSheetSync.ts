@@ -66,6 +66,10 @@ export function useGoogleSheetSync(tableId: Ref<string>, appId: Ref<string>) {
       } else {
         state.value = { status: 'no_token' };
       }
+
+      if (status.config?.inbound_sync_status === 'syncing' && !isPollingInbound) {
+        void pollUntilInboundComplete();
+      }
     } catch (err: unknown) {
       console.error('[useGoogleSheetSync] refreshStatus failed', err);
       // Don't override state on refresh failure — keep last known state
@@ -227,6 +231,40 @@ export function useGoogleSheetSync(tableId: Ref<string>, appId: Ref<string>) {
     }
   }
 
+  let isPollingInbound = false;
+
+  /**
+   * Poll sync status until inbound sync completes or fails.
+   * Polling interval: every 3 seconds for up to 15 minutes.
+   */
+  async function pollUntilInboundComplete(): Promise<void> {
+    if (isPollingInbound) return;
+    isPollingInbound = true;
+    const maxAttempts = 300;
+    let attempts = 0;
+
+    try {
+      while (attempts < maxAttempts) {
+        await sleep(3000);
+        attempts++;
+
+        try {
+          if (!tableId.value) break;
+          const status = await GoogleSheetApi.getSyncStatus(tableId.value);
+          syncStatus.value = status;
+
+          if (status.config?.inbound_sync_status !== 'syncing') {
+            break;
+          }
+        } catch {
+          break;
+        }
+      }
+    } finally {
+      isPollingInbound = false;
+    }
+  }
+
   /**
    * Manually pull latest records from the connected Sheet into the Table.
    */
@@ -236,6 +274,9 @@ export function useGoogleSheetSync(tableId: Ref<string>, appId: Ref<string>) {
       isLoading.value = true;
       const res = await GoogleSheetApi.pullSheetData(tableId.value);
       await refreshStatus();
+      if (res.queued) {
+        void pollUntilInboundComplete();
+      }
       return res;
     } finally {
       isLoading.value = false;

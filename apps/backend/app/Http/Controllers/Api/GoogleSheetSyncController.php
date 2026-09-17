@@ -20,6 +20,7 @@ use App\Services\GoogleSheetsService;
 use App\Services\SchemaInferenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -416,6 +417,7 @@ class GoogleSheetSyncController extends Controller
                 'is_expired' => $token?->isExpired() ?? false,
             ],
             'pending_rows' => $pendingRows,
+            'sync_progress' => Cache::get("sheet_sync_progress_{$table->id}"),
         ]);
     }
 

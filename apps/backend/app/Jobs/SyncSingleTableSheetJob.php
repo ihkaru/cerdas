@@ -32,7 +32,7 @@ class SyncSingleTableSheetJob implements ShouldQueue
 
     public int $tries = 3;
 
-    public int $timeout = 600;
+    public int $timeout = 900;
 
     public function __construct(
         public readonly string $tableId,
@@ -111,6 +111,7 @@ class SyncSingleTableSheetJob implements ShouldQueue
             // 3. Record Sync Metadata & reset status to idle
             $fullConfig = $table->fresh()->source_config ?? [];
             $fullConfig['google_sheet']['inbound_sync_status'] = 'idle';
+            $fullConfig['google_sheet']['inbound_sync_error'] = null;
             $fullConfig['google_sheet']['last_inbound_synced_at'] = now()->toISOString();
             $fullConfig['google_sheet']['inbound_rows_count'] = $importedCount ?? 0;
             $table->update(['source_config' => $fullConfig]);

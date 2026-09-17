@@ -166,7 +166,14 @@
                     <f7-icon f7="arrow_2_squarepath" size="16" color="blue" />
                     <span class="info-label">Status Tarik Data:</span>
                     <span class="info-value" style="color: #2563eb; font-weight: 600;">
-                        Sedang menyinkronkan di background...
+                        Sedang menyinkronkan{{ syncStatus?.sync_progress?.rows_synced ? ` (${syncStatus.sync_progress.rows_synced.toLocaleString()} baris)...` : ' di background...' }}
+                    </span>
+                </div>
+                <div class="info-row" v-else-if="syncStatus?.config?.inbound_sync_status === 'failed'">
+                    <f7-icon f7="exclamationmark_triangle_fill" size="16" color="red" />
+                    <span class="info-label">Gagal Tarik:</span>
+                    <span class="info-value" style="color: #dc2626; font-size: 12px; font-weight: 500;">
+                        {{ syncStatus?.config?.inbound_sync_error || 'Terjadi kesalahan saat menarik data.' }}
                     </span>
                 </div>
                 <div class="info-row" v-else-if="syncStatus?.config?.last_inbound_synced_at">

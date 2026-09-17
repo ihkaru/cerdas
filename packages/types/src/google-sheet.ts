@@ -25,6 +25,7 @@ export interface GoogleSheetConfig {
   sync_enabled: boolean;
   inbound_sync_enabled?: boolean;
   inbound_sync_status?: 'idle' | 'syncing' | 'failed';
+  inbound_sync_error?: string | null;
   inbound_rows_count?: number;
   last_inbound_synced_at?: string | null;
   last_synced_at: string | null;
@@ -49,6 +50,16 @@ export interface GoogleSheetTokenStatus {
   scopes?: string[];
 }
 
+// ========== Inbound Sync Progress ==========
+
+export interface SheetSyncProgress {
+  status: 'syncing' | 'completed' | 'failed';
+  rows_synced: number;
+  last_sheet_row?: number;
+  error?: string;
+  updated_at: string;
+}
+
 // ========== Sync Status (GET /tables/{table}/sheets/status) ==========
 
 export interface SheetSyncStatus {
@@ -58,6 +69,8 @@ export interface SheetSyncStatus {
   token_status: GoogleSheetTokenStatus;
   /** Number of rows in pending_sheet_rows not yet flushed to Sheets */
   pending_rows: number;
+  /** Real-time inbound sync progress for long-running batch ingestion */
+  sync_progress?: SheetSyncProgress | null;
 }
 
 // ========== UI State Machine ==========

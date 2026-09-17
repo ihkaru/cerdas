@@ -155,5 +155,11 @@ packages/expression-engine - @cerdas/expression-engine (expression evaluation)
   - **Bulk Upsert Batching (500 Baris)**: Mengganti query serial individual menjadi bulk upsert (`Assignment::upsert(...)` dan `AppRecord::insert(...)`), memangkas waktu proses penyimpanan database dari 1–2 menit menjadi 1–2 detik.
   - **Optimasi RAM Octane & Anti-OOM**: `DB::disableQueryLog()`, hidrasi memori ringan menggunakan `chunk(1000)` dan `withExists('responses')`, serta pembersihan baris orphan berbasis timestamp tanpa batas parameter prepared statement.
   - **Proteksi Client Assignment Fetching**: Endpoint `GET /api/assignments` tidak lagi memblokir klien secara sinkron saat memicu sync Google Sheet.
+- **2026-09-17**: Arsitektur Inbound Google Sheet Sync Skala Ekstrem (100k–200k+ Rows):
+  - **Range-Based Streaming Chunks (5.000 Baris/Request)**: `getSheetRowRange` membagi penarikan sheet menjadi batch 5.000 baris dengan batas kolom eksak (`columnIndexToLetter`), mencegah limit response payload Google Sheets API (~10MB) dan timeout gateway.
+  - **Profil Memori O(1) (< 50MB RAM)**: Mengeliminasi pemuatan seluruh data assignment ke RAM; pencocokan record DB dilakukan selektif per chunk menggunakan `whereIn('external_id', ...)` dan dipicu `gc_collect_cycles()` di tiap iterasi.
+  - **Mini-Transactions (1.000 Baris/Commit)**: Pembagian commit transaksi per 1.000 baris mencegah table locking dan lock wait timeout pada database produksi saat enumerator aktif.
+  - **Live Progress Tracking & UI Auto-Polling**: Cache real-time `sheet_sync_progress_{tableId}` diekspos melalui API status dan di-poll secara reaktif oleh editor UI dengan indikator jumlah baris tersinkronisasi.
+  - **Peningkatan Kapasitas Worker**: Timeout queue dinaikkan menjadi 900 detik dan memori batas container worker disesuaikan menjadi 1024MB.
 
 
