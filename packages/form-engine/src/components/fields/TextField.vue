@@ -27,7 +27,16 @@
             Gunakan Komponen Peta
           </f7-link>
           <div class="v-separator"></div>
-          <f7-link small class="size-12" color="green" @click="openDirections">
+          <f7-link
+            small
+            external
+            class="size-12"
+            color="green"
+            :href="detectedDirectionsUrl"
+            :target="isMobile ? undefined : '_blank'"
+            rel="noopener noreferrer"
+            @click="onDirectionsClick"
+          >
             <f7-icon f7="map_fill" size="12" class="margin-right-half"></f7-icon>
             Buka Petunjuk Arah
           </f7-link>
@@ -43,7 +52,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import type { FieldDefinition } from '../../types/schema';
-import { parseCoordsString, getGoogleMapsUrl } from '../../utils/geoUtils';
+import {
+  parseCoordsString,
+  getGoogleMapsUrl,
+  getDirectionsUrl,
+  openMapDirections,
+  isMobileDevice
+} from '../../utils/geoUtils';
 
 const props = withDefaults(defineProps<{
   field: FieldDefinition;
@@ -81,10 +96,25 @@ const handleSwitchToGps = () => {
   });
 };
 
+const isMobile = computed(() => isMobileDevice());
+
+const detectedDirectionsUrl = computed(() => {
+  if (!detectedCoords.value) return '#';
+  const { latitude, longitude } = detectedCoords.value.coords;
+  return getDirectionsUrl(latitude, longitude);
+});
+
 const openDirections = () => {
   if (detectedCoords.value) {
     const { latitude, longitude } = detectedCoords.value.coords;
-    window.open(getGoogleMapsUrl(latitude, longitude), '_blank');
+    openMapDirections(latitude, longitude);
+  }
+};
+
+const onDirectionsClick = (e: MouseEvent) => {
+  if (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.isNativePlatform?.() === true) {
+    e.preventDefault();
+    openDirections();
   }
 };
 

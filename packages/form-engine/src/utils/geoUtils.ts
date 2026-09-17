@@ -238,10 +238,73 @@ export const formatCoordinate = (value: number, decimals = 6): string => {
 };
 
 /**
- * Get Google Maps directions URL
+ * Check if the current environment is an Android device.
+ */
+export const isAndroidDevice = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  return /Android/i.test(navigator.userAgent || '');
+};
+
+/**
+ * Check if the current environment is an iOS device (iPhone, iPad, iPod).
+ */
+export const isIOSDevice = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+};
+
+/**
+ * Check if the current environment is a mobile device.
+ */
+export const isMobileDevice = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
+};
+
+/**
+ * Get Google Maps directions URL (Universal Web URL)
  */
 export const getGoogleMapsUrl = (lat: number, lng: number): string => {
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+};
+
+/**
+ * Get cross-platform directions URL tailored for the active operating system.
+ * - Android: Uses intent URI directly targeting the Google Maps package with web fallback,
+ *   bypassing browser App Links restrictions, popup blockers, and broken domain verification.
+ * - iOS: Uses Apple Maps universal scheme.
+ * - Desktop: Uses standard Google Maps web directions URL.
+ */
+export const getDirectionsUrl = (lat: number, lng: number): string => {
+  const webUrl = getGoogleMapsUrl(lat, lng);
+
+  if (isAndroidDevice()) {
+    // Android Chrome & Chromium-based intent protocol
+    // Directly targets package com.google.android.apps.maps
+    // If Google Maps app is not installed, Chrome falls back to webUrl seamlessly.
+    const fallbackEncoded = encodeURIComponent(webUrl);
+    return `intent://maps.google.com/maps?daddr=${lat},${lng}#Intent;scheme=https;package=com.google.android.apps.maps;S.browser_fallback_url=${fallbackEncoded};end`;
+  }
+
+  if (isIOSDevice()) {
+    return `https://maps.apple.com/?daddr=${lat},${lng}`;
+  }
+
+  return webUrl;
+};
+
+/**
+ * Programmatically open map directions.
+ * On mobile devices, navigates directly (via window.location.href) to avoid popup blockers and trigger OS intents.
+ * On desktop, opens a new tab.
+ */
+export const openMapDirections = (lat: number, lng: number): void => {
+  const url = getDirectionsUrl(lat, lng);
+  if (isMobileDevice()) {
+    window.location.href = url;
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
 };
 
 /**

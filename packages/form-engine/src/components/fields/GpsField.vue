@@ -65,8 +65,11 @@
       </div>
 
       <!-- 4. Directions (Readonly / External) -->
-      <f7-button v-if="hasLocation" fill large class="margin-top-half custom-btn-action" color="green"
-        @click="openDirections">
+      <f7-button v-if="hasLocation" fill large external class="margin-top-half custom-btn-action" color="green"
+        :href="directionsUrl"
+        :target="isMobile ? undefined : '_blank'"
+        rel="noopener noreferrer"
+        @click="onDirectionsClick">
         <f7-icon f7="map_fill" size="18" class="margin-right-half"></f7-icon>
         <span>Open in Google Maps</span>
       </f7-button>
@@ -247,8 +250,11 @@ import type { FieldDefinition } from '../../types/schema';
 import {
     formatCoordinate,
     getCurrentPosition,
+    getDirectionsUrl,
     getGeoErrorMessage,
     getGoogleMapsUrl,
+    isMobileDevice,
+    openMapDirections,
     parseCoordsString
 } from '../../utils/geoUtils';
 import { createMap, destroyMap as destroyMapUtil } from '../../utils/maplibreUtils';
@@ -320,6 +326,14 @@ const accuracyColorClass = computed(() => {
   if (acc <= 20) return 'text-color-green';
   if (acc <= 50) return 'text-color-orange';
   return 'text-color-red';
+});
+
+const isMobile = computed(() => isMobileDevice());
+
+const directionsUrl = computed(() => {
+  const coords = normalizedCoords.value;
+  if (!coords) return '#';
+  return getDirectionsUrl(coords.latitude, coords.longitude);
 });
 
 // ============================================================================
@@ -494,7 +508,16 @@ const confirmClear = () => {
 const openDirections = () => {
   const coords = normalizedCoords.value;
   if (coords) {
-    window.open(getGoogleMapsUrl(coords.latitude, coords.longitude), '_blank');
+    openMapDirections(coords.latitude, coords.longitude);
+  }
+};
+
+const onDirectionsClick = (e: MouseEvent) => {
+  // In native Capacitor platform, ensure openMapDirections is invoked programmatically
+  // if webview doesn't follow the external anchor link automatically
+  if (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.isNativePlatform?.() === true) {
+    e.preventDefault();
+    openDirections();
   }
 };
 

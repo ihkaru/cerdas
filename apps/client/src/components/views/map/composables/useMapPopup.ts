@@ -1,4 +1,4 @@
-import { getGoogleMapsUrl, maplibregl } from '@cerdas/form-engine';
+import { getDirectionsUrl, getGoogleMapsUrl, isMobileDevice, maplibregl } from '@cerdas/form-engine';
 import { f7 } from 'framework7-vue';
 import type { Ref, ShallowRef } from 'vue';
 import { getCoordinates, resolvePath } from '../utils/mapCoordinates';
@@ -15,6 +15,9 @@ export function useMapPopup(
         const title = resolvePath(item, mapConfig.label) || resolvePath(item, mapConfig.popup_title) || 'Untitled';
         const subtitle = resolvePath(item, mapConfig.subtitle) || resolvePath(item, mapConfig.popup_subtitle) || '';
         const itemId = item.id || item.local_id;
+        const directionsUrl = getDirectionsUrl(lat, lng);
+        const isMobile = isMobileDevice();
+        const targetAttr = isMobile ? '' : 'target="_blank" rel="noopener noreferrer"';
 
         return `
             <div class="map-popup-content">
@@ -24,7 +27,7 @@ export function useMapPopup(
                     <a href="/assignments/${itemId}" data-item-id="${itemId}" class="button button-small button-fill color-blue margin-right-half flex-grow-1">
                         <span class="text-color-white">Buka Detail</span>
                     </a>
-                    <a href="${getGoogleMapsUrl(lat, lng)}" target="_blank" class="button button-small button-fill color-green flex-shrink-0 external">
+                    <a href="${directionsUrl}" ${targetAttr} class="button button-small button-fill color-green flex-shrink-0 external">
                         <i class="f7-icons size-14 text-color-white">map_fill</i>
                     </a>
                 </div>
