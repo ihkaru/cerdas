@@ -65,14 +65,15 @@
       </div>
 
       <!-- 4. Directions (Readonly / External) -->
-      <f7-button v-if="hasLocation" fill large external class="margin-top-half custom-btn-action" color="green"
+      <a v-if="hasLocation"
         :href="directionsUrl"
-        :target="isMobile ? undefined : '_blank'"
+        :target="isMobile ? '_self' : '_blank'"
         rel="noopener noreferrer"
+        class="button button-fill button-large color-green margin-top-half custom-btn-action external"
         @click="onDirectionsClick">
         <f7-icon f7="map_fill" size="18" class="margin-right-half"></f7-icon>
         <span>Open in Google Maps</span>
-      </f7-button>
+      </a>
 
       <!-- 5. Empty State (Readonly) -->
       <div v-else-if="field.readonly && !hasLocation" class="padding text-align-center text-color-gray bg-color-white">
@@ -513,12 +514,16 @@ const openDirections = () => {
 };
 
 const onDirectionsClick = (e: MouseEvent) => {
-  // In native Capacitor platform, ensure openMapDirections is invoked programmatically
-  // if webview doesn't follow the external anchor link automatically
-  if (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.isNativePlatform?.() === true) {
+  const coords = normalizedCoords.value;
+  if (!coords) return;
+
+  if (isMobile.value) {
+    // On mobile devices (Android/iOS), explicitly invoke openMapDirections
+    // (geo: on Android or Apple Maps on iOS) to ensure app switching without browser tab trapping
     e.preventDefault();
     openDirections();
   }
+  // On desktop, allow native anchor tag click to follow href and open in _blank tab
 };
 
 const formatTime = (ts: number) => {

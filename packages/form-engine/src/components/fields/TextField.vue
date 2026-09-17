@@ -27,19 +27,16 @@
             Gunakan Komponen Peta
           </f7-link>
           <div class="v-separator"></div>
-          <f7-link
-            small
-            external
-            class="size-12"
-            color="green"
+          <a
             :href="detectedDirectionsUrl"
-            :target="isMobile ? undefined : '_blank'"
+            :target="isMobile ? '_self' : '_blank'"
             rel="noopener noreferrer"
+            class="link size-12 color-green external display-flex align-items-center"
             @click="onDirectionsClick"
           >
             <f7-icon f7="map_fill" size="12" class="margin-right-half"></f7-icon>
             Buka Petunjuk Arah
-          </f7-link>
+          </a>
         </div>
       </div>
 
@@ -112,7 +109,9 @@ const openDirections = () => {
 };
 
 const onDirectionsClick = (e: MouseEvent) => {
-  if (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.isNativePlatform?.() === true) {
+  if (!detectedCoords.value) return;
+
+  if (isMobile.value) {
     e.preventDefault();
     openDirections();
   }

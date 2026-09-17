@@ -269,42 +269,40 @@ export const getGoogleMapsUrl = (lat: number, lng: number): string => {
 };
 
 /**
- * Get cross-platform directions URL tailored for the active operating system.
- * - Android: Uses intent URI directly targeting the Google Maps package with web fallback,
- *   bypassing browser App Links restrictions, popup blockers, and broken domain verification.
- * - iOS: Uses Apple Maps universal scheme.
- * - Desktop: Uses standard Google Maps web directions URL.
+ * Get native Android geo: URI scheme
+ */
+export const getGeoUri = (lat: number, lng: number): string => {
+  return `geo:${lat},${lng}?q=${lat},${lng}`;
+};
+
+/**
+ * Get cross-platform directions URL.
+ * Returns universal Google Maps web URL so that anchor tags have valid,
+ * clean, shareable URLs when copied or inspected.
  */
 export const getDirectionsUrl = (lat: number, lng: number): string => {
-  const webUrl = getGoogleMapsUrl(lat, lng);
-
-  if (isAndroidDevice()) {
-    // Android Chrome & Chromium-based intent protocol
-    // Directly targets package com.google.android.apps.maps
-    // If Google Maps app is not installed, Chrome falls back to webUrl seamlessly.
-    const fallbackEncoded = encodeURIComponent(webUrl);
-    return `intent://maps.google.com/maps?daddr=${lat},${lng}#Intent;scheme=https;package=com.google.android.apps.maps;S.browser_fallback_url=${fallbackEncoded};end`;
-  }
-
-  if (isIOSDevice()) {
-    return `https://maps.apple.com/?daddr=${lat},${lng}`;
-  }
-
-  return webUrl;
+  return getGoogleMapsUrl(lat, lng);
 };
 
 /**
  * Programmatically open map directions.
- * On mobile devices, navigates directly (via window.location.href) to avoid popup blockers and trigger OS intents.
- * On desktop, opens a new tab.
+ * - Android: Uses native geo: URI to trigger Google Maps app directly via Android OS Intent
+ * - iOS: Uses Apple Maps universal route scheme
+ * - Desktop: Opens Google Maps web directions in a new browser tab
  */
 export const openMapDirections = (lat: number, lng: number): void => {
-  const url = getDirectionsUrl(lat, lng);
-  if (isMobileDevice()) {
-    window.location.href = url;
-  } else {
-    window.open(url, '_blank', 'noopener,noreferrer');
+  if (isAndroidDevice()) {
+    // Android OS intent: directly opens Google Maps app without creating blank browser tabs
+    window.location.href = getGeoUri(lat, lng);
+    return;
   }
+
+  if (isIOSDevice()) {
+    window.location.href = `https://maps.apple.com/?daddr=${lat},${lng}`;
+    return;
+  }
+
+  window.open(getGoogleMapsUrl(lat, lng), '_blank', 'noopener,noreferrer');
 };
 
 /**

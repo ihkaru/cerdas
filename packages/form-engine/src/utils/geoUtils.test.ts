@@ -11,13 +11,23 @@ mock.module('@capacitor/geolocation', () => ({
   }
 }));
 
+// Provide window polyfill if running in node/bun CLI environment
+if (typeof (globalThis as any).window === 'undefined') {
+  (globalThis as any).window = {
+    location: { href: '' },
+    open: () => null
+  };
+}
+
 const {
   formatCoordinate,
   getDirectionsUrl,
+  getGeoUri,
   getGoogleMapsUrl,
   isAndroidDevice,
   isIOSDevice,
   isMobileDevice,
+  openMapDirections,
   parseCoordsString
 } = await import('./geoUtils');
 
@@ -41,6 +51,16 @@ describe('geoUtils Directions and Deep Linking', () => {
     expect(url).toBe('https://www.google.com/maps/dir/?api=1&destination=-6.2088,106.8456');
   });
 
+  it('getGeoUri generates native Android geo: scheme', () => {
+    const uri = getGeoUri(-6.2088, 106.8456);
+    expect(uri).toBe('geo:-6.2088,106.8456?q=-6.2088,106.8456');
+  });
+
+  it('getDirectionsUrl returns clean, shareable Google Maps URL', () => {
+    const url = getDirectionsUrl(-6.2088, 106.8456);
+    expect(url).toBe('https://www.google.com/maps/dir/?api=1&destination=-6.2088,106.8456');
+  });
+
   describe('Android Environment', () => {
     const androidUA = 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36';
 
@@ -54,20 +74,19 @@ describe('geoUtils Directions and Deep Linking', () => {
       expect(isMobileDevice()).toBe(true);
     });
 
-    it('generates Chrome Android Intent URL targeting Google Maps app with fallback', () => {
-      const lat = -6.2088;
-      const lng = 106.8456;
-      const url = getDirectionsUrl(lat, lng);
+    it('openMapDirections dispatches geo: URI on Android to open native app', () => {
+      let navigatedTo = '';
+      (globalThis as any).window.location = {
+        set href(val: string) {
+          navigatedTo = val;
+        },
+        get href() {
+          return navigatedTo;
+        }
+      };
 
-      expect(url.startsWith('intent://maps.google.com/maps?daddr=-6.2088,106.8456')).toBe(true);
-      expect(url).toContain('package=com.google.android.apps.maps');
-      expect(url).toContain('scheme=https');
-      expect(url).toContain('S.browser_fallback_url=');
-      expect(url.endsWith(';end')).toBe(true);
-
-      // Verify the fallback URL inside the intent is properly URL encoded
-      const expectedFallback = encodeURIComponent(getGoogleMapsUrl(lat, lng));
-      expect(url).toContain(`S.browser_fallback_url=${expectedFallback}`);
+      openMapDirections(-6.2088, 106.8456);
+      expect(navigatedTo).toBe('geo:-6.2088,106.8456?q=-6.2088,106.8456');
     });
   });
 
@@ -84,9 +103,19 @@ describe('geoUtils Directions and Deep Linking', () => {
       expect(isMobileDevice()).toBe(true);
     });
 
-    it('generates Apple Maps URL for iOS', () => {
-      const url = getDirectionsUrl(-6.2088, 106.8456);
-      expect(url).toBe('https://maps.apple.com/?daddr=-6.2088,106.8456');
+    it('openMapDirections dispatches Apple Maps URL on iOS', () => {
+      let navigatedTo = '';
+      (globalThis as any).window.location = {
+        set href(val: string) {
+          navigatedTo = val;
+        },
+        get href() {
+          return navigatedTo;
+        }
+      };
+
+      openMapDirections(-6.2088, 106.8456);
+      expect(navigatedTo).toBe('https://maps.apple.com/?daddr=-6.2088,106.8456');
     });
   });
 
@@ -103,9 +132,18 @@ describe('geoUtils Directions and Deep Linking', () => {
       expect(isMobileDevice()).toBe(false);
     });
 
-    it('generates universal Google Maps web directions URL on Desktop', () => {
-      const url = getDirectionsUrl(-6.2088, 106.8456);
-      expect(url).toBe('https://www.google.com/maps/dir/?api=1&destination=-6.2088,106.8456');
+    it('openMapDirections opens Google Maps web in new tab on Desktop', () => {
+      let openedUrl = '';
+      let openedTarget = '';
+      (globalThis as any).window.open = (url?: string | URL, target?: string) => {
+        openedUrl = String(url);
+        openedTarget = String(target);
+        return null;
+      };
+
+      openMapDirections(-6.2088, 106.8456);
+      expect(openedUrl).toBe('https://www.google.com/maps/dir/?api=1&destination=-6.2088,106.8456');
+      expect(openedTarget).toBe('_blank');
     });
   });
 
