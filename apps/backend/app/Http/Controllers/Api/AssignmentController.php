@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Imports\PrelistImport;
+use App\Jobs\SyncSingleTableSheetJob;
 use App\Models\Assignment;
 use App\Models\Response;
 use App\Models\TableVersion;
@@ -473,13 +474,14 @@ class AssignmentController extends Controller
     }
 
     /**
-     * Proactively sync latest changes from Google Sheet on client pull (rate-limited to max 1 per 5s).
+     * Proactively trigger background sync from Google Sheet on client pull (rate-limited to max 1 per 30s).
+     * Dispatches job to queue worker so client assignments pull request returns immediately without blocking.
      */
     private function maybeSyncFromGoogleSheet(string $tableId): void
     {
         $rateKey = "gsheet_sync_on_pull:{$tableId}";
         RateLimiter::attempt($rateKey, 1, function () use ($tableId) {
-            $table = \App\Models\Table::with(['app', 'versions'])->find($tableId);
+            $table = \App\Models\Table::find($tableId);
             if (! $table || $table->source_type !== 'google_sheets') {
                 return;
             }
@@ -489,34 +491,8 @@ class AssignmentController extends Controller
                 return;
             }
 
-            // Echo guard: don't pull if we just wrote outbound in the last 10s
-            if (! empty($sourceConfig['last_flushed_at'])) {
-                $flushedTime = strtotime($sourceConfig['last_flushed_at']);
-                if ($flushedTime && (time() - $flushedTime) < 10) {
-                    return;
-                }
-            }
-
-            $app = $table->app;
-            if (! $app) {
-                return;
-            }
-
-            $version = $table->getWorkingVersion();
-            $fields = $version?->fields ?? [];
-
-            try {
-                $importAction = app(\App\Actions\GoogleSheet\ImportGoogleSheetRowsAction::class);
-                $importAction->execute(
-                    $app,
-                    $table,
-                    $sourceConfig['spreadsheet_id'],
-                    $sourceConfig['sheet_name'] ?? $table->name,
-                    $fields
-                );
-            } catch (\Throwable $e) {
-                Log::warning("maybeSyncFromGoogleSheet failed for table [{$tableId}]: ".$e->getMessage());
-            }
-        }, decaySeconds: 5);
+            // Dispatch asynchronous sync to queue worker
+            SyncSingleTableSheetJob::dispatch($tableId);
+        }, decaySeconds: 30);
     }
 }

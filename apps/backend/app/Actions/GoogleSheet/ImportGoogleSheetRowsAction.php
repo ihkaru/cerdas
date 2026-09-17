@@ -100,14 +100,19 @@ class ImportGoogleSheetRowsAction
             }
         }
 
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(600);
+        DB::disableQueryLog();
+
         $versionModel = $table->versions()->latest('version')->first();
         $versionId = $versionModel?->id;
         $defaultOrgId = $app->organizations()->first()?->id;
-        $now = now();
+        $syncStartTime = now();
+        $nowFormatted = $syncStartTime->format('Y-m-d H:i:s');
 
-        $batchSize = 250;
-        $insertRecords = [];
-        $insertAssignments = [];
+        $batchSize = 500;
+        $assignmentsChunk = [];
+        $recordsChunk = [];
         $importedCount = 0;
 
         $configuredKeyCol = $table->source_config['google_sheet']['key_column'] ?? null;
@@ -121,38 +126,47 @@ class ImportGoogleSheetRowsAction
             // Delete preview records for fresh pull (idempotent overwrite)
             AppRecord::where('table_id', $table->id)->forceDelete();
 
-            // Fetch ALL existing assignments for this table to prevent duplicates when records are submitted
-            $allAssignments = Assignment::where('table_id', $table->id)->get();
-
+            // Fetch existing assignments with minimal memory footprint (associative array instead of heavy Eloquent models)
             $existingByKey = [];
             $existingByBizKey = [];
             $unkeyedList = [];
 
-            foreach ($allAssignments as $existing) {
-                if (! empty($existing->external_id)) {
-                    $existingByKey[$existing->external_id] = $existing;
-                } else {
-                    $unkeyedList[] = $existing;
-                }
+            Assignment::where('table_id', $table->id)
+                ->select(['id', 'external_id', 'status', 'prelist_data', 'supervisor_id', 'enumerator_id'])
+                ->withExists('responses')
+                ->chunk(1000, function ($assignments) use (&$existingByKey, &$existingByBizKey, &$unkeyedList, $configuredKeyCol) {
+                    foreach ($assignments as $existing) {
+                        $prelist = is_array($existing->prelist_data)
+                            ? $existing->prelist_data
+                            : (json_decode($existing->prelist_data ?? '{}', true) ?: []);
 
-                // Also index existing assignments by business key from prelist_data
-                $prelist = is_array($existing->prelist_data)
-                    ? $existing->prelist_data
-                    : (json_decode($existing->prelist_data ?? '{}', true) ?: []);
+                        $item = [
+                            'id' => (string) $existing->id,
+                            'external_id' => $existing->external_id,
+                            'status' => $existing->status,
+                            'supervisor_id' => $existing->supervisor_id,
+                            'enumerator_id' => $existing->enumerator_id,
+                            'responses_exists' => (bool) $existing->responses_exists,
+                            'prelist_data' => $prelist,
+                        ];
 
-                $existingBizKey = $this->extractBusinessKey($prelist, $configuredKeyCol);
-                if ($existingBizKey !== null) {
-                    $isSubmitted = $existing->status === 'submitted' || $existing->responses()->exists();
-                    if (! isset($existingByBizKey[$existingBizKey]) || $isSubmitted) {
-                        $existingByBizKey[$existingBizKey] = $existing;
+                        if (! empty($existing->external_id)) {
+                            $existingByKey[$existing->external_id] = $item;
+                        } else {
+                            $unkeyedList[] = $item;
+                        }
+
+                        $existingBizKey = $this->extractBusinessKey($prelist, $configuredKeyCol);
+                        if ($existingBizKey !== null) {
+                            $isSubmitted = $existing->status === 'submitted' || $item['responses_exists'];
+                            if (! isset($existingByBizKey[$existingBizKey]) || $isSubmitted) {
+                                $existingByBizKey[$existingBizKey] = $item;
+                            }
+                        }
                     }
-                }
-            }
+                });
 
             $unkeyedIndex = 0;
-            $usedAssignmentIds = [];
-            $insertRecords = [];
-            $importedCount = 0;
 
             foreach ($dataRows as $rowIndex => $row) {
                 $recordData = [];
@@ -184,13 +198,13 @@ class ImportGoogleSheetRowsAction
                 $recordId = Str::orderedUuid()->toString();
                 $jsonData = json_encode($recordData);
 
-                $insertRecords[] = [
+                $recordsChunk[] = [
                     'id' => $recordId,
                     'app_id' => $app->id,
                     'table_id' => $table->id,
                     'data' => $jsonData,
-                    'created_at' => $now,
-                    'updated_at' => $now,
+                    'created_at' => $nowFormatted,
+                    'updated_at' => $nowFormatted,
                 ];
 
                 $bizKey = $this->extractBusinessKey($recordData, $configuredKeyCol);
@@ -213,73 +227,83 @@ class ImportGoogleSheetRowsAction
                 }
 
                 if ($matchedAssignment) {
-                    $usedAssignmentIds[] = $matchedAssignment->id;
-
-                    $currentPrelist = is_array($matchedAssignment->prelist_data)
-                        ? $matchedAssignment->prelist_data
-                        : (json_decode($matchedAssignment->prelist_data ?? '{}', true) ?: []);
+                    $assignmentId = $matchedAssignment['id'];
+                    $currentPrelist = $matchedAssignment['prelist_data'];
                     $currentPrelist['_source_row_index'] = $rowIndex + 2;
 
-                    // Upgrade external_id to the stable natural business key
-                    $matchedAssignment->external_id = $externalKey;
+                    $isSubmittedOrActive = $matchedAssignment['status'] !== 'assigned' || $matchedAssignment['responses_exists'];
+                    $finalPrelist = $isSubmittedOrActive
+                        ? $currentPrelist
+                        : array_merge($currentPrelist, $recordData);
 
-                    // Only overwrite prelist values if assignment has NOT been submitted / completed
-                    if ($matchedAssignment->status === 'assigned' && ! $matchedAssignment->responses()->exists()) {
-                        $matchedAssignment->table_version_id = $versionId;
-                        $matchedAssignment->prelist_data = array_merge($currentPrelist, $recordData);
-                        $matchedAssignment->updated_at = $now;
-                        $matchedAssignment->save();
-                    } else {
-                        // Assignment is in_progress/submitted: update source row index metadata only
-                        $matchedAssignment->prelist_data = $currentPrelist;
-                        $matchedAssignment->save();
-                    }
+                    $assignmentsChunk[] = [
+                        'id' => $assignmentId,
+                        'table_id' => $table->id,
+                        'table_version_id' => $versionId,
+                        'organization_id' => $defaultOrgId,
+                        'supervisor_id' => $matchedAssignment['supervisor_id'],
+                        'enumerator_id' => $matchedAssignment['enumerator_id'],
+                        'external_id' => $externalKey,
+                        'status' => $matchedAssignment['status'],
+                        'prelist_data' => json_encode($finalPrelist),
+                        'status_history' => null,
+                        'created_at' => $nowFormatted,
+                        'updated_at' => $nowFormatted,
+                    ];
                 } else {
                     // Create New Assignment with deterministic external_id
-                    $newAssignment = new Assignment();
-                    $newAssignment->id = (string) Str::uuid();
-                    $newAssignment->table_id = $table->id;
-                    $newAssignment->table_version_id = $versionId;
-                    $newAssignment->organization_id = $defaultOrgId;
-                    $newAssignment->supervisor_id = null;
-                    $newAssignment->enumerator_id = null;
-                    $newAssignment->external_id = $externalKey;
-                    $newAssignment->status = 'assigned';
-                    $newAssignment->prelist_data = $recordData;
-                    $newAssignment->created_at = $now;
-                    $newAssignment->updated_at = $now;
-                    $newAssignment->save();
+                    $assignmentId = (string) Str::uuid();
 
-                    $usedAssignmentIds[] = $newAssignment->id;
+                    $assignmentsChunk[] = [
+                        'id' => $assignmentId,
+                        'table_id' => $table->id,
+                        'table_version_id' => $versionId,
+                        'organization_id' => $defaultOrgId,
+                        'supervisor_id' => null,
+                        'enumerator_id' => null,
+                        'external_id' => $externalKey,
+                        'status' => 'assigned',
+                        'prelist_data' => $jsonData,
+                        'status_history' => json_encode([
+                            ['status' => 'assigned', 'timestamp' => $syncStartTime->toISOString(), 'source' => 'gsheet_import'],
+                        ]),
+                        'created_at' => $nowFormatted,
+                        'updated_at' => $nowFormatted,
+                    ];
                 }
 
                 $importedCount++;
-            }
 
-            // Insert AppRecords for Data Preview in batch
-            if (! empty($insertRecords)) {
-                foreach (array_chunk($insertRecords, 250) as $chunk) {
-                    AppRecord::insert($chunk);
+                // Flush batch when batch size is reached
+                if (count($assignmentsChunk) >= $batchSize) {
+                    $this->flushBatch($assignmentsChunk, $recordsChunk);
+                    $assignmentsChunk = [];
+                    $recordsChunk = [];
+                    gc_collect_cycles();
                 }
             }
 
+            // Flush any remaining records
+            if (! empty($assignmentsChunk)) {
+                $this->flushBatch($assignmentsChunk, $recordsChunk);
+                $assignmentsChunk = [];
+                $recordsChunk = [];
+            }
+
             // Soft-delete any untouched 'assigned' assignments that were removed from Google Sheet
-            // or are duplicate ghosts resulting from past row shifts
-            $unusedAssignments = Assignment::where('table_id', $table->id)
+            // (Efficient single query by timestamp comparison without passing 30k IDs)
+            $softDeletedCount = Assignment::where('table_id', $table->id)
                 ->where('status', 'assigned')
                 ->whereDoesntHave('responses')
-                ->whereNotIn('id', $usedAssignmentIds)
-                ->get();
-            foreach ($unusedAssignments as $orphan) {
-                $orphan->delete(); // Soft delete generates tombstone
-            }
+                ->where('updated_at', '<', $syncStartTime)
+                ->delete();
 
             DB::commit();
 
             Log::info('ImportGoogleSheetRowsAction: completed in-place sync', [
                 'table_id' => $table->id,
                 'imported_count' => $importedCount,
-                'soft_deleted_count' => $unusedAssignments->count(),
+                'soft_deleted_count' => $softDeletedCount,
             ]);
 
             return $importedCount;
@@ -290,6 +314,27 @@ class ImportGoogleSheetRowsAction
                 'error' => $e->getMessage(),
             ]);
             throw $e;
+        }
+    }
+
+    /**
+     * Flush a batch of assignments and preview records in bulk.
+     *
+     * @param  array<int, array<string, mixed>>  $assignments
+     * @param  array<int, array<string, mixed>>  $records
+     */
+    private function flushBatch(array $assignments, array $records): void
+    {
+        if (! empty($assignments)) {
+            Assignment::upsert(
+                $assignments,
+                ['id'],
+                ['table_version_id', 'external_id', 'status', 'prelist_data', 'updated_at']
+            );
+        }
+
+        if (! empty($records)) {
+            AppRecord::insert($records);
         }
     }
 

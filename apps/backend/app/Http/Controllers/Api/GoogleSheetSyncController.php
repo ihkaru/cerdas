@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\GoogleSheetInitialExportJob;
+use App\Jobs\SyncSingleTableSheetJob;
 use App\Actions\GoogleSheet\BatchCreateTablesFromSheetAction;
 use App\Actions\GoogleSheet\CreateAppFromSheetAction;
 use App\Actions\GoogleSheet\CreateTableFromSheetAction;
@@ -727,43 +728,54 @@ class GoogleSheetSyncController extends Controller
             ], 422);
         }
 
-        $spreadsheetId = $sourceConfig['spreadsheet_id'];
-        $sheetName = $sourceConfig['sheet_name'] ?? $table->name;
+        // Support explicit synchronous execution for small scripts / unit testing
+        if ($request->boolean('sync')) {
+            $spreadsheetId = $sourceConfig['spreadsheet_id'];
+            $sheetName = $sourceConfig['sheet_name'] ?? $table->name;
+            $tableVersion = $table->getWorkingVersion();
+            $fields = $tableVersion?->fields ?? [];
 
-        $tableVersion = $table->getWorkingVersion();
-        $fields = $tableVersion?->fields ?? [];
+            try {
+                $importedCount = $this->importRowsAction->execute(
+                    $app,
+                    $table,
+                    $spreadsheetId,
+                    $sheetName,
+                    $fields
+                );
 
-        try {
-            $importedCount = $this->importRowsAction->execute(
-                $app,
-                $table,
-                $spreadsheetId,
-                $sheetName,
-                $fields
-            );
+                return response()->json([
+                    'success' => true,
+                    'rows_imported' => $importedCount,
+                    'message' => "Berhasil menyinkronkan {$importedCount} baris data dari Google Sheet.",
+                ]);
+            } catch (\Exception $e) {
+                Log::error('GoogleSheetSyncController: pullSheetData failed', [
+                    'table_id' => $table->id,
+                    'error' => $e->getMessage(),
+                ]);
 
-            return response()->json([
-                'success' => true,
-                'rows_imported' => $importedCount,
-                'message' => "Berhasil menyinkronkan {$importedCount} baris data dari Google Sheet.",
-            ]);
-        } catch (\Exception $e) {
-            Log::error('GoogleSheetSyncController: pullSheetData failed', [
-                'table_id' => $table->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'message' => 'Gagal menarik data dari Google Sheet: '.$e->getMessage(),
-            ], 500);
+                return response()->json([
+                    'message' => 'Gagal menarik data dari Google Sheet: '.$e->getMessage(),
+                ], 500);
+            }
         }
+
+        // Default & best practice for 30k+ rows: dispatch to background queue worker
+        SyncSingleTableSheetJob::dispatch($table->id, force: true);
+
+        return response()->json([
+            'success' => true,
+            'queued' => true,
+            'message' => 'Sinkronisasi data Google Sheet sedang diproses di latar belakang.',
+        ]);
     }
 
     /**
      * POST /api/webhooks/sheets/{tableId}
      *
      * Inbound webhook endpoint triggered by Google Apps Script onChange/onEdit.
-     * Ingests latest rows from the Google Sheet into Cerdas.
+     * Dispatches asynchronous worker job to prevent Apps Script 30-second execution timeouts.
      */
     public function handleWebhook(Request $request, string $tableId): JsonResponse
     {
@@ -777,43 +789,14 @@ class GoogleSheetSyncController extends Controller
             return response()->json(['message' => 'Sheet configuration missing'], 422);
         }
 
-        $app = $table->app;
-        if (! $app) {
-            return response()->json(['message' => 'App not found'], 404);
-        }
+        // Dispatch background job to prevent Apps Script from hitting 30s HTTP timeout on large tables
+        SyncSingleTableSheetJob::dispatch($table->id, force: true);
 
-        $spreadsheetId = $sourceConfig['spreadsheet_id'];
-        $sheetName = $sourceConfig['sheet_name'] ?? $table->name;
-        $version = $table->getWorkingVersion();
-        $fields = $version?->fields ?? [];
-
-        try {
-            $count = $this->importRowsAction->execute(
-                $app,
-                $table,
-                $spreadsheetId,
-                $sheetName,
-                $fields
-            );
-
-            $fullConfig = $table->source_config ?? [];
-            $fullConfig['google_sheet']['last_inbound_synced_at'] = now()->toISOString();
-            $fullConfig['google_sheet']['inbound_rows_count'] = $count;
-            $table->update(['source_config' => $fullConfig]);
-
-            return response()->json([
-                'success' => true,
-                'rows_synced' => $count,
-                'message' => "Webhook processed successfully. {$count} rows synced.",
-            ]);
-        } catch (\Exception $e) {
-            Log::error('GoogleSheetSyncController: webhook error', [
-                'table_id' => $tableId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json(['message' => 'Webhook processing failed: '.$e->getMessage()], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'queued' => true,
+            'message' => 'Webhook received. Google Sheet sync dispatched to background worker.',
+        ]);
     }
 
     // ========== Private Helpers ==========

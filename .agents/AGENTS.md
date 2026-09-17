@@ -150,5 +150,10 @@ packages/expression-engine - @cerdas/expression-engine (expression evaluation)
   - **Accidental Sync Confirmation**: Dialog konfirmasi pada banner sync utama guna mencegah unggah data tak sengaja saat scrolling.
   - **Direct-Columns Draft Guard (2-Way Sync Protection)**: Worker backend otomatis menahan draf parsial agar tidak mengotori baris Google Sheet pada mode 2-way sync langsung tanpa kolom status.
   - **Live Preview Instant Reactivity**: Sinkronisasi instan konfigurasi field ke form preview tanpa jeda re-mount.
+- **2026-09-17**: Skalabilitas Inbound 2-Way Google Sheet Sync Skala Besar (30k Rows):
+  - **Asynchronous Inbound Queue Job**: Pemindahan seluruh penarikan data Google Sheet ke background queue worker (`sheets-batch`) via `SyncSingleTableSheetJob` dengan timeout 600s, mengeliminasi Traefik 504 Gateway Timeout dan Network Error.
+  - **Bulk Upsert Batching (500 Baris)**: Mengganti query serial individual menjadi bulk upsert (`Assignment::upsert(...)` dan `AppRecord::insert(...)`), memangkas waktu proses penyimpanan database dari 1–2 menit menjadi 1–2 detik.
+  - **Optimasi RAM Octane & Anti-OOM**: `DB::disableQueryLog()`, hidrasi memori ringan menggunakan `chunk(1000)` dan `withExists('responses')`, serta pembersihan baris orphan berbasis timestamp tanpa batas parameter prepared statement.
+  - **Proteksi Client Assignment Fetching**: Endpoint `GET /api/assignments` tidak lagi memblokir klien secara sinkron saat memicu sync Google Sheet.
 
 

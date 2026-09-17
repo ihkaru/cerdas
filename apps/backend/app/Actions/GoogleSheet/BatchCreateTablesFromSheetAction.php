@@ -2,6 +2,7 @@
 
 namespace App\Actions\GoogleSheet;
 
+use App\Jobs\SyncSingleTableSheetJob;
 use App\Models\App;
 use App\Models\Table;
 use App\Models\View;
@@ -150,23 +151,9 @@ class BatchCreateTablesFromSheetAction
             /** @var View $view */
             $view = $entry['view'];
             $sheetName = $entry['sheet_name'];
-            $columns = $entry['columns'];
 
-            $rowsImported = 0;
-            try {
-                $rowsImported = $this->importRowsAction->execute(
-                    $app,
-                    $table,
-                    $spreadsheetId,
-                    $sheetName,
-                    $columns
-                );
-            } catch (\Exception $e) {
-                Log::warning('BatchCreateTablesFromSheetAction: row pull warning for table '.$table->name, [
-                    'table_id' => $table->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+            // Dispatch asynchronous row pull into background queue worker
+            SyncSingleTableSheetJob::dispatch($table->id, force: true);
 
             $tables[] = $table;
             $views[] = $view;
@@ -175,7 +162,8 @@ class BatchCreateTablesFromSheetAction
                 'table_name' => $table->name,
                 'sheet_name' => $sheetName,
                 'view_id' => $view->id,
-                'rows_imported' => $rowsImported,
+                'rows_imported' => 0,
+                'queued' => true,
             ];
         }
 

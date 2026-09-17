@@ -84,8 +84,8 @@ export const GoogleSheetApi = {
   /**
    * Pull/refresh latest records from the connected Google Sheet into the Table.
    */
-  pullSheetData: (tableId: string): Promise<{ success: boolean; rows_imported: number; message: string }> =>
-    ApiClient.post<{ success: boolean; rows_imported: number; message: string }>(`/tables/${tableId}/sheets/pull`)
+  pullSheetData: (tableId: string): Promise<{ success: boolean; rows_imported?: number; queued?: boolean; message: string }> =>
+    ApiClient.post<{ success: boolean; rows_imported?: number; queued?: boolean; message: string }>(`/tables/${tableId}/sheets/pull`)
       .then(res => res.data),
 
   /**

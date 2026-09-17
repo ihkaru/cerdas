@@ -162,6 +162,20 @@
                         {{ isInboundEnabled ? 'Aktif (Tiap 10 Menit)' : 'Nonaktif (One-Way Mode)' }}
                     </span>
                 </div>
+                <div class="info-row" v-if="syncStatus?.config?.inbound_sync_status === 'syncing'">
+                    <f7-icon f7="arrow_2_squarepath" size="16" color="blue" />
+                    <span class="info-label">Status Tarik Data:</span>
+                    <span class="info-value" style="color: #2563eb; font-weight: 600;">
+                        Sedang menyinkronkan di background...
+                    </span>
+                </div>
+                <div class="info-row" v-else-if="syncStatus?.config?.last_inbound_synced_at">
+                    <f7-icon f7="arrow_down_circle" size="16" color="green" />
+                    <span class="info-label">Tarik terakhir:</span>
+                    <span class="info-value">
+                        {{ formatRelativeTime(syncStatus.config.last_inbound_synced_at) }} ({{ (syncStatus.config.inbound_rows_count ?? 0).toLocaleString() }} baris)
+                    </span>
+                </div>
                 <div class="info-row">
                     <f7-icon f7="key_fill" size="16" color="orange" />
                     <span class="info-label">Primary Key:</span>
@@ -486,8 +500,8 @@ async function handlePullFromSheet() {
     try {
         const res = await triggerPullFromSheet();
         f7.toast.show({
-            text: res.message || `Berhasil menarik ${res.rows_imported} baris data!`,
-            closeTimeout: 2500,
+            text: res.message || (res.queued ? 'Sinkronisasi dijadwalkan di latar belakang.' : `Berhasil menarik ${res.rows_imported ?? 0} baris data!`),
+            closeTimeout: 3000,
         });
     } catch (e: unknown) {
         const err = e as { message?: string };

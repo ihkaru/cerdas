@@ -32,10 +32,11 @@ class SyncSingleTableSheetJob implements ShouldQueue
 
     public int $tries = 3;
 
-    public int $timeout = 120;
+    public int $timeout = 600;
 
     public function __construct(
-        public readonly string $tableId
+        public readonly string $tableId,
+        public readonly bool $force = false
     ) {
         $this->onQueue('sheets-batch');
     }
@@ -56,8 +57,8 @@ class SyncSingleTableSheetJob implements ShouldQueue
             return;
         }
 
-        // 1. Echo-Loop Guard: Skip if outbound flush occurred within the last 60s
-        if (! empty($sourceConfig['last_flushed_at'])) {
+        // 1. Echo-Loop Guard: Skip if outbound flush occurred within the last 60s (unless forced by manual trigger)
+        if (! $this->force && ! empty($sourceConfig['last_flushed_at'])) {
             $flushedTime = strtotime($sourceConfig['last_flushed_at']);
             if ($flushedTime && (time() - $flushedTime) < 60) {
                 Log::debug("SyncSingleTableSheetJob: skipped table [{$table->name}] due to recent outbound flush");
@@ -75,38 +76,54 @@ class SyncSingleTableSheetJob implements ShouldQueue
         $version = $table->getWorkingVersion();
         $fields = $version?->fields ?? [];
 
+        // Mark sync status in progress
+        $fullConfig = $table->source_config ?? [];
+        $fullConfig['google_sheet']['inbound_sync_status'] = 'syncing';
+        $table->update(['source_config' => $fullConfig]);
+
         // 2. Token-Bucket Rate Limiter (Max 50 req/min per App to respect Google quota)
         $rateLimitKey = 'google_sheets_api:' . $app->id;
         $importedCount = null;
 
-        $executed = RateLimiter::attempt(
-            $rateLimitKey,
-            $maxAttempts = 50,
-            function () use ($importAction, $app, $table, $spreadsheetId, $sheetName, $fields, &$importedCount) {
-                $importedCount = $importAction->execute(
-                    $app,
-                    $table,
-                    $spreadsheetId,
-                    $sheetName,
-                    $fields
-                );
-            },
-            $decaySeconds = 60
-        );
+        try {
+            $executed = RateLimiter::attempt(
+                $rateLimitKey,
+                $maxAttempts = 50,
+                function () use ($importAction, $app, $table, $spreadsheetId, $sheetName, $fields, &$importedCount) {
+                    $importedCount = $importAction->execute(
+                        $app,
+                        $table,
+                        $spreadsheetId,
+                        $sheetName,
+                        $fields
+                    );
+                },
+                $decaySeconds = 60
+            );
 
-        if (! $executed) {
-            $secondsRemaining = RateLimiter::availableIn($rateLimitKey);
-            Log::warning("SyncSingleTableSheetJob: rate limit hit for app [{$app->id}], releasing for {$secondsRemaining}s");
-            $this->release(max($secondsRemaining, 10));
-            return;
+            if (! $executed) {
+                $secondsRemaining = RateLimiter::availableIn($rateLimitKey);
+                Log::warning("SyncSingleTableSheetJob: rate limit hit for app [{$app->id}], releasing for {$secondsRemaining}s");
+                $this->release(max($secondsRemaining, 10));
+                return;
+            }
+
+            // 3. Record Sync Metadata & reset status to idle
+            $fullConfig = $table->fresh()->source_config ?? [];
+            $fullConfig['google_sheet']['inbound_sync_status'] = 'idle';
+            $fullConfig['google_sheet']['last_inbound_synced_at'] = now()->toISOString();
+            $fullConfig['google_sheet']['inbound_rows_count'] = $importedCount ?? 0;
+            $table->update(['source_config' => $fullConfig]);
+
+            Log::info("SyncSingleTableSheetJob: successfully synced table [{$table->name}] ({$importedCount} rows)");
+        } catch (\Throwable $e) {
+            $fullConfig = $table->fresh()->source_config ?? [];
+            $fullConfig['google_sheet']['inbound_sync_status'] = 'failed';
+            $fullConfig['google_sheet']['inbound_sync_error'] = $e->getMessage();
+            $table->update(['source_config' => $fullConfig]);
+
+            Log::error("SyncSingleTableSheetJob failed for table [{$table->name}]: " . $e->getMessage());
+            throw $e;
         }
-
-        // 3. Record Sync Metadata
-        $fullConfig = $table->source_config ?? [];
-        $fullConfig['google_sheet']['last_inbound_synced_at'] = now()->toISOString();
-        $fullConfig['google_sheet']['inbound_rows_count'] = $importedCount ?? 0;
-        $table->update(['source_config' => $fullConfig]);
-
-        Log::info("SyncSingleTableSheetJob: successfully synced table [{$table->name}] ({$importedCount} rows)");
     }
 }

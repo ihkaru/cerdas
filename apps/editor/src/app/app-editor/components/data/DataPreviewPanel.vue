@@ -173,8 +173,8 @@ async function pullFromSheet(): Promise<void> {
     try {
         const res = await GoogleSheetApi.pullSheetData(String(id));
         f7.toast.show({
-            text: res.message || `Berhasil menyinkronkan ${res.rows_imported} baris data!`,
-            closeTimeout: 2500,
+            text: res.message || (res.queued ? 'Sinkronisasi dijadwalkan di latar belakang.' : `Berhasil menyinkronkan ${res.rows_imported ?? 0} baris data!`),
+            closeTimeout: 3000,
         });
         await fetchRecords();
     } catch (e: unknown) {

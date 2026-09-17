@@ -230,7 +230,7 @@ export function useGoogleSheetSync(tableId: Ref<string>, appId: Ref<string>) {
   /**
    * Manually pull latest records from the connected Sheet into the Table.
    */
-  async function triggerPullFromSheet(): Promise<{ success: boolean; rows_imported: number; message: string }> {
+  async function triggerPullFromSheet(): Promise<{ success: boolean; rows_imported?: number; queued?: boolean; message: string }> {
     if (!tableId.value) return { success: false, rows_imported: 0, message: 'No table selected' };
     try {
       isLoading.value = true;

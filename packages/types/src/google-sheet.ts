@@ -23,6 +23,10 @@ export interface GoogleSheetConfig {
   spreadsheet_url: string;
   tabs: GoogleSheetTabConfig[];
   sync_enabled: boolean;
+  inbound_sync_enabled?: boolean;
+  inbound_sync_status?: 'idle' | 'syncing' | 'failed';
+  inbound_rows_count?: number;
+  last_inbound_synced_at?: string | null;
   last_synced_at: string | null;
   total_rows_synced: number;
 }

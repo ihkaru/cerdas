@@ -2,6 +2,7 @@
 
 namespace App\Actions\GoogleSheet;
 
+use App\Jobs\SyncSingleTableSheetJob;
 use App\Models\App;
 use App\Models\Table;
 use App\Models\View;
@@ -123,27 +124,14 @@ class CreateTableFromSheetAction
             ];
         });
 
-        // Pull initial rows into AppRecords & Assignments
-        $rowsImported = 0;
-        try {
-            $rowsImported = $this->importRowsAction->execute(
-                $app,
-                $result['table'],
-                $spreadsheetId,
-                $sheetName,
-                $columns
-            );
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning('CreateTableFromSheetAction: initial row pull warning', [
-                'table_id' => $result['table']->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        // Dispatch initial rows pull into background queue worker (avoids Traefik HTTP timeout for 30k rows)
+        SyncSingleTableSheetJob::dispatch($result['table']->id, force: true);
 
         return [
             'table' => $result['table'],
             'view' => $result['view'],
-            'rows_imported' => $rowsImported,
+            'rows_imported' => 0,
+            'queued' => true,
         ];
     }
 }
