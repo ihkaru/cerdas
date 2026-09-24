@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.54](https://github.com/ihkaru/cerdas/compare/v0.2.53...v0.2.54) (2026-09-24)
+
+
+### Features
+
+* **backend:** implement agentic super admin REST API for production monitoring and remediation ([8bac66d](https://github.com/ihkaru/cerdas/commit/8bac66d91f13f0ea6e96430713ae2779eb27c42b))
+* **editor:** implement developer API key management, state rollback, and UX/UI refinement ([7be8126](https://github.com/ihkaru/cerdas/commit/7be8126087dd1003eb75f36d6414d0fb9a327665))
+* **sync:** anchor sheet sync to natural primary key and prevent duplicate ghost assignments ([e6cd256](https://github.com/ihkaru/cerdas/commit/e6cd256a80e3eafac0e854f175106cd591ef21aa))
+* **sync:** scale google sheet inbound sync for large datasets ([d26674b](https://github.com/ihkaru/cerdas/commit/d26674bc039a6c5dcd36ac8e39edf9ed9b0c98df))
+* **sync:** support 100k+ rows extreme-scale 2-way google sheet sync ([76b39ae](https://github.com/ihkaru/cerdas/commit/76b39ae2068fdb76db18952d81340b4e2fd74f8e))
+
+
+### Bug Fixes
+
+* **backend:** append rows after table instead of inserting at row A1 ([25c6b51](https://github.com/ihkaru/cerdas/commit/25c6b51f527929538fecac4b28cf8071cc5f4abc))
+* **deploy:** prevent build OOM on coolify and deduplicate backend builds ([87a6b0a](https://github.com/ihkaru/cerdas/commit/87a6b0ab7d74eedda55ee912871af0cb83cad401))
+* **editor:** resolve runtime error and missing patch method in Google Sheet sync panel ([3ba75f2](https://github.com/ihkaru/cerdas/commit/3ba75f2c689d6a627b9c056bee82496dd754e4d5))
+* **form-engine:** resolve external link routing and use geo intent on android ([88a29b7](https://github.com/ihkaru/cerdas/commit/88a29b77d91c4b75ab1f98cf8737f7635e17c230))
+* **form-engine:** support cross-platform deep linking for google maps directions ([5cc320d](https://github.com/ihkaru/cerdas/commit/5cc320d8a25f4c2708d95f40ebe0d152e1dd4113))
+
 ## [0.2.53](https://github.com/ihkaru/cerdas/compare/v0.2.52...v0.2.53) (2026-09-02)
 
 
