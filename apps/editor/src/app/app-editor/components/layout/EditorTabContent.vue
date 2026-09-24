@@ -185,20 +185,10 @@
 
         <!-- Code Tab -->
         <div v-show="activeTab === 'code'" class="tab-content code-content">
-            <template v-if="true">
-                <div class="code-editor-panel"
-                    :style="{ width: panels.codeEditorWidth + 'px', minWidth: '400px', maxWidth: '1000px' }">
-                    <CodeEditorTab 
-                        @apply="(payload: any) => $emit('code-apply', payload)" />
-                </div>
-                <ResizableDivider @resize-start="panels.codeEditorBaseWidth = panels.codeEditorWidth"
-                    @resize="(delta) => panels.codeEditorWidth = Math.max(400, Math.min(1000, panels.codeEditorBaseWidth + delta))" />
-                <div class="code-preview-placeholder">
-                    <f7-icon f7="doc_text" size="48" />
-                    <p>JSON Preview Area</p>
-                    <small>Drag the divider to resize the editor</small>
-                </div>
-            </template>
+            <div class="code-editor-panel-full">
+                <CodeEditorTab 
+                    @apply="(payload: any) => $emit('code-apply', payload)" />
+            </div>
         </div>
 
         <!-- Trash Modal for Soft-Deleted Data Sources -->
@@ -558,5 +548,15 @@ defineExpose({ switchToDataPreview });
     border-bottom-color: #2563eb;
     background: #fff;
     font-weight: 600;
+}
+
+.code-editor-panel-full {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 </style>

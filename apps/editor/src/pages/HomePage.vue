@@ -1,11 +1,10 @@
 <template>
     <f7-page name="home" class="home-page" @page:afterin="onPageAfterIn" @page:reinit="onPageReinit">
         <!-- Welcome Section -->
-
         <section class="welcome-section">
             <div class="welcome-text">
-                <h1>Welcome back, Admin</h1>
-                <p>Create and manage your data collection apps</p>
+                <h1>Welcome back, {{ userName }}</h1>
+                <p>Kelola dan pantau aplikasi pengumpulan data survei Anda</p>
             </div>
             <f7-button fill href="/apps" class="create-btn">
                 <f7-icon f7="app_badge" />
@@ -62,6 +61,9 @@
                     <f7-link href="/apps">View All →</f7-link>
                 </div>
                 <div class="form-list">
+                    <div v-if="recentTables.length === 0" class="empty-tables-hint">
+                        Belum ada tabel yang baru saja diubah.
+                    </div>
                     <a v-for="table in recentTables" :key="table.id" :href="`/tables/${table.id}`" class="form-item">
                         <div class="form-icon" :class="table.status">
                             <f7-icon :f7="table.icon" />
@@ -90,7 +92,7 @@
                         </div>
                         <div class="action-text">
                             <div class="action-title">New App</div>
-                            <div class="action-desc">Create new application</div>
+                            <div class="action-desc">Buat aplikasi baru</div>
                         </div>
                     </a>
                     <a href="/organizations" class="action-card">
@@ -99,7 +101,7 @@
                         </div>
                         <div class="action-text">
                             <div class="action-title">Organizations</div>
-                            <div class="action-desc">Manage user groups</div>
+                            <div class="action-desc">Grup &amp; akses tim</div>
                         </div>
                     </a>
                     <a href="/api-keys" class="action-card">
@@ -108,33 +110,43 @@
                         </div>
                         <div class="action-text">
                             <div class="action-title">API Keys</div>
-                            <div class="action-desc">Manage access tokens</div>
+                            <div class="action-desc">Token integrasi REST</div>
                         </div>
                     </a>
-                    <a href="/applications" class="action-card">
-                        <div class="action-icon purple">
-                            <f7-icon f7="person_2_fill" />
+                    <a href="javascript:void(0)" @click="showTrashModal = true" class="action-card">
+                        <div class="action-icon rose">
+                            <f7-icon f7="trash_fill" />
                         </div>
                         <div class="action-text">
-                            <div class="action-title">Apps &amp; Team</div>
-                            <div class="action-desc">Manage applications</div>
+                            <div class="action-title">Trash &amp; Arsip</div>
+                            <div class="action-desc">Pulihkan data ({{ trashedCount }})</div>
                         </div>
                     </a>
                 </div>
             </section>
         </div>
+
+        <AppTrashModal v-model:opened="showTrashModal" @restored="onAppRestored" />
     </f7-page>
 </template>
 
 <script setup lang="ts">
 import { useAppStore, type RecentTable } from '@/stores';
-import { computed } from 'vue';
+import { useAuthStore } from '@/stores/auth.store';
+import { computed, ref } from 'vue';
+import AppTrashModal from '@/pages/components/AppTrashModal.vue';
 
 const appStore = useAppStore();
+const authStore = useAuthStore();
+const showTrashModal = ref(false);
 
-// ============================================================================
-// State
-// ============================================================================
+const userName = computed(() => {
+    return authStore.user?.name || 'Creator';
+});
+
+const trashedCount = computed(() => {
+    return appStore.trashedApps?.length || 0;
+});
 
 const stats = computed(() => appStore.stats);
 
@@ -143,7 +155,7 @@ const recentTables = computed(() => {
         id: t.id,
         name: t.name,
         appName: t.app_name || 'Unknown App',
-        icon: 'doc_text_fill', // Default icon
+        icon: 'doc_text_fill',
         status: t.version ? 'v' + t.version : 'Draft',
         updatedAt: new Date(t.updated_at).toLocaleDateString(undefined, {
             month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -151,24 +163,23 @@ const recentTables = computed(() => {
     }));
 });
 
-
 const onPageAfterIn = () => {
-    console.log('[DEBUG-PERF] [HomePage] page:afterin triggered. Fetching dashboard...');
     appStore.fetchDashboard();
+    appStore.fetchTrashedApps();
 };
 
 const onPageReinit = () => {
-    console.log('[HomePage] page:reinit triggered (cached page re-activated)');
     appStore.fetchDashboard();
+    appStore.fetchTrashedApps();
 };
 
+function onAppRestored() {
+    appStore.fetchDashboard();
+    appStore.fetchTrashedApps();
+}
 </script>
 
 <style scoped>
-/* ============================================================================
-   Home Page Content Styles
-   ============================================================================ */
-
 .home-page {
     padding: 24px 32px;
     background: #f8fafc;
@@ -304,6 +315,13 @@ const onPageReinit = () => {
     flex-direction: column;
 }
 
+.empty-tables-hint {
+    padding: 24px 0;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 13.5px;
+}
+
 .form-item {
     display: flex;
     align-items: center;
@@ -412,6 +430,7 @@ const onPageReinit = () => {
     border-radius: 10px;
     text-decoration: none;
     transition: all 0.15s;
+    cursor: pointer;
 }
 
 .action-card:hover {
@@ -443,9 +462,9 @@ const onPageReinit = () => {
     color: #ea580c;
 }
 
-.action-icon.purple {
-    background: #e9d5ff;
-    color: #9333ea;
+.action-icon.rose {
+    background: #ffe4e6;
+    color: #e11d48;
 }
 
 .action-icon :deep(.icon) {

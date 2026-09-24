@@ -54,16 +54,16 @@
         <!-- Editor Menu Popover -->
         <f7-popover class="editor-menu-popover">
             <f7-list>
-                <f7-list-item link="#" popover-close title="Import JSON">
+                <f7-list-item link="#" popover-close title="Import JSON (Code Editor)" @click="emit('switch-tab', 'code')">
                     <f7-icon slot="media" f7="arrow_down_doc" />
                 </f7-list-item>
                 <f7-list-item link="#" popover-close title="Export JSON" @click="emit('export')">
                     <f7-icon slot="media" f7="arrow_up_doc" />
                 </f7-list-item>
-                <f7-list-item link="#" popover-close title="Preview in App">
+                <f7-list-item link="#" popover-close title="Preview in Mobile App" @click="emit('preview-app')">
                     <f7-icon slot="media" f7="device_phone_portrait" />
                 </f7-list-item>
-                <f7-list-item link="#" popover-close title="Version History">
+                <f7-list-item link="#" popover-close title="Version History" @click="emit('switch-tab', 'settings')">
                     <f7-icon slot="media" f7="clock" />
                 </f7-list-item>
             </f7-list>
@@ -113,6 +113,8 @@ const emit = defineEmits<{
     publish: [];
     back: [];
     export: [];
+    'switch-tab': [tabId: string];
+    'preview-app': [];
 }>();
 </script>
 

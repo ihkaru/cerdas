@@ -6,7 +6,9 @@
                 :is-published="isPublished" :version="currentVersion" :can-publish="!isPublished"
                 @rename="handleRename" @rename-table="handleRename" @rename-app="handleRenameApp"
                 @save="handleSave" @publish="onPublish" @back="() => handleBack(isGlobalDirty)"
-                @export="exportTable" />
+                @export="exportTable"
+                @switch-tab="(tab) => activeTab = tab"
+                @preview-app="handlePreviewApp" />
         </template>
 
         <template #sidebar>
@@ -146,6 +148,19 @@ function handleRenameApp() {
             f7.dialog.alert(err instanceof Error ? err.message : 'Gagal mengubah nama aplikasi');
         }
     }, () => {}, currentName);
+}
+
+function handlePreviewApp() {
+    const slug = appStore.currentApp?.slug || (props.f7route?.params?.slug ?? '');
+    if (slug) {
+        window.open(`/client/?app=${encodeURIComponent(slug)}`, '_blank');
+    } else {
+        f7.toast.show({
+            text: 'Live preview aktif pada panel kanan editor.',
+            position: 'center',
+            closeTimeout: 2000,
+        });
+    }
 }
 
 // Publish Dialog State
