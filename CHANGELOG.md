@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.55](https://github.com/ihkaru/cerdas/compare/v0.2.54...v0.2.55) (2026-09-24)
+
+
+### Features
+
+* **editor:** improve UX, add command palette and profile modal ([df58ecc](https://github.com/ihkaru/cerdas/commit/df58ecc7bee94bf332ffd553a8e2fd294ac6fb45))
+
+
+### Bug Fixes
+
+* **form-engine:** remove unused getGoogleMapsUrl imports breaking CI build and lint ([5902ca1](https://github.com/ihkaru/cerdas/commit/5902ca170dc1c80f61ddcc8d8dacd8604dde09a4))
+
 ## [0.2.54](https://github.com/ihkaru/cerdas/compare/v0.2.53...v0.2.54) (2026-09-24)
 
 
