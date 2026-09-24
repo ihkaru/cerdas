@@ -8,6 +8,7 @@ import AppsPage from './pages/AppsPage.vue';
 import HomePage from './pages/HomePage.vue';
 import LoginPage from './pages/LoginPage.vue';
 import OrganizationsPage from './pages/OrganizationsPage.vue';
+import ApiKeysPage from './pages/ApiKeysPage.vue';
 
 // Guard: Check if authenticated
 const checkAuth = async ({ resolve }: any) => {
@@ -62,6 +63,16 @@ const routes: Router.RouteParameters[] = [
   {
     path: '/applications',
     component: AppsPage,
+    beforeEnter: beforeEnterGuard,
+  },
+  {
+    path: '/apps',
+    component: AppsPage,
+    beforeEnter: beforeEnterGuard,
+  },
+  {
+    path: '/api-keys',
+    component: ApiKeysPage,
     beforeEnter: beforeEnterGuard,
   },
   {

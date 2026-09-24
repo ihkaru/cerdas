@@ -63,6 +63,11 @@
                     <f7-icon f7="building_2_fill" />
                     <span>Organizations</span>
                 </a>
+                <a href="javascript:void(0)" @click.prevent="navigate('/api-keys')" class="nav-item"
+                    :class="{ active: currentPath.startsWith('/api-keys') }">
+                    <f7-icon f7="key_fill" />
+                    <span>API Keys</span>
+                </a>
                 <a href="javascript:void(0)" @click.prevent="showTrashModal = true" class="nav-item">
                     <f7-icon f7="trash_fill" />
                     <span>Trash</span>
@@ -366,6 +371,13 @@ const navigate = (path: string) => {
     font-size: 14px;
     font-weight: 500;
     transition: all 0.15s;
+    min-width: 0;
+}
+
+.nav-item span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .nav-item:hover {

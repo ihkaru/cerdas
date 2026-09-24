@@ -102,22 +102,22 @@
                             <div class="action-desc">Manage user groups</div>
                         </div>
                     </a>
-                    <a href="#" class="action-card">
+                    <a href="/api-keys" class="action-card">
                         <div class="action-icon orange">
-                            <f7-icon f7="doc_on_doc_fill" />
+                            <f7-icon f7="key_fill" />
                         </div>
                         <div class="action-text">
-                            <div class="action-title">Templates</div>
-                            <div class="action-desc">Start from template</div>
+                            <div class="action-title">API Keys</div>
+                            <div class="action-desc">Manage access tokens</div>
                         </div>
                     </a>
-                    <a href="#" class="action-card">
+                    <a href="/applications" class="action-card">
                         <div class="action-icon purple">
                             <f7-icon f7="person_2_fill" />
                         </div>
                         <div class="action-text">
-                            <div class="action-title">Team</div>
-                            <div class="action-desc">Manage members</div>
+                            <div class="action-title">Apps &amp; Team</div>
+                            <div class="action-desc">Manage applications</div>
                         </div>
                     </a>
                 </div>
@@ -352,6 +352,9 @@ const onPageReinit = () => {
     font-size: 14px;
     font-weight: 500;
     color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .form-meta {
@@ -364,6 +367,7 @@ const onPageReinit = () => {
 
 .form-status {
     text-align: right;
+    flex-shrink: 0;
 }
 
 .status-badge {

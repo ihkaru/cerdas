@@ -1,11 +1,18 @@
 <template>
     <f7-page name="organizations" class="organizations-page">
         <!-- Page Header -->
-        <f7-navbar title="Organizations" back-link="Back">
-            <f7-nav-right>
-                <f7-link icon-f7="plus" @click="showCreateDialog">Add</f7-link>
-            </f7-nav-right>
-        </f7-navbar>
+        <div class="page-header">
+            <div class="header-info">
+                <h1>Organizations</h1>
+                <p>Manage user groups and access control</p>
+            </div>
+            <div class="header-actions">
+                <f7-button fill @click="showCreateDialog" class="create-btn">
+                    <f7-icon f7="plus" size="14" class="margin-right-half" />
+                    New Organization
+                </f7-button>
+            </div>
+        </div>
 
         <f7-searchbar search-container=".search-list" search-in=".item-title" :disable-button="false"
             placeholder="Search organizations..." :clear-button="true"></f7-searchbar>
@@ -35,10 +42,6 @@
                 <f7-list-item v-if="publicOrgs.length === 0" title="No public organizations"></f7-list-item>
             </f7-list>
         </div>
-
-        <f7-block class="searchbar-not-found">
-            <div class="empty-state">No organizations found.</div>
-        </f7-block>
 
         <f7-block class="searchbar-not-found">
             <div class="empty-state">No organizations found.</div>
@@ -158,3 +161,45 @@ onMounted(() => {
     fetchOrgs();
 });
 </script>
+
+<style scoped>
+.organizations-page {
+    padding: 24px 32px;
+    background: #f8fafc;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.header-info h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 4px 0;
+}
+
+.header-info p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+
+.create-btn {
+    --f7-button-bg-color: #2563eb;
+    --f7-button-hover-bg-color: #1d4ed8;
+    border-radius: 8px;
+    font-weight: 500;
+    height: 38px;
+}
+
+.empty-state {
+    text-align: center;
+    color: #64748b;
+    padding: 32px 16px;
+    font-size: 14px;
+}
+</style>

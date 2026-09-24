@@ -187,11 +187,36 @@ sequenceDiagram
 
 ---
 
+## 6. Editor Developer & API Keys Flow
+
+**Goal**: Kelola API Key terprogram, rotasi token, batasan scope, rollback state, dan dokumentasi REST API.
+**Route**: `/api-keys`
+**Component**: `ApiKeysPage.vue`
+**Context**: Secure (Requires Auth).
+
+### Flow & Capabilities
+1. **Navigasi**: Dapat diakses via Sidebar desktop `/api-keys` atau Quick Action di Dashboard.
+2. **Pembuatan Kunci (Create)**:
+   - Pengguna memilih nama, environment (`Live` vs `Test`), masa berlaku (30/60/90/365 hari atau tanpa batas), dan cakupan granular (`apps:read`, `tables:read`, `records:write`, dll.).
+   - Kunci rahasia mentah (misal: `crd_live_...`) ditampilkan **hanya sekali** via `ApiKeySecretModal` dengan opsi 1-klik salin dan peringatan keamanan.
+3. **State Rollback (Undo / Balik ke State Sebelumnya)**:
+   - Setiap mutasi (buat, ubah, cabut/revoke, hapus) merekam snapshot ke dalam Memento history stack.
+   - Tersedia tombol "Kembalikan State (Undo)" di header halaman dan aksi undo pada banner toast notifikasi untuk memulihkan state sebelumnya secara instan.
+4. **Dokumentasi REST API Interaktif**:
+   - Modal dokumentasi terintegrasi mencakup panduan header `Authorization: Bearer`, katalog endpoint standar industri (September 2026), status rate-limit IETF, dan cuplikan kode interaktif multi-bahasa (cURL, TypeScript, Python).
+
+---
+
 ## Routing Implementation Reference
 
 | Route | Component | Guard | Props | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `/` | `HomePage` | **Auth** | - | Main Dashboard. Resolves Login if unauth. |
 | `/login` | `Login` | Guest | - | Login Screen. |
+| `/applications` | `AppsPage` | **Auth** | - | Apps Catalog & Creation. |
+| `/organizations` | `OrganizationsPage` | **Auth** | - | Organizations & Multi-tenancy. |
+| `/api-keys` | `ApiKeysPage` | **Auth** | - | Developer & API Key Management. |
+| `/apps/:slug` | `AppDetailPage` | **Auth** | `slug` | App details, members, and orgs. |
+| `/editor/:slug` | `AppEditorPage` | **Auth** | `slug` | Visual Form/View/Schema Builder. |
 | `/assignments/:id` | `AssignmentDetail` | **Auth** | `id` | Form Entry. |
 | `/sync` | `SyncPage` | **Auth** | - | Dedicated Sync Page. |

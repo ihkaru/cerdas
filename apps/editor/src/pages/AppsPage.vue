@@ -528,6 +528,9 @@ onBeforeUnmount(() => {
     font-weight: 600;
     color: #1e293b;
     margin: 0 0 8px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .card-body p {
@@ -535,6 +538,11 @@ onBeforeUnmount(() => {
     color: #64748b;
     margin: 0;
     line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 38px;
 }
 
 .card-stats {

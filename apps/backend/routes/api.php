@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Agent\AgentDataController;
 use App\Http\Controllers\Api\Agent\AgentSchemaController;
 use App\Http\Controllers\Api\Agent\AgentSyncController;
 use App\Http\Controllers\Api\Agent\AgentSystemController;
+use App\Http\Controllers\Api\ApiKeyController;
 use App\Http\Controllers\Api\ApkController;
 use App\Http\Controllers\Api\AppController;
 use App\Http\Controllers\Api\AppSchemaController;
@@ -180,6 +181,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+
+    // API Keys Management
+    Route::prefix('api-keys')->group(function () {
+        Route::get('/', [ApiKeyController::class, 'index']);
+        Route::post('/', [ApiKeyController::class, 'store']);
+        Route::put('/{id}', [ApiKeyController::class, 'update']);
+        Route::delete('/{id}', [ApiKeyController::class, 'destroy']);
+        Route::post('/restore', [ApiKeyController::class, 'restore']);
+    });
 
     // Tables Management
     Route::prefix('tables')->group(function () {
