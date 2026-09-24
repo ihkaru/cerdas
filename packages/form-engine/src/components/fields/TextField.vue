@@ -51,7 +51,6 @@ import { computed, onMounted, ref, watch } from 'vue';
 import type { FieldDefinition } from '../../types/schema';
 import {
   parseCoordsString,
-  getGoogleMapsUrl,
   getDirectionsUrl,
   openMapDirections,
   isMobileDevice

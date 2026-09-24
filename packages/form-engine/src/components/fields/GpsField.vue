@@ -253,7 +253,6 @@ import {
     getCurrentPosition,
     getDirectionsUrl,
     getGeoErrorMessage,
-    getGoogleMapsUrl,
     isMobileDevice,
     openMapDirections,
     parseCoordsString

@@ -1,4 +1,4 @@
-import { getDirectionsUrl, getGoogleMapsUrl, isMobileDevice, maplibregl } from '@cerdas/form-engine';
+import { getDirectionsUrl, isMobileDevice, maplibregl } from '@cerdas/form-engine';
 import { f7 } from 'framework7-vue';
 import type { Ref, ShallowRef } from 'vue';
 import { getCoordinates, resolvePath } from '../utils/mapCoordinates';
