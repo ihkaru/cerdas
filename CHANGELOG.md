@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.56](https://github.com/ihkaru/cerdas/compare/v0.2.55...v0.2.56) (2026-09-25)
+
+
+### Features
+
+* **editor:** apply Impeccable standards, overhaul post-login pages, and SRP refactor ([50d331f](https://github.com/ihkaru/cerdas/commit/50d331f9fc96571594574b936bbbdd5d1ed15c3a))
+
 ## [0.2.55](https://github.com/ihkaru/cerdas/compare/v0.2.54...v0.2.55) (2026-09-24)
 
 
