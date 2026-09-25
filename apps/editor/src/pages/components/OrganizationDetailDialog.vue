@@ -75,16 +75,20 @@
 import { ApiClient } from '@/common/api/ApiClient';
 import { f7, f7Badge, f7Block, f7BlockFooter, f7BlockTitle, f7Button, f7Link, f7List, f7ListInput, f7ListItem, f7Navbar, f7NavRight, f7Page, f7Popup, f7Tab, f7Tabs, f7Toolbar } from 'framework7-vue';
 import { reactive, ref, watch } from 'vue';
+import type { OrganizationInvitation, OrganizationItem, OrganizationMember } from './organizations/organizations.types';
 
 const props = defineProps<{
     opened: boolean;
-    organization: any;
+    organization: OrganizationItem | null;
 }>();
 
-const emit = defineEmits(['update:opened', 'refresh']);
+const emit = defineEmits<{
+    (e: 'update:opened', val: boolean): void;
+    (e: 'refresh'): void;
+}>();
 
-const members = ref<any[]>([]);
-const invitations = ref<any[]>([]);
+const members = ref<OrganizationMember[]>([]);
+const invitations = ref<OrganizationInvitation[]>([]);
 const editOrg = reactive({ name: '', code: '' });
 const saving = ref(false);
 const newMemberEmail = ref('');
@@ -131,39 +135,59 @@ async function fetchMembers() {
 }
 
 async function addMember() {
-    if (!newMemberEmail.value || !props.organization) return;
+    const emailToAdd = newMemberEmail.value.trim();
+    if (!emailToAdd || !props.organization) return;
     addingMember.value = true;
     try {
+        const res = await ApiClient.post(`/organizations/${props.organization.id}/members`, { email: emailToAdd, role: 'member' });
         newMemberEmail.value = '';
-        fetchMembers();
-        f7.toast.create({ text: (await ApiClient.post(`/organizations/${props.organization.id}/members`, { email: newMemberEmail.value, role: 'member' })).data.message, closeTimeout: 2000 }).open();
+        await fetchMembers();
+        f7.toast.create({ text: res.data.message || 'Anggota berhasil ditambahkan', closeTimeout: 2000 }).open();
     } catch (e: any) {
         console.error('Add member failed', e);
         // If 409, message is "User already invited"
-        f7.toast.create({ text: e.response?.data?.message || 'Failed to add member', closeTimeout: 2000, cssClass: 'color-red' }).open();
+        f7.toast.create({ text: e.response?.data?.message || 'Gagal menambahkan anggota', closeTimeout: 2000, cssClass: 'color-red' }).open();
     } finally {
         addingMember.value = false;
     }
 }
 
-async function removeMember(user: any) {
-    if (!confirm(`Remove ${user.name}?`)) return;
-    try {
-        await ApiClient.delete(`/organizations/${props.organization.id}/members/${user.id}`);
-        fetchMembers();
-    } catch (e) {
-        console.error('Remove member failed', e);
-    }
+async function removeMember(user: OrganizationMember) {
+    f7.dialog.confirm(
+        `Keluarkan ${user.name || user.email} dari organisasi?`,
+        'Hapus Anggota',
+        async () => {
+            if (!props.organization) return;
+            try {
+                await ApiClient.delete(`/organizations/${props.organization.id}/members/${user.id}`);
+                await fetchMembers();
+                f7.toast.create({ text: 'Anggota berhasil dikeluarkan', closeTimeout: 2000 }).open();
+            } catch (err: unknown) {
+                console.error('Remove member failed', err);
+                const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Gagal mengeluarkan anggota';
+                f7.toast.create({ text: msg, closeTimeout: 2000, cssClass: 'color-red' }).open();
+            }
+        }
+    );
 }
 
-async function cancelInvitation(invite: any) {
-    if (!confirm(`Cancel invitation for ${invite.email}?`)) return;
-    try {
-        await ApiClient.delete(`/organizations/${props.organization.id}/invitations/${invite.id}`);
-        fetchMembers();
-    } catch (e) {
-        console.error('Cancel failed', e);
-    }
+async function cancelInvitation(invite: OrganizationInvitation) {
+    f7.dialog.confirm(
+        `Batalkan undangan untuk ${invite.email}?`,
+        'Batalkan Undangan',
+        async () => {
+            if (!props.organization) return;
+            try {
+                await ApiClient.delete(`/organizations/${props.organization.id}/invitations/${invite.id}`);
+                await fetchMembers();
+                f7.toast.create({ text: 'Undangan dibatalkan', closeTimeout: 2000 }).open();
+            } catch (err: unknown) {
+                console.error('Cancel failed', err);
+                const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Gagal membatalkan undangan';
+                f7.toast.create({ text: msg, closeTimeout: 2000, cssClass: 'color-red' }).open();
+            }
+        }
+    );
 }
 
 </script>

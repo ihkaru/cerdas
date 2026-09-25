@@ -62,8 +62,10 @@ const userEmail = computed(() => authStore.user?.email || 'admin@cerdas.com');
 const userInitials = computed(() => {
   if (!userName.value) return 'AD';
   const names = userName.value.trim().split(/\s+/);
-  if (names.length >= 2) {
-    return (names[0][0] + names[1][0]).toUpperCase();
+  const first = names[0];
+  const second = names[1];
+  if (names.length >= 2 && first && second && first[0] && second[0]) {
+    return (first[0] + second[0]).toUpperCase();
   }
   return userName.value.substring(0, 2).toUpperCase();
 });

@@ -1,0 +1,130 @@
+.apps-page {
+    padding: 24px 32px;
+    background: #f8fafc;
+}
+
+.apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.add-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #cbd5e1;
+    background: transparent;
+    min-height: 220px;
+    cursor: pointer;
+    text-align: center;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.18s ease;
+}
+
+.add-card:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+    transform: translateY(-1px);
+}
+
+.add-icon {
+    color: #94a3b8;
+    margin-bottom: 12px;
+}
+
+.add-icon :deep(.icon) {
+    font-size: 36px;
+}
+
+.add-card > span {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.add-card > p {
+    font-size: 12.5px;
+    color: #64748b;
+    margin: 4px 0 0 0;
+}
+
+.sheet-add-card:hover {
+    border-color: #16a34a;
+    background: #f0fdf4;
+}
+
+.sheet-add-icon {
+    color: #16a34a;
+}
+
+.empty-state-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 56px 24px;
+    text-align: center;
+    max-width: 480px;
+    margin: 40px auto;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.empty-state-icon {
+    color: #94a3b8;
+    margin-bottom: 16px;
+    opacity: 0.7;
+}
+
+.empty-state-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 8px 0;
+}
+
+.empty-state-desc {
+    font-size: 13.5px;
+    color: #64748b;
+    line-height: 1.5;
+    margin: 0 0 24px 0;
+}
+
+.empty-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.empty-create-btn {
+    --f7-button-bg-color: #2563eb;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.empty-sheet-btn {
+    --f7-button-text-color: #16a34a;
+    --f7-button-border-color: #bbf7d0;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.clear-filter-btn {
+    all: unset;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2563eb;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    transition: all 0.15s ease;
+}
+
+.clear-filter-btn:hover {
+    background: #dbeafe;
+}

@@ -138,6 +138,8 @@ const emit = defineEmits<{
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
+    max-width: 50%;
 }
 
 .back-btn {
@@ -149,6 +151,7 @@ const emit = defineEmits<{
     border-radius: 8px;
     color: #64748b;
     text-decoration: none;
+    flex-shrink: 0;
 }
 
 .back-btn:hover {
@@ -159,6 +162,7 @@ const emit = defineEmits<{
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
 }
 
 .title-text {
@@ -168,6 +172,7 @@ const emit = defineEmits<{
     display: flex;
     align-items: center;
     gap: 0.35rem;
+    min-width: 0;
 }
 
 .app-name-wrap {
@@ -178,6 +183,7 @@ const emit = defineEmits<{
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
+    min-width: 0;
 }
 
 .app-name-wrap:hover {
@@ -192,6 +198,10 @@ const emit = defineEmits<{
     color: #64748b;
     font-weight: 500;
     font-size: 14px;
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .table-name-wrap {
@@ -202,6 +212,17 @@ const emit = defineEmits<{
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.15s ease;
+    min-width: 0;
+}
+
+.table-name {
+    color: #1e293b;
+    font-weight: 600;
+    font-size: 14px;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .table-name-wrap:hover {

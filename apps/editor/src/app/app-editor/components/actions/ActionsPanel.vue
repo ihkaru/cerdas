@@ -6,7 +6,7 @@
             <f7-block-title>Header Actions (App Level)</f7-block-title>
             <f7-list v-if="headerActions.length > 0" inset strong sortable @sortable:sort="onSortHeaderActions">
                 <f7-list-item v-for="action in headerActions" :key="action.id" :title="action.label"
-                    :footer="action.type" link="#" @click="editAction('header', action)">
+                    :footer="action.type" class="cursor-pointer" @click.prevent="editAction('header', action)">
                     <div slot="media" class="action-icon-preview"
                         :style="{ backgroundColor: getColorValue(action.color) }">
                         <f7-icon :f7="action.icon" color="white" size="18" />
@@ -25,8 +25,8 @@
             <f7-block-title>Row Actions (Per-Item)</f7-block-title>
             <f7-list v-if="rowActions.length > 0" inset strong sortable @sortable:sort="onSortRowActions">
                 <f7-list-item v-for="action in rowActions" :key="action.id" :title="action.label"
-                    :footer="action.type + (action.primary ? ' (primary)' : '')" link="#"
-                    @click="editAction('row', action)">
+                    :footer="action.type + (action.primary ? ' (primary)' : '')" class="cursor-pointer"
+                    @click.prevent="editAction('row', action)">
                     <div slot="media" class="action-icon-preview"
                         :style="{ backgroundColor: getColorValue(action.color) }">
                         <f7-icon :f7="action.icon" color="white" size="18" />
