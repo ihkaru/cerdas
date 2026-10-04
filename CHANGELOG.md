@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.57](https://github.com/ihkaru/cerdas/compare/v0.2.56...v0.2.57) (2026-10-04)
+
+
+### Features
+
+* **observability:** implement Sentry across backend, editor, and offline-first client ([8925a9e](https://github.com/ihkaru/cerdas/commit/8925a9ef722a38754beb48ca61d7ea0e58f6aca4))
+
 ## [0.2.56](https://github.com/ihkaru/cerdas/compare/v0.2.55...v0.2.56) (2026-09-25)
 
 
