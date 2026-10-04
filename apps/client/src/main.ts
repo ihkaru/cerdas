@@ -30,6 +30,7 @@ import { defineCustomElements as jeepSqlite } from 'jeep-sqlite/loader';
 import GoogleSignInPlugin from 'vue3-google-signin';
 import { databaseService } from './common/database/DatabaseService';
 import { logger } from './common/utils/logger';
+import { initSentry } from './common/services/sentry';
 
 
 // =============================================================================
@@ -228,6 +229,7 @@ async function startApp() {
 
         // Create Vue App
         const app = createApp(App);
+        initSentry(app);
 
         // Init Pinia
         const pinia = createPinia();

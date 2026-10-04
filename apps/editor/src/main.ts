@@ -48,6 +48,7 @@ import './editor-theme.css';
 // Import Pinia
 import { createPinia } from 'pinia';
 import GoogleSignInPlugin from 'vue3-google-signin';
+import { initSentry } from './common/services/sentry';
 
 console.log('[5-MAIN] All imports completed');
 
@@ -56,6 +57,7 @@ Framework7.use(Framework7Vue);
 
 // Create Vue App
 const app = createApp(App);
+initSentry(app);
 console.log('[6-MAIN] Vue app created');
 
 // Initialize Pinia

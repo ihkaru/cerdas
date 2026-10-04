@@ -35,6 +35,7 @@
     "pinia": "^3.0.4",
     "uuid": "^13.0.0",
     "vue": "^3.5.24",
+    "@sentry/vue": "^11.4.0",
     "vue3-google-login": "latest",
     "vue3-google-signin": "^2.1.1"
   },
