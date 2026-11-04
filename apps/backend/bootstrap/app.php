@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
+        $middleware->prepend(\App\Http\Middleware\NormalizeApiKeyHeaders::class);
         $middleware->prepend(\App\Http\Middleware\HandleOptionsGracefully::class);
         $middleware->trustProxies(at: [
             '*',
@@ -28,7 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
             return route('login');
         });
         $middleware->alias([
-            'agent.auth' => \App\Http\Middleware\AuthenticateSuperAdminApiKey::class,
+            'agent.auth' => \App\Http\Middleware\AuthenticateApiKey::class,
+            'api.auth' => \App\Http\Middleware\AuthenticateApiKey::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -1,0 +1,50 @@
+# 2. Batasan Arsitektur (Architecture Constraints)
+
+> [!INFO] **Architecture Provenance & Freshness**
+> - **Verified Commit**: `8925a9e` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-04T13:37:00+07:00`
+> - **Tracked Paths**: `apps/`, `packages/`
+> - **Drift Status**: `verified`
+
+Dokumen ini menguraikan batasan teknis, operasional, dan organisasi yang memandu dan membatasi keputusan arsitektur platform **Cerdas**.
+
+---
+
+## 2.1 Batasan Teknis (Technical Constraints)
+
+1. **Lingkungan Runtime Backend**:
+   - Runtime PHP versi 8.2+ dengan ekstensi wajib `pcntl`, `gd`, `zip`, `intl`, `pdo_mysql`, `pdo_sqlite`.
+   - Menggunakan kerangka kerja **Laravel 12** yang dioptimalkan dengan **Laravel Octane** di atas server aplikasi **FrankenPHP**.
+   - Mengharuskan kepatuhan *worker mode* (bebas dari *memory leak*, siklus hidup *dependency injection* yang aman, dan isolasi *request state*).
+
+2. **Lingkungan Runtime Frontend & Mobile**:
+   - Runtime Node.js 22+ dikelola menggunakan package manager **pnpm** dalam monorepo workspace.
+   - PWA dan mobile client dibangun dengan **Vue 3** (Composition API) dan komponen antarmuka mobile **Framework7**.
+   - Pengemasan aplikasi mobile Android asli menggunakan **Capacitor 6+** dengan bridge plugin native untuk GPS, Camera, dan SQLite.
+
+3. **Manajemen Basis Data & Sinkronisasi**:
+   - Server-side database: **MySQL 8.0+** / MariaDB 10.11+ dengan struktur kolom JSON terindeks dan integritas relasional ber-UUID.
+   - Client-side offline database: **SQLite 3** lokal pada storage perangkat mobile yang persisten terhadap restart aplikasi.
+   - Arsitektur sinkronisasi: Sinkronisasi delta dua arah berbasis stempel waktu server (*server_time*) dan kursor pagination untuk mencegah saturasi memori pada dataset puluhan ribu baris.
+
+---
+
+## 2.2 Batasan Operasional & Infrastruktur (Operational Constraints)
+
+1. **Lingkungan Kontainer Mandiri (Self-Hosted Docker)**:
+   - Seluruh ekosistem backend, real-time messaging, dan background queue worker harus dapat berjalan secara terisolasi via Docker Compose atau orkestrator Coolify pada infrastruktur server lokal maupun cloud (ThinkStation / VPS).
+2. **Keterbatasan Jaringan & Konektivitas Minimum**:
+   - Aplikasi klien mobile harus mampu berfungsi 100% tanpa jaringan internet (*air-gapped/offline-capable*). Seluruh validasi kuesioner dan eksekusi formula JavaScript harus berjalan lokal di perangkat enumerator.
+3. **Observabilitas & Manajemen Error Terdistribusi**:
+   - Mengintegrasikan pelacakan error dan performa otomatis menggunakan **Sentry SDK** pada ketiga lapisan (backend, editor, dan mobile client) dengan sanitasi data sensitif responden sebelum pengiriman telemetri.
+
+---
+
+## 2.3 Batasan Organisasi & Tata Kelola (Organizational Constraints)
+
+1. **Lisensi Sumber Terbuka Permisif**:
+   - Repositori dilisensikan di bawah **MIT License**, menjamin kebebasan modifikasi dan distribusi tanpa liabilitas copyleft bagi institusi pemerintah atau enterprise.
+2. **Kepatuhan Alur Statistik GSBPM**:
+   - Struktur entitas dan siklus hidup data harus merefleksikan proses bisnis statistik standar: *Specify Needs* (Definisi Kegiatan/App) → *Design & Build* (Kuesioner/Tabel) → *Collect* (Alokasi Prelist & Enumerasi) → *Process* (Validasi & Approval) → *Analyse & Disseminate* (Ekspor Data).
+3. **Pemberdayaan Agen AI Otonom (*Agent-First Principle*)**:
+   - Setiap fungsionalitas manajemen kegiatan, skema, penugasan, dan data prelist wajib dapat dieksekusi tanpa antarmuka grafis (headless) melalui API Key dan Agent CLI deterministik.

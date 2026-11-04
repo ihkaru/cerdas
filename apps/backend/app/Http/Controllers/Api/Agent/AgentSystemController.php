@@ -149,4 +149,49 @@ class AgentSystemController extends Controller
             'output' => trim($output),
         ]);
     }
+
+    /**
+     * Inspect immutable audit logs with filtering by action, actor, and date.
+     *
+     * GET /api/agent/v1/audit/logs
+     */
+    public function auditLogs(Request $request): JsonResponse
+    {
+        if (! Schema::hasTable('audit_logs')) {
+            return response()->json([
+                'success' => true,
+                'total' => 0,
+                'data' => [],
+            ]);
+        }
+
+        $query = \App\Models\AuditLog::query()->orderByDesc('created_at');
+
+        if ($action = $request->input('action')) {
+            $query->where('action', 'like', "%{$action}%");
+        }
+        if ($actorEmail = $request->input('actor_email')) {
+            $query->where('actor_email', 'like', "%{$actorEmail}%");
+        }
+        if ($dateFrom = $request->input('date_from')) {
+            $query->where('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo = $request->input('date_to')) {
+            $query->where('created_at', '<=', $dateTo);
+        }
+
+        $limit = min((int) $request->input('limit', 50), 200);
+        $logs = $query->paginate($limit);
+
+        return response()->json([
+            'success' => true,
+            'total' => $logs->total(),
+            'data' => $logs->items(),
+            'pagination' => [
+                'current_page' => $logs->currentPage(),
+                'last_page' => $logs->lastPage(),
+                'per_page' => $logs->perPage(),
+            ],
+        ]);
+    }
 }

@@ -189,11 +189,32 @@ class AgentAppController extends Controller
             'settings' => 'sometimes|array',
             'navigation' => 'sometimes|array',
             'view_configs' => 'sometimes|array',
+            'created_by' => 'sometimes|string|exists:users,id',
+            'owner_email' => 'sometimes|email|exists:users,email',
         ]);
+
+        // Resolve ownership transfer
+        $newOwnerId = $validated['created_by'] ?? null;
+        if (! $newOwnerId && ! empty($validated['owner_email'])) {
+            $targetUser = \App\Models\User::where('email', $validated['owner_email'])->first();
+            $newOwnerId = $targetUser?->id;
+        }
+
+        if ($newOwnerId) {
+            $validated['created_by'] = $newOwnerId;
+
+            // Ensure new owner is granted app_admin membership
+            \App\Models\AppMembership::updateOrCreate(
+                ['app_id' => $app->id, 'user_id' => $newOwnerId],
+                ['role' => 'app_admin', 'is_active' => true]
+            );
+        }
+        unset($validated['owner_email']);
 
         $beforeState = [
             'is_active' => $app->is_active,
             'mode' => $app->mode,
+            'created_by' => $app->created_by,
         ];
 
         $app->update($validated);
@@ -208,6 +229,93 @@ class AgentAppController extends Controller
             'success' => true,
             'message' => 'App updated successfully',
             'data' => $app->fresh(),
+        ]);
+    }
+
+    /**
+     * Create a new application / survey project programmatically.
+     *
+     * POST /api/agent/v1/apps
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'mode' => 'nullable|string|in:simple,complex',
+            'organization_id' => 'nullable|string|exists:organizations,id',
+            'settings' => 'nullable|array',
+            'navigation' => 'nullable|array',
+            'view_configs' => 'nullable|array',
+        ]);
+
+        $user = $request->user();
+        $slug = \Illuminate\Support\Str::slug($validated['name']);
+
+        // Ensure unique slug
+        $originalSlug = $slug;
+        $counter = 1;
+        while (App::withTrashed()->where('slug', $slug)->exists()) {
+            $slug = "{$originalSlug}-{$counter}";
+            $counter++;
+        }
+
+        $app = new App;
+        $app->id = (string) \Illuminate\Support\Str::uuid();
+        $app->name = $validated['name'];
+        $app->slug = $slug;
+        $app->description = $validated['description'] ?? null;
+        $app->mode = $validated['mode'] ?? 'simple';
+        $app->is_active = true;
+        $app->created_by = $user?->id;
+        $app->settings = $validated['settings'] ?? [];
+        $app->navigation = $validated['navigation'] ?? [];
+        $app->view_configs = $validated['view_configs'] ?? [];
+        $app->save();
+
+        // Attach organization
+        $orgId = $validated['organization_id'] ?? $user?->organizations()->first()?->id;
+        if ($orgId) {
+            $app->organizations()->syncWithoutDetaching([$orgId]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'App created successfully',
+            'data' => $app,
+        ], 201);
+    }
+
+    /**
+     * Delete (soft-delete) an application.
+     *
+     * DELETE /api/agent/v1/apps/{app}
+     */
+    public function destroy(Request $request, string $appId): JsonResponse
+    {
+        $app = App::where('id', $appId)->orWhere('slug', $appId)->firstOrFail();
+        $app->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'App deleted successfully',
+        ]);
+    }
+
+    /**
+     * Restore a soft-deleted application.
+     *
+     * POST /api/agent/v1/apps/{app}/restore
+     */
+    public function restore(Request $request, string $appId): JsonResponse
+    {
+        $app = App::onlyTrashed()->where('id', $appId)->orWhere('slug', $appId)->firstOrFail();
+        $app->restore();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'App restored successfully',
+            'data' => $app,
         ]);
     }
 }

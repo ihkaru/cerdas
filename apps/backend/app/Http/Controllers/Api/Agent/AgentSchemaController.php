@@ -276,4 +276,100 @@ class AgentSchemaController extends Controller
             'version' => $draft->fresh(),
         ]);
     }
+
+    /**
+     * List all tables/instruments for an app.
+     *
+     * GET /api/agent/v1/apps/{app}/tables
+     */
+    public function listTables(Request $request, string $appId): JsonResponse
+    {
+        $app = App::withTrashed()->where('id', $appId)->orWhere('slug', $appId)->firstOrFail();
+        $tables = Table::where('app_id', $app->id)
+            ->with(['latestPublishedVersion'])
+            ->orderBy('order')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'total' => $tables->count(),
+            'data' => $tables,
+        ]);
+    }
+
+    /**
+     * Create a new table/form instrument with initial fields and version.
+     *
+     * POST /api/agent/v1/apps/{app}/tables
+     */
+    public function createTable(Request $request, string $appId): JsonResponse
+    {
+        $app = App::withTrashed()->where('id', $appId)->orWhere('slug', $appId)->firstOrFail();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'fields' => 'nullable|array',
+            'publish_immediately' => 'nullable|boolean',
+        ]);
+
+        $slug = \Illuminate\Support\Str::slug($validated['name']);
+        $originalSlug = $slug;
+        $counter = 1;
+        while (Table::withTrashed()->where('app_id', $app->id)->where('slug', $slug)->exists()) {
+            $slug = "{$originalSlug}-{$counter}";
+            $counter++;
+        }
+
+        $table = new Table;
+        $table->id = (string) \Illuminate\Support\Str::uuid();
+        $table->app_id = $app->id;
+        $table->name = $validated['name'];
+        $table->slug = $slug;
+        $table->description = $validated['description'] ?? null;
+        $table->current_version = 1;
+        $table->save();
+
+        $fields = $validated['fields'] ?? [];
+        $publishImmediately = $validated['publish_immediately'] ?? false;
+
+        $version = new TableVersion;
+        $version->id = (string) \Illuminate\Support\Str::uuid();
+        $version->table_id = $table->id;
+        $version->version = 1;
+        $version->fields = $fields;
+        $version->changelog = 'Initial schema version';
+        if ($publishImmediately) {
+            $version->published_at = now();
+        }
+        $version->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Table created successfully',
+            'data' => $table->load('latestPublishedVersion'),
+        ], 201);
+    }
+
+    /**
+     * Delete (soft-delete) a table.
+     *
+     * DELETE /api/agent/v1/apps/{app}/tables/{table}
+     */
+    public function deleteTable(Request $request, string $appId, string $tableId): JsonResponse
+    {
+        $app = App::withTrashed()->where('id', $appId)->orWhere('slug', $appId)->firstOrFail();
+        $table = Table::where('app_id', $app->id)
+            ->where(function ($q) use ($tableId) {
+                $q->where('id', $tableId)->orWhere('slug', $tableId);
+            })
+            ->firstOrFail();
+
+        $table->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Table deleted successfully',
+        ]);
+    }
 }

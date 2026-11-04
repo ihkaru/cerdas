@@ -243,8 +243,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Client/Enumeration Routes
     Route::prefix('assignments')->group(function () {
         Route::get('/', [AssignmentController::class, 'index']);
+        Route::post('/', [AssignmentController::class, 'store']);
         Route::get('/{assignment}', [AssignmentController::class, 'show']);
+        Route::put('/{assignment}', [AssignmentController::class, 'update']);
+        Route::patch('/{assignment}', [AssignmentController::class, 'update']);
         Route::delete('/{assignment}', [AssignmentController::class, 'destroy']);
+        Route::post('/bulk-reassign', [AssignmentController::class, 'bulkReassign']);
+        Route::post('/bulk-delete', [AssignmentController::class, 'bulkDestroy']);
         Route::post('/import', [AssignmentController::class, 'import']);
         Route::post('/import-json', [AssignmentController::class, 'importJson']);
         Route::put('/{assignment}/prelist', [AssignmentController::class, 'updatePrelist']);
@@ -254,6 +259,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/responses/sync', [ResponseController::class, 'store']);
     Route::post('/responses/{response}/approve', [ResponseController::class, 'approve']);
     Route::post('/responses/{response}/reject', [ResponseController::class, 'reject']);
+
+    // Audit logs
+    Route::get('/audit-logs', [AgentSystemController::class, 'auditLogs']);
 
     // Excel
     Route::post('/excel/upload', [ExcelImportController::class, 'upload']);
@@ -273,20 +281,29 @@ Route::prefix('agent/v1')->middleware('agent.auth')->group(function () {
 
     // 1. Apps & High-Level Blueprints
     Route::get('/apps', [AgentAppController::class, 'index']);
+    Route::post('/apps', [AgentAppController::class, 'store']);
     Route::get('/apps/{app}', [AgentAppController::class, 'show']);
     Route::patch('/apps/{app}', [AgentAppController::class, 'update']);
+    Route::delete('/apps/{app}', [AgentAppController::class, 'destroy']);
+    Route::post('/apps/{app}/restore', [AgentAppController::class, 'restore']);
 
     // 2. Schema & Form Field Definitions & Hotfixes
+    Route::get('/apps/{app}/tables', [AgentSchemaController::class, 'listTables']);
+    Route::post('/apps/{app}/tables', [AgentSchemaController::class, 'createTable']);
     Route::get('/apps/{app}/tables/{table}', [AgentSchemaController::class, 'showTable']);
     Route::patch('/apps/{app}/tables/{table}/field', [AgentSchemaController::class, 'patchField']);
     Route::post('/apps/{app}/tables/{table}/publish', [AgentSchemaController::class, 'publishTable']);
+    Route::delete('/apps/{app}/tables/{table}', [AgentSchemaController::class, 'deleteTable']);
 
     // 3. Submissions, Querying, & Data Remediation
     Route::get('/apps/{app}/submissions', [AgentDataController::class, 'submissions']);
     Route::get('/submissions/{response}', [AgentDataController::class, 'showSubmission']);
     Route::patch('/submissions/{response}', [AgentDataController::class, 'patchSubmission']);
     Route::get('/apps/{app}/assignments', [AgentDataController::class, 'assignments']);
+    Route::post('/apps/{app}/assignments', [AgentDataController::class, 'createAssignment']);
+    Route::delete('/assignments/{assignment}', [AgentDataController::class, 'deleteAssignment']);
     Route::patch('/assignments/{assignment}/status', [AgentDataController::class, 'patchAssignmentStatus']);
+    Route::post('/apps/{app}/tables/{table}/prelist', [AgentDataController::class, 'importPrelist']);
 
     // 4. Google Sheets Sync & Queue Diagnostics
     Route::get('/sync/queue', [AgentSyncController::class, 'queue']);
@@ -298,4 +315,5 @@ Route::prefix('agent/v1')->middleware('agent.auth')->group(function () {
     Route::get('/system/health', [AgentSystemController::class, 'health']);
     Route::get('/system/failed-jobs', [AgentSystemController::class, 'failedJobs']);
     Route::post('/system/failed-jobs/retry', [AgentSystemController::class, 'retryFailedJob']);
+    Route::get('/audit/logs', [AgentSystemController::class, 'auditLogs']);
 });

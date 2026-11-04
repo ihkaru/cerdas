@@ -1,0 +1,979 @@
+#!/usr/bin/env python3
+"""
+cerdas - Agent-First CLI for Cerdas Open-Source Survey & Data Collection Platform.
+
+Conforms to 2026 Agent-First CLI Standards:
+1. Machine-Readable JSON First (predictable ok, error, code, data, suggestion).
+2. Runtime Schema Introspection (`cerdas schema --all`).
+3. Strict Non-Interactivity (flags, stdin payloads, --force, --yes, --dry-run).
+4. Context Window Discipline (--fields masking, pagination --limit, --page).
+5. Idempotent Operations & Declarative Verbs (--if-not-exists, upsert strategies).
+6. Actionable Error Handling (typed error codes, next-action suggestions).
+7. End-to-End GSBPM Statistical Workflow Alignment.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+CLI_VERSION = "1.0.0"
+CONFIG_FILE = Path.home() / ".config" / "cerdas" / "config.json"
+
+
+# ==============================================================================
+# Configuration Management
+# ==============================================================================
+
+def load_config() -> Dict[str, Any]:
+    cfg = {
+        "base_url": os.getenv("CERDAS_BASE_URL", "http://127.0.0.1:8000"),
+        "api_key": os.getenv("CERDAS_API_KEY") or os.getenv("CERDAS_SUPERADMIN_KEY", ""),
+    }
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                if saved.get("base_url") and not os.getenv("CERDAS_BASE_URL"):
+                    cfg["base_url"] = saved["base_url"].rstrip("/")
+                if saved.get("api_key") and not os.getenv("CERDAS_API_KEY") and not os.getenv("CERDAS_SUPERADMIN_KEY"):
+                    cfg["api_key"] = saved["api_key"]
+        except Exception:
+            pass
+    cfg["base_url"] = cfg["base_url"].rstrip("/")
+    return cfg
+
+
+def save_config(updates: Dict[str, Any]) -> None:
+    CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    current = {}
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                current = json.load(f)
+        except Exception:
+            pass
+    current.update(updates)
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(current, f, indent=2)
+
+
+def mask_key(k: str) -> str:
+    if not k:
+        return "<none>"
+    if len(k) <= 8:
+        return "•" * len(k)
+    return k[:6] + "•" * 12 + k[-4:]
+
+
+# ==============================================================================
+# Output & Context Filtering
+# ==============================================================================
+
+def output_result(ok: bool, data: Any = None, message: str = "", code: int = 200,
+                  suggestion: str = "", fields: Optional[str] = None,
+                  table_mode: bool = False, next_actions: Optional[List[str]] = None) -> None:
+    if not ok:
+        err_res = {
+            "ok": False,
+            "error": "request_failed" if code >= 400 else "error",
+            "code": code,
+            "message": message or "An error occurred.",
+            "suggestion": suggestion or "Check command arguments with --help or run 'cerdas schema'.",
+            "retryable": code in (408, 429, 500, 502, 503, 504),
+        }
+        print(json.dumps(err_res, indent=2))
+        sys.exit(1)
+
+    # Field Masking for Context Window Discipline
+    filtered_data = data
+    if fields and isinstance(data, (dict, list)):
+        target_fields = [f.strip() for f in fields.split(",") if f.strip()]
+        if isinstance(data, list):
+            filtered_data = [
+                {k: item[k] for k in target_fields if k in item}
+                if isinstance(item, dict) else item
+                for item in data
+            ]
+        elif isinstance(data, dict):
+            # Check if paginated container
+            if "data" in data and isinstance(data["data"], list):
+                paginated_items = [
+                    {k: item[k] for k in target_fields if k in item}
+                    if isinstance(item, dict) else item
+                    for item in data["data"]
+                ]
+                filtered_data = dict(data)
+                filtered_data["data"] = paginated_items
+            else:
+                filtered_data = {k: data[k] for k in target_fields if k in data}
+
+    res: Dict[str, Any] = {
+        "ok": True,
+        "code": code,
+        "message": message,
+        "data": filtered_data,
+    }
+    if next_actions:
+        res["next_actions"] = next_actions
+
+    if table_mode and isinstance(filtered_data, list) and len(filtered_data) > 0 and isinstance(filtered_data[0], dict):
+        # Human-readable table fallback
+        keys = list(filtered_data[0].keys())[:6]
+        header = " | ".join(f"{k:<18}" for k in keys)
+        sep = "-+-".join("-" * 18 for _ in keys)
+        print(header)
+        print(sep)
+        for row in filtered_data:
+            print(" | ".join(f"{str(row.get(k, ''))[:18]:<18}" for k in keys))
+    else:
+        print(json.dumps(res, indent=2))
+    sys.exit(0)
+
+
+# ==============================================================================
+# HTTP Transport Client
+# ==============================================================================
+
+class CerdasClient:
+    def __init__(self, base_url: str, api_key: str):
+        self.base_url = base_url.rstrip("/")
+        self.api_key = api_key
+
+    def request(self, method: str, endpoint: str, body: Optional[Dict[str, Any]] = None,
+                params: Optional[Dict[str, Any]] = None) -> Tuple[int, Dict[str, Any]]:
+        url = f"{self.base_url}{endpoint}"
+        if params:
+            clean_params = {k: v for k, v in params.items() if v is not None}
+            if clean_params:
+                url += "?" + urllib.parse.urlencode(clean_params)
+
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": f"cerdas-cli/{CLI_VERSION} (agent-first)",
+        }
+        if self.api_key:
+            headers["X-Api-Key"] = self.api_key
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        data_bytes = json.dumps(body).encode("utf-8") if body is not None else None
+        req = urllib.request.Request(url, data=data_bytes, headers=headers, method=method.upper())
+
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                status = resp.status
+                raw = resp.read().decode("utf-8")
+                try:
+                    payload = json.loads(raw)
+                except Exception:
+                    payload = {"raw": raw}
+                return status, payload
+        except urllib.error.HTTPError as e:
+            status = e.code
+            raw = e.read().decode("utf-8")
+            try:
+                payload = json.loads(raw)
+            except Exception:
+                payload = {"message": raw}
+            return status, payload
+        except urllib.error.URLError as e:
+            return 503, {
+                "message": f"Cannot connect to Cerdas server at '{self.base_url}': {e.reason}",
+                "suggestion": "Check if Cerdas backend is running or update endpoint via 'cerdas config set-url <url>'.",
+            }
+
+
+# ==============================================================================
+# CLI Schema Introspection for AI Agents
+# ==============================================================================
+
+CLI_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "name": "cerdas",
+    "version": CLI_VERSION,
+    "description": "Agent-First CLI for Cerdas Survey, Census & Field Data Collection Platform (GSBPM Aligned)",
+    "commands": {
+        "config": {
+            "description": "Manage CLI connection and credentials",
+            "subcommands": {
+                "show": {"description": "Show active server endpoint and masked API key"},
+                "set-key": {"description": "Persist API Key", "args": ["key"]},
+                "set-url": {"description": "Persist server base URL", "args": ["url"]},
+            },
+        },
+        "health": {
+            "description": "Probe Cerdas system health, database latency, and queue stats",
+        },
+        "app": {
+            "description": "GSBPM Phase 1 & 2: Manage Data Collection Activities / Apps",
+            "subcommands": {
+                "list": {"description": "List all survey apps with metrics", "flags": ["--status", "--mode", "--search", "--fields"]},
+                "get": {"description": "Get detailed application blueprint and schema context", "args": ["app_id"]},
+                "create": {
+                    "description": "Create a new data collection activity / app",
+                    "flags": ["--name (required)", "--description", "--mode (simple|complex)", "--if-not-exists", "--fields"],
+                },
+                "update": {"description": "Update app metadata or mode", "args": ["app_id"], "flags": ["--name", "--description", "--mode", "--active"]},
+                "delete": {"description": "Soft-delete an application", "args": ["app_id"], "flags": ["--force"]},
+                "restore": {"description": "Restore a trashed application", "args": ["app_id"]},
+            },
+        },
+        "table": {
+            "description": "GSBPM Phase 3: Manage Survey Questionnaires / Form Instruments",
+            "subcommands": {
+                "list": {"description": "List tables/instruments for an app", "flags": ["--app (required)", "--fields"]},
+                "get": {"description": "Inspect questionnaire fields, version, and closures", "flags": ["--app (required)", "--table (required)"]},
+                "create": {
+                    "description": "Create a new table/form instrument with optional fields JSON",
+                    "flags": ["--app (required)", "--name (required)", "--fields-json", "--publish"],
+                },
+                "publish": {"description": "Publish a draft table schema version", "flags": ["--app (required)", "--table (required)", "--changelog"]},
+                "delete": {"description": "Soft-delete a table instrument", "flags": ["--app (required)", "--table (required)", "--force"]},
+            },
+        },
+        "prelist": {
+            "description": "GSBPM Phase 4.1: Ingest & Allocate Target Sampling Frame (Prelist)",
+            "subcommands": {
+                "upload": {
+                    "description": "Batch ingest JSON prelist rows with smart reconciliation strategy",
+                    "flags": [
+                        "--app (required)",
+                        "--table (required)",
+                        "--file (path or - for stdin)",
+                        "--strategy (upsert|append|merge_columns|replace_prelist)",
+                        "--match-key (e.g. id, nks, nik)",
+                    ],
+                },
+            },
+        },
+        "assignment": {
+            "description": "GSBPM Phase 4.2: Manage Field Enumerator Tasks & Sample Records",
+            "subcommands": {
+                "list": {
+                    "description": "List assignment tasks with filters",
+                    "flags": ["--app", "--table", "--status", "--enumerator", "--search", "--limit", "--page", "--fields"],
+                },
+                "get": {"description": "Get assignment details and target prelist attributes", "args": ["assignment_id"]},
+                "create": {
+                    "description": "Create single target assignment manually",
+                    "flags": ["--table (required)", "--data-json (required)", "--enumerator", "--supervisor", "--status", "--external-id"],
+                },
+                "update": {
+                    "description": "Update assignment prelist data, status, or assignee",
+                    "args": ["assignment_id"],
+                    "flags": ["--data-json", "--status", "--enumerator", "--supervisor", "--note"],
+                },
+                "delete": {"description": "Soft-delete an assignment task and responses", "args": ["assignment_id"], "flags": ["--force"]},
+                "bulk-delete": {"description": "Delete multiple assignments by IDs", "flags": ["--ids (comma-separated)", "--force"]},
+                "bulk-reassign": {
+                    "description": "Reassign enumerator/supervisor across multiple tasks",
+                    "flags": ["--ids (comma-separated)", "--enumerator", "--supervisor", "--note"],
+                },
+            },
+        },
+        "submission": {
+            "description": "GSBPM Phase 5: Supervise, Validate, Approve & Reject Survey Submissions",
+            "subcommands": {
+                "list": {
+                    "description": "Query submissions and responses with deep filters",
+                    "flags": ["--app (required)", "--table", "--status", "--search", "--date-from", "--date-to", "--limit", "--fields"],
+                },
+                "get": {"description": "Inspect single submission with full response data", "args": ["submission_id"]},
+                "approve": {"description": "Approve submission (Supervisor Verification)", "args": ["submission_id"]},
+                "reject": {"description": "Reject submission with revision note", "args": ["submission_id"], "flags": ["--note (required)"]},
+            },
+        },
+        "audit": {
+            "description": "GSBPM Phase 8: Trace Immutable Mutation Logs for Governance & Quality",
+            "subcommands": {
+                "logs": {"description": "Inspect audit trail", "flags": ["--action", "--actor", "--limit", "--fields"]},
+            },
+        },
+    },
+}
+
+
+# ==============================================================================
+# Command Implementations
+# ==============================================================================
+
+def cmd_schema(args: argparse.Namespace) -> None:
+    print(json.dumps(CLI_SCHEMA, indent=2))
+    sys.exit(0)
+
+
+def cmd_config(args: argparse.Namespace, cfg: Dict[str, Any]) -> None:
+    action = args.config_action
+    if action == "show":
+        output_result(True, {
+            "base_url": cfg["base_url"],
+            "api_key": mask_key(cfg["api_key"]),
+            "config_file": str(CONFIG_FILE),
+            "env_overrides": {
+                "CERDAS_BASE_URL": os.getenv("CERDAS_BASE_URL") is not None,
+                "CERDAS_API_KEY": os.getenv("CERDAS_API_KEY") is not None,
+                "CERDAS_SUPERADMIN_KEY": os.getenv("CERDAS_SUPERADMIN_KEY") is not None,
+            },
+        }, message="Active Cerdas CLI configuration.")
+    elif action == "set-key":
+        if not args.value:
+            output_result(False, message="API Key value required.", code=400,
+                          suggestion="Run: cerdas config set-key crd_live_...")
+        save_config({"api_key": args.value})
+        output_result(True, {"api_key": mask_key(args.value)}, message="API Key saved successfully.")
+    elif action == "set-url":
+        if not args.value:
+            output_result(False, message="Base URL value required.", code=400,
+                          suggestion="Run: cerdas config set-url http://localhost:8000")
+        clean_url = args.value.rstrip("/")
+        save_config({"base_url": clean_url})
+        output_result(True, {"base_url": clean_url}, message="Base URL saved successfully.")
+
+
+def cmd_health(args: argparse.Namespace, client: CerdasClient) -> None:
+    status, res = client.request("GET", "/api/agent/v1/system/health")
+    if status != 200:
+        # Fallback to standard healthcheck /up
+        up_status, up_res = client.request("GET", "/up")
+        if up_status == 200:
+            output_result(True, {"status": "ok", "endpoint": "/up"}, message="Server is reachable via /up.")
+        output_result(False, res, message=res.get("message", "Healthcheck failed."), code=status)
+    output_result(True, res.get("telemetry", res), message="System is healthy.", code=status)
+
+
+# ----- App Handlers (GSBPM 1 & 2) -----
+
+def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
+    action = args.app_action
+
+    if action == "list":
+        params = {
+            "status": getattr(args, "status", "all"),
+            "mode": getattr(args, "mode", "all"),
+            "search": getattr(args, "search", None),
+        }
+        status, res = client.request("GET", "/api/agent/v1/apps", params=params)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to list apps."), code=status)
+        output_result(True, res.get("data", res), message=f"Retrieved {res.get('total', len(res.get('data', [])))} apps.",
+                      fields=getattr(args, "fields", None), table_mode=getattr(args, "table", False))
+
+    elif action == "get":
+        status, res = client.request("GET", f"/api/agent/v1/apps/{args.app_id}")
+        if status != 200:
+            output_result(False, res, message=res.get("message", f"App '{args.app_id}' not found."), code=status,
+                          suggestion="Run 'cerdas app list' to see all valid apps.")
+        output_result(True, res.get("data", res), message="App blueprint retrieved.", fields=getattr(args, "fields", None))
+
+    elif action == "create":
+        name = args.name
+        if not name:
+            output_result(False, message="Flag --name is required.", code=400)
+
+        # Idempotency check with --if-not-exists
+        if getattr(args, "if_not_exists", False):
+            s_chk, r_chk = client.request("GET", "/api/agent/v1/apps", params={"search": name})
+            if s_chk == 200:
+                for app_item in r_chk.get("data", []):
+                    if app_item.get("name", "").strip().lower() == name.strip().lower():
+                        output_result(True, app_item, message=f"App '{name}' already exists (idempotent skipped).",
+                                      next_actions=[f"cerdas table list --app {app_item['id']}"])
+
+        body = {
+            "name": name,
+            "description": getattr(args, "description", None),
+            "mode": getattr(args, "mode", "simple"),
+        }
+        status, res = client.request("POST", "/api/agent/v1/apps", body=body)
+        if status not in (200, 201):
+            output_result(False, res, message=res.get("message", "Failed to create app."), code=status)
+        app_data = res.get("data", res)
+        output_result(True, app_data, message=f"App '{name}' created successfully.", code=201,
+                      next_actions=[
+                          f"cerdas table create --app {app_data.get('id', '<id>')} --name 'Form Utama'",
+                          f"cerdas app get {app_data.get('id', '<id>')}"
+                      ])
+
+    elif action == "update":
+        body = {}
+        if getattr(args, "name", None):
+            body["name"] = args.name
+        if getattr(args, "description", None):
+            body["description"] = args.description
+        if getattr(args, "mode", None):
+            body["mode"] = args.mode
+        if getattr(args, "active", None) is not None:
+            body["is_active"] = args.active
+        if getattr(args, "owner", None):
+            owner_val = args.owner.strip()
+            if "@" in owner_val:
+                body["owner_email"] = owner_val
+            else:
+                body["created_by"] = owner_val
+
+        status, res = client.request("PATCH", f"/api/agent/v1/apps/{args.app_id}", body=body)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to update app."), code=status)
+        output_result(True, res.get("data", res), message="App updated successfully.")
+
+    elif action == "transfer-owner":
+        owner_val = getattr(args, "owner", None)
+        if not owner_val:
+            output_result(False, message="Flag --owner <user_id_or_email> is required.", code=400)
+        body = {}
+        if "@" in owner_val:
+            body["owner_email"] = owner_val.strip()
+        else:
+            body["created_by"] = owner_val.strip()
+        status, res = client.request("PATCH", f"/api/agent/v1/apps/{args.app_id}", body=body)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to transfer app ownership."), code=status)
+        output_result(True, res.get("data", res), message=f"Ownership of App '{args.app_id}' transferred to {owner_val}.")
+
+    elif action == "delete":
+        if not getattr(args, "force", False):
+            output_result(False, message="Destructive action requires --force flag (Zero-interactivity rule).", code=400,
+                          suggestion="Run: cerdas app delete <app_id> --force")
+        status, res = client.request("DELETE", f"/api/agent/v1/apps/{args.app_id}")
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to delete app."), code=status)
+        output_result(True, res, message=f"App '{args.app_id}' deleted successfully.")
+
+    elif action == "restore":
+        status, res = client.request("POST", f"/api/agent/v1/apps/{args.app_id}/restore")
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to restore app."), code=status)
+        output_result(True, res.get("data", res), message=f"App '{args.app_id}' restored successfully.")
+
+
+# ----- Table Handlers (GSBPM 3) -----
+
+def cmd_table(args: argparse.Namespace, client: CerdasClient) -> None:
+    action = args.table_action
+    app_id = getattr(args, "app", None)
+    if not app_id:
+        output_result(False, message="Flag --app <app_id> is required.", code=400)
+
+    if action == "list":
+        status, res = client.request("GET", f"/api/agent/v1/apps/{app_id}/tables")
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to list tables."), code=status)
+        output_result(True, res.get("data", res), message=f"Retrieved {res.get('total', 0)} tables.",
+                      fields=getattr(args, "fields", None), table_mode=getattr(args, "table_view", False))
+
+    elif action == "get":
+        table_id = getattr(args, "table", None)
+        if not table_id:
+            output_result(False, message="Flag --table <table_id> is required.", code=400)
+        status, res = client.request("GET", f"/api/agent/v1/apps/{app_id}/tables/{table_id}")
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Table not found."), code=status)
+        output_result(True, res.get("data", res), message="Table schema retrieved.", fields=getattr(args, "fields", None))
+
+    elif action == "create":
+        name = getattr(args, "name", None)
+        if not name:
+            output_result(False, message="Flag --name is required.", code=400)
+        fields = []
+        if getattr(args, "fields_json", None):
+            try:
+                fields = json.loads(args.fields_json)
+            except Exception as e:
+                output_result(False, message=f"Malformed --fields-json: {e}", code=400)
+
+        body = {
+            "name": name,
+            "description": getattr(args, "description", None),
+            "fields": fields,
+            "publish_immediately": getattr(args, "publish", False),
+        }
+        status, res = client.request("POST", f"/api/agent/v1/apps/{app_id}/tables", body=body)
+        if status not in (200, 201):
+            output_result(False, res, message=res.get("message", "Failed to create table."), code=status)
+        t_data = res.get("data", res)
+        output_result(True, t_data, message=f"Table '{name}' created successfully.", code=201,
+                      next_actions=[
+                          f"cerdas prelist upload --app {app_id} --table {t_data.get('id', '<id>')} --file prelist.json",
+                      ])
+
+    elif action == "publish":
+        table_id = getattr(args, "table", None)
+        if not table_id:
+            output_result(False, message="Flag --table <table_id> is required.", code=400)
+        body = {"changelog": getattr(args, "changelog", "Published via cerdas-cli")}
+        status, res = client.request("POST", f"/api/agent/v1/apps/{app_id}/tables/{table_id}/publish", body=body)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to publish table."), code=status)
+        output_result(True, res, message="Table schema version published successfully.")
+
+    elif action == "delete":
+        table_id = getattr(args, "table", None)
+        if not table_id:
+            output_result(False, message="Flag --table <table_id> is required.", code=400)
+        if not getattr(args, "force", False):
+            output_result(False, message="Destructive action requires --force flag.", code=400)
+        status, res = client.request("DELETE", f"/api/agent/v1/apps/{app_id}/tables/{table_id}")
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to delete table."), code=status)
+        output_result(True, res, message=f"Table '{table_id}' deleted successfully.")
+
+
+# ----- Prelist Handlers (GSBPM 4.1) -----
+
+def cmd_prelist(args: argparse.Namespace, client: CerdasClient) -> None:
+    action = args.prelist_action
+
+    if action == "upload":
+        app_id = getattr(args, "app", None)
+        table_id = getattr(args, "table", None)
+        file_path = getattr(args, "file", None)
+        strategy = getattr(args, "strategy", "upsert")
+        match_key = getattr(args, "match_key", None)
+
+        if not app_id or not table_id or not file_path:
+            output_result(False, message="Flags --app, --table, and --file are required.", code=400,
+                          suggestion="Example: cerdas prelist upload --app <app> --table <table> --file data.json --strategy upsert")
+
+        # Read JSON file or stdin
+        try:
+            if file_path == "-":
+                raw_content = sys.stdin.read()
+            else:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    raw_content = f.read()
+            rows = json.loads(raw_content)
+            if isinstance(rows, dict) and "rows" in rows:
+                rows = rows["rows"]
+            if not isinstance(rows, list):
+                output_result(False, message="Prelist JSON must be an array of row objects.", code=400)
+        except Exception as e:
+            output_result(False, message=f"Failed to read prelist JSON: {e}", code=400)
+
+        body = {
+            "table_id": table_id,
+            "rows": rows,
+            "strategy": strategy,
+            "match_key": match_key,
+        }
+        status, res = client.request("POST", f"/api/agent/v1/apps/{app_id}/tables/{table_id}/prelist", body=body)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to ingest prelist."), code=status)
+        output_result(True, res, message=res.get("message", "Prelist ingested successfully."),
+                      next_actions=[
+                          f"cerdas assignment list --app {app_id} --table {table_id}",
+                      ])
+
+
+# ----- Assignment Handlers (GSBPM 4.2) -----
+
+def cmd_assignment(args: argparse.Namespace, client: CerdasClient) -> None:
+    action = args.assignment_action
+
+    if action == "list":
+        params = {
+            "app_id": getattr(args, "app", None),
+            "table_id": getattr(args, "table", None),
+            "status": getattr(args, "status", None),
+            "enumerator_id": getattr(args, "enumerator", None),
+            "search": getattr(args, "search", None),
+            "per_page": getattr(args, "limit", 50),
+            "page": getattr(args, "page", 1),
+        }
+        status, res = client.request("GET", "/api/assignments", params=params)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to list assignments."), code=status)
+        output_result(True, res.get("data", res), message="Retrieved assignments.",
+                      fields=getattr(args, "fields", None), table_mode=getattr(args, "table_view", False))
+
+    elif action == "get":
+        status, res = client.request("GET", f"/api/assignments/{args.assignment_id}")
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Assignment not found."), code=status)
+        output_result(True, res.get("data", res), message="Assignment retrieved.", fields=getattr(args, "fields", None))
+
+    elif action == "create":
+        table_id = getattr(args, "table", None)
+        data_json = getattr(args, "data_json", None)
+        if not table_id or not data_json:
+            output_result(False, message="Flags --table and --data-json are required.", code=400)
+        try:
+            prelist_data = json.loads(data_json)
+        except Exception as e:
+            output_result(False, message=f"Malformed --data-json: {e}", code=400)
+
+        body = {
+            "table_id": table_id,
+            "prelist_data": prelist_data,
+            "enumerator_id": getattr(args, "enumerator", None),
+            "supervisor_id": getattr(args, "supervisor", None),
+            "status": getattr(args, "status", "assigned"),
+            "external_id": getattr(args, "external_id", None),
+        }
+        status, res = client.request("POST", "/api/assignments", body=body)
+        if status not in (200, 201):
+            output_result(False, res, message=res.get("message", "Failed to create assignment."), code=status)
+        output_result(True, res.get("data", res), message="Assignment created successfully.", code=201)
+
+    elif action == "update":
+        body = {}
+        if getattr(args, "data_json", None):
+            try:
+                body["prelist_data"] = json.loads(args.data_json)
+            except Exception as e:
+                output_result(False, message=f"Malformed --data-json: {e}", code=400)
+        if getattr(args, "status", None):
+            body["status"] = args.status
+        if getattr(args, "enumerator", None):
+            body["enumerator_id"] = args.enumerator
+        if getattr(args, "supervisor", None):
+            body["supervisor_id"] = args.supervisor
+        if getattr(args, "note", None):
+            body["note"] = args.note
+
+        status, res = client.request("PUT", f"/api/assignments/{args.assignment_id}", body=body)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to update assignment."), code=status)
+        output_result(True, res.get("data", res), message="Assignment updated successfully.")
+
+    elif action == "delete":
+        if not getattr(args, "force", False):
+            output_result(False, message="Destructive action requires --force flag.", code=400)
+        status, res = client.request("DELETE", f"/api/assignments/{args.assignment_id}")
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to delete assignment."), code=status)
+        output_result(True, res, message=f"Assignment '{args.assignment_id}' deleted successfully.")
+
+    elif action == "bulk-delete":
+        ids_raw = getattr(args, "ids", "")
+        if not ids_raw:
+            output_result(False, message="Flag --ids <comma-separated-uuids> is required.", code=400)
+        if not getattr(args, "force", False):
+            output_result(False, message="Bulk delete requires --force flag.", code=400)
+        ids = [i.strip() for i in ids_raw.split(",") if i.strip()]
+        status, res = client.request("POST", "/api/assignments/bulk-delete", body={"assignment_ids": ids})
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Bulk delete failed."), code=status)
+        output_result(True, res, message=res.get("message", "Assignments deleted."))
+
+    elif action == "bulk-reassign":
+        ids_raw = getattr(args, "ids", "")
+        if not ids_raw:
+            output_result(False, message="Flag --ids <comma-separated-uuids> is required.", code=400)
+        ids = [i.strip() for i in ids_raw.split(",") if i.strip()]
+        body = {
+            "assignment_ids": ids,
+            "enumerator_id": getattr(args, "enumerator", None),
+            "supervisor_id": getattr(args, "supervisor", None),
+            "note": getattr(args, "note", None),
+        }
+        status, res = client.request("POST", "/api/assignments/bulk-reassign", body=body)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Bulk reassign failed."), code=status)
+        output_result(True, res, message=res.get("message", "Assignments reassigned."))
+
+
+# ----- Submission Handlers (GSBPM 5) -----
+
+def cmd_submission(args: argparse.Namespace, client: CerdasClient) -> None:
+    action = args.submission_action
+
+    if action == "list":
+        app_id = getattr(args, "app", None)
+        if not app_id:
+            output_result(False, message="Flag --app <app_id> is required.", code=400)
+        params = {
+            "table_id": getattr(args, "table", None),
+            "status": getattr(args, "status", None),
+            "search": getattr(args, "search", None),
+            "date_from": getattr(args, "date_from", None),
+            "date_to": getattr(args, "date_to", None),
+        }
+        status, res = client.request("GET", f"/api/agent/v1/apps/{app_id}/submissions", params=params)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to query submissions."), code=status)
+        output_result(True, res.get("data", res), message=f"Retrieved {res.get('total', 0)} submissions.",
+                      fields=getattr(args, "fields", None), table_mode=getattr(args, "table_view", False))
+
+    elif action == "get":
+        status, res = client.request("GET", f"/api/agent/v1/submissions/{args.submission_id}")
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Submission not found."), code=status)
+        output_result(True, res.get("data", res), message="Submission retrieved.", fields=getattr(args, "fields", None))
+
+    elif action == "approve":
+        status, res = client.request("POST", f"/api/responses/{args.submission_id}/approve")
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to approve submission."), code=status)
+        output_result(True, res, message=f"Submission '{args.submission_id}' approved successfully.")
+
+    elif action == "reject":
+        note = getattr(args, "note", "")
+        if not note:
+            output_result(False, message="Flag --note is required when rejecting submission.", code=400)
+        status, res = client.request("POST", f"/api/responses/{args.submission_id}/reject", body={"rejection_note": note})
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to reject submission."), code=status)
+        output_result(True, res, message=f"Submission '{args.submission_id}' rejected with revision note.")
+
+
+# ----- Audit Handlers (GSBPM 8) -----
+
+def cmd_audit(args: argparse.Namespace, client: CerdasClient) -> None:
+    action = args.audit_action
+
+    if action == "logs":
+        params = {
+            "action": getattr(args, "action_type", None),
+            "actor_email": getattr(args, "actor", None),
+            "limit": getattr(args, "limit", 50),
+        }
+        status, res = client.request("GET", "/api/agent/v1/audit/logs", params=params)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to fetch audit logs."), code=status)
+        output_result(True, res.get("data", res), message=f"Retrieved {res.get('total', 0)} audit logs.",
+                      fields=getattr(args, "fields", None), table_mode=getattr(args, "table_view", False))
+
+
+# ==============================================================================
+# CLI Entrypoint & Parser Configuration
+# ==============================================================================
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="cerdas",
+        description="Agent-First CLI for Cerdas Data Collection Platform (GSBPM Aligned).",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {CLI_VERSION}")
+    parser.add_argument("--json", action="store_true", default=True, help="Output in machine-readable JSON (Default)")
+    parser.add_argument("--table", dest="table_view", action="store_true", help="Format array data as human-readable table")
+    parser.add_argument("--fields", help="Context window discipline: comma-separated fields to project")
+
+    subparsers = parser.add_subparsers(dest="subcommand", help="Primary subcommands")
+
+    # Schema
+    p_schema = subparsers.add_parser("schema", help="Output machine-readable JSON Schema for agent introspection")
+
+    # Health
+    p_health = subparsers.add_parser("health", help="Inspect system health, DB latency, and background queues")
+
+    # Config
+    p_config = subparsers.add_parser("config", help="Manage CLI endpoint and API Key")
+    p_config_sub = p_config.add_subparsers(dest="config_action", required=True)
+    p_config_sub.add_parser("show", help="Show active configuration")
+    p_set_key = p_config_sub.add_parser("set-key", help="Set persistent API Key")
+    p_set_key.add_argument("value", help="API Key (crd_live_... or master key)")
+    p_set_url = p_config_sub.add_parser("set-url", help="Set backend server URL")
+    p_set_url.add_argument("value", help="Base URL (e.g. http://localhost:8000)")
+
+    # App
+    p_app = subparsers.add_parser("app", help="GSBPM Phase 1 & 2: Manage survey projects & activities")
+    p_app_sub = p_app.add_subparsers(dest="app_action", required=True)
+
+    p_app_list = p_app_sub.add_parser("list", help="List all applications")
+    p_app_list.add_argument("--status", choices=["all", "active", "inactive", "trashed"], default="all")
+    p_app_list.add_argument("--mode", choices=["all", "simple", "complex"], default="all")
+    p_app_list.add_argument("--search", help="Search keyword")
+
+    p_app_get = p_app_sub.add_parser("get", help="Get application details")
+    p_app_get.add_argument("app_id", help="App ID or Slug")
+
+    p_app_create = p_app_sub.add_parser("create", help="Create a new survey application")
+    p_app_create.add_argument("--name", required=True, help="App name")
+    p_app_create.add_argument("--description", help="App description")
+    p_app_create.add_argument("--mode", choices=["simple", "complex"], default="simple", help="Workflow mode")
+    p_app_create.add_argument("--if-not-exists", action="store_true", help="Idempotent: skip creation if name exists")
+
+    p_app_update = p_app_sub.add_parser("update", help="Update application")
+    p_app_update.add_argument("app_id", help="App ID or Slug")
+    p_app_update.add_argument("--name", help="New app name")
+    p_app_update.add_argument("--description", help="New description")
+    p_app_update.add_argument("--mode", choices=["simple", "complex"], help="New mode")
+    p_app_update.add_argument("--active", type=lambda x: (str(x).lower() in ['true', '1']), help="Active flag")
+    p_app_update.add_argument("--owner", help="Transfer ownership to user ID or email (SuperAdmin only)")
+
+    p_app_trans = p_app_sub.add_parser("transfer-owner", help="Transfer application ownership (SuperAdmin only)")
+    p_app_trans.add_argument("app_id", help="App ID or Slug")
+    p_app_trans.add_argument("--owner", required=True, help="New owner user ID or email")
+
+    p_app_delete = p_app_sub.add_parser("delete", help="Soft-delete application")
+    p_app_delete.add_argument("app_id", help="App ID or Slug")
+    p_app_delete.add_argument("--force", action="store_true", help="Confirm deletion")
+
+    p_app_restore = p_app_sub.add_parser("restore", help="Restore trashed application")
+    p_app_restore.add_argument("app_id", help="App ID or Slug")
+
+    # Table
+    p_table = subparsers.add_parser("table", help="GSBPM Phase 3: Manage questionnaire tables & form instruments")
+    p_table_sub = p_table.add_subparsers(dest="table_action", required=True)
+
+    p_tbl_list = p_table_sub.add_parser("list", help="List tables in an app")
+    p_tbl_list.add_argument("--app", required=True, help="App ID or Slug")
+
+    p_tbl_get = p_table_sub.add_parser("get", help="Get table schema")
+    p_tbl_get.add_argument("--app", required=True, help="App ID or Slug")
+    p_tbl_get.add_argument("--table", required=True, help="Table ID or Slug")
+
+    p_tbl_create = p_table_sub.add_parser("create", help="Create table instrument")
+    p_tbl_create.add_argument("--app", required=True, help="App ID or Slug")
+    p_tbl_create.add_argument("--name", required=True, help="Table name")
+    p_tbl_create.add_argument("--description", help="Table description")
+    p_tbl_create.add_argument("--fields-json", help="Array of field objects in JSON string")
+    p_tbl_create.add_argument("--publish", action="store_true", help="Publish version immediately")
+
+    p_tbl_pub = p_table_sub.add_parser("publish", help="Publish draft table version")
+    p_tbl_pub.add_argument("--app", required=True, help="App ID or Slug")
+    p_tbl_pub.add_argument("--table", required=True, help="Table ID or Slug")
+    p_tbl_pub.add_argument("--changelog", help="Version changelog note")
+
+    p_tbl_del = p_table_sub.add_parser("delete", help="Soft-delete table instrument")
+    p_tbl_del.add_argument("--app", required=True, help="App ID or Slug")
+    p_tbl_del.add_argument("--table", required=True, help="Table ID or Slug")
+    p_tbl_del.add_argument("--force", action="store_true", help="Confirm deletion")
+
+    # Prelist
+    p_prelist = subparsers.add_parser("prelist", help="GSBPM Phase 4.1: Upload sampling frame prelist")
+    p_prelist_sub = p_prelist.add_subparsers(dest="prelist_action", required=True)
+
+    p_pre_up = p_prelist_sub.add_parser("upload", help="Upload JSON prelist rows")
+    p_pre_up.add_argument("--app", required=True, help="App ID or Slug")
+    p_pre_up.add_argument("--table", required=True, help="Table ID or Slug")
+    p_pre_up.add_argument("--file", required=True, help="Path to JSON file or '-' for stdin")
+    p_pre_up.add_argument("--strategy", choices=["upsert", "append", "merge_columns", "replace_prelist"], default="upsert")
+    p_pre_up.add_argument("--match-key", help="Unique attribute column for upsert matching")
+
+    # Assignment
+    p_assign = subparsers.add_parser("assignment", help="GSBPM Phase 4.2: Manage enumerator tasks & sample records")
+    p_assign_sub = p_assign.add_subparsers(dest="assignment_action", required=True)
+
+    p_asg_list = p_assign_sub.add_parser("list", help="List assignments")
+    p_asg_list.add_argument("--app", help="Filter by App ID")
+    p_asg_list.add_argument("--table", help="Filter by Table ID")
+    p_asg_list.add_argument("--status", choices=["assigned", "in_progress", "submitted", "approved", "rejected"])
+    p_asg_list.add_argument("--enumerator", help="Filter by Enumerator User ID")
+    p_asg_list.add_argument("--search", help="Search keyword in prelist data")
+    p_asg_list.add_argument("--limit", type=int, default=50, help="Per page limit")
+    p_asg_list.add_argument("--page", type=int, default=1, help="Page number")
+
+    p_asg_get = p_assign_sub.add_parser("get", help="Get assignment details")
+    p_asg_get.add_argument("assignment_id", help="Assignment UUID")
+
+    p_asg_create = p_assign_sub.add_parser("create", help="Create manual single assignment")
+    p_asg_create.add_argument("--table", required=True, help="Table UUID")
+    p_asg_create.add_argument("--data-json", required=True, help="Prelist attributes in JSON string")
+    p_asg_create.add_argument("--enumerator", help="Enumerator User ID")
+    p_asg_create.add_argument("--supervisor", help="Supervisor User ID")
+    p_asg_create.add_argument("--status", choices=["assigned", "in_progress", "submitted", "approved", "rejected"], default="assigned")
+    p_asg_create.add_argument("--external-id", help="External reference code / NKS")
+
+    p_asg_update = p_assign_sub.add_parser("update", help="Update assignment")
+    p_asg_update.add_argument("assignment_id", help="Assignment UUID")
+    p_asg_update.add_argument("--data-json", help="Updated prelist attributes JSON")
+    p_asg_update.add_argument("--status", choices=["assigned", "in_progress", "submitted", "approved", "rejected"])
+    p_asg_update.add_argument("--enumerator", help="Enumerator User ID")
+    p_asg_update.add_argument("--supervisor", help="Supervisor User ID")
+    p_asg_update.add_argument("--note", help="Status change audit note")
+
+    p_asg_del = p_assign_sub.add_parser("delete", help="Soft-delete assignment")
+    p_asg_del.add_argument("assignment_id", help="Assignment UUID")
+    p_asg_del.add_argument("--force", action="store_true", help="Confirm deletion")
+
+    p_asg_bdel = p_assign_sub.add_parser("bulk-delete", help="Delete multiple assignments")
+    p_asg_bdel.add_argument("--ids", required=True, help="Comma-separated assignment UUIDs")
+    p_asg_bdel.add_argument("--force", action="store_true", help="Confirm bulk deletion")
+
+    p_asg_breas = p_assign_sub.add_parser("bulk-reassign", help="Reassign multiple assignments")
+    p_asg_breas.add_argument("--ids", required=True, help="Comma-separated assignment UUIDs")
+    p_asg_breas.add_argument("--enumerator", help="Enumerator User ID")
+    p_asg_breas.add_argument("--supervisor", help="Supervisor User ID")
+    p_asg_breas.add_argument("--note", help="Audit transition note")
+
+    # Submission
+    p_subm = subparsers.add_parser("submission", help="GSBPM Phase 5: Supervise, approve, or reject submissions")
+    p_subm_sub = p_subm.add_subparsers(dest="submission_action", required=True)
+
+    p_sub_list = p_subm_sub.add_parser("list", help="List submissions")
+    p_sub_list.add_argument("--app", required=True, help="App ID or Slug")
+    p_sub_list.add_argument("--table", help="Table ID")
+    p_sub_list.add_argument("--status", choices=["all", "submitted", "approved", "rejected", "in_progress", "assigned"])
+    p_sub_list.add_argument("--search", help="Search keyword")
+    p_sub_list.add_argument("--date-from", help="ISO date start")
+    p_sub_list.add_argument("--date-to", help="ISO date end")
+    p_sub_list.add_argument("--limit", type=int, default=50)
+
+    p_sub_get = p_subm_sub.add_parser("get", help="Get submission")
+    p_sub_get.add_argument("submission_id", help="Response UUID")
+
+    p_sub_appr = p_subm_sub.add_parser("approve", help="Approve submission")
+    p_sub_appr.add_argument("submission_id", help="Response UUID")
+
+    p_sub_rej = p_subm_sub.add_parser("reject", help="Reject submission with revision note")
+    p_sub_rej.add_argument("submission_id", help="Response UUID")
+    p_sub_rej.add_argument("--note", required=True, help="Revision note for enumerator")
+
+    # Audit
+    p_audit = subparsers.add_parser("audit", help="GSBPM Phase 8: Inspect governance audit trail")
+    p_audit_sub = p_audit.add_subparsers(dest="audit_action", required=True)
+    p_aud_logs = p_audit_sub.add_parser("logs", help="Query audit logs")
+    p_aud_logs.add_argument("--action-type", help="Filter by action keyword (e.g. ASSIGNMENT, PRELIST)")
+    p_aud_logs.add_argument("--actor", help="Filter by actor email")
+    p_aud_logs.add_argument("--limit", type=int, default=50)
+
+    return parser
+
+
+def main() -> None:
+    parser = build_parser()
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(0)
+
+    args = parser.parse_args()
+
+    # Introspection schema command doesn't need network
+    if args.subcommand == "schema":
+        cmd_schema(args)
+
+    cfg = load_config()
+
+    if args.subcommand == "config":
+        cmd_config(args, cfg)
+
+    client = CerdasClient(base_url=cfg["base_url"], api_key=cfg["api_key"])
+
+    try:
+        if args.subcommand == "health":
+            cmd_health(args, client)
+        elif args.subcommand == "app":
+            cmd_app(args, client)
+        elif args.subcommand == "table":
+            cmd_table(args, client)
+        elif args.subcommand == "prelist":
+            cmd_prelist(args, client)
+        elif args.subcommand == "assignment":
+            cmd_assignment(args, client)
+        elif args.subcommand == "submission":
+            cmd_submission(args, client)
+        elif args.subcommand == "audit":
+            cmd_audit(args, client)
+        else:
+            parser.print_help(sys.stderr)
+            sys.exit(1)
+    except KeyboardInterrupt:
+        output_result(False, message="Operation aborted by user.", code=130)
+    except Exception as e:
+        output_result(False, message=f"Unexpected CLI error: {str(e)}", code=500,
+                      suggestion="Check your network connection and API key configuration.")
+
+
+if __name__ == "__main__":
+    main()

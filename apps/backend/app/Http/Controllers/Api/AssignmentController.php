@@ -304,8 +304,8 @@ class AssignmentController extends Controller
             if (! empty($matchKey)) {
                 $isIdMatch = in_array(strtolower(trim($matchKey)), ['id', 'assignment_id', 'assignment id', 'external_id', '_cerdas_id']);
                 foreach ($existingAssignments as $existing) {
-                    $val = $isIdMatch 
-                        ? ($existing->id ?? $existing->external_id) 
+                    $val = $isIdMatch
+                        ? ($existing->id ?? $existing->external_id)
                         : ($existing->prelist_data[$matchKey] ?? $existing->external_id ?? $existing->id);
 
                     if ($val !== null && trim((string) $val) !== '') {
@@ -334,7 +334,7 @@ class AssignmentController extends Controller
                 'Status History', 'status_history',
                 'Enumerator', 'enumerator',
                 'Supervisor', 'supervisor',
-                'Organization', 'organization'
+                'Organization', 'organization',
             ]);
 
             foreach ($rows as $rowIndex => $rowData) {
@@ -389,7 +389,7 @@ class AssignmentController extends Controller
                     $updatedCount++;
                 } else {
                     // Create New Assignment
-                    $newAssignment = new Assignment();
+                    $newAssignment = new Assignment;
                     $newAssignment->id = (string) \Illuminate\Support\Str::uuid();
                     $newAssignment->table_id = $table->id;
                     $newAssignment->table_version_id = $versionId;
@@ -471,6 +471,199 @@ class AssignmentController extends Controller
             'message' => 'Data prelist berhasil diperbarui',
             'data' => $assignment,
         ]);
+    }
+
+    /**
+     * Create a single assignment manually (e.g. adding target respondent on the fly)
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'table_id' => 'required|string|exists:tables,id',
+            'table_version_id' => 'nullable|string|exists:table_versions,id',
+            'enumerator_id' => 'nullable|string|exists:users,id',
+            'supervisor_id' => 'nullable|string|exists:users,id',
+            'external_id' => 'nullable|string|max:255',
+            'status' => 'nullable|string|in:assigned,in_progress,submitted,approved,rejected',
+            'prelist_data' => 'required|array',
+        ]);
+
+        $user = $request->user();
+        $table = \App\Models\Table::with('app')->findOrFail($validated['table_id']);
+
+        if (! $user->hasAppAccess($table->app_id) && ! $user->isSuperAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Access denied'], 403);
+        }
+
+        $versionId = $validated['table_version_id']
+            ?? $table->latestPublishedVersion?->id
+            ?? $table->versions()->latest('version')->first()?->id;
+
+        $orgId = $table->app?->organizations()->first()?->id;
+        $status = $validated['status'] ?? 'assigned';
+
+        $assignment = new Assignment;
+        $assignment->id = (string) \Illuminate\Support\Str::uuid();
+        $assignment->table_id = $table->id;
+        $assignment->table_version_id = $versionId;
+        $assignment->organization_id = $orgId;
+        $assignment->enumerator_id = $validated['enumerator_id'] ?? null;
+        $assignment->supervisor_id = $validated['supervisor_id'] ?? null;
+        $assignment->external_id = $validated['external_id'] ?? null;
+        $assignment->status = $status;
+        $assignment->prelist_data = $validated['prelist_data'];
+        $assignment->save();
+
+        // Also add preview record in AppRecord
+        \App\Models\AppRecord::create([
+            'id' => \Illuminate\Support\Str::orderedUuid()->toString(),
+            'app_id' => $table->app_id,
+            'table_id' => $table->id,
+            'data' => json_encode($validated['prelist_data']),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Assignment created successfully',
+            'data' => $assignment->load(['tableVersion.table', 'enumerator:id,name,email', 'supervisor:id,name,email']),
+        ], 201);
+    }
+
+    /**
+     * Update an assignment (reassign enumerator/supervisor, change status, or edit prelist)
+     */
+    public function update(Request $request, Assignment $assignment): JsonResponse
+    {
+        $validated = $request->validate([
+            'enumerator_id' => 'nullable|string|exists:users,id',
+            'supervisor_id' => 'nullable|string|exists:users,id',
+            'external_id' => 'nullable|string|max:255',
+            'status' => 'nullable|string|in:assigned,in_progress,submitted,approved,rejected',
+            'prelist_data' => 'nullable|array',
+            'note' => 'nullable|string|max:500',
+        ]);
+
+        $user = $request->user();
+        $assignment->loadMissing('tableVersion.table');
+        $table = $assignment->tableVersion?->table ?? \App\Models\Table::find($assignment->table_id);
+
+        if ($table && ! $user->hasAppAccess($table->app_id) && ! $user->isSuperAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Access denied'], 403);
+        }
+
+        if (array_key_exists('enumerator_id', $validated)) {
+            $assignment->enumerator_id = $validated['enumerator_id'];
+        }
+        if (array_key_exists('supervisor_id', $validated)) {
+            $assignment->supervisor_id = $validated['supervisor_id'];
+        }
+        if (array_key_exists('external_id', $validated)) {
+            $assignment->external_id = $validated['external_id'];
+        }
+        if (array_key_exists('prelist_data', $validated) && is_array($validated['prelist_data'])) {
+            $assignment->prelist_data = $validated['prelist_data'];
+        }
+
+        if (! empty($validated['status']) && $validated['status'] !== $assignment->status) {
+            $assignment->status = $validated['status'];
+            $assignment->recordStatusChange($validated['status'], $user, $validated['note'] ?? 'Status updated via API');
+        } elseif (! empty($validated['note'])) {
+            $assignment->recordStatusChange($assignment->status, $user, $validated['note']);
+        }
+
+        $assignment->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Assignment updated successfully',
+            'data' => $assignment->load(['tableVersion.table', 'enumerator:id,name,email', 'supervisor:id,name,email']),
+        ]);
+    }
+
+    /**
+     * Bulk reassign enumerator or supervisor across multiple assignments
+     */
+    public function bulkReassign(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'assignment_ids' => 'required|array|min:1',
+            'assignment_ids.*' => 'string|exists:assignments,id',
+            'enumerator_id' => 'nullable|string|exists:users,id',
+            'supervisor_id' => 'nullable|string|exists:users,id',
+            'note' => 'nullable|string|max:500',
+        ]);
+
+        $user = $request->user();
+        $assignments = Assignment::whereIn('id', $validated['assignment_ids'])->get();
+        $updatedCount = 0;
+
+        foreach ($assignments as $assignment) {
+            $table = $assignment->tableVersion?->table ?? \App\Models\Table::find($assignment->table_id);
+            if ($table && ! $user->hasAppAccess($table->app_id) && ! $user->isSuperAdmin()) {
+                continue;
+            }
+
+            if (array_key_exists('enumerator_id', $validated)) {
+                $assignment->enumerator_id = $validated['enumerator_id'];
+            }
+            if (array_key_exists('supervisor_id', $validated)) {
+                $assignment->supervisor_id = $validated['supervisor_id'];
+            }
+            if (! empty($validated['note'])) {
+                $assignment->recordStatusChange($assignment->status, $user, $validated['note']);
+            }
+            $assignment->save();
+            $updatedCount++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully reassigned {$updatedCount} assignments.",
+            'updated_count' => $updatedCount,
+        ]);
+    }
+
+    /**
+     * Bulk delete assignments and their responses
+     */
+    public function bulkDestroy(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'assignment_ids' => 'required|array|min:1',
+            'assignment_ids.*' => 'string',
+        ]);
+
+        $user = $request->user();
+        $assignments = Assignment::whereIn('id', $validated['assignment_ids'])->get();
+        $deletedCount = 0;
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            foreach ($assignments as $assignment) {
+                $table = $assignment->tableVersion?->table ?? \App\Models\Table::find($assignment->table_id);
+                if ($table && ! $user->hasAppAccess($table->app_id) && ! $user->isSuperAdmin()) {
+                    continue;
+                }
+
+                Response::where('assignment_id', $assignment->id)->delete();
+                $assignment->delete();
+                $deletedCount++;
+            }
+            \Illuminate\Support\Facades\DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully deleted {$deletedCount} assignments.",
+                'deleted_count' => $deletedCount,
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to bulk delete assignments: '.$e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

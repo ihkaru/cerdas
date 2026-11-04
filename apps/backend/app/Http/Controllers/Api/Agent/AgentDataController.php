@@ -322,6 +322,90 @@ class AgentDataController extends Controller
     }
 
     /**
+     * Create a single assignment programmatically under an app.
+     *
+     * POST /api/agent/v1/apps/{app}/assignments
+     */
+    public function createAssignment(Request $request, string $appId): JsonResponse
+    {
+        $app = App::withTrashed()->where('id', $appId)->orWhere('slug', $appId)->firstOrFail();
+
+        $validated = $request->validate([
+            'table_id' => 'required|string',
+            'enumerator_id' => 'nullable|string|exists:users,id',
+            'supervisor_id' => 'nullable|string|exists:users,id',
+            'external_id' => 'nullable|string|max:255',
+            'status' => 'nullable|string|in:assigned,in_progress,submitted,approved,rejected',
+            'prelist_data' => 'required|array',
+        ]);
+
+        $table = Table::where('app_id', $app->id)
+            ->where(function ($q) use ($validated) {
+                $q->where('id', $validated['table_id'])->orWhere('slug', $validated['table_id']);
+            })
+            ->firstOrFail();
+
+        $versionId = $table->latestPublishedVersion?->id ?? $table->versions()->latest('version')->first()?->id;
+        $orgId = $app->organizations()->first()?->id;
+
+        $assignment = new Assignment;
+        $assignment->id = (string) \Illuminate\Support\Str::uuid();
+        $assignment->table_id = $table->id;
+        $assignment->table_version_id = $versionId;
+        $assignment->organization_id = $orgId;
+        $assignment->enumerator_id = $validated['enumerator_id'] ?? null;
+        $assignment->supervisor_id = $validated['supervisor_id'] ?? null;
+        $assignment->external_id = $validated['external_id'] ?? null;
+        $assignment->status = $validated['status'] ?? 'assigned';
+        $assignment->prelist_data = $validated['prelist_data'];
+        $assignment->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Assignment created successfully',
+            'data' => $assignment->load(['table', 'enumerator', 'supervisor']),
+        ], 201);
+    }
+
+    /**
+     * Ingest or batch upload prelist rows into a table with smart strategy.
+     *
+     * POST /api/agent/v1/apps/{app}/tables/{table}/prelist
+     */
+    public function importPrelist(Request $request, string $appId, string $tableId): JsonResponse
+    {
+        $app = App::withTrashed()->where('id', $appId)->orWhere('slug', $appId)->firstOrFail();
+        $table = Table::where('app_id', $app->id)
+            ->where(function ($q) use ($tableId) {
+                $q->where('id', $tableId)->orWhere('slug', $tableId);
+            })
+            ->firstOrFail();
+
+        // Forward to AssignmentController logic with table_id parameter
+        $request->merge(['table_id' => $table->id]);
+        $assignmentCtrl = app(\App\Http\Controllers\Api\AssignmentController::class);
+
+        return $assignmentCtrl->importJson($request);
+    }
+
+    /**
+     * Delete (soft-delete) an assignment.
+     *
+     * DELETE /api/agent/v1/assignments/{assignment}
+     */
+    public function deleteAssignment(Request $request, string $assignmentId): JsonResponse
+    {
+        $assignment = Assignment::findOrFail($assignmentId);
+        SurveyResponse::where('assignment_id', $assignment->id)->delete();
+        $assignment->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Assignment deleted successfully',
+        ]);
+    }
+
+    /**
      * Helper to apply dynamic JSON operators in SQL query
      */
     private function applyJsonFilter($query, string $column, string $field, string $operator, $value): void

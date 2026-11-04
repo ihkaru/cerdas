@@ -210,7 +210,7 @@ class AppController extends Controller
             }
         }
 
-        $validated = $request->validate([
+        $rules = [
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'mode' => 'nullable|string|in:simple,complex',
@@ -220,7 +220,35 @@ class AppController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
             'expired_behavior' => 'nullable|string|in:read_only,hidden',
-        ]);
+        ];
+
+        // Super Admin privilege: Allow transferring app ownership to another user
+        if ($user->isSuperAdmin()) {
+            $rules['created_by'] = 'sometimes|string|exists:users,id';
+            $rules['owner_email'] = 'sometimes|email|exists:users,email';
+        }
+
+        $validated = $request->validate($rules);
+
+        // Resolve ownership transfer if requested by Super Admin
+        if ($user->isSuperAdmin()) {
+            $newOwnerId = $validated['created_by'] ?? null;
+            if (! $newOwnerId && ! empty($validated['owner_email'])) {
+                $targetUser = \App\Models\User::where('email', $validated['owner_email'])->first();
+                $newOwnerId = $targetUser?->id;
+            }
+
+            if ($newOwnerId) {
+                $validated['created_by'] = $newOwnerId;
+
+                // Ensure new owner is granted app_admin membership
+                \App\Models\AppMembership::updateOrCreate(
+                    ['app_id' => $app->id, 'user_id' => $newOwnerId],
+                    ['role' => 'app_admin', 'is_active' => true]
+                );
+            }
+            unset($validated['owner_email']);
+        }
 
         \Illuminate\Support\Facades\Log::info('App Update Validated', [
             'app_id' => $app->id,

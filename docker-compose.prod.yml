@@ -37,6 +37,8 @@ services:
       - CADDY_GLOBAL_OPTIONS=auto_https off
       - SENTRY_DSN=${SENTRY_DSN}
       - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.2}
+      - SUPERADMIN_API_KEY=${SUPERADMIN_API_KEY:-}
+      - AGENT_AUDIT_LOG=${AGENT_AUDIT_LOG:-true}
     volumes:
       - app_storage:/var/www/html/storage
     healthcheck:
@@ -225,6 +227,8 @@ services:
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - SENTRY_DSN=${SENTRY_DSN}
       - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.2}
+      - SUPERADMIN_API_KEY=${SUPERADMIN_API_KEY:-}
+      - AGENT_AUDIT_LOG=${AGENT_AUDIT_LOG:-true}
     volumes:
       - app_storage:/var/www/html/storage
     healthcheck:

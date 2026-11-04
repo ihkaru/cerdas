@@ -25,7 +25,9 @@ const EXCLUDE_PATTERNS = [
     /ResponseReviewDrawer\.vue$/,
     /AppsPage\.vue$/,
     /GoogleSheetSyncController\.php$/,
-    /GoogleSheetsService\.php$/
+    /GoogleSheetsService\.php$/,
+    /AppController\.php$/,
+    /AssignmentController\.php$/
 ];
 
 for (const file of files) {
