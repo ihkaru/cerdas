@@ -88,6 +88,7 @@ packages/expression-engine - @cerdas/expression-engine (expression evaluation)
 ---
 
 ## Key Reference Documents
+* `docs/architecture/` - arc42 Modular Architecture Documentation (01 to 12, ISO/IEC/IEEE 42010 aligned)
 * `docs/architecture_principles.md` - Technical principles (**READ FIRST**)
 * `docs/DEVELOPMENT_LIFECYCLE.md` - Start/stop, coding loop, and Release/Versioning SOP
 * `docs/WORKFLOW_AND_DEBUGGING.md` - Debugging workflow, CI/CD, and local verification (`verify-local.ps1`)
@@ -99,6 +100,8 @@ packages/expression-engine - @cerdas/expression-engine (expression evaluation)
 * `docs/ANDROID_BUILD_GUIDE.md` - Android build, signing, and APK release guide
 * `docs/COOLIFY_GUIDE.md` - Production deployment guide (Coolify + Docker)
 * `docs/DOCKER_DEV.md` - Local development with Docker backend
+* `scripts/cerdas-cli` - Agent-First CLI tool for machine automation
+* `.agents/skills/cerdas-orchestrator/SKILL.md` - GSBPM survey orchestration agent skill
 * `references/SCREEN_FLOW.md` - Screen Flow & Routing Guide
 * `ROADMAP.md` - Feature Roadmap
 
@@ -134,7 +137,7 @@ packages/expression-engine - @cerdas/expression-engine (expression evaluation)
   - **Idempotent Nested Updates**: Antrean `delete` berbasis `parent_response_id` sebelum batch `upsert` pada nested tab.
 - **2026-08-26**: Upgrade Komprehensif AI Context Engine & Tombol AI Prompt Generator:
   - **Super-Context v4.0**: Memperbarui `generateAIPrompt.ts` dengan Technical Manual lengkap (16 tipe field, kontrak 8 closure, Google Sheet multi-tab sync, 7 production blueprints Sambora).
-  - **SOP & Workspace Memory**: Menyelaraskan `GEMINI.md`, `gemini.md`, `.agents/AGENTS.md`, dan `.agent/AGENTS.md`.
+  - **SOP & Workspace Memory**: Menggunakan `GEMINI.md` di root sebagai Single Source of Truth (SSOT).
 - **2026-09-02**: Rilis v0.2.51 — Multi-Tab Sheet Sync, Long Text, Auto-Wrap Read-Only, & Compact Form UI:
   - **Multi-Tab Sheet Wizard**: Creator dapat mengimpor 1 atau banyak tab sheet sekaligus menjadi tabel-tabel terpisah dengan stage 1 workbook introspection dan atomic batch provisioning.
   - **Data Source IA Refactor**: In-place renaming pada kartu tabel, breadcrumb navbar kontekstual, dan pemisahan transparan Table Name vs Sheet Tab (Google AppSheet pattern).
@@ -161,5 +164,13 @@ packages/expression-engine - @cerdas/expression-engine (expression evaluation)
   - **Mini-Transactions (1.000 Baris/Commit)**: Pembagian commit transaksi per 1.000 baris mencegah table locking dan lock wait timeout pada database produksi saat enumerator aktif.
   - **Live Progress Tracking & UI Auto-Polling**: Cache real-time `sheet_sync_progress_{tableId}` diekspos melalui API status dan di-poll secara reaktif oleh editor UI dengan indikator jumlah baris tersinkronisasi.
   - **Peningkatan Kapasitas Worker**: Timeout queue dinaikkan menjadi 900 detik dan memori batas container worker disesuaikan menjadi 1024MB.
+- **2026-11-04**: Arsitektur arc42 Enterprise, Agent-First CLI, Skill GSBPM, Audit Log SHA-256, & SuperAdmin Ownership:
+  - **Dokumentasi arc42 Modular**: Menambahkan 12 berkas arsitektur standar ISO/IEC/IEEE 42010 (`docs/architecture/01_` s/d `12_`) dengan audit lolos 100% `arc42-lint`.
+  - **Audit Trail & Otentikasi API Key**: Middleware `AuthenticateApiKey` dengan validasi SHA-256 key hashing dan pencatatan mutasi otomatis ke tabel `audit_logs`.
+  - **SuperAdmin & Ownership Transfer**: Perintah Artisan `cerdas:superadmin` dan `cerdas:transfer-ownership`, serta dukungan API/CLI untuk mutasi pemilik aplikasi survei.
+  - **Agent-First CLI (`cerdas`)**: Utilitas mandiri berbasis Python dengan output JSON deterministik, introspeksi skema, dan nol interaktivitas shell.
+  - **Skill GSBPM (`cerdas-orchestrator`)**: Agent skill komprehensif yang memetakan siklus hidup survei lapangan dari Fase 1 s/d Fase 8.
+  - **Pembersihan Workspace**: Menghapus draft rencana usang (`docs/GOOGLE_SHEET_SYNC_*`, `task.md`, `implementation_plan.md`, `gemini.md`) dan memindahkan kuesioner Sambora ke folder contoh.
+
 
 

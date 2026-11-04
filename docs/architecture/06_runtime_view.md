@@ -1,8 +1,8 @@
 # 6. Tampilan Runtime (Runtime View)
 
 > [!INFO] **Architecture Provenance & Freshness**
-> - **Verified Commit**: `8925a9e` (branch: `main`)
-> - **Verified Timestamp**: `2026-11-04T13:37:00+07:00`
+> - **Verified Commit**: `4088c01` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-04T19:30:00+07:00`
 > - **Tracked Paths**: `apps/`, `packages/`
 > - **Drift Status**: `verified`
 

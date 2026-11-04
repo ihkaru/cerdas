@@ -6,8 +6,10 @@ File `schema.json` di dalam folder ini adalah contoh skema aplikasi Cerdas (*App
 
 1. Buka **Cerdas Editor App** (`http://localhost:9982` atau domain production Anda).
 2. Pilih **Buat Aplikasi Baru** > **Import dari JSON / Code Editor**.
-3. Salin seluruh isi dari file [`schema.json`](file:///c:/projects/cerdas/examples/kuesioner-sambora/schema.json) dan paste ke tab **Code Editor**.
+3. Salin seluruh isi dari file [`schema.json`](file:///root/Cerdas/examples/kuesioner-sambora/schema.json) dan paste ke tab **Code Editor**.
 4. Klik **Save / Apply Schema**.
+
+Spesifikasi lengkap dan aturan validasi form ini dapat dilihat pada dokumentasi [spesifikasi.md](file:///root/Cerdas/examples/kuesioner-sambora/spesifikasi.md).
 
 ## 💡 Fitur Kuesioner Ini:
 - **Offline-First & Auto-Scrubbing**: Data tersembunyi (`show_if=false`) otomatis dibersihkan saat disimpan.
