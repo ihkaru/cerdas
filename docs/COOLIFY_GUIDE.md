@@ -40,6 +40,14 @@ DB_PASSWORD=your_password
 SANCTUM_STATEFUL_DOMAINS=app.dvlpid.my.id,editor.dvlpid.my.id
 SESSION_DOMAIN=.dvlpid.my.id
 CORS_ALLOWED_ORIGINS=https://app.dvlpid.my.id,https://editor.dvlpid.my.id,capacitor://localhost,https://localhost
+
+# Agentic Automation & Audit Logging
+SUPERADMIN_API_KEY=crd_live_prod_superadmin_secret_key_change_me
+AGENT_AUDIT_LOG=true
+
+# Telemetry
+SENTRY_DSN=https://public@sre.dvlpid.my.id/cerdas
+SENTRY_TRACES_SAMPLE_RATE=0.2
 ```
 
 ### Frontend (Build Args)
@@ -64,12 +72,28 @@ In the Coolify UI for the Docker Compose resource, you will see individual servi
     -   Domain: `https://editor.dvlpid.my.id`
     -   Port: `80`
 
-## Step 4: Database Migration
+## Step 4: Database Migration & SuperAdmin Initialization
 
-For the first run, you need to migrate the database yourself.
-1.  Open the **Terminal** of the `backend` container (in Coolify).
-2.  Run: `php artisan migrate --force`.
-3.  Run: `php artisan db:seed --force` (if needed).
+For the first run, you need to migrate the database and create a SuperAdmin account:
+1.  Open the **Terminal** of the `backend` container (in Coolify) or run via Docker CLI:
+2.  Run migration:
+    ```bash
+    php artisan migrate --force
+    ```
+3.  Promote your initial user to **SuperAdmin**:
+    ```bash
+    php artisan cerdas:superadmin admin@dvlpid.my.id
+    ```
+4.  (Optional) Transfer ownership of any survey to a target user:
+    ```bash
+    php artisan cerdas:transfer-ownership <app_id_or_slug> <target_user_email>
+    ```
+5.  Configure your Agent-First CLI locally or on your runner:
+    ```bash
+    cerdas config set-url https://api.dvlpid.my.id
+    cerdas config set-key crd_live_prod_superadmin_secret_key_change_me
+    cerdas health
+    ```
 
 ## Step 5: Webhooks
 
