@@ -169,7 +169,8 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
 
     const headerActions = computed(() => {
         const settings = state.schemaData.value?.settings;
-        const customActions = settings?.actions?.header || state.layout.value?.headerActions || [];
+        const layoutSettings = (state.layout.value as any)?.settings;
+        const customActions = settings?.actions?.header || layoutSettings?.actions?.header || state.layout.value?.headerActions || [];
         const defaultActions = [
              { id: 'sync', label: 'Sync Data', icon: 'arrow_2_circlepath', type: 'sync' },
         ];
@@ -184,12 +185,14 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
 
     const rowActions = computed(() => {
         const settings = state.schemaData.value?.settings;
-        return settings?.actions?.row || state.layout.value?.rowActions || [];
+        const layoutSettings = (state.layout.value as any)?.settings;
+        return settings?.actions?.row || layoutSettings?.actions?.row || state.layout.value?.rowActions || [];
     });
     
     const swipeConfig = computed(() => {
         const settings = state.schemaData.value?.settings;
-        return settings?.actions?.swipe || state.layout.value?.swipeConfig || {};
+        const layoutSettings = (state.layout.value as any)?.settings;
+        return settings?.actions?.swipe || layoutSettings?.actions?.swipe || state.layout.value?.swipeConfig || {};
     });
     const previewFields = computed(() => state.layout.value?.previewFields || []);
 

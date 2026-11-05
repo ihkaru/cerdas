@@ -160,15 +160,53 @@ cerdas table update \
   --description "Versi revisi pasca uji coba instrumen lapangan"
 ```
 
-#### B. Bind Views & Navigation Tabs (App Shell Layout)
+#### B. Table Actions & Mobile FAB Configuration (`layout.settings.actions`)
 > [!IMPORTANT]
-> **Client PWA Runtime Invariant:** An App in `app.dvlpid.my.id` requires:
+> **Mobile FAB & Row Interaction Invariant:**
+> The mobile client PWA renders interactive controls based on `settings.actions` in the Table configuration:
+> 1. **Floating Action Button (`+` FAB)**: Renders at the bottom-right **ONLY** if `settings.actions.header` contains an action with `type: "create"`. Without this, surveyors cannot create ad-hoc records on mobile.
+> 2. **Card Actions**: Renders inside card menus / bottom sheets based on `settings.actions.row` (`open`, `delete`, `edit`).
+> 3. **Swipe Actions**: Renders on swipe gesture based on `settings.actions.swipe` (`delete` on left, `complete` on right).
+>
+> When creating or updating tables via CLI, always ensure `settings.actions` is defined:
+> ```bash
+> # Enable '+' FAB for ad-hoc field reports (e.g. Laporan Kunjungan / Visum):
+> cerdas table update \
+>   --app <app_id> \
+>   --table <table_id> \
+>   --settings-json '{
+>     "icon": "doc_text_search",
+>     "actions": {
+>       "header": [
+>         {"id": "create", "icon": "plus", "type": "create", "label": "Tambah Baru"},
+>         {"id": "sync", "icon": "arrow_2_circlepath", "type": "sync", "label": "Sync Data"}
+>       ],
+>       "row": [
+>         {"id": "open", "icon": "doc_text", "type": "open", "label": "Buka", "primary": true},
+>         {"id": "delete", "icon": "trash", "type": "delete", "color": "red", "label": "Hapus"}
+>       ],
+>       "swipe": {
+>         "left": ["delete"],
+>         "right": ["complete"]
+>       }
+>     }
+>   }'
+> ```
+
+#### C. Bind Views & Navigation Tabs (App Shell Layout)
+> [!IMPORTANT]
+> **Client PWA Runtime Invariants (Prelist vs Ad-Hoc Data Flow):**
 > 1. At least 1 Table with a **published** version (`published_at != null`).
 > 2. At least 1 View Config (`view_configs`) mapping a view ID to that table (e.g. `deck` or `map`).
 > 3. At least 1 Navigation Tab (`navigation`) pointing to the active `view_id`.
->
-> If an App has 0 tables or unconfigured navigation, opening the app in the mobile client PWA will immediately alert:
-> *"Aplikasi ini belum memiliki tabel/form data. Silakan buat tabel terlebih dahulu di Editor."*
+> 4. **Deck View Data Source Requirement:**
+>    - A `deck` view displays **Assignments** (`assignments` table in local SQLite synced from server).
+>    - **Empty Deck Root Cause:** If an App has tables and views configured, but **0 assignments** exist in the database, the mobile Deck view will be completely blank upon sync!
+>    - **Two Operational Survey Patterns:**
+>      - **Pattern A (Target Sampling Prelist)**: (e.g., Sakernas Foto Rumah, Susenas, Sensus Ekonomi).
+>        Admin **MUST** execute Phase 4.1 (`cerdas prelist upload`) AND Phase 4.2 (`cerdas assignment bulk-reassign`) to allocate sample households to enumerators.
+>      - **Pattern B (Ad-Hoc Reporting)**: (e.g., Laporan Kunjungan, Laporan Pemutakhiran).
+>        Admin **MUST** enable `header: [{"type": "create"}]` so the surveyor can tap `+` on the mobile device to add new submissions dynamically!
 
 Configure the navigation bar and card layout via CLI:
 ```bash

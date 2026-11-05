@@ -64,6 +64,13 @@ class AssignmentController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->has('app_id')) {
+            $appId = $request->input('app_id');
+            $query->whereHas('tableVersion.table', function ($q) use ($appId) {
+                $q->where('app_id', $appId);
+            });
+        }
+
         if ($tableId) {
             $query->whereHas('tableVersion', function ($q) use ($tableId) {
                 $q->where('table_id', $tableId);

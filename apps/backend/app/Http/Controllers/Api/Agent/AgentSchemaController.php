@@ -287,7 +287,7 @@ class AgentSchemaController extends Controller
         $app = App::withTrashed()->where('id', $appId)->orWhere('slug', $appId)->firstOrFail();
         $tables = Table::where('app_id', $app->id)
             ->with(['latestPublishedVersion'])
-            ->orderBy('order')
+            ->orderBy('created_at')
             ->get();
 
         return response()->json([
@@ -311,6 +311,8 @@ class AgentSchemaController extends Controller
             'description' => 'nullable|string',
             'fields' => 'nullable|array',
             'publish_immediately' => 'nullable|boolean',
+            'settings' => 'nullable|array',
+            'layout' => 'nullable|array',
         ]);
 
         $slug = \Illuminate\Support\Str::slug($validated['name']);
@@ -321,23 +323,54 @@ class AgentSchemaController extends Controller
             $counter++;
         }
 
+        $defaultActions = [
+            'header' => [
+                ['id' => 'create', 'icon' => 'plus', 'type' => 'create', 'label' => 'Tambah Baru'],
+                ['id' => 'sync', 'icon' => 'arrow_2_circlepath', 'type' => 'sync', 'label' => 'Sync Data'],
+            ],
+            'row' => [
+                ['id' => 'open', 'icon' => 'doc_text', 'type' => 'open', 'label' => 'Buka', 'primary' => true],
+                ['id' => 'delete', 'icon' => 'trash', 'type' => 'delete', 'color' => 'red', 'label' => 'Hapus'],
+            ],
+            'swipe' => [
+                'left' => ['delete'],
+                'right' => ['complete'],
+            ],
+        ];
+
+        $settings = $validated['settings'] ?? [
+            'icon' => 'doc_text_search',
+            'actions' => $defaultActions,
+            'public_access' => false,
+            'allow_comments' => false,
+        ];
+
         $table = new Table;
         $table->id = (string) \Illuminate\Support\Str::uuid();
         $table->app_id = $app->id;
         $table->name = $validated['name'];
         $table->slug = $slug;
         $table->description = $validated['description'] ?? null;
+        $table->settings = $settings;
         $table->current_version = 1;
         $table->save();
 
         $fields = $validated['fields'] ?? [];
         $publishImmediately = $validated['publish_immediately'] ?? false;
 
+        $layout = $validated['layout'] ?? [
+            'type' => 'standard',
+            'groupBy' => [],
+            'app_name' => $app->name,
+            'settings' => $settings,
+        ];
+
         $version = new TableVersion;
         $version->id = (string) \Illuminate\Support\Str::uuid();
         $version->table_id = $table->id;
         $version->version = 1;
         $version->fields = $fields;
+        $version->layout = $layout;
         $version->changelog = 'Initial schema version';
         if ($publishImmediately) {
             $version->published_at = now();

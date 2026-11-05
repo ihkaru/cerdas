@@ -675,6 +675,16 @@ def cmd_table(args: argparse.Namespace, client: CerdasClient) -> None:
             "fields": fields,
             "publish_immediately": getattr(args, "publish", False),
         }
+        if getattr(args, "settings_json", None):
+            try:
+                body["settings"] = json.loads(args.settings_json)
+            except Exception as e:
+                output_result(False, message=f"Malformed --settings-json: {e}", code=400)
+        if getattr(args, "layout_json", None):
+            try:
+                body["layout"] = json.loads(args.layout_json)
+            except Exception as e:
+                output_result(False, message=f"Malformed --layout-json: {e}", code=400)
         status, res = client.request("POST", f"/api/agent/v1/apps/{app_id}/tables", body=body)
         if status not in (200, 201):
             output_result(False, res, message=res.get("message", "Failed to create table."), code=status)
@@ -804,9 +814,46 @@ def cmd_assignment(args: argparse.Namespace, client: CerdasClient) -> None:
     action = args.assignment_action
 
     if action == "list":
+        app_id = getattr(args, "app", None)
+        table_id = getattr(args, "table", None)
+
+        if app_id and not table_id:
+            tables = []
+            t_status, t_res = client.request("GET", f"/api/agent/v1/apps/{app_id}/tables")
+            if t_status == 200:
+                tables = t_res.get("data", [])
+            else:
+                a_status, a_res = client.request("GET", f"/api/agent/v1/apps/{app_id}")
+                if a_status == 200:
+                    tables = a_res.get("data", {}).get("tables", [])
+
+            if tables:
+                all_assignments = []
+                total = 0
+                for tbl in tables:
+                    t_id = tbl.get("id")
+                    params = {
+                        "table_id": t_id,
+                        "status": getattr(args, "status", None),
+                        "enumerator_id": getattr(args, "enumerator", None),
+                        "search": getattr(args, "search", None),
+                        "per_page": getattr(args, "limit", 50),
+                        "page": getattr(args, "page", 1),
+                    }
+                    s, r = client.request("GET", "/api/assignments", params=params)
+                    if s == 200:
+                        page_data = r.get("data", {})
+                        items = page_data.get("data", [])
+                        all_assignments.extend(items)
+                        total += page_data.get("total", len(items))
+                output_result(True, {"current_page": 1, "data": all_assignments, "total": total},
+                              message=f"Retrieved {len(all_assignments)} assignments across {len(tables)} tables in app.",
+                              fields=getattr(args, "fields", None), table_mode=getattr(args, "table_view", False))
+                return
+
         params = {
-            "app_id": getattr(args, "app", None),
-            "table_id": getattr(args, "table", None),
+            "app_id": app_id,
+            "table_id": table_id,
             "status": getattr(args, "status", None),
             "enumerator_id": getattr(args, "enumerator", None),
             "search": getattr(args, "search", None),
@@ -1118,6 +1165,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_tbl_create.add_argument("--name", required=True, help="Table name")
     p_tbl_create.add_argument("--description", help="Table description")
     p_tbl_create.add_argument("--fields-json", help="Array of field objects in JSON string")
+    p_tbl_create.add_argument("--settings-json", help="Settings JSON string (actions, icon)")
+    p_tbl_create.add_argument("--layout-json", help="Layout JSON string (type, settings, groupBy)")
     p_tbl_create.add_argument("--publish", action="store_true", help="Publish version immediately")
 
     p_tbl_update = p_table_sub.add_parser("update", help="Update table name, description, or custom settings")
