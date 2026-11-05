@@ -41,6 +41,7 @@ Route::post('/broadcasting/auth', function (Request $request) {
     if (! $request->user()) {
         return response()->json(['error' => 'Unauthenticated'], 401);
     }
+
     try {
         return Broadcast::auth($request);
     } catch (\Throwable $e) {
@@ -69,6 +70,11 @@ Route::get('/tables/{table}/export/download-raw/{job}', [ExportController::class
 
 // Public Webhook for Inbound Google Sheets Sync
 Route::post('/webhooks/sheets/{table}', [GoogleSheetSyncController::class, 'handleWebhook']);
+
+// Public Skill Specification (Open for autonomous agents & LLMs)
+Route::get('/skill.md', [AgentSystemController::class, 'skill']);
+Route::get('/agent/v1/skill', [AgentSystemController::class, 'skill']);
+Route::get('/agent/v1/skill.md', [AgentSystemController::class, 'skill']);
 
 // ========== Protected Routes ==========
 Route::middleware('auth:sanctum')->group(function () {
@@ -269,11 +275,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/excel/preview', [ExcelImportController::class, 'preview']);
     Route::post('/excel/import', [ExcelImportController::class, 'import']);
     Route::get('/excel/status/{jobId}', [ExcelImportController::class, 'checkStatus']);
-
-    // Public Skill Specification (Open for autonomous agents & LLMs)
-    Route::get('/skill.md', [AgentSystemController::class, 'skill']);
-    Route::get('/agent/v1/skill', [AgentSystemController::class, 'skill']);
-    Route::get('/agent/v1/skill.md', [AgentSystemController::class, 'skill']);
 
 });
 
