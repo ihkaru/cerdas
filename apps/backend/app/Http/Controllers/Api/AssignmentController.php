@@ -561,7 +561,7 @@ class AssignmentController extends Controller
             $assignment->external_id = $validated['external_id'];
         }
         if (array_key_exists('prelist_data', $validated) && is_array($validated['prelist_data'])) {
-            $assignment->prelist_data = $validated['prelist_data'];
+            $assignment->prelist_data = array_merge($assignment->prelist_data ?? [], $validated['prelist_data']);
         }
 
         if (! empty($validated['status']) && $validated['status'] !== $assignment->status) {

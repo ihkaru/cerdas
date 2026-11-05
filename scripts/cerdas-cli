@@ -547,7 +547,29 @@ def cmd_table(args: argparse.Namespace, client: CerdasClient) -> None:
 def cmd_prelist(args: argparse.Namespace, client: CerdasClient) -> None:
     action = args.prelist_action
 
-    if action in ("list", "get", "create", "update", "delete"):
+    if action == "get":
+        assignment_id = args.assignment_id
+        status, res = client.request("GET", f"/api/agent/v1/assignments/{assignment_id}")
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to retrieve prelist respondent."), code=status)
+        output_result(True, res.get("data", res), message="Retrieved prelist respondent details.")
+
+    if action == "update":
+        assignment_id = args.assignment_id
+        try:
+            prelist_data = json.loads(args.data_json)
+        except Exception as e:
+            output_result(False, message=f"Malformed --data-json: {e}", code=400)
+        body = {
+            "prelist_data": prelist_data,
+            "replace": getattr(args, "replace", False),
+        }
+        status, res = client.request("PUT", f"/api/agent/v1/assignments/{assignment_id}/prelist", body=body)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to update prelist."), code=status)
+        output_result(True, res.get("data", res), message="Prelist respondent attributes updated successfully.")
+
+    if action in ("list", "create", "delete"):
         args.assignment_action = action
         return cmd_assignment(args, client)
 
@@ -890,6 +912,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_pre_update = p_prelist_sub.add_parser("update", help="Update prelist attributes (typo fix / address / contact)")
     p_pre_update.add_argument("assignment_id", help="Prelist / Assignment UUID")
     p_pre_update.add_argument("--data-json", required=True, help="Updated prelist attributes in JSON string")
+    p_pre_update.add_argument("--replace", action="store_true", help="Overwrite all prelist attributes instead of merging")
     p_pre_update.add_argument("--status", choices=["assigned", "in_progress", "submitted", "approved", "rejected"])
     p_pre_update.add_argument("--enumerator", help="Enumerator User ID")
     p_pre_update.add_argument("--supervisor", help="Supervisor User ID")
