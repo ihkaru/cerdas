@@ -207,7 +207,11 @@ CLI_SCHEMA = {
             "subcommands": {
                 "show": {"description": "Show active server endpoint and masked API key"},
                 "set-key": {"description": "Persist API Key", "args": ["key"]},
+                "set-api-key": {"description": "Alias for set-key: Persist API Key", "args": ["key"]},
                 "set-url": {"description": "Persist server base URL", "args": ["url"]},
+                "set-base-url": {"description": "Alias for set-url: Persist server base URL", "args": ["url"]},
+                "set": {"description": "Persist configuration property", "args": ["property", "value"]},
+                "get": {"description": "Read configuration property value", "args": ["property"]},
             },
         },
         "health": {
@@ -343,19 +347,40 @@ def cmd_config(args: argparse.Namespace, cfg: Dict[str, Any]) -> None:
                 "CERDAS_SUPERADMIN_KEY": os.getenv("CERDAS_SUPERADMIN_KEY") is not None,
             },
         }, message="Active Cerdas CLI configuration.")
-    elif action == "set-key":
+    elif action in ("set-key", "set-api-key"):
         if not args.value:
             output_result(False, message="API Key value required.", code=400,
                           suggestion="Run: cerdas config set-key crd_live_...")
         save_config({"api_key": args.value})
         output_result(True, {"api_key": mask_key(args.value)}, message="API Key saved successfully.")
-    elif action == "set-url":
+    elif action in ("set-url", "set-base-url"):
         if not args.value:
             output_result(False, message="Base URL value required.", code=400,
-                          suggestion="Run: cerdas config set-url http://localhost:8000")
+                          suggestion="Run: cerdas config set-base-url http://localhost:8000")
         clean_url = args.value.rstrip("/")
         save_config({"base_url": clean_url})
         output_result(True, {"base_url": clean_url}, message="Base URL saved successfully.")
+    elif action == "set":
+        norm = args.property.lower().replace("-", "_")
+        if norm in ("base_url", "url"):
+            clean_url = args.value.rstrip("/")
+            save_config({"base_url": clean_url})
+            output_result(True, {"base_url": clean_url}, message="Base URL saved successfully.")
+        elif norm in ("api_key", "key"):
+            save_config({"api_key": args.value})
+            output_result(True, {"api_key": mask_key(args.value)}, message="API Key saved successfully.")
+        else:
+            output_result(False, message=f"Unknown config property: {args.property}", code=400,
+                          suggestion="Allowed properties: base-url, api-key")
+    elif action == "get":
+        norm = args.property.lower().replace("-", "_")
+        if norm in ("base_url", "url"):
+            output_result(True, {"base_url": cfg["base_url"]})
+        elif norm in ("api_key", "key"):
+            output_result(True, {"api_key": mask_key(cfg["api_key"])})
+        else:
+            output_result(False, message=f"Unknown config property: {args.property}", code=400,
+                          suggestion="Allowed properties: base-url, api-key")
 
 
 def cmd_health(args: argparse.Namespace, client: CerdasClient) -> None:
@@ -823,6 +848,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--json", action="store_true", default=True, help="Output in machine-readable JSON (Default)")
     parser.add_argument("--table", dest="table_view", action="store_true", help="Format array data as human-readable table")
     parser.add_argument("--fields", help="Context window discipline: comma-separated fields to project")
+    parser.add_argument("--base-url", "--url", "-u", dest="base_url", help="Cerdas backend server base URL (overrides config & CERDAS_BASE_URL)")
+    parser.add_argument("--api-key", "-k", dest="api_key", help="API Key for authentication (overrides config & CERDAS_API_KEY)")
 
     subparsers = parser.add_subparsers(dest="subcommand", help="Primary subcommands")
 
@@ -840,10 +867,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_config = subparsers.add_parser("config", help="Manage CLI endpoint and API Key")
     p_config_sub = p_config.add_subparsers(dest="config_action", required=True)
     p_config_sub.add_parser("show", help="Show active configuration")
+
     p_set_key = p_config_sub.add_parser("set-key", help="Set persistent API Key")
     p_set_key.add_argument("value", help="API Key (crd_live_... or master key)")
+
+    p_set_api_key = p_config_sub.add_parser("set-api-key", help="Alias for set-key: Set persistent API Key")
+    p_set_api_key.add_argument("value", help="API Key (crd_live_... or master key)")
+
     p_set_url = p_config_sub.add_parser("set-url", help="Set backend server URL")
     p_set_url.add_argument("value", help="Base URL (e.g. http://localhost:8000)")
+
+    p_set_base_url = p_config_sub.add_parser("set-base-url", help="Alias for set-url: Set backend server base URL")
+    p_set_base_url.add_argument("value", help="Base URL (e.g. https://api.dvlpid.my.id)")
+
+    p_cfg_set = p_config_sub.add_parser("set", help="Set configuration property by key name")
+    p_cfg_set.add_argument("property", help="Property name (base-url, api-key)")
+    p_cfg_set.add_argument("value", help="Value to set")
+
+    p_cfg_get = p_config_sub.add_parser("get", help="Get configuration property value")
+    p_cfg_get.add_argument("property", help="Property name (base-url, api-key)")
 
     # App
     p_app = subparsers.add_parser("app", help="GSBPM Phase 1 & 2: Manage survey projects & activities")
@@ -1053,6 +1095,12 @@ def main() -> None:
         cmd_schema(args)
 
     cfg = load_config()
+
+    # CLI flag overrides take highest precedence
+    if getattr(args, "base_url", None):
+        cfg["base_url"] = args.base_url.rstrip("/")
+    if getattr(args, "api_key", None):
+        cfg["api_key"] = args.api_key
 
     if args.subcommand == "config":
         cmd_config(args, cfg)

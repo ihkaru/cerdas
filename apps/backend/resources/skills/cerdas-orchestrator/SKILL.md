@@ -47,17 +47,22 @@ The orchestration workflow strictly reflects the international standard **GSBPM 
 The CLI communicates with the Cerdas backend over HTTPS using API Key authentication:
 
 ```bash
-# 1. Probe current CLI status
+# 1. Probe current CLI status and active base URL
 cerdas config show
 
-# 2. Configure endpoint (default: http://127.0.0.1:8000)
-cerdas config set-url http://127.0.0.1:8000
+# 2. Configure endpoint (aliases: set-base-url, set-url, or generic set)
+cerdas config set-base-url https://api.dvlpid.my.id
+# or: cerdas config set base-url https://api.dvlpid.my.id
 
-# 3. Configure API Key (Personal Access Token crd_live_... or Master SuperAdmin Key)
-cerdas config set-key crd_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# 3. Configure API Key (aliases: set-api-key, set-key, or generic set)
+cerdas config set-api-key crd_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# Alternatively, set via environment variables in execution session:
-export CERDAS_BASE_URL="http://127.0.0.1:8000"
+# 4. Ad-Hoc / One-Shot CLI Flags (without modifying persistent config):
+cerdas --base-url https://api.dvlpid.my.id --api-key crd_live_xxx health
+cerdas -u https://api.dvlpid.my.id -k crd_live_xxx app list
+
+# 5. Environment variables (highest priority for container/CI workflows):
+export CERDAS_BASE_URL="https://api.dvlpid.my.id"
 export CERDAS_API_KEY="crd_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
