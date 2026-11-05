@@ -406,6 +406,93 @@ class AgentDataController extends Controller
     }
 
     /**
+     * Show detailed assignment by ID.
+     *
+     * GET /api/agent/v1/assignments/{assignment}
+     */
+    public function showAssignment(Request $request, string $assignmentId): JsonResponse
+    {
+        $assignment = Assignment::with(['table.app', 'tableVersion', 'enumerator', 'supervisor', 'responses' => function ($q) {
+            $q->latest()->limit(5);
+        }])->findOrFail($assignmentId);
+
+        return response()->json([
+            'success' => true,
+            'data' => $assignment,
+        ]);
+    }
+
+    /**
+     * Update an assignment (reassign enumerator/supervisor, change status, or edit prelist).
+     *
+     * PATCH /api/agent/v1/assignments/{assignment}
+     */
+    public function patchAssignment(Request $request, string $assignmentId): JsonResponse
+    {
+        $validated = $request->validate([
+            'enumerator_id' => 'nullable|string|exists:users,id',
+            'supervisor_id' => 'nullable|string|exists:users,id',
+            'external_id' => 'nullable|string|max:255',
+            'status' => 'nullable|string|in:assigned,in_progress,submitted,approved,rejected',
+            'prelist_data' => 'nullable|array',
+            'note' => 'nullable|string|max:500',
+        ]);
+
+        $assignment = Assignment::findOrFail($assignmentId);
+        $user = $request->user();
+
+        if (array_key_exists('enumerator_id', $validated)) {
+            $assignment->enumerator_id = $validated['enumerator_id'];
+        }
+        if (array_key_exists('supervisor_id', $validated)) {
+            $assignment->supervisor_id = $validated['supervisor_id'];
+        }
+        if (array_key_exists('external_id', $validated)) {
+            $assignment->external_id = $validated['external_id'];
+        }
+        if (array_key_exists('prelist_data', $validated) && is_array($validated['prelist_data'])) {
+            $assignment->prelist_data = $validated['prelist_data'];
+        }
+
+        if (! empty($validated['status']) && $validated['status'] !== $assignment->status) {
+            $assignment->status = $validated['status'];
+            $assignment->recordStatusChange($validated['status'], $user, $validated['note'] ?? 'Status updated via Agent API');
+        } elseif (! empty($validated['note'])) {
+            $assignment->recordStatusChange($assignment->status, $user, $validated['note']);
+        }
+
+        $assignment->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Assignment updated successfully',
+            'data' => $assignment->load(['table', 'enumerator', 'supervisor']),
+        ]);
+    }
+
+    /**
+     * In-place quick update for prelist data.
+     *
+     * PUT /api/agent/v1/assignments/{assignment}/prelist
+     */
+    public function updatePrelist(Request $request, string $assignmentId): JsonResponse
+    {
+        $validated = $request->validate([
+            'prelist_data' => 'required|array',
+        ]);
+
+        $assignment = Assignment::findOrFail($assignmentId);
+        $assignment->prelist_data = $validated['prelist_data'];
+        $assignment->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data prelist berhasil diperbarui',
+            'data' => $assignment->load(['table', 'enumerator', 'supervisor']),
+        ]);
+    }
+
+    /**
      * Helper to apply dynamic JSON operators in SQL query
      */
     private function applyJsonFilter($query, string $column, string $field, string $operator, $value): void

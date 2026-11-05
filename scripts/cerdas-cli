@@ -241,8 +241,23 @@ CLI_SCHEMA = {
             },
         },
         "prelist": {
-            "description": "GSBPM Phase 4.1: Ingest & Allocate Target Sampling Frame (Prelist)",
+            "description": "GSBPM Phase 4.1: Ingest, Query, & Manage Target Sampling Frame (Prelist)",
             "subcommands": {
+                "list": {
+                    "description": "List prelist respondents / sampling units with filters",
+                    "flags": ["--app", "--table", "--status", "--enumerator", "--search", "--limit", "--page", "--fields"],
+                },
+                "get": {"description": "Get detailed prelist attributes for a sample unit", "args": ["assignment_id"]},
+                "create": {
+                    "description": "Create a single target respondent / prelist unit manually on the fly",
+                    "flags": ["--table (required)", "--data-json (required)", "--enumerator", "--supervisor", "--status", "--external-id"],
+                },
+                "update": {
+                    "description": "Update in-place prelist attributes (typo fix, address, contact, or assignment)",
+                    "args": ["assignment_id"],
+                    "flags": ["--data-json (required)", "--status", "--enumerator", "--supervisor", "--note"],
+                },
+                "delete": {"description": "Soft-delete a prelist respondent (sample drop / duplicate)", "args": ["assignment_id"], "flags": ["--force"]},
                 "upload": {
                     "description": "Batch ingest JSON prelist rows with smart reconciliation strategy",
                     "flags": [
@@ -531,6 +546,10 @@ def cmd_table(args: argparse.Namespace, client: CerdasClient) -> None:
 
 def cmd_prelist(args: argparse.Namespace, client: CerdasClient) -> None:
     action = args.prelist_action
+
+    if action in ("list", "get", "create", "update", "delete"):
+        args.assignment_action = action
+        return cmd_assignment(args, client)
 
     if action == "upload":
         app_id = getattr(args, "app", None)
@@ -841,9 +860,47 @@ def build_parser() -> argparse.ArgumentParser:
     p_tbl_del.add_argument("--force", action="store_true", help="Confirm deletion")
 
     # Prelist
-    p_prelist = subparsers.add_parser("prelist", help="GSBPM Phase 4.1: Upload sampling frame prelist")
+    p_prelist = subparsers.add_parser("prelist", help="GSBPM Phase 4.1: Query, ingest, & manage sampling frame prelist")
     p_prelist_sub = p_prelist.add_subparsers(dest="prelist_action", required=True)
 
+    # Prelist: list
+    p_pre_list = p_prelist_sub.add_parser("list", help="List prelist rows / sampling units")
+    p_pre_list.add_argument("--app", help="Filter by App ID / Slug")
+    p_pre_list.add_argument("--table", help="Filter by Table ID / Slug")
+    p_pre_list.add_argument("--status", choices=["assigned", "in_progress", "submitted", "approved", "rejected"])
+    p_pre_list.add_argument("--enumerator", help="Filter by Enumerator User ID")
+    p_pre_list.add_argument("--search", help="Search keyword in prelist data")
+    p_pre_list.add_argument("--limit", type=int, default=50, help="Per page limit")
+    p_pre_list.add_argument("--page", type=int, default=1, help="Page number")
+
+    # Prelist: get
+    p_pre_get = p_prelist_sub.add_parser("get", help="Get a single prelist row details")
+    p_pre_get.add_argument("assignment_id", help="Prelist / Assignment UUID")
+
+    # Prelist: create
+    p_pre_create = p_prelist_sub.add_parser("create", help="Create a single prelist respondent on the fly")
+    p_pre_create.add_argument("--table", required=True, help="Table UUID")
+    p_pre_create.add_argument("--data-json", required=True, help="Prelist attributes in JSON string")
+    p_pre_create.add_argument("--external-id", help="External reference code / NKS")
+    p_pre_create.add_argument("--enumerator", help="Enumerator User ID")
+    p_pre_create.add_argument("--supervisor", help="Supervisor User ID")
+    p_pre_create.add_argument("--status", choices=["assigned", "in_progress", "submitted", "approved", "rejected"], default="assigned")
+
+    # Prelist: update
+    p_pre_update = p_prelist_sub.add_parser("update", help="Update prelist attributes (typo fix / address / contact)")
+    p_pre_update.add_argument("assignment_id", help="Prelist / Assignment UUID")
+    p_pre_update.add_argument("--data-json", required=True, help="Updated prelist attributes in JSON string")
+    p_pre_update.add_argument("--status", choices=["assigned", "in_progress", "submitted", "approved", "rejected"])
+    p_pre_update.add_argument("--enumerator", help="Enumerator User ID")
+    p_pre_update.add_argument("--supervisor", help="Supervisor User ID")
+    p_pre_update.add_argument("--note", help="Status change / audit note")
+
+    # Prelist: delete
+    p_pre_del = p_prelist_sub.add_parser("delete", help="Soft-delete a prelist respondent (sample drop / duplicate)")
+    p_pre_del.add_argument("assignment_id", help="Prelist / Assignment UUID")
+    p_pre_del.add_argument("--force", action="store_true", help="Confirm deletion")
+
+    # Prelist: upload (bulk)
     p_pre_up = p_prelist_sub.add_parser("upload", help="Upload JSON prelist rows")
     p_pre_up.add_argument("--app", required=True, help="App ID or Slug")
     p_pre_up.add_argument("--table", required=True, help="Table ID or Slug")

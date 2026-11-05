@@ -301,6 +301,9 @@ Route::prefix('agent/v1')->middleware('agent.auth')->group(function () {
     Route::patch('/submissions/{response}', [AgentDataController::class, 'patchSubmission']);
     Route::get('/apps/{app}/assignments', [AgentDataController::class, 'assignments']);
     Route::post('/apps/{app}/assignments', [AgentDataController::class, 'createAssignment']);
+    Route::get('/assignments/{assignment}', [AgentDataController::class, 'showAssignment']);
+    Route::patch('/assignments/{assignment}', [AgentDataController::class, 'patchAssignment']);
+    Route::put('/assignments/{assignment}/prelist', [AgentDataController::class, 'updatePrelist']);
     Route::delete('/assignments/{assignment}', [AgentDataController::class, 'deleteAssignment']);
     Route::patch('/assignments/{assignment}/status', [AgentDataController::class, 'patchAssignmentStatus']);
     Route::post('/apps/{app}/tables/{table}/prelist', [AgentDataController::class, 'importPrelist']);

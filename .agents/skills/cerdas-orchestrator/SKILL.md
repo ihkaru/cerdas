@@ -121,8 +121,11 @@ cerdas table create \
   --publish
 ```
 
-### Step 4: Ingest Sampling Frame / Prelist (GSBPM Phase 4.1)
+### Step 4: Manage & Update Sampling Frame / Prelist (GSBPM Phase 4.1)
 
+Prelist represents the target sample frame (e.g. households, businesses, farmers) stored in `assignments.prelist_data`. Cerdas provides full CRUD capabilities for prelist management before and during fieldwork:
+
+#### A. Batch Ingest with Smart Reconciliation
 Prepare the target sampling list (e.g. `prelist_sampel.json`):
 ```json
 [
@@ -143,14 +146,46 @@ Prepare the target sampling list (e.g. `prelist_sampel.json`):
 ]
 ```
 
-Upload using the declarative upsert strategy:
+Upload using the declarative upsert or merge strategy:
 ```bash
+# Initial frame upload or full upsert:
 cerdas prelist upload \
   --app e8a1c4b2-0000-4000-8000-abcdef123456 \
   --table <table_uuid> \
   --file prelist_sampel.json \
   --strategy upsert \
   --match-key id_sampel
+
+# In-Field Re-Listing Update: Merge new columns without overwriting enumerator answers
+cerdas prelist upload \
+  --app e8a1c4b2-0000-4000-8000-abcdef123456 \
+  --table <table_uuid> \
+  --file updated_columns.json \
+  --strategy merge_columns \
+  --match-key id_sampel
+```
+
+#### B. Dynamic Prelist CRUD During Active Fieldwork
+```bash
+# 1. Query & Search Prelist Rows:
+cerdas prelist list --app <app_id> --table <table_id> --search "Budi Hartono"
+
+# 2. Inspect Single Sample Prelist:
+cerdas prelist get <assignment_uuid>
+
+# 3. Add New Sample Unit Found in the Field On-The-Fly:
+cerdas prelist create \
+  --table <table_uuid> \
+  --external-id "SMPL-003" \
+  --data-json '{"nama_krt": "Ahmad Subarjo", "desa": "Sukasari", "rt_rw": "004/005"}' \
+  --enumerator <enumerator_uuid>
+
+# 4. In-Place Update (Fix typo, update contact / address):
+cerdas prelist update <assignment_uuid> \
+  --data-json '{"nama_krt": "Pak Budi Hartono", "no_telp": "08123456789"}'
+
+# 5. Soft-Delete Invalid / Dropped Prelist Sample:
+cerdas prelist delete <assignment_uuid> --force
 ```
 
 ### Step 5: Allocate Tasks to Enumerators (GSBPM Phase 4.2)
