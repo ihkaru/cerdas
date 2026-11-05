@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.57](https://github.com/ihkaru/cerdas/compare/v0.2.56...v0.2.57) (2026-11-05)
+
+
+### Features
+
+* **agent:** fix join link client url and add nav/views cli flags ([81808cc](https://github.com/ihkaru/cerdas/commit/81808cc6a78793a7bf658792bd9e1af09fccfe1e))
+* **api,cli,docs:** add arc42, agent CLI, GSBPM skill, and audit APIs ([55ddb7d](https://github.com/ihkaru/cerdas/commit/55ddb7d142c34ae30b6152b5bdba3e5912545021))
+* **cli:** add editor toggles, shareable join links, and members ([7bb7093](https://github.com/ihkaru/cerdas/commit/7bb70933a415966a7cd5e1dba11c1306d3109ebf))
+* **cli:** add set-base-url alias and global --base-url / --api-key flags ([aae1c01](https://github.com/ihkaru/cerdas/commit/aae1c011e08c63c135cadb28830edf106c1f1969))
+* **observability:** implement Sentry across backend, editor, and offline-first client ([8925a9e](https://github.com/ihkaru/cerdas/commit/8925a9ef722a38754beb48ca61d7ea0e58f6aca4))
+* **prelist:** implement comprehensive prelist CRUD in Agent API and CLI ([127a283](https://github.com/ihkaru/cerdas/commit/127a283c39888464e771626b576f88201880f779))
+* **skill:** expose canonical agent skill endpoint from backend resources (SSOT) ([9e9509a](https://github.com/ihkaru/cerdas/commit/9e9509abd3b1cbb5cf64946f488ae6599ea90759))
+
+
+### Bug Fixes
+
+* **prelist:** merge attributes on update and route CLI update to agent prelist endpoint ([3472d18](https://github.com/ihkaru/cerdas/commit/3472d18f850845f4ae2a0ceaa9bf92a7384a7be9))
+* **routes:** relocate public skill routes outside sanctum auth middleware ([c607866](https://github.com/ihkaru/cerdas/commit/c6078662135910a028b1fc27ac90b2e6e4bad9fa))
+
 ## [0.2.56](https://github.com/ihkaru/cerdas/compare/v0.2.55...v0.2.56) (2026-09-25)
 
 
