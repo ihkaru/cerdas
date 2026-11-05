@@ -499,6 +499,28 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
         if settings_payload:
             body["settings"] = settings_payload
 
+        if getattr(args, "navigation_json", None):
+            try:
+                raw_nav = args.navigation_json
+                if os.path.exists(raw_nav):
+                    with open(raw_nav, "r") as f:
+                        body["navigation"] = json.load(f)
+                else:
+                    body["navigation"] = json.loads(raw_nav)
+            except Exception as e:
+                output_result(False, message=f"Invalid JSON in --navigation-json: {e}", code=400)
+
+        if getattr(args, "view_configs_json", None):
+            try:
+                raw_views = args.view_configs_json
+                if os.path.exists(raw_views):
+                    with open(raw_views, "r") as f:
+                        body["view_configs"] = json.load(f)
+                else:
+                    body["view_configs"] = json.loads(raw_views)
+            except Exception as e:
+                output_result(False, message=f"Invalid JSON in --view-configs-json: {e}", code=400)
+
         if getattr(args, "owner", None):
             owner_val = args.owner.strip()
             if "@" in owner_val:
@@ -1051,6 +1073,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_app_update.add_argument("--end-date", help="Survey deadline schedule (ISO datetime)")
     p_app_update.add_argument("--expired-behavior", choices=["read_only", "hidden"], help="Behavior after deadline")
     p_app_update.add_argument("--settings-json", help="Custom settings JSON string")
+    p_app_update.add_argument("--navigation-json", help="Navigation tabs array JSON string or file path")
+    p_app_update.add_argument("--view-configs-json", help="View configurations mapping JSON string or file path")
     p_app_update.add_argument("--owner", help="Transfer ownership to user ID or email (SuperAdmin only)")
 
     # App Shareable Join Link (aliases: share-link, join-link)

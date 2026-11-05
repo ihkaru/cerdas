@@ -160,6 +160,38 @@ cerdas table update \
   --description "Versi revisi pasca uji coba instrumen lapangan"
 ```
 
+#### B. Bind Views & Navigation Tabs (App Shell Layout)
+> [!IMPORTANT]
+> **Client PWA Runtime Invariant:** An App in `app.dvlpid.my.id` requires:
+> 1. At least 1 Table with a **published** version (`published_at != null`).
+> 2. At least 1 View Config (`view_configs`) mapping a view ID to that table (e.g. `deck` or `map`).
+> 3. At least 1 Navigation Tab (`navigation`) pointing to the active `view_id`.
+>
+> If an App has 0 tables or unconfigured navigation, opening the app in the mobile client PWA will immediately alert:
+> *"Aplikasi ini belum memiliki tabel/form data. Silakan buat tabel terlebih dahulu di Editor."*
+
+Configure the navigation bar and card layout via CLI:
+```bash
+cerdas app update <app_id> \
+  --navigation-json '[
+    {"id": "nav_1", "icon": "doc_text", "type": "view", "label": "Laporan Pendataan", "view_id": "view_laporan"}
+  ]' \
+  --view-configs-json '{
+    "view_laporan": {
+      "type": "deck",
+      "title": "Laporan Pendataan",
+      "table_id": "<table_id>",
+      "sortBy": "nama_ppl",
+      "groupBy": ["nama_ppl", "sls"],
+      "actions": ["open", "delete"],
+      "deck": {
+        "primaryHeaderField": "sls",
+        "secondaryHeaderField": "nama_krt"
+      }
+    }
+  }'
+```
+
 ### Step 4: Manage & Update Sampling Frame / Prelist (GSBPM Phase 4.1)
 
 Prelist represents the target sample frame (e.g. households, businesses, farmers) stored in `assignments.prelist_data`. Cerdas provides full CRUD capabilities for prelist management before and during fieldwork:

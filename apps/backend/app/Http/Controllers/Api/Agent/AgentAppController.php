@@ -148,7 +148,8 @@ class AgentAppController extends Controller
         ]);
 
         $activeJoinLink = $app->joinLinks()->where('is_active', true)->first();
-        $clientUrl = env('CERDAS_APP_URL', env('APP_URL', 'https://cerdas.dvlpid.my.id'));
+        $rawClient = env('CERDAS_CLIENT_URL', env('CERDAS_APP_URL', env('APP_URL', 'https://app.dvlpid.my.id')));
+        $clientUrl = str_contains($rawClient, 'api.') ? str_replace('api.', 'app.', $rawClient) : $rawClient;
 
         return response()->json([
             'success' => true,
