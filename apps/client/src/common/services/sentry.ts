@@ -40,9 +40,6 @@ export function initSentry(app: App): void {
         is_native: Capacitor.isNativePlatform(),
       },
     },
-
-    // Clean up breadcrumbs / PII
-    sendDefaultPii: false,
   });
 
   // Setup Capacitor listeners to trigger flush on network recovery
