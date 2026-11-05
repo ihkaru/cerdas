@@ -11,6 +11,11 @@ Route::get('/', function () {
     ]);
 });
 
+// Canonical Agent Skill Endpoints (Single Source of Truth)
+Route::get('/skill.md', [\App\Http\Controllers\Api\Agent\AgentSystemController::class, 'skill']);
+Route::get('/skill', [\App\Http\Controllers\Api\Agent\AgentSystemController::class, 'skill']);
+Route::get('/.well-known/skill.md', [\App\Http\Controllers\Api\Agent\AgentSystemController::class, 'skill']);
+
 // Media Proxy for COEP Support (Development Environment)
 Route::get('/media/{path}', function ($path) {
     // Prevent directory traversal
@@ -19,7 +24,7 @@ Route::get('/media/{path}', function ($path) {
     }
 
     $fullPath = storage_path('app/public/'.$path);
-    if (!file_exists($fullPath)) {
+    if (! file_exists($fullPath)) {
         abort(404);
     }
 

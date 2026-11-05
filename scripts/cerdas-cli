@@ -213,6 +213,10 @@ CLI_SCHEMA = {
         "health": {
             "description": "Probe Cerdas system health, database latency, and queue stats",
         },
+        "skill": {
+            "description": "Fetch live canonical agent skill specification from Cerdas server (SSOT)",
+            "flags": ["--raw"],
+        },
         "app": {
             "description": "GSBPM Phase 1 & 2: Manage Data Collection Activities / Apps",
             "subcommands": {
@@ -766,6 +770,27 @@ def cmd_submission(args: argparse.Namespace, client: CerdasClient) -> None:
         output_result(True, res, message=f"Submission '{args.submission_id}' rejected with revision note.")
 
 
+# ----- Skill Handlers (SSOT) -----
+
+def cmd_skill(args: argparse.Namespace, client: CerdasClient) -> None:
+    if getattr(args, "raw", False):
+        status, res = client.request("GET", "/skill.md")
+        if isinstance(res, str):
+            print(res)
+            return
+        if isinstance(res, dict) and "raw" in res:
+            print(res["raw"])
+            return
+        if isinstance(res, dict) and "body" in res:
+            print(res["body"])
+            return
+
+    status, res = client.request("GET", "/api/agent/v1/skill")
+    if status != 200:
+        output_result(False, res, message="Failed to retrieve skill from server.", code=status)
+    output_result(True, res.get("data", res), message="Retrieved canonical skill from server.")
+
+
 # ----- Audit Handlers (GSBPM 8) -----
 
 def cmd_audit(args: argparse.Namespace, client: CerdasClient) -> None:
@@ -806,6 +831,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Health
     p_health = subparsers.add_parser("health", help="Inspect system health, DB latency, and background queues")
+
+    # Skill
+    p_skill = subparsers.add_parser("skill", help="Fetch live canonical agent skill specification from Cerdas server (SSOT)")
+    p_skill.add_argument("--raw", action="store_true", help="Print raw markdown document directly")
 
     # Config
     p_config = subparsers.add_parser("config", help="Manage CLI endpoint and API Key")
@@ -1033,6 +1062,8 @@ def main() -> None:
     try:
         if args.subcommand == "health":
             cmd_health(args, client)
+        elif args.subcommand == "skill":
+            cmd_skill(args, client)
         elif args.subcommand == "app":
             cmd_app(args, client)
         elif args.subcommand == "table":

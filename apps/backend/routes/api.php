@@ -270,6 +270,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/excel/import', [ExcelImportController::class, 'import']);
     Route::get('/excel/status/{jobId}', [ExcelImportController::class, 'checkStatus']);
 
+    // Public Skill Specification (Open for autonomous agents & LLMs)
+    Route::get('/skill.md', [AgentSystemController::class, 'skill']);
+    Route::get('/agent/v1/skill', [AgentSystemController::class, 'skill']);
+    Route::get('/agent/v1/skill.md', [AgentSystemController::class, 'skill']);
+
 });
 
 // ========================================================================

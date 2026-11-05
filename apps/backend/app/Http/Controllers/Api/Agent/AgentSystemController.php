@@ -194,4 +194,79 @@ class AgentSystemController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Expose the canonical Cerdas Orchestrator Agent Skill directives (Single Source of Truth).
+     *
+     * GET /api/agent/v1/skill
+     * GET /skill.md
+     */
+    public function skill(Request $request): \Illuminate\Http\Response|JsonResponse
+    {
+        $candidatePaths = [
+            base_path('resources/skills/cerdas-orchestrator/SKILL.md'),
+            base_path('.agents/skills/cerdas-orchestrator/SKILL.md'),
+            base_path('.agent/skills/cerdas-orchestrator/SKILL.md'),
+            dirname(base_path()).'/.agents/skills/cerdas-orchestrator/SKILL.md',
+            dirname(base_path()).'/.agent/skills/cerdas-orchestrator/SKILL.md',
+        ];
+
+        $skillPath = null;
+        foreach ($candidatePaths as $path) {
+            if (file_exists($path) && is_readable($path)) {
+                $skillPath = $path;
+                break;
+            }
+        }
+
+        if (! $skillPath) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Skill documentation file not found on server.',
+            ], 404);
+        }
+
+        $rawContent = file_get_contents($skillPath);
+
+        // Check if raw markdown format requested
+        $format = $request->query('format');
+        $accept = $request->header('Accept', '');
+
+        if ($format === 'raw' || $format === 'markdown' || str_contains($accept, 'text/markdown') || $request->is('*.md')) {
+            return response($rawContent, 200, [
+                'Content-Type' => 'text/markdown; charset=UTF-8',
+                'X-Skill-Name' => 'cerdas-orchestrator',
+                'X-Skill-Source' => 'Single Source of Truth (SKILL.md)',
+            ]);
+        }
+
+        // Parse frontmatter
+        $frontmatter = [];
+        $body = $rawContent;
+        if (str_starts_with(trim($rawContent), '---')) {
+            $parts = explode('---', $rawContent, 3);
+            if (count($parts) >= 3) {
+                $lines = explode("\n", trim($parts[1]));
+                foreach ($lines as $line) {
+                    if (str_contains($line, ':')) {
+                        [$k, $v] = explode(':', $line, 2);
+                        $frontmatter[trim($k)] = trim($v);
+                    }
+                }
+                $body = trim($parts[2]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'name' => $frontmatter['name'] ?? 'cerdas-orchestrator',
+            'version' => $frontmatter['version'] ?? '1.0.0',
+            'description' => $frontmatter['description'] ?? 'Cerdas Autonomous Orchestration Engine',
+            'display_title' => 'Cerdas GSBPM Survey & Field Data Orchestrator',
+            'category' => 'survey-statistics',
+            'body' => $body,
+            'raw' => $rawContent,
+            'source_path' => basename($skillPath),
+        ]);
+    }
 }
