@@ -77,8 +77,9 @@ export CERDAS_API_KEY="crd_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 cerdas health
 ```
 
-### Step 2: Create Data Collection Activity (GSBPM Phase 1 & 2)
+### Step 2: Create & Configure Survey Activity (GSBPM Phase 1 & 2)
 
+#### A. Create Initial Activity Blueprint
 ```bash
 # Create a new survey activity with Complex Mode (Supervisor review required)
 cerdas app create \
@@ -87,23 +88,49 @@ cerdas app create \
   --mode complex \
   --if-not-exists
 ```
-*Expected JSON Output:*
-```json
-{
-  "ok": true,
-  "code": 201,
-  "message": "App 'Survei Ekonomi Pertanian 2026' created successfully.",
-  "data": {
-    "id": "e8a1c4b2-0000-4000-8000-abcdef123456",
-    "name": "Survei Ekonomi Pertanian 2026",
-    "slug": "survei-ekonomi-pertanian-2026",
-    "mode": "complex",
-    "is_active": true
-  },
-  "next_actions": [
-    "cerdas table create --app e8a1c4b2-0000-4000-8000-abcdef123456 --name 'Form Utama'"
-  ]
-}
+
+#### B. Configure Editor Toggles, Schedules & Policies
+All settings in the Web Editor (`AppSettingsPanel`) can be tuned via CLI:
+```bash
+# Update activity status, schedule deadline, and behavior
+cerdas app update <app_id> \
+  --active true \
+  --mode complex \
+  --start-date "2026-11-01T08:00:00Z" \
+  --end-date "2026-11-30T23:59:59Z" \
+  --expired-behavior read_only \
+  --public-access false \
+  --allow-comments true \
+  --icon "folder"
+```
+
+#### C. Shareable Enrollment Links (Surveyor Onboarding)
+Manage public enrollment links without entering the web UI:
+```bash
+# 1. Inspect current active join link & full shareable URL:
+cerdas app share-link <app_id> get
+
+# 2. Enable link with default role (enumerator, supervisor, viewer):
+cerdas app share-link <app_id> enable --role enumerator
+
+# 3. Invalidate current token and generate a fresh URL:
+cerdas app share-link <app_id> regenerate --role enumerator
+
+# 4. Disable public enrollment:
+cerdas app share-link <app_id> disable
+```
+
+#### D. Manage Surveyors & Supervisors Directly
+```bash
+# 1. List all enrolled members and assigned roles:
+cerdas app member list <app_id>
+
+# 2. Enroll an enumerator or supervisor by email or user ID:
+cerdas app member add <app_id> --user "budi@bps.go.id" --role enumerator
+cerdas app member add <app_id> --user "eko@bps.go.id" --role supervisor
+
+# 3. Remove a member from the activity:
+cerdas app member remove <app_id> --user "budi@bps.go.id"
 ```
 
 ### Step 3: Build Questionnaire Schema & Publish Version (GSBPM Phase 3)
@@ -124,6 +151,13 @@ cerdas table create \
     {"key": "titik_gps", "name": "titik_gps", "type": "gps", "label": "Titik Koordinat GPS"}
   ]' \
   --publish
+
+# Or update table metadata and settings:
+cerdas table update \
+  --app <app_id> \
+  --table <table_id> \
+  --name "Kuesioner Rumah Tangga Tani (Revisi)" \
+  --description "Versi revisi pasca uji coba instrumen lapangan"
 ```
 
 ### Step 4: Manage & Update Sampling Frame / Prelist (GSBPM Phase 4.1)

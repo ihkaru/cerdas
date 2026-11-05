@@ -352,6 +352,34 @@ class AgentSchemaController extends Controller
     }
 
     /**
+     * Update table metadata or settings.
+     *
+     * PATCH /api/agent/v1/apps/{app}/tables/{table}
+     */
+    public function updateTable(Request $request, string $appId, string $tableId): JsonResponse
+    {
+        $app = App::withTrashed()->where('id', $appId)->orWhere('slug', $appId)->firstOrFail();
+        $table = Table::where('app_id', $app->id)
+            ->where(function ($q) use ($tableId) {
+                $q->where('id', $tableId)->orWhere('slug', $tableId);
+            })->firstOrFail();
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'description' => 'nullable|string',
+            'settings' => 'sometimes|array',
+        ]);
+
+        $table->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Table updated successfully',
+            'data' => $table->fresh(),
+        ]);
+    }
+
+    /**
      * Delete (soft-delete) a table.
      *
      * DELETE /api/agent/v1/apps/{app}/tables/{table}

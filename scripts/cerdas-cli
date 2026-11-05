@@ -222,15 +222,30 @@ CLI_SCHEMA = {
             "flags": ["--raw"],
         },
         "app": {
-            "description": "GSBPM Phase 1 & 2: Manage Data Collection Activities / Apps",
+            "description": "GSBPM Phase 1 & 2: Manage Survey Activities, Blueprints & Editor Toggles",
             "subcommands": {
                 "list": {"description": "List all survey apps with metrics", "flags": ["--status", "--mode", "--search", "--fields"]},
-                "get": {"description": "Get detailed application blueprint and schema context", "args": ["app_id"]},
+                "get": {"description": "Get detailed application blueprint, schedule, join link, and schema", "args": ["app_id"]},
                 "create": {
-                    "description": "Create a new data collection activity / app",
+                    "description": "Create a new survey activity / app with initial configuration",
                     "flags": ["--name (required)", "--description", "--mode (simple|complex)", "--if-not-exists", "--fields"],
                 },
-                "update": {"description": "Update app metadata or mode", "args": ["app_id"], "flags": ["--name", "--description", "--mode", "--active"]},
+                "update": {
+                    "description": "Configure editor toggles, status, mode, schedule, and settings",
+                    "args": ["app_id"],
+                    "flags": ["--name", "--description", "--mode", "--active", "--public-access", "--allow-comments", "--icon", "--start-date", "--end-date", "--expired-behavior", "--settings-json", "--owner"],
+                },
+                "share-link": {
+                    "description": "Manage shareable enrollment join link for surveyors (aliases: share-link, join-link)",
+                    "args": ["app_id", "operation (get|enable|disable|regenerate)"],
+                    "flags": ["--role (enumerator|supervisor|viewer)"],
+                },
+                "member": {
+                    "description": "Manage enrolled surveyors, supervisors, and members",
+                    "args": ["operation (list|add|remove)", "app_id"],
+                    "flags": ["--user (required for add/remove)", "--role (enumerator|supervisor|viewer|app_admin)"],
+                },
+                "transfer-owner": {"description": "Transfer application ownership", "args": ["app_id"], "flags": ["--owner (required)"]},
                 "delete": {"description": "Soft-delete an application", "args": ["app_id"], "flags": ["--force"]},
                 "restore": {"description": "Restore a trashed application", "args": ["app_id"]},
             },
@@ -243,6 +258,10 @@ CLI_SCHEMA = {
                 "create": {
                     "description": "Create a new table/form instrument with optional fields JSON",
                     "flags": ["--app (required)", "--name (required)", "--fields-json", "--publish"],
+                },
+                "update": {
+                    "description": "Update table name, description, or custom settings",
+                    "flags": ["--app (required)", "--table (required)", "--name", "--description", "--settings-json"],
                 },
                 "publish": {"description": "Publish a draft table schema version", "flags": ["--app (required)", "--table (required)", "--changelog"]},
                 "delete": {"description": "Soft-delete a table instrument", "flags": ["--app (required)", "--table (required)", "--force"]},
@@ -457,6 +476,29 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
             body["mode"] = args.mode
         if getattr(args, "active", None) is not None:
             body["is_active"] = args.active
+        if getattr(args, "start_date", None):
+            body["start_date"] = args.start_date
+        if getattr(args, "end_date", None):
+            body["end_date"] = args.end_date
+        if getattr(args, "expired_behavior", None):
+            body["expired_behavior"] = args.expired_behavior
+
+        settings_payload = {}
+        if getattr(args, "settings_json", None):
+            try:
+                settings_payload.update(json.loads(args.settings_json))
+            except Exception as e:
+                output_result(False, message=f"Invalid JSON in --settings-json: {e}", code=400)
+        if getattr(args, "public_access", None) is not None:
+            settings_payload["public_access"] = args.public_access
+        if getattr(args, "allow_comments", None) is not None:
+            settings_payload["allow_comments"] = args.allow_comments
+        if getattr(args, "icon", None):
+            settings_payload["icon"] = args.icon
+
+        if settings_payload:
+            body["settings"] = settings_payload
+
         if getattr(args, "owner", None):
             owner_val = args.owner.strip()
             if "@" in owner_val:
@@ -468,6 +510,77 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
         if status != 200:
             output_result(False, res, message=res.get("message", "Failed to update app."), code=status)
         output_result(True, res.get("data", res), message="App updated successfully.")
+
+    elif action in ("share-link", "join-link"):
+        op = getattr(args, "operation", "get") or "get"
+        app_id = args.app_id
+
+        if op in ("get", "show"):
+            status, res = client.request("GET", f"/api/agent/v1/apps/{app_id}/join-link")
+            if status != 200:
+                output_result(False, res, message=res.get("message", "Failed to retrieve share link."), code=status)
+            output_result(True, res.get("data", res), message="Shareable join link retrieved.")
+
+        elif op == "enable":
+            body = {
+                "is_active": True,
+                "role": getattr(args, "role", None) or "enumerator",
+            }
+            status, res = client.request("POST", f"/api/agent/v1/apps/{app_id}/join-link", body=body)
+            if status != 200:
+                output_result(False, res, message=res.get("message", "Failed to enable share link."), code=status)
+            output_result(True, res.get("data", res), message="Shareable join link enabled successfully.")
+
+        elif op == "disable":
+            body = {"is_active": False}
+            status, res = client.request("POST", f"/api/agent/v1/apps/{app_id}/join-link", body=body)
+            if status != 200:
+                output_result(False, res, message=res.get("message", "Failed to disable share link."), code=status)
+            output_result(True, res.get("data", res), message="Shareable join link disabled successfully.")
+
+        elif op == "regenerate":
+            body = {"role": getattr(args, "role", None) or "enumerator"}
+            status, res = client.request("POST", f"/api/agent/v1/apps/{app_id}/join-link/regenerate", body=body)
+            if status != 200:
+                output_result(False, res, message=res.get("message", "Failed to regenerate share link."), code=status)
+            output_result(True, res.get("data", res), message="New shareable join link generated successfully.")
+
+    elif action == "member":
+        op = getattr(args, "operation", "list") or "list"
+        app_id = args.app_id
+
+        if op == "list":
+            status, res = client.request("GET", f"/api/agent/v1/apps/{app_id}/members")
+            if status != 200:
+                output_result(False, res, message=res.get("message", "Failed to list members."), code=status)
+            output_result(True, res.get("data", res), message=f"Retrieved {res.get('total', 0)} members.",
+                          fields=getattr(args, "fields", None), table_mode=getattr(args, "table_view", False))
+
+        elif op == "add":
+            user_val = getattr(args, "user", None)
+            if not user_val:
+                output_result(False, message="Flag --user <email_or_user_id> is required.", code=400)
+            body = {
+                "role": getattr(args, "role", "enumerator") or "enumerator",
+            }
+            if "@" in user_val:
+                body["email"] = user_val.strip()
+            else:
+                body["user_id"] = user_val.strip()
+
+            status, res = client.request("POST", f"/api/agent/v1/apps/{app_id}/members", body=body)
+            if status not in (200, 201):
+                output_result(False, res, message=res.get("message", "Failed to add member."), code=status)
+            output_result(True, res.get("data", res), message=res.get("message", "Member added successfully."), code=201)
+
+        elif op == "remove":
+            user_val = getattr(args, "user", None)
+            if not user_val:
+                output_result(False, message="Flag --user <email_or_user_id> is required.", code=400)
+            status, res = client.request("DELETE", f"/api/agent/v1/apps/{app_id}/members/{user_val.strip()}")
+            if status != 200:
+                output_result(False, res, message=res.get("message", "Failed to remove member."), code=status)
+            output_result(True, res, message=res.get("message", "Member removed successfully."))
 
     elif action == "transfer-owner":
         owner_val = getattr(args, "owner", None)
@@ -548,6 +661,26 @@ def cmd_table(args: argparse.Namespace, client: CerdasClient) -> None:
                       next_actions=[
                           f"cerdas prelist upload --app {app_id} --table {t_data.get('id', '<id>')} --file prelist.json",
                       ])
+
+    elif action == "update":
+        table_id = getattr(args, "table", None)
+        if not table_id:
+            output_result(False, message="Flag --table <table_id> is required.", code=400)
+        body = {}
+        if getattr(args, "name", None):
+            body["name"] = args.name
+        if getattr(args, "description", None):
+            body["description"] = args.description
+        if getattr(args, "settings_json", None):
+            try:
+                body["settings"] = json.loads(args.settings_json)
+            except Exception as e:
+                output_result(False, message=f"Malformed --settings-json: {e}", code=400)
+
+        status, res = client.request("PATCH", f"/api/agent/v1/apps/{app_id}/tables/{table_id}", body=body)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to update table."), code=status)
+        output_result(True, res.get("data", res), message="Table updated successfully.")
 
     elif action == "publish":
         table_id = getattr(args, "table", None)
@@ -905,13 +1038,34 @@ def build_parser() -> argparse.ArgumentParser:
     p_app_create.add_argument("--mode", choices=["simple", "complex"], default="simple", help="Workflow mode")
     p_app_create.add_argument("--if-not-exists", action="store_true", help="Idempotent: skip creation if name exists")
 
-    p_app_update = p_app_sub.add_parser("update", help="Update application")
+    p_app_update = p_app_sub.add_parser("update", help="Configure editor toggles, status, mode, schedule, and settings")
     p_app_update.add_argument("app_id", help="App ID or Slug")
     p_app_update.add_argument("--name", help="New app name")
     p_app_update.add_argument("--description", help="New description")
     p_app_update.add_argument("--mode", choices=["simple", "complex"], help="New mode")
-    p_app_update.add_argument("--active", type=lambda x: (str(x).lower() in ['true', '1']), help="Active flag")
+    p_app_update.add_argument("--active", type=lambda x: (str(x).lower() in ['true', '1', 'yes']), help="Active flag (true/false)")
+    p_app_update.add_argument("--public-access", type=lambda x: (str(x).lower() in ['true', '1', 'yes']), help="Public access toggle (true/false)")
+    p_app_update.add_argument("--allow-comments", type=lambda x: (str(x).lower() in ['true', '1', 'yes']), help="Allow comments toggle (true/false)")
+    p_app_update.add_argument("--icon", help="App icon identifier (e.g. folder, doc_text)")
+    p_app_update.add_argument("--start-date", help="Survey start schedule (ISO datetime)")
+    p_app_update.add_argument("--end-date", help="Survey deadline schedule (ISO datetime)")
+    p_app_update.add_argument("--expired-behavior", choices=["read_only", "hidden"], help="Behavior after deadline")
+    p_app_update.add_argument("--settings-json", help="Custom settings JSON string")
     p_app_update.add_argument("--owner", help="Transfer ownership to user ID or email (SuperAdmin only)")
+
+    # App Shareable Join Link (aliases: share-link, join-link)
+    for share_cmd in ("share-link", "join-link"):
+        p_app_share = p_app_sub.add_parser(share_cmd, help="Manage shareable enrollment join link for surveyors")
+        p_app_share.add_argument("app_id", help="App ID or Slug")
+        p_app_share.add_argument("operation", choices=["get", "show", "enable", "disable", "regenerate"], default="get", nargs="?")
+        p_app_share.add_argument("--role", choices=["enumerator", "supervisor", "viewer"], help="Default role for join link")
+
+    # App Members & Surveyors
+    p_app_mem = p_app_sub.add_parser("member", help="Manage joined surveyors, supervisors, and members")
+    p_app_mem.add_argument("operation", choices=["list", "add", "remove"])
+    p_app_mem.add_argument("app_id", help="App ID or Slug")
+    p_app_mem.add_argument("--user", help="User ID or Email to add/remove")
+    p_app_mem.add_argument("--role", choices=["enumerator", "supervisor", "viewer", "app_admin"], default="enumerator", help="Role for added member")
 
     p_app_trans = p_app_sub.add_parser("transfer-owner", help="Transfer application ownership (SuperAdmin only)")
     p_app_trans.add_argument("app_id", help="App ID or Slug")
@@ -941,6 +1095,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_tbl_create.add_argument("--description", help="Table description")
     p_tbl_create.add_argument("--fields-json", help="Array of field objects in JSON string")
     p_tbl_create.add_argument("--publish", action="store_true", help="Publish version immediately")
+
+    p_tbl_update = p_table_sub.add_parser("update", help="Update table name, description, or custom settings")
+    p_tbl_update.add_argument("--app", required=True, help="App ID or Slug")
+    p_tbl_update.add_argument("--table", required=True, help="Table ID or Slug")
+    p_tbl_update.add_argument("--name", help="New table name")
+    p_tbl_update.add_argument("--description", help="New description")
+    p_tbl_update.add_argument("--settings-json", help="Settings JSON string")
 
     p_tbl_pub = p_table_sub.add_parser("publish", help="Publish draft table version")
     p_tbl_pub.add_argument("--app", required=True, help="App ID or Slug")

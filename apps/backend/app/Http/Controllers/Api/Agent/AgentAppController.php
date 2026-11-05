@@ -147,6 +147,9 @@ class AgentAppController extends Controller
             'role' => $user->pivot->role ?? 'enumerator',
         ]);
 
+        $activeJoinLink = $app->joinLinks()->where('is_active', true)->first();
+        $clientUrl = env('CERDAS_APP_URL', env('APP_URL', 'https://cerdas.dvlpid.my.id'));
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -156,7 +159,18 @@ class AgentAppController extends Controller
                 'description' => $app->description,
                 'mode' => $app->mode,
                 'is_active' => (bool) $app->is_active,
+                'start_date' => $app->start_date?->toIso8601String(),
+                'end_date' => $app->end_date?->toIso8601String(),
+                'expired_behavior' => $app->expired_behavior,
                 'settings' => $app->settings,
+                'join_link' => $activeJoinLink ? [
+                    'id' => $activeJoinLink->id,
+                    'token' => $activeJoinLink->token,
+                    'role' => $activeJoinLink->role,
+                    'is_active' => (bool) $activeJoinLink->is_active,
+                    'full_url' => rtrim($clientUrl, '/').'/join/'.$activeJoinLink->token,
+                    'expires_at' => $activeJoinLink->expires_at?->toIso8601String(),
+                ] : null,
                 'navigation' => $app->navigation,
                 'view_configs' => $app->view_configs,
                 'creator' => $app->creator,
@@ -186,6 +200,9 @@ class AgentAppController extends Controller
             'description' => 'nullable|string',
             'is_active' => 'sometimes|boolean',
             'mode' => 'sometimes|string|in:simple,complex',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'expired_behavior' => 'nullable|string|in:read_only,hidden',
             'settings' => 'sometimes|array',
             'navigation' => 'sometimes|array',
             'view_configs' => 'sometimes|array',
@@ -243,6 +260,10 @@ class AgentAppController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'mode' => 'nullable|string|in:simple,complex',
+            'is_active' => 'nullable|boolean',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'expired_behavior' => 'nullable|string|in:read_only,hidden',
             'organization_id' => 'nullable|string|exists:organizations,id',
             'settings' => 'nullable|array',
             'navigation' => 'nullable|array',
@@ -266,7 +287,10 @@ class AgentAppController extends Controller
         $app->slug = $slug;
         $app->description = $validated['description'] ?? null;
         $app->mode = $validated['mode'] ?? 'simple';
-        $app->is_active = true;
+        $app->is_active = $validated['is_active'] ?? true;
+        $app->start_date = $validated['start_date'] ?? null;
+        $app->end_date = $validated['end_date'] ?? null;
+        $app->expired_behavior = $validated['expired_behavior'] ?? 'read_only';
         $app->created_by = $user?->id;
         $app->settings = $validated['settings'] ?? [];
         $app->navigation = $validated['navigation'] ?? [];

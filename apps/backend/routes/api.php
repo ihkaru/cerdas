@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\Agent\AgentAppController;
 use App\Http\Controllers\Api\Agent\AgentDataController;
+use App\Http\Controllers\Api\Agent\AgentJoinLinkController;
+use App\Http\Controllers\Api\Agent\AgentMemberController;
 use App\Http\Controllers\Api\Agent\AgentSchemaController;
 use App\Http\Controllers\Api\Agent\AgentSyncController;
 use App\Http\Controllers\Api\Agent\AgentSystemController;
@@ -293,10 +295,22 @@ Route::prefix('agent/v1')->middleware('agent.auth')->group(function () {
     Route::delete('/apps/{app}', [AgentAppController::class, 'destroy']);
     Route::post('/apps/{app}/restore', [AgentAppController::class, 'restore']);
 
+    // Shareable Join Links & Enrollment
+    Route::get('/apps/{app}/join-link', [AgentJoinLinkController::class, 'show']);
+    Route::post('/apps/{app}/join-link', [AgentJoinLinkController::class, 'toggle']);
+    Route::post('/apps/{app}/join-link/regenerate', [AgentJoinLinkController::class, 'regenerate']);
+    Route::delete('/apps/{app}/join-link', [AgentJoinLinkController::class, 'regenerate']);
+
+    // Members & Surveyors Management
+    Route::get('/apps/{app}/members', [AgentMemberController::class, 'index']);
+    Route::post('/apps/{app}/members', [AgentMemberController::class, 'store']);
+    Route::delete('/apps/{app}/members/{user}', [AgentMemberController::class, 'destroy']);
+
     // 2. Schema & Form Field Definitions & Hotfixes
     Route::get('/apps/{app}/tables', [AgentSchemaController::class, 'listTables']);
     Route::post('/apps/{app}/tables', [AgentSchemaController::class, 'createTable']);
     Route::get('/apps/{app}/tables/{table}', [AgentSchemaController::class, 'showTable']);
+    Route::patch('/apps/{app}/tables/{table}', [AgentSchemaController::class, 'updateTable']);
     Route::patch('/apps/{app}/tables/{table}/field', [AgentSchemaController::class, 'patchField']);
     Route::post('/apps/{app}/tables/{table}/publish', [AgentSchemaController::class, 'publishTable']);
     Route::delete('/apps/{app}/tables/{table}', [AgentSchemaController::class, 'deleteTable']);
