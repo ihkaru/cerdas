@@ -77,6 +77,41 @@ export CERDAS_API_KEY="crd_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 cerdas health
 ```
 
+### Step 1.5: Pre-Flight Survey Doctor & Readiness Audit (`cerdas app doctor`)
+
+Before distributing links or sending enumerators to the field, run the **Survey Doctor** to perform an automated 10-point GSBPM readiness audit:
+
+```bash
+# 1. Audit a specific survey app (JSON by default, with actionable remediations):
+cerdas app doctor <app_id>
+
+# 2. Human-readable scorecard with status badges ([PASS], [WARN], [FAIL]):
+cerdas app doctor <app_id> --human
+
+# 3. Global workspace audit of all survey activities:
+cerdas app doctor --all --human
+
+# 4. Strict CI/CD or Agent Gate (exits with code 1 if status != 'ready'):
+cerdas app doctor <app_id> --strict
+
+# Direct REST Endpoints:
+# GET /api/agent/v1/apps/{app}/doctor
+# GET /api/agent/v1/apps/doctor
+```
+
+#### What Survey Doctor Verifies:
+1. `APP_ACTIVE`: Activity is active and unarchived.
+2. `APP_SCHEDULE`: Start/end dates allow active data collection.
+3. `ENUMERATORS_ENROLLED`: Field staff are enrolled in the project.
+4. `JOIN_LINK_READY`: Shareable self-enrollment link is enabled for surveyors.
+5. `TABLES_EXIST`: App has at least 1 questionnaire instrument (avoids PWA "Aplikasi ini belum memiliki tabel" error).
+6. `TABLES_PUBLISHED`: Schema versions are published and locked for mobile client caching.
+7. `NAVIGATION_CONFIGURED`: Bottom navigation tabs are defined.
+8. `VIEW_BINDINGS`: Navigation tabs correctly map to existing tables.
+9. `VIEW_FIELDS_INTEGRITY`: Card header & groupBy fields exist in the published table schema.
+10. `DATA_AND_FAB_READINESS`: Guarantees either prelist data exists OR a `+` FAB create button is configured (prevents empty stuck mobile deck views).
+11. `ASSIGNMENT_ALLOCATION`: Verifies tasks are assigned to enumerators in Complex Mode.
+
 ### Step 2: Create & Configure Survey Activity (GSBPM Phase 1 & 2)
 
 #### A. Create Initial Activity Blueprint

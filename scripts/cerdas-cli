@@ -248,6 +248,11 @@ CLI_SCHEMA = {
                 "transfer-owner": {"description": "Transfer application ownership", "args": ["app_id"], "flags": ["--owner (required)"]},
                 "delete": {"description": "Soft-delete an application", "args": ["app_id"], "flags": ["--force"]},
                 "restore": {"description": "Restore a trashed application", "args": ["app_id"]},
+                "doctor": {
+                    "description": "Audit survey validity, GSBPM completeness & mobile readiness (checks publishing, view bindings, prelist, FAB '+' and staffing)",
+                    "args": ["app_id (optional if --all)"],
+                    "flags": ["--all", "--strict", "--human"],
+                },
             },
         },
         "table": {
@@ -632,6 +637,85 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
         if status != 200:
             output_result(False, res, message=res.get("message", "Failed to restore app."), code=status)
         output_result(True, res.get("data", res), message=f"App '{args.app_id}' restored successfully.")
+
+    elif action == "doctor":
+        is_all = getattr(args, "all", False)
+        app_id = getattr(args, "app_id", None)
+        strict = getattr(args, "strict", False)
+        human = getattr(args, "human", False) or getattr(args, "table_view", False)
+
+        if is_all or not app_id:
+            # Global survey doctor
+            status, res = client.request("GET", "/api/agent/v1/apps/doctor")
+            if status != 200:
+                output_result(False, res, message=res.get("message", "Failed to run global survey doctor."), code=status)
+
+            data = res.get("data", res)
+            if human:
+                summary = data.get("summary", {})
+                apps_list = data.get("apps", [])
+                print(f"\n🩺 CERDAS GSBPM GLOBAL SURVEY READINESS AUDIT")
+                print("=" * 75)
+                print(f"Total Surveys: {data.get('total_apps', len(apps_list))} | Ready: {summary.get('ready', 0)} | Needs Attention: {summary.get('needs_attention', 0)} | Not Ready: {summary.get('not_ready', 0)}")
+                print("-" * 75)
+                for a in apps_list:
+                    st = a.get("status", "unknown")
+                    badge = "[READY]" if st == "ready" else ("[WARN] " if st == "needs_attention" else "[FAIL] ")
+                    score = a.get("readiness_score", 0)
+                    pattern = a.get("survey_pattern", "unknown")
+                    print(f"{badge} {a.get('app_name', 'Untitled')} ({a.get('app_id')})")
+                    print(f"       Score: {score}% | Pattern: {pattern} | Failures: {a.get('failures_count', 0)} | Warnings: {a.get('warnings_count', 0)} | Remediations: {a.get('remediations_count', 0)}")
+                print("=" * 75 + "\n")
+                if strict and (summary.get("not_ready", 0) > 0 or summary.get("needs_attention", 0) > 0):
+                    sys.exit(1)
+                sys.exit(0)
+
+            # JSON mode
+            summary = data.get("summary", {})
+            if strict and (summary.get("not_ready", 0) > 0 or summary.get("needs_attention", 0) > 0):
+                output_result(False, data, message="Global readiness audit failed strict check.", code=422)
+            output_result(True, data, message="Global readiness audit completed.")
+
+        # Single survey doctor
+        status, res = client.request("GET", f"/api/agent/v1/apps/{app_id}/doctor")
+        if status != 200:
+            output_result(False, res, message=res.get("message", f"Failed to run doctor on app '{app_id}'."), code=status)
+
+        data = res.get("data", res)
+        st = data.get("status", "unknown")
+        score = data.get("readiness_score", 0)
+        remediations = data.get("remediations", [])
+
+        if human:
+            badge = "[READY]" if st == "ready" else ("[WARN] " if st == "needs_attention" else "[FAIL] ")
+            print(f"\n🩺 CERDAS SURVEY READINESS AUDIT: {data.get('app_name')} ({data.get('app_id')})")
+            print("=" * 75)
+            print(f"Status: {badge} {st.upper()} | Readiness Score: {score}% | Survey Pattern: {data.get('survey_pattern')}")
+            print("-" * 75)
+            checks = data.get("checks", [])
+            for c in checks:
+                c_st = c.get("status")
+                c_badge = "[PASS]" if c_st == "pass" else ("[WARN]" if c_st == "warn" else ("[FAIL]" if c_st == "fail" else "[INFO]"))
+                print(f" {c_badge} [{c.get('phase')}] {c.get('name')}: {c.get('message')}")
+                if c.get("fix_suggestion") and c_st in ("fail", "warn"):
+                    print(f"        -> Fix: {c.get('fix_suggestion')}")
+
+            if remediations:
+                print("\n🛠️  ACTIONABLE REMEDIATIONS:")
+                for idx, r in enumerate(remediations, 1):
+                    print(f"  {idx}. {r}")
+            print("=" * 75 + "\n")
+
+            if strict and st != "ready":
+                sys.exit(1)
+            sys.exit(0)
+
+        if strict and st != "ready":
+            output_result(False, data, message=f"Readiness audit for '{data.get('app_name')}' failed with status: {st}.", code=422,
+                          suggestion=remediations[0] if remediations else "Review checks and resolve failing items.",
+                          next_actions=remediations)
+
+        output_result(True, data, message=f"Readiness audit completed for {data.get('app_name')}.", next_actions=remediations)
 
 
 # ----- Table Handlers (GSBPM 3) -----
@@ -1148,6 +1232,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_app_restore = p_app_sub.add_parser("restore", help="Restore trashed application")
     p_app_restore.add_argument("app_id", help="App ID or Slug")
+
+    p_app_doc = p_app_sub.add_parser("doctor", help="Audit survey validity, GSBPM completeness & mobile readiness")
+    p_app_doc.add_argument("app_id", nargs="?", help="App ID or Slug (optional if --all is specified)")
+    p_app_doc.add_argument("--all", action="store_true", help="Audit all active surveys in workspace")
+    p_app_doc.add_argument("--strict", action="store_true", help="Exit with code 1 if any check fails or needs attention")
+    p_app_doc.add_argument("--human", action="store_true", help="Format output as human-readable report with badges")
 
     # Table
     p_table = subparsers.add_parser("table", help="GSBPM Phase 3: Manage questionnaire tables & form instruments")

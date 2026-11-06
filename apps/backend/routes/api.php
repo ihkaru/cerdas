@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Agent\AgentAppController;
 use App\Http\Controllers\Api\Agent\AgentDataController;
+use App\Http\Controllers\Api\Agent\AgentDoctorController;
 use App\Http\Controllers\Api\Agent\AgentJoinLinkController;
 use App\Http\Controllers\Api\Agent\AgentMemberController;
 use App\Http\Controllers\Api\Agent\AgentSchemaController;
@@ -290,6 +291,8 @@ Route::prefix('agent/v1')->middleware('agent.auth')->group(function () {
     // 1. Apps & High-Level Blueprints
     Route::get('/apps', [AgentAppController::class, 'index']);
     Route::post('/apps', [AgentAppController::class, 'store']);
+    Route::get('/apps/doctor', [AgentDoctorController::class, 'index']);
+    Route::get('/apps/{app}/doctor', [AgentDoctorController::class, 'show']);
     Route::get('/apps/{app}', [AgentAppController::class, 'show']);
     Route::patch('/apps/{app}', [AgentAppController::class, 'update']);
     Route::delete('/apps/{app}', [AgentAppController::class, 'destroy']);
