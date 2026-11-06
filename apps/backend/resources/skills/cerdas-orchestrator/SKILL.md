@@ -265,7 +265,11 @@ cerdas table update \
 ##### Option 1: Automatic Navigation Scaffolding (Recommended)
 Automatically discover all published questionnaire tables, generate bottom navigation tabs, and bind optimal deck views (with auto-detected primary header fields):
 ```bash
+# Scaffold navigation tabs and flat deck views:
 cerdas app setup-navigation <app_id> [--force]
+
+# Or scaffold navigation WITH hierarchical drill-down grouping:
+cerdas app setup-navigation <app_id> --group-by "kecamatan,desa,sls" [--force]
 ```
 
 ##### Option 2: Custom Navigation & Card Layout Specification
@@ -290,6 +294,36 @@ cerdas app update <app_id> \
     }
   }'
 ```
+
+#### D. Hierarchical Drill-Down Grouping (`groupBy`) & Form Sectioning
+Cerdas supports two complementary grouping mechanisms:
+
+##### 1. View-Level Hierarchical Grouping (`view.groupBy`)
+In the Editor (`ViewsPanel` -> `ViewConfigPanel` -> `GroupByConfig.vue`), views support multi-level hierarchical grouping (Level 1, Level 2, Level 3, etc.).
+- **Mobile PWA Behavior**: Instead of an unorganized flat list, the mobile client (`AppShellGroupList`) organizes assignments into interactive folder groups with item counters (e.g. `Kecamatan > Desa > SLS`). The surveyor taps each level to drill down directly to target households.
+- **CLI Commands**:
+```bash
+# 1. Apply multi-level grouping across all views:
+cerdas app update <app_id> --group-by "kecamatan,desa,sls"
+
+# 2. Apply grouping to a specific view:
+cerdas app update <app_id> --view view_direktori_usaha --group-by "sls"
+
+# 3. Clear grouping (revert to flat deck list):
+cerdas app update <app_id> --group-by none
+
+# 4. Scaffold navigation and grouping in 1 step:
+cerdas app setup-navigation <app_id> --group-by "sls" --force
+```
+> [!NOTE]
+> `SurveyDoctorService` (`VIEW_FIELDS_INTEGRITY`) strictly validates that every field specified in `--group-by` exists in the published questionnaire table schema.
+
+##### 2. Form-Level Field Grouping (Questionnaire Structure)
+Configured during Phase 3 in `--fields-json`:
+- **`separator`**: Visual block separators for official census modules (e.g. `BLOK I: DETAIL USAHA`, `BLOK II: ...`).
+- **`group`**: Group of sub-object questions stored under a parent key.
+- **`repeat`**: Roster / repeating sub-form (e.g. list of household members or business employees).
+- **`radio`**: Radio button option groups.
 
 ### Step 4: Manage & Update Sampling Frame / Prelist (GSBPM Phase 4.1)
 

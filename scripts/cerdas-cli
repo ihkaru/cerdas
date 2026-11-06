@@ -231,9 +231,13 @@ CLI_SCHEMA = {
                     "flags": ["--name (required)", "--description", "--mode (simple|complex)", "--if-not-exists", "--fields"],
                 },
                 "update": {
-                    "description": "Configure editor toggles, status, mode, schedule, and settings",
+                    "description": "Configure editor toggles, status, mode, schedule, grouping, and settings",
                     "args": ["app_id"],
-                    "flags": ["--name", "--description", "--mode", "--active", "--public-access", "--allow-comments", "--icon", "--start-date", "--end-date", "--expired-behavior", "--settings-json", "--owner"],
+                    "flags": [
+                        "--name", "--description", "--mode", "--active", "--public-access", "--allow-comments",
+                        "--icon", "--start-date", "--end-date", "--expired-behavior", "--group-by", "--view",
+                        "--view-configs-json", "--navigation-json", "--settings-json", "--owner"
+                    ],
                 },
                 "share-link": {
                     "description": "Manage shareable enrollment join link for surveyors (aliases: share-link, join-link)",
@@ -251,7 +255,7 @@ CLI_SCHEMA = {
                 "setup-navigation": {
                     "description": "Auto-scaffold navigation tabs & deck view configs from published tables",
                     "args": ["app_id"],
-                    "flags": ["--force"],
+                    "flags": ["--force", "--group-by (comma-separated fields, e.g. 'sls' or 'kecamatan,desa,sls')"],
                 },
                 "doctor": {
                     "description": "Audit survey validity, GSBPM completeness & mobile readiness (checks publishing, view bindings, prelist, FAB '+' and staffing)",
@@ -534,6 +538,33 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
             except Exception as e:
                 output_result(False, message=f"Invalid JSON in --view-configs-json: {e}", code=400)
 
+        raw_gb = getattr(args, "group_by", None)
+        if raw_gb is not None:
+            gb_fields = [f.strip() for f in raw_gb.split(",") if f.strip() and f.strip().lower() != "none"]
+            s_app, r_app = client.request("GET", f"/api/agent/v1/apps/{args.app_id}")
+            if s_app != 200:
+                output_result(False, r_app, message=f"App '{args.app_id}' not found.", code=s_app)
+            app_info = r_app.get("data", r_app)
+            cur_views = body.get("view_configs") or app_info.get("view_configs") or {}
+            if not isinstance(cur_views, dict):
+                cur_views = {}
+
+            target_view = getattr(args, "view", None)
+            if target_view:
+                if target_view not in cur_views:
+                    cur_views[target_view] = {"layout": "deck", "groupBy": gb_fields}
+                else:
+                    cur_views[target_view]["groupBy"] = gb_fields
+            else:
+                if not cur_views:
+                    output_result(False, message="No view_configs found to apply --group-by. Run 'cerdas app setup-navigation' first.", code=400,
+                                  suggestion=f"cerdas app setup-navigation {args.app_id} --group-by '{raw_gb}'")
+                for vk, vv in cur_views.items():
+                    if isinstance(vv, dict):
+                        vv["groupBy"] = gb_fields
+
+            body["view_configs"] = cur_views
+
         if getattr(args, "owner", None):
             owner_val = args.owner.strip()
             if "@" in owner_val:
@@ -671,6 +702,8 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
 
         new_nav = []
         new_views = {}
+        raw_gb = getattr(args, "group_by", None)
+        cli_group_by = [f.strip() for f in raw_gb.split(",") if f.strip() and f.strip().lower() != "none"] if raw_gb is not None else []
 
         for idx, tbl in enumerate(tables, 1):
             t_id = tbl.get("id")
@@ -712,7 +745,7 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
                     "primaryHeaderField": primary_field or "id",
                     "showStatusBadge": True,
                 },
-                "groupBy": [],
+                "groupBy": cli_group_by,
             }
 
         body = {
@@ -1455,6 +1488,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_app_update.add_argument("--start-date", help="Survey start schedule (ISO datetime)")
     p_app_update.add_argument("--end-date", help="Survey deadline schedule (ISO datetime)")
     p_app_update.add_argument("--expired-behavior", choices=["read_only", "hidden"], help="Behavior after deadline")
+    p_app_update.add_argument("--group-by", help="Comma-separated field names for hierarchical drill-down grouping (e.g. 'sls' or 'kecamatan,desa,sls'). Set 'none' to clear.")
+    p_app_update.add_argument("--view", help="Specific view ID to update (e.g. 'view_laporan'). If omitted, applies to all deck views.")
     p_app_update.add_argument("--settings-json", help="Custom settings JSON string")
     p_app_update.add_argument("--navigation-json", help="Navigation tabs array JSON string or file path")
     p_app_update.add_argument("--view-configs-json", help="View configurations mapping JSON string or file path")
@@ -1490,6 +1525,7 @@ def build_parser() -> argparse.ArgumentParser:
         p_app_nav = p_app_sub.add_parser(nav_cmd, help="Auto-scaffold navigation tabs & deck view configs from published tables")
         p_app_nav.add_argument("app_id", help="App ID or Slug")
         p_app_nav.add_argument("--force", action="store_true", help="Overwrite existing navigation and view configs")
+        p_app_nav.add_argument("--group-by", help="Comma-separated field names for hierarchical drill-down grouping (e.g. 'sls' or 'kecamatan,desa,sls')")
 
     p_app_doc = p_app_sub.add_parser("doctor", help="Audit survey validity, GSBPM completeness & mobile readiness")
     p_app_doc.add_argument("app_id", nargs="?", help="App ID or Slug (optional if --all is specified)")
