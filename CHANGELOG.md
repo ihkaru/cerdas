@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.58](https://github.com/ihkaru/cerdas/compare/v0.2.57...v0.2.58) (2026-11-06)
+
+
+### Features
+
+* **cli:** add first-class --group-by support and document hierarchical grouping in SKILL.md ([156a0ea](https://github.com/ihkaru/cerdas/commit/156a0ea29e965dbe4a85500ceca447007f4f54c0))
+* **cli:** complete guarded CLI remediation suite and auto-fix doctor gate ([3a751e9](https://github.com/ihkaru/cerdas/commit/3a751e9650a31909e5b7244974160303b46300a7))
+* **cli:** implement comprehensive pre-flight input validation guards ([87d5c43](https://github.com/ihkaru/cerdas/commit/87d5c43ccade2172731a28ef98bbdf1d91dfa82d))
+* **orchestrator:** implement GSBPM survey doctor engine and readiness audit endpoints ([b9e9ab4](https://github.com/ihkaru/cerdas/commit/b9e9ab4ba1cde8acf0aa1b3c41fb6c1f0dc6358f))
+
+
+### Bug Fixes
+
+* **client:** fix auto-selecting first navigation view and tab switching data refresh ([1e60f1c](https://github.com/ihkaru/cerdas/commit/1e60f1c22de7ce9921323e8de0699347212d68eb))
+* **client:** remove unsupported sendDefaultPii option from sentry init ([00a78ca](https://github.com/ihkaru/cerdas/commit/00a78caa8d8fc5a479b7f20eba1c6a0a43eaea6b))
+* **orchestrator:** enhance assignment listing by app, default table actions layout, and clarify prelist lifecycle in skill ([b450439](https://github.com/ihkaru/cerdas/commit/b4504391c5dab600f3d163c65523c1db59ed856e))
+
+
+### Performance Improvements
+
+* **doctor:** optimize GSBPM doctor and app index queries with O(1) bulk aggregation ([c6b2070](https://github.com/ihkaru/cerdas/commit/c6b20702d5424ff87e1f015192ce5f92ae0682cd))
+
 ## [0.2.57](https://github.com/ihkaru/cerdas/compare/v0.2.56...v0.2.57) (2026-11-05)
 
 
