@@ -417,7 +417,23 @@ const currentViewConfig = computed(() => {
 
 // Watch routeViewId to sync with activeView provided by useAppShellLogic
 watch(routeViewId, (newId) => {
-    activeView.value = newId || 'default';
+    if (newId) {
+        activeView.value = newId;
+    }
+}, { immediate: true });
+
+// Auto-select first navigation tab if activeView is empty, 'default', or not present in appNavigation
+watch([appNavigation, activeView], ([nav, curView]) => {
+    if (nav && nav.length > 0) {
+        const hasMatchingNav = nav.some((item: any) => (item.view_id || item.view) === curView);
+        if (!curView || curView === 'default' || !hasMatchingNav) {
+            const first = nav[0];
+            const target = first?.view_id || first?.view;
+            if (target) {
+                activeView.value = String(target);
+            }
+        }
+    }
 }, { immediate: true });
 
 // Synchronize activeView with Framework7 physical tab elements
@@ -712,23 +728,31 @@ const onPageAfterIn = () => {
 const getAppViewConfig = (viewId: string) => {
     // 1. Check App-level View Configs (co-located with navigation, no timing issues)
     if (appViewConfigs.value?.[viewId]) {
+        const raw = appViewConfigs.value[viewId] as Record<string, unknown>;
         return {
             id: viewId,
-            type: (appViewConfigs.value[viewId] as Record<string, unknown>).type,
-            config: appViewConfigs.value[viewId]
+            ...raw,
+            config: raw
         };
     }
 
     // 2. Try finding in AppViews DB (future: first-class view entities)
     const dbView = appViews.value.find((v: Record<string, unknown>) => v.id === viewId);
-    if (dbView) return dbView;
+    if (dbView) {
+        return {
+            id: viewId,
+            ...dbView,
+            config: (dbView as any).config || dbView
+        };
+    }
 
     // 3. Fallback to Legacy Layout Views (JSON in table version schema)
     if (layout.value?.views?.[viewId]) {
+        const raw = layout.value.views[viewId] as Record<string, unknown>;
         return {
             id: viewId,
-            type: layout.value.views[viewId].type,
-            config: layout.value.views[viewId]
+            ...raw,
+            config: raw
         };
     }
 

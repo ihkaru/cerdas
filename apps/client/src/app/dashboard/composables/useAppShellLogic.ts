@@ -145,13 +145,26 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
                         await schemaLoader.loadTable(resolvedTableId.value);
                     }
                     filters.activeFilters.value = []; // Reset filters on table switch
+                    grouping.groupPath.value = [];
+                    grouping.forceShowItems.value = false;
                     await refreshDataFn();
                 } catch (e) {
                     log.error('Failed to switch table context', e);
                 } finally {
                     state.loading.value = false;
                 }
+            } else {
+                // Table is the same, but active view changed (e.g. grouping or filters might differ)
+                log.info(`[AppShell] Refreshing data for view switch on same table: ${targetTableId} (View: ${newViewId})`);
+                grouping.groupPath.value = [];
+                grouping.forceShowItems.value = false;
+                await refreshDataFn();
             }
+        } else {
+            // View without explicit table_id
+            grouping.groupPath.value = [];
+            grouping.forceShowItems.value = false;
+            await refreshDataFn();
         }
     });
 

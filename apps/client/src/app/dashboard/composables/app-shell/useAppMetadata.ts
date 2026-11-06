@@ -44,9 +44,9 @@ export function useAppMetadata(
         }
     }
 
-    /** Auto-select the first view if none is active */
+    /** Auto-select the first view if none is active or if set to default */
     function autoSelectView(navigation: Record<string, unknown>[]) {
-        if (!activeView.value && navigation.length > 0) {
+        if ((!activeView.value || activeView.value === 'default') && navigation.length > 0) {
             const firstItem = navigation[0];
             if (!firstItem) return;
             const targetView = firstItem.view_id || firstItem.view;
