@@ -248,10 +248,15 @@ CLI_SCHEMA = {
                 "transfer-owner": {"description": "Transfer application ownership", "args": ["app_id"], "flags": ["--owner (required)"]},
                 "delete": {"description": "Soft-delete an application", "args": ["app_id"], "flags": ["--force"]},
                 "restore": {"description": "Restore a trashed application", "args": ["app_id"]},
+                "setup-navigation": {
+                    "description": "Auto-scaffold navigation tabs & deck view configs from published tables",
+                    "args": ["app_id"],
+                    "flags": ["--force"],
+                },
                 "doctor": {
                     "description": "Audit survey validity, GSBPM completeness & mobile readiness (checks publishing, view bindings, prelist, FAB '+' and staffing)",
                     "args": ["app_id (optional if --all)"],
-                    "flags": ["--all", "--strict", "--human"],
+                    "flags": ["--all", "--strict", "--human", "--fix"],
                 },
             },
         },
@@ -265,10 +270,13 @@ CLI_SCHEMA = {
                     "flags": ["--app (required)", "--name (required)", "--fields-json", "--publish"],
                 },
                 "update": {
-                    "description": "Update table name, description, or custom settings",
-                    "flags": ["--app (required)", "--table (required)", "--name", "--description", "--settings-json"],
+                    "description": "Update table name, description, settings, or toggle header create action (+ FAB)",
+                    "flags": ["--app (required)", "--table (required)", "--name", "--description", "--settings-json", "--enable-create-action", "--disable-create-action"],
                 },
-                "publish": {"description": "Publish a draft table schema version", "flags": ["--app (required)", "--table (required)", "--changelog"]},
+                "publish": {
+                    "description": "Publish draft table version(s) as immutable live contracts",
+                    "flags": ["--app (required)", "--table (optional if --all)", "--all", "--changelog"],
+                },
                 "delete": {"description": "Soft-delete a table instrument", "flags": ["--app (required)", "--table (required)", "--force"]},
             },
         },
@@ -322,8 +330,8 @@ CLI_SCHEMA = {
                 "delete": {"description": "Soft-delete an assignment task and responses", "args": ["assignment_id"], "flags": ["--force"]},
                 "bulk-delete": {"description": "Delete multiple assignments by IDs", "flags": ["--ids (comma-separated)", "--force"]},
                 "bulk-reassign": {
-                    "description": "Reassign enumerator/supervisor across multiple tasks",
-                    "flags": ["--ids (comma-separated)", "--enumerator", "--supervisor", "--note"],
+                    "description": "Reassign tasks to enumerator or supervisor in bulk by IDs or whole app/table",
+                    "flags": ["--ids (comma-separated)", "--app", "--table", "--unassigned-only", "--enumerator", "--supervisor", "--note"],
                 },
             },
         },
@@ -638,11 +646,155 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
             output_result(False, res, message=res.get("message", "Failed to restore app."), code=status)
         output_result(True, res.get("data", res), message=f"App '{args.app_id}' restored successfully.")
 
+    elif action in ("setup-navigation", "setup-views"):
+        app_id = args.app_id
+        force = getattr(args, "force", False)
+
+        # 1. Fetch app
+        s_app, r_app = client.request("GET", f"/api/agent/v1/apps/{app_id}")
+        if s_app != 200:
+            output_result(False, r_app, message=f"App '{app_id}' not found.", code=s_app)
+        app_data = r_app.get("data", r_app)
+
+        existing_nav = app_data.get("navigation") or []
+        if existing_nav and not force:
+            output_result(False, message="App already has navigation configured. Use --force to regenerate.", code=400,
+                          suggestion=f"Run: cerdas app setup-navigation {app_id} --force")
+
+        # 2. Fetch tables for app
+        s_tbl, r_tbl = client.request("GET", f"/api/agent/v1/apps/{app_id}/tables")
+        if s_tbl != 200:
+            output_result(False, r_tbl, message="Failed to retrieve tables for navigation setup.", code=s_tbl)
+        tables = r_tbl.get("data", [])
+        if not tables:
+            output_result(False, message="Cannot setup navigation: app has 0 questionnaire tables. Create a table first with 'cerdas table create'.", code=400)
+
+        new_nav = []
+        new_views = {}
+
+        for idx, tbl in enumerate(tables, 1):
+            t_id = tbl.get("id")
+            t_name = tbl.get("name", f"Form {idx}")
+            t_slug = tbl.get("slug") or re.sub(r"[^a-z0-9]+", "_", t_name.lower()).strip("_")
+            view_id = f"view_{t_slug}"
+
+            fields = []
+            latest_v = tbl.get("latest_published_version") or {}
+            if latest_v and "fields" in latest_v:
+                fields = latest_v["fields"]
+            elif "fields" in tbl:
+                fields = tbl["fields"]
+
+            field_names = [f.get("name") for f in fields if isinstance(f, dict) and "name" in f]
+            primary_field = None
+            for candidate in ("nama", "name", "nama_krt", "nama_usaha", "nama_kepala_keluarga", "judul", "label", "kode", "id"):
+                if candidate in field_names:
+                    primary_field = candidate
+                    break
+            if not primary_field and field_names:
+                primary_field = field_names[0]
+
+            icon = "doc_text"
+            if any(f.get("type") in ("photo", "signature") for f in fields if isinstance(f, dict)):
+                icon = "camera" if "foto" in t_name.lower() or "photo" in t_name.lower() else "doc_text"
+
+            new_nav.append({
+                "id": f"tab-{idx}",
+                "label": t_name,
+                "icon": icon,
+                "view_id": view_id,
+            })
+
+            new_views[view_id] = {
+                "table_id": t_id,
+                "layout": "deck",
+                "deck": {
+                    "primaryHeaderField": primary_field or "id",
+                    "showStatusBadge": True,
+                },
+                "groupBy": [],
+            }
+
+        body = {
+            "navigation": new_nav,
+            "view_configs": new_views,
+        }
+        status, res = client.request("PATCH", f"/api/agent/v1/apps/{app_id}", body=body)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to update navigation & views."), code=status)
+
+        output_result(True, {"navigation": new_nav, "view_configs": new_views},
+                      message=f"Successfully configured {len(new_nav)} navigation tab(s) and view bindings for '{app_data.get('name')}'.",
+                      next_actions=[f"cerdas app doctor {app_id}"])
+
     elif action == "doctor":
         is_all = getattr(args, "all", False)
         app_id = getattr(args, "app_id", None)
         strict = getattr(args, "strict", False)
         human = getattr(args, "human", False) or getattr(args, "table_view", False)
+        auto_fix = getattr(args, "fix", False)
+
+        if auto_fix and app_id:
+            # 1. Fetch initial doctor report
+            s_doc, r_doc = client.request("GET", f"/api/agent/v1/apps/{app_id}/doctor")
+            if s_doc == 200:
+                report = r_doc.get("data", r_doc)
+                checks_map = {c["id"]: c for c in report.get("checks", [])}
+                applied_fixes = []
+
+                # Fix 1: APP_ACTIVE
+                if checks_map.get("APP_ACTIVE", {}).get("status") == "fail":
+                    s_act, _ = client.request("PATCH", f"/api/agent/v1/apps/{app_id}", body={"is_active": True})
+                    if s_act == 200:
+                        applied_fixes.append("Activated survey activity (APP_ACTIVE -> pass)")
+
+                # Fix 2: TABLES_PUBLISHED
+                if checks_map.get("TABLES_PUBLISHED", {}).get("status") == "fail":
+                    s_tbls, r_tbls = client.request("GET", f"/api/agent/v1/apps/{app_id}/tables")
+                    if s_tbls == 200:
+                        for tbl in r_tbls.get("data", []):
+                            if not tbl.get("latest_published_version"):
+                                s_pub, _ = client.request("POST", f"/api/agent/v1/apps/{app_id}/tables/{tbl['id']}/publish",
+                                                          body={"changelog": "Auto-published via cerdas app doctor --fix"})
+                                if s_pub == 200:
+                                    applied_fixes.append(f"Published draft table '{tbl.get('name')}' (TABLES_PUBLISHED -> pass)")
+
+                # Fix 3: NAVIGATION_CONFIGURED or VIEW_BINDINGS
+                nav_fail = checks_map.get("NAVIGATION_CONFIGURED", {}).get("status") == "fail"
+                view_fail = checks_map.get("VIEW_BINDINGS", {}).get("status") == "fail"
+                if (nav_fail or view_fail) and report.get("metrics", {}).get("tables_count", 0) > 0:
+                    s_tbls, r_tbls = client.request("GET", f"/api/agent/v1/apps/{app_id}/tables")
+                    if s_tbls == 200 and r_tbls.get("data"):
+                        tables = r_tbls.get("data", [])
+                        n_nav = []
+                        n_views = {}
+                        for idx, tbl in enumerate(tables, 1):
+                            t_id = tbl.get("id")
+                            t_name = tbl.get("name", f"Form {idx}")
+                            t_slug = tbl.get("slug") or re.sub(r"[^a-z0-9]+", "_", t_name.lower()).strip("_")
+                            v_id = f"view_{t_slug}"
+                            fields = (tbl.get("latest_published_version") or {}).get("fields") or tbl.get("fields") or []
+                            f_names = [f.get("name") for f in fields if isinstance(f, dict) and "name" in f]
+                            p_field = next((c for c in ("nama", "name", "nama_krt", "nama_usaha", "judul", "id") if c in f_names), f_names[0] if f_names else "id")
+                            n_nav.append({"id": f"tab-{idx}", "label": t_name, "icon": "doc_text", "view_id": v_id})
+                            n_views[v_id] = {"table_id": t_id, "layout": "deck", "deck": {"primaryHeaderField": p_field, "showStatusBadge": True}, "groupBy": []}
+                        s_p, _ = client.request("PATCH", f"/api/agent/v1/apps/{app_id}", body={"navigation": n_nav, "view_configs": n_views})
+                        if s_p == 200:
+                            applied_fixes.append(f"Auto-configured navigation tabs and view bindings for {len(n_nav)} table(s)")
+
+                # Fix 4: JOIN_LINK_READY
+                if checks_map.get("JOIN_LINK_READY", {}).get("status") in ("fail", "info"):
+                    s_j, _ = client.request("POST", f"/api/agent/v1/apps/{app_id}/join-link", body={"is_active": True, "role": "enumerator"})
+                    if s_j == 200:
+                        applied_fixes.append("Enabled surveyor shareable join link (JOIN_LINK_READY -> pass)")
+
+                if human:
+                    print(f"\n🔧 AUTO-REMEDIATION EXECUTED:")
+                    if applied_fixes:
+                        for act in applied_fixes:
+                            print(f"  ✅ {act}")
+                    else:
+                        print("  ℹ️ No automatic structural fixes needed or applicable.")
 
         if is_all or not app_id:
             # Global survey doctor
@@ -787,11 +939,48 @@ def cmd_table(args: argparse.Namespace, client: CerdasClient) -> None:
             body["name"] = args.name
         if getattr(args, "description", None):
             body["description"] = args.description
+
+        settings = {}
         if getattr(args, "settings_json", None):
             try:
-                body["settings"] = json.loads(args.settings_json)
+                settings = json.loads(args.settings_json)
             except Exception as e:
                 output_result(False, message=f"Malformed --settings-json: {e}", code=400)
+
+        enable_create = getattr(args, "enable_create_action", False)
+        disable_create = getattr(args, "disable_create_action", False)
+        if enable_create or disable_create:
+            if not settings:
+                s_t, r_t = client.request("GET", f"/api/agent/v1/apps/{app_id}/tables/{table_id}")
+                if s_t == 200:
+                    t_info = r_t.get("data", r_t)
+                    settings = t_info.get("settings") or {}
+                else:
+                    settings = {}
+            if not isinstance(settings, dict):
+                settings = {}
+            actions = settings.get("actions") or {}
+            if not isinstance(actions, dict):
+                actions = {}
+            header_actions = list(actions.get("header") or [])
+
+            if enable_create:
+                has_create = any(isinstance(a, dict) and (a.get("id") == "create" or a.get("type") == "create") for a in header_actions)
+                if not has_create:
+                    header_actions.append({
+                        "id": "create",
+                        "type": "create",
+                        "icon": "plus",
+                        "label": "Tambah Baru",
+                    })
+            elif disable_create:
+                header_actions = [a for a in header_actions if not (isinstance(a, dict) and (a.get("id") == "create" or a.get("type") == "create"))]
+
+            actions["header"] = header_actions
+            settings["actions"] = actions
+
+        if settings:
+            body["settings"] = settings
 
         status, res = client.request("PATCH", f"/api/agent/v1/apps/{app_id}/tables/{table_id}", body=body)
         if status != 200:
@@ -799,14 +988,42 @@ def cmd_table(args: argparse.Namespace, client: CerdasClient) -> None:
         output_result(True, res.get("data", res), message="Table updated successfully.")
 
     elif action == "publish":
+        is_all = getattr(args, "all", False)
         table_id = getattr(args, "table", None)
-        if not table_id:
-            output_result(False, message="Flag --table <table_id> is required.", code=400)
-        body = {"changelog": getattr(args, "changelog", "Published via cerdas-cli")}
-        status, res = client.request("POST", f"/api/agent/v1/apps/{app_id}/tables/{table_id}/publish", body=body)
-        if status != 200:
-            output_result(False, res, message=res.get("message", "Failed to publish table."), code=status)
-        output_result(True, res, message="Table schema version published successfully.")
+        if not is_all and not table_id:
+            output_result(False, message="Flag --table <table_id> or --all is required.", code=400,
+                          suggestion="Run: cerdas table publish --app <app> --table <tbl> OR cerdas table publish --app <app> --all")
+        changelog = getattr(args, "changelog", "Published via cerdas-cli")
+
+        if is_all:
+            s_tbls, r_tbls = client.request("GET", f"/api/agent/v1/apps/{app_id}/tables")
+            if s_tbls != 200:
+                output_result(False, r_tbls, message="Failed to retrieve tables for publishing.", code=s_tbls)
+            tables = r_tbls.get("data", [])
+            published = []
+            for tbl in tables:
+                t_id = tbl.get("id")
+                s_pub, r_pub = client.request("POST", f"/api/agent/v1/apps/{app_id}/tables/{t_id}/publish", body={"changelog": changelog})
+                if s_pub in (200, 201):
+                    st = "published"
+                elif s_pub == 400 and "No draft" in str(r_pub.get("message", "")):
+                    st = "already_published"
+                else:
+                    st = "failed"
+                published.append({
+                    "id": t_id,
+                    "name": tbl.get("name"),
+                    "status": st,
+                    "code": s_pub,
+                    "message": r_pub.get("message") if st == "failed" else None,
+                })
+            output_result(True, {"tables": published}, message=f"Processed publication for {len(tables)} table(s).")
+        else:
+            body = {"changelog": changelog}
+            status, res = client.request("POST", f"/api/agent/v1/apps/{app_id}/tables/{table_id}/publish", body=body)
+            if status != 200:
+                output_result(False, res, message=res.get("message", "Failed to publish table."), code=status)
+            output_result(True, res, message="Table schema version published successfully.")
 
     elif action == "delete":
         table_id = getattr(args, "table", None)
@@ -1022,19 +1239,54 @@ def cmd_assignment(args: argparse.Namespace, client: CerdasClient) -> None:
 
     elif action == "bulk-reassign":
         ids_raw = getattr(args, "ids", "")
-        if not ids_raw:
-            output_result(False, message="Flag --ids <comma-separated-uuids> is required.", code=400)
-        ids = [i.strip() for i in ids_raw.split(",") if i.strip()]
+        ids = []
+        if ids_raw:
+            ids = [i.strip() for i in ids_raw.split(",") if i.strip()]
+        else:
+            app_id = getattr(args, "app", None)
+            table_id = getattr(args, "table", None)
+            unassigned_only = getattr(args, "unassigned_only", False)
+            if not app_id and not table_id:
+                output_result(False, message="Flag --ids <comma-separated> OR (--app / --table) is required.", code=400,
+                              suggestion="Example: cerdas assignment bulk-reassign --app <app> --unassigned-only --enumerator <uuid>")
+
+            target_tables = []
+            if table_id:
+                target_tables = [{"id": table_id}]
+            elif app_id:
+                s_t, r_t = client.request("GET", f"/api/agent/v1/apps/{app_id}/tables")
+                if s_t == 200:
+                    target_tables = r_t.get("data", [])
+
+            for tbl in target_tables:
+                t_id = tbl.get("id")
+                params = {"table_id": t_id, "per_page": 500}
+                s_a, r_a = client.request("GET", "/api/assignments", params=params)
+                if s_a == 200:
+                    items = r_a.get("data", {}).get("data", [])
+                    for item in items:
+                        if unassigned_only and item.get("enumerator_id"):
+                            continue
+                        ids.append(item.get("id"))
+
+        if not ids:
+            output_result(False, message="No matching assignments found to reassign.", code=404)
+
+        enumerator_id = getattr(args, "enumerator", None)
+        supervisor_id = getattr(args, "supervisor", None)
+        if not enumerator_id and not supervisor_id:
+            output_result(False, message="At least one of --enumerator or --supervisor is required.", code=400)
+
         body = {
             "assignment_ids": ids,
-            "enumerator_id": getattr(args, "enumerator", None),
-            "supervisor_id": getattr(args, "supervisor", None),
+            "enumerator_id": enumerator_id,
+            "supervisor_id": supervisor_id,
             "note": getattr(args, "note", None),
         }
         status, res = client.request("POST", "/api/assignments/bulk-reassign", body=body)
         if status != 200:
             output_result(False, res, message=res.get("message", "Bulk reassign failed."), code=status)
-        output_result(True, res, message=res.get("message", "Assignments reassigned."))
+        output_result(True, res, message=f"Successfully reassigned {len(ids)} assignment task(s).")
 
 
 # ----- Submission Handlers (GSBPM 5) -----
@@ -1233,11 +1485,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_app_restore = p_app_sub.add_parser("restore", help="Restore trashed application")
     p_app_restore.add_argument("app_id", help="App ID or Slug")
 
+    # App Setup Navigation / Views Auto-Scaffold
+    for nav_cmd in ("setup-navigation", "setup-views"):
+        p_app_nav = p_app_sub.add_parser(nav_cmd, help="Auto-scaffold navigation tabs & deck view configs from published tables")
+        p_app_nav.add_argument("app_id", help="App ID or Slug")
+        p_app_nav.add_argument("--force", action="store_true", help="Overwrite existing navigation and view configs")
+
     p_app_doc = p_app_sub.add_parser("doctor", help="Audit survey validity, GSBPM completeness & mobile readiness")
     p_app_doc.add_argument("app_id", nargs="?", help="App ID or Slug (optional if --all is specified)")
     p_app_doc.add_argument("--all", action="store_true", help="Audit all active surveys in workspace")
     p_app_doc.add_argument("--strict", action="store_true", help="Exit with code 1 if any check fails or needs attention")
     p_app_doc.add_argument("--human", action="store_true", help="Format output as human-readable report with badges")
+    p_app_doc.add_argument("--fix", action="store_true", help="Auto-apply structural fixes (publish draft tables, scaffold navigation, activate app, enable join link)")
 
     # Table
     p_table = subparsers.add_parser("table", help="GSBPM Phase 3: Manage questionnaire tables & form instruments")
@@ -1259,16 +1518,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_tbl_create.add_argument("--layout-json", help="Layout JSON string (type, settings, groupBy)")
     p_tbl_create.add_argument("--publish", action="store_true", help="Publish version immediately")
 
-    p_tbl_update = p_table_sub.add_parser("update", help="Update table name, description, or custom settings")
+    p_tbl_update = p_table_sub.add_parser("update", help="Update table name, description, settings, or toggle header create action (+ FAB)")
     p_tbl_update.add_argument("--app", required=True, help="App ID or Slug")
     p_tbl_update.add_argument("--table", required=True, help="Table ID or Slug")
     p_tbl_update.add_argument("--name", help="New table name")
     p_tbl_update.add_argument("--description", help="New description")
     p_tbl_update.add_argument("--settings-json", help="Settings JSON string")
+    p_tbl_update.add_argument("--enable-create-action", action="store_true", help="Enable respondent creation button (+ FAB) in mobile header")
+    p_tbl_update.add_argument("--disable-create-action", action="store_true", help="Disable respondent creation button in mobile header (prelist only)")
 
     p_tbl_pub = p_table_sub.add_parser("publish", help="Publish draft table version")
     p_tbl_pub.add_argument("--app", required=True, help="App ID or Slug")
-    p_tbl_pub.add_argument("--table", required=True, help="Table ID or Slug")
+    p_tbl_pub.add_argument("--table", help="Table ID or Slug (optional if --all is specified)")
+    p_tbl_pub.add_argument("--all", action="store_true", help="Publish all draft tables in the app")
     p_tbl_pub.add_argument("--changelog", help="Version changelog note")
 
     p_tbl_del = p_table_sub.add_parser("delete", help="Soft-delete table instrument")
@@ -1367,7 +1629,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_asg_bdel.add_argument("--force", action="store_true", help="Confirm bulk deletion")
 
     p_asg_breas = p_assign_sub.add_parser("bulk-reassign", help="Reassign multiple assignments")
-    p_asg_breas.add_argument("--ids", required=True, help="Comma-separated assignment UUIDs")
+    p_asg_breas.add_argument("--ids", help="Comma-separated assignment UUIDs (optional if --app/--table is specified)")
+    p_asg_breas.add_argument("--app", help="Filter assignments by App ID / Slug")
+    p_asg_breas.add_argument("--table", help="Filter assignments by Table ID / Slug")
+    p_asg_breas.add_argument("--unassigned-only", action="store_true", help="Only reassign tasks currently without an assigned enumerator")
     p_asg_breas.add_argument("--enumerator", help="Enumerator User ID")
     p_asg_breas.add_argument("--supervisor", help="Supervisor User ID")
     p_asg_breas.add_argument("--note", help="Audit transition note")

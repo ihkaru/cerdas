@@ -79,7 +79,7 @@ cerdas health
 
 ### Step 1.5: Pre-Flight Survey Doctor & Readiness Audit (`cerdas app doctor`)
 
-Before distributing links or sending enumerators to the field, run the **Survey Doctor** to perform an automated 10-point GSBPM readiness audit:
+Before distributing links or sending enumerators to the field, run the **Survey Doctor** to perform an automated 11-point GSBPM readiness audit:
 
 ```bash
 # 1. Audit a specific survey app (JSON by default, with actionable remediations):
@@ -94,23 +94,31 @@ cerdas app doctor --all --human
 # 4. Strict CI/CD or Agent Gate (exits with code 1 if status != 'ready'):
 cerdas app doctor <app_id> --strict
 
+# 5. One-Shot Auto-Remediation Gate:
+# Auto-publishes all draft tables, auto-scaffolds bottom navigation tabs & deck views,
+# activates survey, and enables surveyor join link in one guarded command!
+cerdas app doctor <app_id> --fix --human
+
 # Direct REST Endpoints:
 # GET /api/agent/v1/apps/{app}/doctor
 # GET /api/agent/v1/apps/doctor
 ```
 
-#### What Survey Doctor Verifies:
-1. `APP_ACTIVE`: Activity is active and unarchived.
-2. `APP_SCHEDULE`: Start/end dates allow active data collection.
-3. `ENUMERATORS_ENROLLED`: Field staff are enrolled in the project.
-4. `JOIN_LINK_READY`: Shareable self-enrollment link is enabled for surveyors.
-5. `TABLES_EXIST`: App has at least 1 questionnaire instrument (avoids PWA "Aplikasi ini belum memiliki tabel" error).
-6. `TABLES_PUBLISHED`: Schema versions are published and locked for mobile client caching.
-7. `NAVIGATION_CONFIGURED`: Bottom navigation tabs are defined.
-8. `VIEW_BINDINGS`: Navigation tabs correctly map to existing tables.
-9. `VIEW_FIELDS_INTEGRITY`: Card header & groupBy fields exist in the published table schema.
-10. `DATA_AND_FAB_READINESS`: Guarantees either prelist data exists OR a `+` FAB create button is configured (prevents empty stuck mobile deck views).
-11. `ASSIGNMENT_ALLOCATION`: Verifies tasks are assigned to enumerators in Complex Mode.
+#### What Survey Doctor Verifies & Fully-Guarded CLI Remediation Paths:
+
+| Check ID | Verification Rule | Guarded CLI Remediation Command |
+|:---|:---|:---|
+| `APP_ACTIVE` | Survey activity is active and unarchived. | `cerdas app update <app_id> --active true` |
+| `APP_SCHEDULE` | Survey timeline is within active dates. | `cerdas app update <app_id> --end-date "2026-12-31T23:59:59Z"` |
+| `ENUMERATORS_ENROLLED` | Field enumerators enrolled in activity. | `cerdas app member add <app_id> --user <email_or_uuid> --role enumerator` |
+| `JOIN_LINK_READY` | Shareable surveyor join link is active. | `cerdas app share-link <app_id> enable --role enumerator` |
+| `TABLES_EXIST` | App has at least 1 questionnaire instrument. | `cerdas table create --app <app_id> --name "Kuesioner Utama" --publish` |
+| `TABLES_PUBLISHED` | Questionnaire schemas are published and locked. | `cerdas table publish --app <app_id> --all` *(or `--table <tbl>`)* |
+| `NAVIGATION_CONFIGURED` | Bottom navigation bar tabs are configured. | `cerdas app setup-navigation <app_id> [--force]` |
+| `VIEW_BINDINGS` | Navigation views link to valid tables. | `cerdas app setup-navigation <app_id> [--force]` |
+| `VIEW_FIELDS_INTEGRITY` | Card header & groupBy fields exist in schema. | Auto-resolved by `setup-navigation` or `app update --view-configs-json` |
+| `DATA_AND_FAB_READINESS` | Guarantees non-empty Deck or `+` create FAB. | **Prelist**: `cerdas prelist upload --app <app> --table <tbl> --file prelist.json`<br>**Ad-Hoc**: `cerdas table update --app <app> --table <tbl> --enable-create-action` |
+| `ASSIGNMENT_ALLOCATION` | Tasks are allocated to field enumerators. | `cerdas assignment bulk-reassign --app <app> --unassigned-only --enumerator <uuid>` |
 
 ### Step 2: Create & Configure Survey Activity (GSBPM Phase 1 & 2)
 
@@ -187,12 +195,18 @@ cerdas table create \
   ]' \
   --publish
 
-# Or update table metadata and settings:
+# Publish schema version for a specific table:
+cerdas table publish --app <app_id> --table <table_id> --changelog "Initial version"
+
+# Or publish ALL draft tables in the app at once:
+cerdas table publish --app <app_id> --all
+
+# Or update table metadata, description, or toggle header FAB:
 cerdas table update \
   --app <app_id> \
   --table <table_id> \
   --name "Kuesioner Rumah Tangga Tani (Revisi)" \
-  --description "Versi revisi pasca uji coba instrumen lapangan"
+  --enable-create-action
 ```
 
 #### B. Table Actions & Mobile FAB Configuration (`layout.settings.actions`)
@@ -203,9 +217,14 @@ cerdas table update \
 > 2. **Card Actions**: Renders inside card menus / bottom sheets based on `settings.actions.row` (`open`, `delete`, `edit`).
 > 3. **Swipe Actions**: Renders on swipe gesture based on `settings.actions.swipe` (`delete` on left, `complete` on right).
 >
-> When creating or updating tables via CLI, always ensure `settings.actions` is defined:
+> When creating or updating tables via CLI, use the guarded toggle flags or detailed JSON:
 > ```bash
-> # Enable '+' FAB for ad-hoc field reports (e.g. Laporan Kunjungan / Visum):
+> # 1. High-Level Guarded Helper (Toggles '+' create button without breaking existing settings):
+> cerdas table update --app <app_id> --table <table_id> --enable-create-action
+> # Or to turn off:
+> cerdas table update --app <app_id> --table <table_id> --disable-create-action
+>
+> # 2. Granular settings JSON configuration:
 > cerdas table update \
 >   --app <app_id> \
 >   --table <table_id> \
@@ -241,9 +260,16 @@ cerdas table update \
 >      - **Pattern A (Target Sampling Prelist)**: (e.g., Sakernas Foto Rumah, Susenas, Sensus Ekonomi).
 >        Admin **MUST** execute Phase 4.1 (`cerdas prelist upload`) AND Phase 4.2 (`cerdas assignment bulk-reassign`) to allocate sample households to enumerators.
 >      - **Pattern B (Ad-Hoc Reporting)**: (e.g., Laporan Kunjungan, Laporan Pemutakhiran).
->        Admin **MUST** enable `header: [{"type": "create"}]` so the surveyor can tap `+` on the mobile device to add new submissions dynamically!
+>        Admin **MUST** enable `header: [{"type": "create"}]` (`--enable-create-action`) so the surveyor can tap `+` on the mobile device to add new submissions dynamically!
 
-Configure the navigation bar and card layout via CLI:
+##### Option 1: Automatic Navigation Scaffolding (Recommended)
+Automatically discover all published questionnaire tables, generate bottom navigation tabs, and bind optimal deck views (with auto-detected primary header fields):
+```bash
+cerdas app setup-navigation <app_id> [--force]
+```
+
+##### Option 2: Custom Navigation & Card Layout Specification
+Configure specific custom navigation tabs and card layout via CLI:
 ```bash
 cerdas app update <app_id> \
   --navigation-json '[
@@ -347,7 +373,18 @@ cerdas assignment update <assignment_uuid> \
   --supervisor <supervisor_user_uuid> \
   --note "Alokasi penugasan wilayah RT 002 Sukasari"
 
-# Or bulk reassign a batch of IDs:
+# Bulk reassign all unassigned tasks across an entire app to an enumerator:
+cerdas assignment bulk-reassign \
+  --app <app_id> \
+  --unassigned-only \
+  --enumerator <enumerator_user_uuid> \
+  --note "Distribusi seluruh prelist tak bertuan ke enumerator"
+
+# Or bulk reassign a specific table or batch of IDs:
+cerdas assignment bulk-reassign \
+  --table <table_id> \
+  --enumerator <enumerator_user_uuid>
+
 cerdas assignment bulk-reassign \
   --ids "<uuid1>,<uuid2>,<uuid3>" \
   --enumerator <enumerator_user_uuid> \
