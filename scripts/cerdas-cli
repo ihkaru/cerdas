@@ -23,6 +23,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 CLI_VERSION = "1.0.0"
@@ -432,6 +433,51 @@ def cmd_health(args: argparse.Namespace, client: CerdasClient) -> None:
 
 # ----- App Handlers (GSBPM 1 & 2) -----
 
+def validate_group_by_fields(client: CerdasClient, app_id: str, gb_fields: List[str], target_view: Optional[str] = None) -> Tuple[bool, str, List[str]]:
+    """
+    Validate that all fields in gb_fields exist in the questionnaire table schema.
+    Returns (is_valid, error_message, available_fields).
+    """
+    if not gb_fields:
+        return True, "", []
+
+    s_t, r_t = client.request("GET", f"/api/agent/v1/apps/{app_id}/tables")
+    if s_t != 200:
+        return True, "", []
+    tables = r_t.get("data", [])
+    if not tables:
+        return True, "", []
+
+    target_table_id = None
+    if target_view:
+        s_a, r_a = client.request("GET", f"/api/agent/v1/apps/{app_id}")
+        if s_a == 200:
+            v_configs = r_a.get("data", {}).get("view_configs") or {}
+            target_table_id = v_configs.get(target_view, {}).get("table_id")
+
+    available_fields = set()
+    for tbl in tables:
+        if target_table_id and tbl.get("id") != target_table_id:
+            continue
+        v = tbl.get("latest_published_version") or {}
+        fields = v.get("fields") or tbl.get("fields") or []
+        for f in fields:
+            if isinstance(f, dict) and "name" in f:
+                available_fields.add(f["name"])
+            elif isinstance(f, str):
+                available_fields.add(f)
+
+    if not available_fields:
+        return True, "", []
+
+    invalid = [f for f in gb_fields if f not in available_fields]
+    if invalid:
+        err_msg = f"Invalid field(s) in --group-by: {', '.join(invalid)}. Field(s) do not exist in table schema."
+        return False, err_msg, sorted(list(available_fields))
+
+    return True, "", sorted(list(available_fields))
+
+
 def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
     action = args.app_action
 
@@ -493,10 +539,31 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
             body["mode"] = args.mode
         if getattr(args, "active", None) is not None:
             body["is_active"] = args.active
-        if getattr(args, "start_date", None):
-            body["start_date"] = args.start_date
-        if getattr(args, "end_date", None):
-            body["end_date"] = args.end_date
+
+        start_date = getattr(args, "start_date", None)
+        end_date = getattr(args, "end_date", None)
+        parsed_start = None
+        parsed_end = None
+
+        if start_date:
+            try:
+                clean_start = start_date.replace("Z", "+00:00")
+                parsed_start = datetime.fromisoformat(clean_start)
+                body["start_date"] = parsed_start.isoformat()
+            except Exception:
+                output_result(False, message=f"Invalid format for --start-date: '{start_date}'. Must be an ISO 8601 string (e.g. 2026-11-01T00:00:00Z).", code=400)
+
+        if end_date:
+            try:
+                clean_end = end_date.replace("Z", "+00:00")
+                parsed_end = datetime.fromisoformat(clean_end)
+                body["end_date"] = parsed_end.isoformat()
+            except Exception:
+                output_result(False, message=f"Invalid format for --end-date: '{end_date}'. Must be an ISO 8601 string (e.g. 2026-11-30T23:59:59Z).", code=400)
+
+        if parsed_start and parsed_end and parsed_start > parsed_end:
+            output_result(False, message="--start-date cannot be later than --end-date.", code=400)
+
         if getattr(args, "expired_behavior", None):
             body["expired_behavior"] = args.expired_behavior
 
@@ -541,6 +608,17 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
         raw_gb = getattr(args, "group_by", None)
         if raw_gb is not None:
             gb_fields = [f.strip() for f in raw_gb.split(",") if f.strip() and f.strip().lower() != "none"]
+            force_gb = getattr(args, "force", False)
+            target_view = getattr(args, "view", None)
+
+            # Pre-validate group_by against table schema
+            if gb_fields and not force_gb:
+                ok_gb, err_gb, avail_fields = validate_group_by_fields(client, args.app_id, gb_fields, target_view=target_view)
+                if not ok_gb:
+                    sample_avail = ", ".join(avail_fields[:15]) + ("..." if len(avail_fields) > 15 else "")
+                    output_result(False, message=err_gb, code=400,
+                                  suggestion=f"Available table fields: {sample_avail}. Use --force to bypass.")
+
             s_app, r_app = client.request("GET", f"/api/agent/v1/apps/{args.app_id}")
             if s_app != 200:
                 output_result(False, r_app, message=f"App '{args.app_id}' not found.", code=s_app)
@@ -549,12 +627,12 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
             if not isinstance(cur_views, dict):
                 cur_views = {}
 
-            target_view = getattr(args, "view", None)
             if target_view:
                 if target_view not in cur_views:
-                    cur_views[target_view] = {"layout": "deck", "groupBy": gb_fields}
-                else:
-                    cur_views[target_view]["groupBy"] = gb_fields
+                    avail_views = list(cur_views.keys())
+                    output_result(False, message=f"View '{target_view}' not found in app view_configs.", code=404,
+                                  suggestion=f"Available views: {', '.join(avail_views) if avail_views else 'None. Run setup-navigation first.'}")
+                cur_views[target_view]["groupBy"] = gb_fields
             else:
                 if not cur_views:
                     output_result(False, message="No view_configs found to apply --group-by. Run 'cerdas app setup-navigation' first.", code=400,
@@ -704,6 +782,12 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
         new_views = {}
         raw_gb = getattr(args, "group_by", None)
         cli_group_by = [f.strip() for f in raw_gb.split(",") if f.strip() and f.strip().lower() != "none"] if raw_gb is not None else []
+        if cli_group_by and not force:
+            ok_gb, err_gb, avail_fields = validate_group_by_fields(client, app_id, cli_group_by)
+            if not ok_gb:
+                sample_avail = ", ".join(avail_fields[:15]) + ("..." if len(avail_fields) > 15 else "")
+                output_result(False, message=err_gb, code=400,
+                              suggestion=f"Available table fields: {sample_avail}. Use --force to bypass.")
 
         for idx, tbl in enumerate(tables, 1):
             t_id = tbl.get("id")
@@ -937,6 +1021,13 @@ def cmd_table(args: argparse.Namespace, client: CerdasClient) -> None:
                 fields = json.loads(args.fields_json)
             except Exception as e:
                 output_result(False, message=f"Malformed --fields-json: {e}", code=400)
+            if not isinstance(fields, list):
+                output_result(False, message="--fields-json must be a JSON array of field objects.", code=400)
+            for idx, f in enumerate(fields):
+                if not isinstance(f, dict):
+                    output_result(False, message=f"Field item at index {idx} in --fields-json must be a JSON object.", code=400)
+                if "name" not in f and "key" not in f:
+                    output_result(False, message=f"Field item at index {idx} in --fields-json must specify a 'name' or 'key'.", code=400)
 
         body = {
             "name": name,
@@ -1124,6 +1215,17 @@ def cmd_prelist(args: argparse.Namespace, client: CerdasClient) -> None:
                 rows = rows["rows"]
             if not isinstance(rows, list):
                 output_result(False, message="Prelist JSON must be an array of row objects.", code=400)
+            if not rows:
+                output_result(False, message="Prelist JSON cannot be an empty array.", code=400)
+            first_row = rows[0]
+            if not isinstance(first_row, dict):
+                output_result(False, message="Prelist rows must be JSON objects/dictionaries.", code=400)
+
+            if strategy in ("upsert", "merge_columns") and match_key:
+                if match_key not in first_row:
+                    avail_keys = list(first_row.keys())[:12]
+                    output_result(False, message=f"Match key '{match_key}' does not exist in uploaded prelist rows.", code=400,
+                                  suggestion=f"Available columns in prelist file: {', '.join(avail_keys)}. Verify --match-key argument.")
         except Exception as e:
             output_result(False, message=f"Failed to read prelist JSON: {e}", code=400)
 
@@ -1309,6 +1411,29 @@ def cmd_assignment(args: argparse.Namespace, client: CerdasClient) -> None:
         supervisor_id = getattr(args, "supervisor", None)
         if not enumerator_id and not supervisor_id:
             output_result(False, message="At least one of --enumerator or --supervisor is required.", code=400)
+
+        # Resolve email to User UUID if an email was passed to enumerator or supervisor
+        app_id = getattr(args, "app", None)
+        if app_id:
+            s_mem, r_mem = client.request("GET", f"/api/agent/v1/apps/{app_id}/members")
+            if s_mem == 200:
+                members = r_mem.get("data", [])
+                if enumerator_id and "@" in enumerator_id:
+                    matched = next((m for m in members if m.get("email") == enumerator_id), None)
+                    if matched:
+                        enumerator_id = matched.get("id")
+                    else:
+                        avail_emails = [m.get("email") for m in members if m.get("email")]
+                        output_result(False, message=f"Enumerator email '{enumerator_id}' is not enrolled in app '{app_id}'.", code=404,
+                                      suggestion=f"Enrolled members: {', '.join(avail_emails)}. Enroll them first with 'cerdas app member add'.")
+                if supervisor_id and "@" in supervisor_id:
+                    matched = next((m for m in members if m.get("email") == supervisor_id), None)
+                    if matched:
+                        supervisor_id = matched.get("id")
+                    else:
+                        avail_emails = [m.get("email") for m in members if m.get("email")]
+                        output_result(False, message=f"Supervisor email '{supervisor_id}' is not enrolled in app '{app_id}'.", code=404,
+                                      suggestion=f"Enrolled members: {', '.join(avail_emails)}. Enroll them first with 'cerdas app member add'.")
 
         body = {
             "assignment_ids": ids,
