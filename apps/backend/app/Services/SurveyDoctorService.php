@@ -145,14 +145,19 @@ class SurveyDoctorService
         );
 
         // 9. Data Availability & Mobile FAB Readiness
-        $totalAssignments = Assignment::whereIn('table_id', $tableIds)->count();
-        $assignedCount = Assignment::whereIn('table_id', $tableIds)->whereNotNull('enumerator_id')->count();
+        $assignCounts = ! empty($tableIds)
+            ? Assignment::whereIn('table_id', $tableIds)->groupBy('table_id')->selectRaw('table_id, count(*) as cnt')->pluck('cnt', 'table_id')->all()
+            : [];
+        $totalAssignments = array_sum($assignCounts);
+        $assignedCount = ! empty($tableIds)
+            ? Assignment::whereIn('table_id', $tableIds)->whereNotNull('enumerator_id')->count()
+            : 0;
         $unassignedCount = $totalAssignments - $assignedCount;
         $tableReadinessIssues = [];
         $detectedPatterns = [];
 
         foreach ($tables as $table) {
-            $tableAssignCount = Assignment::where('table_id', $table->id)->count();
+            $tableAssignCount = $assignCounts[$table->id] ?? 0;
             $settings = $table->settings ?? [];
             $layoutSettings = $table->latestPublishedVersion?->layout['settings'] ?? [];
             $headerActions = $settings['actions']['header'] ?? $layoutSettings['actions']['header'] ?? [];

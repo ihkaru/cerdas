@@ -36,7 +36,12 @@ class AgentDoctorController extends Controller
             });
         }
 
-        $apps = $query->orderBy('name')->get();
+        $apps = $query->with([
+            'tables.latestPublishedVersion',
+            'tables.versions',
+            'memberships.user',
+            'joinLinks',
+        ])->orderBy('name')->get();
         $report = $doctor->diagnoseAll($apps);
 
         return response()->json([

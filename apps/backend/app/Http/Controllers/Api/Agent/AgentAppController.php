@@ -53,18 +53,30 @@ class AgentAppController extends Controller
             ->orderByDesc('updated_at')
             ->get();
 
-        // Calculate assignments & responses aggregates per app
-        $appSummaries = $apps->map(function (App $app) {
-            $tableIds = Table::withTrashed()->where('app_id', $app->id)->pluck('id');
+        // Optimized bulk pre-aggregation across apps to prevent N+1 timeout
+        $appIds = $apps->pluck('id')->all();
+        $allTables = Table::withTrashed()->whereIn('app_id', $appIds)->get(['id', 'app_id', 'source_type']);
+        $tableIdsByApp = $allTables->groupBy('app_id')->map(fn ($t) => $t->pluck('id')->all());
+        $allTblIds = $allTables->pluck('id')->all();
 
-            $assignmentsCount = Assignment::withTrashed()->whereIn('table_id', $tableIds)->count();
-            $responsesCount = Response::withTrashed()->whereHas('assignment', function ($q) use ($tableIds) {
-                $q->whereIn('table_id', $tableIds);
-            })->count();
+        $assignCounts = ! empty($allTblIds)
+            ? Assignment::withTrashed()->whereIn('table_id', $allTblIds)->groupBy('table_id')->selectRaw('table_id, count(*) as cnt')->pluck('cnt', 'table_id')->all()
+            : [];
+        $respCounts = ! empty($allTblIds)
+            ? Response::withTrashed()->join('assignments', 'responses.assignment_id', '=', 'assignments.id')
+                ->whereIn('assignments.table_id', $allTblIds)->groupBy('assignments.table_id')
+                ->selectRaw('assignments.table_id, count(*) as cnt')->pluck('cnt', 'assignments.table_id')->all()
+            : [];
 
-            $connectedSheetsCount = Table::where('app_id', $app->id)
-                ->where('source_type', 'google_sheets')
-                ->count();
+        $appSummaries = $apps->map(function (App $app) use ($allTables, $tableIdsByApp, $assignCounts, $respCounts) {
+            $tIds = $tableIdsByApp[$app->id] ?? [];
+            $assignmentsCount = 0;
+            $responsesCount = 0;
+            foreach ($tIds as $tId) {
+                $assignmentsCount += $assignCounts[$tId] ?? 0;
+                $responsesCount += $respCounts[$tId] ?? 0;
+            }
+            $connectedSheetsCount = $allTables->where('app_id', $app->id)->where('source_type', 'google_sheets')->count();
 
             return [
                 'id' => $app->id,
@@ -191,24 +203,15 @@ class AgentAppController extends Controller
      */
     public function update(Request $request, string $appId): JsonResponse
     {
-        $app = App::withTrashed()
-            ->where('id', $appId)
-            ->orWhere('slug', $appId)
-            ->firstOrFail();
+        $app = App::withTrashed()->where('id', $appId)->orWhere('slug', $appId)->firstOrFail();
 
         $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'description' => 'nullable|string',
-            'is_active' => 'sometimes|boolean',
-            'mode' => 'sometimes|string|in:simple,complex',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date',
+            'name' => 'sometimes|string|max:255', 'description' => 'nullable|string',
+            'is_active' => 'sometimes|boolean', 'mode' => 'sometimes|string|in:simple,complex',
+            'start_date' => 'nullable|date', 'end_date' => 'nullable|date',
             'expired_behavior' => 'nullable|string|in:read_only,hidden',
-            'settings' => 'sometimes|array',
-            'navigation' => 'sometimes|array',
-            'view_configs' => 'sometimes|array',
-            'created_by' => 'sometimes|string|exists:users,id',
-            'owner_email' => 'sometimes|email|exists:users,email',
+            'settings' => 'sometimes|array', 'navigation' => 'sometimes|array', 'view_configs' => 'sometimes|array',
+            'created_by' => 'sometimes|string|exists:users,id', 'owner_email' => 'sometimes|email|exists:users,email',
         ]);
 
         // Resolve ownership transfer
@@ -258,17 +261,12 @@ class AgentAppController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'mode' => 'nullable|string|in:simple,complex',
-            'is_active' => 'nullable|boolean',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date',
+            'name' => 'required|string|max:255', 'description' => 'nullable|string',
+            'mode' => 'nullable|string|in:simple,complex', 'is_active' => 'nullable|boolean',
+            'start_date' => 'nullable|date', 'end_date' => 'nullable|date',
             'expired_behavior' => 'nullable|string|in:read_only,hidden',
             'organization_id' => 'nullable|string|exists:organizations,id',
-            'settings' => 'nullable|array',
-            'navigation' => 'nullable|array',
-            'view_configs' => 'nullable|array',
+            'settings' => 'nullable|array', 'navigation' => 'nullable|array', 'view_configs' => 'nullable|array',
         ]);
 
         $user = $request->user();
@@ -282,21 +280,21 @@ class AgentAppController extends Controller
             $counter++;
         }
 
-        $app = new App;
-        $app->id = (string) \Illuminate\Support\Str::uuid();
-        $app->name = $validated['name'];
-        $app->slug = $slug;
-        $app->description = $validated['description'] ?? null;
-        $app->mode = $validated['mode'] ?? 'simple';
-        $app->is_active = $validated['is_active'] ?? true;
-        $app->start_date = $validated['start_date'] ?? null;
-        $app->end_date = $validated['end_date'] ?? null;
-        $app->expired_behavior = $validated['expired_behavior'] ?? 'read_only';
-        $app->created_by = $user?->id;
-        $app->settings = $validated['settings'] ?? [];
-        $app->navigation = $validated['navigation'] ?? [];
-        $app->view_configs = $validated['view_configs'] ?? [];
-        $app->save();
+        $app = App::create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'name' => $validated['name'],
+            'slug' => $slug,
+            'description' => $validated['description'] ?? null,
+            'mode' => $validated['mode'] ?? 'simple',
+            'is_active' => $validated['is_active'] ?? true,
+            'start_date' => $validated['start_date'] ?? null,
+            'end_date' => $validated['end_date'] ?? null,
+            'expired_behavior' => $validated['expired_behavior'] ?? 'read_only',
+            'created_by' => $user?->id,
+            'settings' => $validated['settings'] ?? [],
+            'navigation' => $validated['navigation'] ?? [],
+            'view_configs' => $validated['view_configs'] ?? [],
+        ]);
 
         // Attach organization
         $orgId = $validated['organization_id'] ?? $user?->organizations()->first()?->id;
