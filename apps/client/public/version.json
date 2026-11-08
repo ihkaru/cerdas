@@ -1,10 +1,11 @@
 {
-  "version": "0.2.60",
-  "build_id": "ce75io",
-  "timestamp": "2026-11-08T09:36:52.059Z",
+  "version": "0.2.61",
+  "build_id": "phase3-modular-appshell",
+  "timestamp": "2026-11-08T10:05:00.000Z",
   "min_native_version": "0.1.0",
   "changelog": [
-    "Optimisasi sinkronisasi data",
-    "Peningkatan stabilitas aplikasi"
+    "Fase 3: Dekonstruksi God Component AppShell.vue menjadi modul SRP < 350L",
+    "Pemisahan AppShellContent, AppShellViewContainer, AppShellTabbar, AppShellModals, AppShellActionFab",
+    "Modular View & Title Resolver (useAppViewResolver) dan Event Controller (useAppShellUiEvents)"
   ]
 }

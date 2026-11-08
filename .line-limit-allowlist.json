@@ -83,11 +83,6 @@
       "max_allowed_lines": 440,
       "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
     },
-    "apps/client/src/pages/AppShell.vue": {
-      "current_lines": 1003,
-      "max_allowed_lines": 1003,
-      "reason": "DEBT-01: AppShell God Component scheduled for Phase 3 modularization"
-    },
     "apps/editor/src/app/app-editor/components/code/CodeEditorTab.vue": {
       "current_lines": 498,
       "max_allowed_lines": 498,

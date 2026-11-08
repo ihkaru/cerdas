@@ -1,6 +1,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+if (!(vi as any).mocked) {
+    (vi as any).mocked = (fn: any) => fn;
+}
+
 // Configure fetch for Node environment (Vitest runs in Node)
 // Vite/Vitest polyfills fetch in newer versions, but we might need to be explicit if using native node fetch
 // We'll use the ApiClient logic but instantiated manually or just raw fetch for independence.
