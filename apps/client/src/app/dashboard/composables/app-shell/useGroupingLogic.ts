@@ -1,5 +1,5 @@
 
-import { useLogger } from '@/common/utils/logger';
+import { useLogger } from '../../../../common/utils/logger';
 import type { Ref } from 'vue';
 import { computed, ref } from 'vue';
 import { sanitizeColumnKey } from '../../services/AssignmentQueryService';
@@ -88,6 +88,11 @@ export function useGroupingLogic(
 
     const currentGroupLevel = computed(() => groupPath.value.length);
 
+    const hasGroupingConfig = computed(() => {
+        const config = groupByConfig.value;
+        return !!(config?.levels && config.levels.length > 0);
+    });
+
     const isGroupingActive = computed(() => {
         if (searchQuery.value) return false; // Global Search overrides grouping
         if (forceShowItems.value) return false;
@@ -166,6 +171,16 @@ export function useGroupingLogic(
         onGroupingChanged();
     };
 
+    const navigateToLevel = (levelIndex: number) => {
+        if (levelIndex < 0) {
+            groupPath.value = [];
+        } else {
+            groupPath.value = groupPath.value.slice(0, levelIndex + 1);
+        }
+        forceShowItems.value = false;
+        onGroupingChanged();
+    };
+
     const navigateUp = () => {
         if (forceShowItems.value) {
             forceShowItems.value = false;
@@ -186,11 +201,13 @@ export function useGroupingLogic(
         groupPath,
         forceShowItems,
         groupByConfig,
+        hasGroupingConfig,
         currentGroupLevel,
         isGroupingActive,
         currentGroupField,
         buildGroupWhere,
         enterGroup,
-        navigateUp
+        navigateUp,
+        navigateToLevel
     };
 }

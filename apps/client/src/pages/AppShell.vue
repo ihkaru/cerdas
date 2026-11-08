@@ -36,15 +36,33 @@
                         <AppShellSyncBanner :count="pendingUploadCount" @sync="handleBannerSync" />
                         <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                             :counts="statusCounts" :active-filter-count="activeFilters.length"
+                            :has-grouping="hasGroupingConfig" :force-show-items="forceShowItems"
+                            @toggle-grouping="forceShowItems = !forceShowItems"
                             @open-sort="sortSheetOpen = true" @open-filter="filterSheetOpen = true" />
+
+                        <!-- Flat Mode Active Banner -->
+                        <div v-if="hasGroupingConfig && forceShowItems" class="flat-mode-alert-bar">
+                            <div class="flat-mode-alert-text">
+                                <f7-icon f7="rectangle_stack" size="14px" color="blue" class="margin-right-2"></f7-icon>
+                                <span>Mode Daftar Penuh Aktif ({{ totalAssignments }} responden)</span>
+                            </div>
+                            <button type="button" class="flat-mode-return-btn" @click="forceShowItems = false">
+                                Beralih ke Folder
+                            </button>
+                        </div>
 
                         <!-- Animated Transition between Grouping and Leaf Views -->
                         <transition name="view-fade" mode="out-in">
                             <!-- Grouping UI (Folders) -->
                             <div v-if="isGroupingActive" :key="`grouping-${currentGroupLevel}`">
                                 <AppShellGroupList :key="currentGroupLevel" :groups="filteredGroups"
-                                    :config="groupByConfig" :current-level="currentGroupLevel" @enter-group="enterGroup"
-                                    @show-all="forceShowItems = true" />
+                                    :config="groupByConfig" :current-level="currentGroupLevel"
+                                    :group-path="groupPath" :current-field="currentGroupField"
+                                    :total-count="totalAssignments"
+                                    @enter-group="enterGroup"
+                                    @show-all="forceShowItems = true"
+                                    @navigate-up="navigateUp"
+                                    @navigate-level="navigateToLevel" />
                             </div>
 
                             <!-- Skeleton while data loads -->
@@ -99,10 +117,24 @@
                 </div>
                 <AppShellSyncBanner :count="pendingUploadCount" @sync="handleBannerSync" />
                 <AppShellStatusFilter v-if="!isSchemaEmpty" v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
-                    :counts="statusCounts" :active-filter-count="activeFilters.length" @open-sort="sortSheetOpen = true"
+                    :counts="statusCounts" :active-filter-count="activeFilters.length"
+                    :has-grouping="hasGroupingConfig" :force-show-items="forceShowItems"
+                    @toggle-grouping="forceShowItems = !forceShowItems"
+                    @open-sort="sortSheetOpen = true"
                     @open-filter="filterSheetOpen = true"
                     data-inspect-target="views"
                     :data-view-id="currentViewConfig?.id || 'default'" />
+
+                <!-- Flat Mode Active Banner -->
+                <div v-if="hasGroupingConfig && forceShowItems" class="flat-mode-alert-bar">
+                    <div class="flat-mode-alert-text">
+                        <f7-icon f7="rectangle_stack" size="14px" color="blue" class="margin-right-2"></f7-icon>
+                        <span>Mode Daftar Penuh Aktif ({{ totalAssignments }} responden)</span>
+                    </div>
+                    <button type="button" class="flat-mode-return-btn" @click="forceShowItems = false">
+                        Beralih ke Folder
+                    </button>
+                </div>
 
                 <!-- Animated Transition between Grouping and Leaf Views -->
                 <transition name="view-fade" mode="out-in">
@@ -120,8 +152,13 @@
                     <!-- Grouping UI (Folders) -->
                     <div v-else-if="isGroupingActive" :key="`grouping-${currentGroupLevel}`">
                         <AppShellGroupList :key="currentGroupLevel" :groups="filteredGroups" :config="groupByConfig"
-                            :current-level="currentGroupLevel" @enter-group="enterGroup"
-                            @show-all="forceShowItems = true" />
+                            :current-level="currentGroupLevel"
+                            :group-path="groupPath" :current-field="currentGroupField"
+                            :total-count="totalAssignments"
+                            @enter-group="enterGroup"
+                            @show-all="forceShowItems = true"
+                            @navigate-up="navigateUp"
+                            @navigate-level="navigateToLevel" />
                     </div>
 
                     <!-- Skeleton while data loads -->
@@ -208,7 +245,20 @@
                     :data-view-id="activeView || 'default'">
                     <AppShellStatusFilter v-model:searchQuery="searchQuery" v-model:statusFilter="statusFilter"
                         :counts="statusCounts" :active-filter-count="activeFilters.length"
+                        :has-grouping="hasGroupingConfig" :force-show-items="forceShowItems"
+                        @toggle-grouping="forceShowItems = !forceShowItems"
                         @open-sort="sortSheetOpen = true" @open-filter="filterSheetOpen = true" />
+                </div>
+
+                <!-- Flat Mode Active Banner -->
+                <div v-if="hasGroupingConfig && forceShowItems" class="flat-mode-alert-bar">
+                    <div class="flat-mode-alert-text">
+                        <f7-icon f7="rectangle_stack" size="14px" color="blue" class="margin-right-2"></f7-icon>
+                        <span>Mode Daftar Penuh Aktif ({{ totalAssignments }} responden)</span>
+                    </div>
+                    <button type="button" class="flat-mode-return-btn" @click="forceShowItems = false">
+                        Beralih ke Folder
+                    </button>
                 </div>
 
                 <!-- Animated Transition between Grouping and Flat List -->
@@ -226,8 +276,14 @@
 
                     <!-- CASE 1: GROUPING LIST (FOLDERS) -->
                     <div v-else-if="isGroupingActive" :key="`grouping-${currentGroupLevel}`">
-                        <AppShellGroupList :groups="filteredGroups" @enter-group="enterGroup"
-                            @show-all="forceShowItems = true" />
+                        <AppShellGroupList :groups="filteredGroups"
+                            :config="groupByConfig" :current-level="currentGroupLevel"
+                            :group-path="groupPath" :current-field="currentGroupField"
+                            :total-count="totalAssignments"
+                            @enter-group="enterGroup"
+                            @show-all="forceShowItems = true"
+                            @navigate-up="navigateUp"
+                            @navigate-level="navigateToLevel" />
                     </div>
 
                     <!-- CASE 2: ITEM LIST (FINAL LEVEL) -->
@@ -317,7 +373,7 @@ const {
     searchQuery, statusFilter, isGroupingActive, groupByConfig, currentGroupLevel, appTables, appViews, appViewConfigs, appNavigation,
     filteredAssignments, filteredGroups, statusCounts, headerActions, rowActions, swipeConfig, appName, previewFields,
     loadApp, refreshData, deleteAssignment, completeAssignment, syncApp, createAssignment,
-    enterGroup, navigateUp, forceShowItems,
+    enterGroup, navigateUp, navigateToLevel, forceShowItems, hasGroupingConfig, currentGroupField, groupPath,
     isSyncing, syncProgress, syncMessage, pendingUploadCount, currentUserRole, appVersion,
     activeSort, activeFilters, availableFields,
     isLoadingData, schemaData
@@ -898,6 +954,39 @@ const handleAppNavClick = (item: Record<string, unknown>) => {
 
 .premium-fab:active {
     --f7-fab-box-shadow: 0 2px 6px rgba(33, 150, 243, 0.2);
+}
+
+/* Flat Mode Active Banner */
+.flat-mode-alert-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #eff6ff;
+    border-bottom: 1px solid #bfdbfe;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.flat-mode-alert-text {
+    display: flex;
+    align-items: center;
+    color: #1e40af;
+    font-weight: 500;
+}
+
+.flat-mode-return-btn {
+    background: #ffffff;
+    border: 1px solid #93c5fd;
+    border-radius: 6px;
+    color: #2563eb;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    cursor: pointer;
+}
+
+.flat-mode-return-btn:active {
+    background: #dbeafe;
 }
 </style>
 

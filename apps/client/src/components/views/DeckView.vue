@@ -53,7 +53,7 @@
                     <f7-icon f7="square_list" size="28" />
                 </div>
                 <h3>Belum Ada Daftar Isian</h3>
-                <p>Belum ada penugasan atau daftar isian data yang ditugaskan ke Anda saat ini.</p>
+                <p>Belum ada penugasan atau daftar isian responden yang cocok dengan kriteria filter saat ini.</p>
             </div>
         </div>
     </div>

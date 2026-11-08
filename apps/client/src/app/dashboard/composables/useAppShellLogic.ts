@@ -419,11 +419,14 @@ export function useAppShellLogic(contextId: string) { // Renamed formId to conte
         // Grouping
         groupPath: grouping.groupPath,
         isGroupingActive: grouping.isGroupingActive,
+        hasGroupingConfig: grouping.hasGroupingConfig,
         currentGroupLevel: grouping.currentGroupLevel,
+        currentGroupField: grouping.currentGroupField,
         groupByConfig: grouping.groupByConfig,
         forceShowItems: grouping.forceShowItems,
         enterGroup: grouping.enterGroup,
         navigateUp: grouping.navigateUp,
+        navigateToLevel: grouping.navigateToLevel,
         
         // Metadata
         activeView: metadata.activeView,

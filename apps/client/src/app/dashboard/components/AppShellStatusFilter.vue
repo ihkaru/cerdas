@@ -29,6 +29,19 @@
                 <SvgIcon name="slider_horizontal_3" :size="18" />
                 <span v-if="(activeFilterCount || 0) > 0" class="filter-badge">{{ activeFilterCount }}</span>
             </button>
+
+            <!-- 1-Click Toggle: Folder vs Flat Cards -->
+            <button 
+                v-if="hasGrouping" 
+                type="button" 
+                class="action-button margin-left-half" 
+                :class="{ 'flat-active': forceShowItems }"
+                @click="$emit('toggle-grouping')" 
+                :title="forceShowItems ? 'Kembali ke Tampilan Folder' : 'Tampilkan Semua Daftar (Flat)'"
+                :aria-label="forceShowItems ? 'Mode Folder' : 'Mode Flat'"
+            >
+                <SvgIcon :name="forceShowItems ? 'rectangle_stack' : 'list_bullet'" :size="18" />
+            </button>
         </div>
 
         <!-- Segmented Slider Control -->
@@ -76,6 +89,8 @@ const props = defineProps<{
     statusFilter: string;
     counts: { all: number; assigned: number; in_progress: number; synced: number; };
     activeFilterCount?: number;
+    hasGrouping?: boolean;
+    forceShowItems?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -83,6 +98,7 @@ const emit = defineEmits<{
     (e: 'update:statusFilter', value: string): void;
     (e: 'open-sort'): void;
     (e: 'open-filter'): void;
+    (e: 'toggle-grouping'): void;
 }>();
 
 const activeIndex = computed(() => {
@@ -163,6 +179,12 @@ const updateFilter = (val: any) => {
     background: #e5e7eb;
     color: #111827;
     transform: scale(0.95);
+}
+
+.action-button.flat-active {
+    background: #eff6ff !important;
+    color: #2563eb !important;
+    border: 1px solid #bfdbfe !important;
 }
 
 .filter-badge {
