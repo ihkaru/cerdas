@@ -1,9 +1,9 @@
 # 8. Konsep Lintas Sektoral (Cross-Cutting Concepts)
 
 > [!INFO] **Architecture Provenance & Freshness**
-> - **Verified Commit**: `4088c01` (branch: `main`)
-> - **Verified Timestamp**: `2026-11-04T19:30:00+07:00`
-> - **Tracked Paths**: `apps/`, `packages/`
+> - **Verified Commit**: `1e60f1c` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-07T06:14:17+07:00`
+> - **Tracked Paths**: `apps/`, `packages/`, `scripts/`
 > - **Drift Status**: `verified`
 
 Dokumen ini mendefinisikan aturan dan pola seragam yang diterapkan di seluruh lapisan arsitektur Cerdas.
@@ -47,3 +47,18 @@ Formula kalkulasi, aturan *Show If*, dan validasi *Warning* ditulis dalam sintak
 
 1. **Error Capturing**: Sentry SDK terpasang di Laravel Octane, Editor Vue 3, dan Mobile Client.
 2. **Context Enrichment**: Setiap exception diperkaya dengan metadata konteks (App ID, Table ID, mode sinkronisasi) tanpa mengekspos data pribadi responden (PII sanitization).
+
+---
+
+## 8.5 Validasi Input Berjenjang & Guard Pra-Eksekusi (Pre-Flight Input Guards)
+
+Untuk mencegah kesalahan konfigurasi dari CLI atau API Agent:
+1. **Validasi Sintaksis & Semantik**: Seluruh argumen penting (UUID aplikasi, format JSON baris prelist, nama kolom `groupBy`, dan skema tabel) divalidasi sebelum payload dikirimkan ke server.
+2. **Umpan Balik Tindakan Mandiri**: Kegagalan validasi mengembalikan kode error deterministik non-zero beserta saran perbaikan konkret (*actionable suggestion*).
+
+---
+
+## 8.6 Tata Kelola Resolusi Grouping & Fallback Flat DeckView
+
+1. **Resolusi Bertingkat Aman**: Parser navigasi mobile memeriksa apakah kolom yang didefinisikan pada `groupBy` benar-benar ada di dalam skema tabel terpublikasi.
+2. **Bypass Deterministic**: Jika konfigurasi `groupBy` kosong atau kolom tidak ditemukan di tabel, sistem secara deterministik menggunakan flat DeckView untuk menjamin seluruh data penugasan tetap dapat diakses enumerator.

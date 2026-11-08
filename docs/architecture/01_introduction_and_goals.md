@@ -1,9 +1,9 @@
 # 1. Pengantar dan Tujuan (Introduction and Goals)
 
 > [!INFO] **Architecture Provenance & Freshness**
-> - **Verified Commit**: `4088c01` (branch: `main`)
-> - **Verified Timestamp**: `2026-11-04T19:30:00+07:00`
-> - **Tracked Paths**: `apps/`, `packages/`
+> - **Verified Commit**: `1e60f1c` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-07T06:14:17+07:00`
+> - **Tracked Paths**: `apps/`, `packages/`, `scripts/`
 > - **Drift Status**: `verified`
 
 Dokumen ini menjelaskan arsitektur perangkat lunak dari platform **`Cerdas`** (`ihkaru/cerdas`). Cerdas adalah platform alternatif sumber terbuka mandiri (*self-hosted AppSheet alternative*) yang dirancang khusus untuk memfasilitasi survei, sensus, dan kegiatan pendataan lapangan berskala besar tanpa batasan kuota pengguna.
@@ -18,6 +18,7 @@ Sebagian besar platform *no-code* pengumpulan data lapangan memiliki batasan yan
 3. **Kompleksitas Penyusunan Instrumen (*Complex Form Logic*)**: Kuesioner statistik modern membutuhkan validasi bersyarat (*Warning*), sembunyikan/tampilkan dinamis (*Show If*), kontrol hak edit (*Editable If*), dan kalkulasi otomatis (*Formula*) yang fleksibel.
 4. **Alokasi Beban Tugas & Prelist (*Prelist Sampling Allocation*)**: Mengelola ribuan target responden/sampel awal (prelist) dan mendistribusikannya ke enumerator secara dinamis sering kali membutuhkan intervensi manual yang rentan kesalahan.
 5. **Kepatuhan Alur Kerja Statistik Resmi (GSBPM)**: Pengumpulan data harus mematuhi tahapan standar internasional GSBPM (*Generic Statistical Business Process Model*), mulai dari rancang bangun kuesioner, alokasi frame, pengumpulan, audit verifikasi, hingga diseminasi data.
+6. **Deteksi Dini Kesiapan Survei & Validasi Integritas (Survey Doctor)**: Mencegah kegagalan enumerasi di lapangan akibat skema belum diterbitkan (*unpublished table version*), ketiadaan tabel aktif, atau alokasi enumerator yang belum tuntas melalui mesin audit kesiapan deterministik $O(1)$.
 
 ---
 

@@ -1,9 +1,9 @@
 # 9. Keputusan Arsitektur (Architecture Decisions - ADR)
 
 > [!INFO] **Architecture Provenance & Freshness**
-> - **Verified Commit**: `4088c01` (branch: `main`)
-> - **Verified Timestamp**: `2026-11-04T19:30:00+07:00`
-> - **Tracked Paths**: `apps/`, `packages/`
+> - **Verified Commit**: `1e60f1c` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-07T06:14:17+07:00`
+> - **Tracked Paths**: `apps/`, `packages/`, `scripts/`
 > - **Drift Status**: `verified`
 
 Dokumen ini mencatat rekaman keputusan arsitektur (*Architecture Decision Records* - ADR) yang memiliki signifikansi jangka panjang pada platform Cerdas.
@@ -43,3 +43,21 @@ Dokumen ini mencatat rekaman keputusan arsitektur (*Architecture Decision Record
 - **Keputusan**: Menerapkan autentikasi API Key bertipe (`crd_live_...` / `X-Api-Key` / `X-Super-Admin-Key`) dengan pencatatan audit log terstruktur untuk setiap operasi mutasi data.
 - **Konsekuensi Positif**: Agen otonom dapat mengeksekusi tahapan GSBPM secara deterministik tanpa perlu melewati alur login web berbasis session atau cookie.
 - **Risiko Baru**: Potensi kebocoran API Key berdaya tinggi jika disimpan di repositori publik atau tidak dirotasi secara berkala. *(Dicatat sebagai RISK-04 pada Bagian 11)*.
+
+---
+
+## 9.5 ADR-05: Dynamic View Grouping vs Flat Deck Rendering
+
+- **Konteks**: Pada aplikasi mobile client, jika view dikonfigurasi dengan kolom grouping yang tidak ada pada prelist atau bernilai array kosong (`groupBy: []`), kartu penugasan tidak muncul (layar kosong) meskipun data telah terunduh ke SQLite lokal.
+- **Keputusan**: Menerapkan fallback defensif: jika `groupBy` kosong atau kolom tidak valid, view otomatis me-render flat DeckView langsung tanpa menyembunyikan item pada folder kosong, dan auto-select view pertama saat berganti tab.
+- **Konsekuensi Positif**: Menghilangkan insiden blank screen pada survei operasional (seperti Sakernas 2026), menjamin data selalu dapat diakses enumerator.
+- **Risiko Baru**: Potensi rendering kartu dalam jumlah besar secara bersamaan jika dataset prelist lokal sangat masif tanpa pagination virtual. *(Dicatat sebagai RISK-05 pada Bagian 11)*.
+
+---
+
+## 9.6 ADR-06: GSBPM Survey Doctor & Automated Readiness Audit Engine
+
+- **Konteks**: Kesalahan konfigurasi survei (skema kuesioner belum diterbitkan, tabel aktif belum dibuat, alokasi penugasan belum terhubung) sering kali baru diketahui saat petugas sudah berada di lapangan.
+- **Keputusan**: Mengimplementasikan endpoint audit kesiapan survei mandiri (`/api/agent/v1/apps/{app}/doctor` dan `/api/agent/v1/doctor`) yang berjalan dalam kompleksitas kueri agregasi $O(1)$, disertai sub-perintah CLI deterministik `cerdas-cli apps doctor --fix`.
+- **Konsekuensi Positif**: Verifikasi kepatuhan survei dapat diuji secara otomatis dalam CI/CD pipeline dan pra-pemberangkatan petugas lapangan.
+- **Risiko Baru**: Potensi false positive jika aturan audit tidak sinkron dengan evolusi skema tabel survei kustom masa depan. *(Dicatat sebagai RISK-06 pada Bagian 11)*.

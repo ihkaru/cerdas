@@ -1,9 +1,9 @@
 # 7. Tampilan Deployment (Deployment View)
 
 > [!INFO] **Architecture Provenance & Freshness**
-> - **Verified Commit**: `4088c01` (branch: `main`)
-> - **Verified Timestamp**: `2026-11-04T19:30:00+07:00`
-> - **Tracked Paths**: `apps/`, `packages/`
+> - **Verified Commit**: `1e60f1c` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-07T06:14:17+07:00`
+> - **Tracked Paths**: `apps/`, `packages/`, `scripts/`
 > - **Drift Status**: `verified`
 
 Dokumen ini memetakan komponen perangkat lunak Cerdas ke infrastruktur fisik, virtual, dan topologi kontainer.
@@ -12,7 +12,7 @@ Dokumen ini memetakan komponen perangkat lunak Cerdas ke infrastruktur fisik, vi
 
 ## 7.1 Topologi Kontainer Docker & Orkestrator Coolify
 
-Sistem dideploy secara mandiri (*self-hosted*) menggunakan Docker Compose yang kompatibel dengan dasbor Coolify maupun VPS mandiri.
+Sistem dideploy secara mandiri (*self-hosted*) menggunakan orkestrator Coolify (Stack UUID: `q4cwk40sso0wocww4c44oso8`) pada server fisik ThinkStation (`100.101.49.42`) maupun VPS mandiri.
 
 ```mermaid
 graph TD

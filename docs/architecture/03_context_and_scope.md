@@ -1,9 +1,9 @@
 # 3. Konteks dan Cakupan (Context and Scope)
 
 > [!INFO] **Architecture Provenance & Freshness**
-> - **Verified Commit**: `4088c01` (branch: `main`)
-> - **Verified Timestamp**: `2026-11-04T19:30:00+07:00`
-> - **Tracked Paths**: `apps/`, `packages/`
+> - **Verified Commit**: `1e60f1c` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-07T06:14:17+07:00`
+> - **Tracked Paths**: `apps/`, `packages/`, `scripts/`
 > - **Drift Status**: `verified`
 
 Dokumen ini mendefinisikan batasan sistem platform **Cerdas**, interaksi antarmuka eksternal, dan batasan domain fungsional.
@@ -31,7 +31,7 @@ C4Context
     Rel(enumerator, cerdas, "Mengunduh prelist & mengirim respons survei", "IF-02: HTTPS / JSON Sync")
     Rel(supervisor, cerdas, "Memeriksa dan menyetujui/menolak isian", "IF-03: HTTPS / Web Editor")
     Rel(admin, cerdas, "Merancang form & upload data prelist", "IF-03: HTTPS / Web Editor")
-    Rel(agent, cerdas, "Eksekusi siklus GSBPM via Agent CLI", "IF-01: HTTPS / API Key REST")
+    Rel(agent, cerdas, "Eksekusi siklus GSBPM & Doctor via Agent CLI", "IF-01: HTTPS / API Key REST")
     Rel(cerdas, gsheets, "Sinkronisasi baris dan webhook ekspor", "IF-05: OAuth / REST Webhook")
     Rel(cerdas, sentry, "Mengirim rekaman error dan jejak transaksi", "IF-06: Sentry Ingestion")
     Rel(cerdas, google_auth, "Verifikasi token login SSO Google", "OAuth 2.0")
@@ -46,7 +46,7 @@ Berikut adalah daftar antarmuka formal yang menghubungkan komponen platform Cerd
 
 | ID Interface | Nama Antarmuka | Protokol / Format | Deskripsi & Komponen Pengguna |
 |:---|:---|:---|:---|
-| IF-01 | Agent-First Programmatic REST API & CLI | HTTPS / JSON REST API | Antarmuka otomatisasi untuk AI Agent dan sistem eksternal (`/api/agent/v1`, `/api/apps`, `/api/assignments`, `/api/tables`) menggunakan autentikasi API Key (`X-Api-Key` atau `X-Super-Admin-Key`) dengan pencatatan audit log mutasi data. |
+| IF-01 | Agent-First Programmatic REST API & CLI | HTTPS / JSON REST API | Antarmuka otomatisasi untuk AI Agent dan sistem eksternal (`/api/agent/v1`, `/api/apps`, `/api/assignments`, `/api/tables`, `/api/agent/v1/doctor`, `/api/agent/v1/apps/{app}/doctor`, `/api/agent/v1/skill.md`) menggunakan autentikasi API Key (`X-Api-Key` atau `X-Super-Admin-Key`) dengan pencatatan audit log mutasi data dan audit kesiapan survei deterministik. |
 | IF-02 | Mobile Enumeration Delta Sync API | HTTPS / JSON Delta Sync | Antarmuka sinkronisasi dua arah antara aplikasi mobile offline (`apps/client`) dan backend server, mendukung kursor pagination, transfer kompresi, dan penanganan konflik pemutakhiran data. |
 | IF-03 | Web Visual Editor & Dashboard API | HTTPS / JSON REST API | Antarmuka manajemen kuesioner visual, perancangan skema tabel, peninjauan data isian responden, dan tata kelola anggota kegiatan untuk pengguna peramban web (`apps/editor`). |
 | IF-04 | Real-Time Messaging & Signaling Service | WebSocket (Pusher Protocol) | Antarmuka pengiriman sinyal real-time dan notifikasi perubahan status penugasan via Laravel Reverb engine. |

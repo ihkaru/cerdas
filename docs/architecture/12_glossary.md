@@ -1,9 +1,9 @@
 # 12. Glosarium (Glossary)
 
 > [!INFO] **Architecture Provenance & Freshness**
-> - **Verified Commit**: `4088c01` (branch: `main`)
-> - **Verified Timestamp**: `2026-11-04T19:30:00+07:00`
-> - **Tracked Paths**: `apps/`, `packages/`
+> - **Verified Commit**: `1e60f1c` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-07T06:14:17+07:00`
+> - **Tracked Paths**: `apps/`, `packages/`, `scripts/`
 > - **Drift Status**: `verified`
 
 Dokumen ini mendefinisikan istilah domain statistik, arsitektur perangkat lunak, dan singkatan teknis yang digunakan di dalam platform Cerdas.
@@ -23,6 +23,7 @@ Dokumen ini mendefinisikan istilah domain statistik, arsitektur perangkat lunak,
 | **Response (Isian Survei / Submission)** | Kumpulan data hasil wawancara atau pengamatan lapangan yang diserahkan oleh enumerator untuk satu entitas penugasan. |
 | **Enumerator (Petugas Pencacah)** | Petugas lapangan yang bertugas mengunjungi responden dan mencatat data survei menggunakan aplikasi mobile klien. |
 | **Supervisor (Pengawas Lapangan)** | Petugas yang bertugas memantau kinerja enumerator, melakukan verifikasi kualitas isian, serta menyetujui (*approve*) atau menolak (*reject*) data isian. |
+| **Survey Doctor** | Mesin pemeriksa integritas dan kesiapan survei end-to-end yang mengaudit ketersediaan tabel, publikasi versi skema, keberadaan prelist, dan rasio alokasi penugasan sebelum survei dimulai. |
 
 ---
 
@@ -37,3 +38,6 @@ Dokumen ini mendefinisikan istilah domain statistik, arsitektur perangkat lunak,
 | **Expression Engine** | Mesin evaluator JavaScript lokal yang mengevaluasi ekspresi kondisional (*Show If*, *Warning*, *Editable If*, *Formula*) secara deterministik pada browser maupun aplikasi mobile. |
 | **Agent-First CLI** | Desain antarmuka baris perintah (*Command-Line Interface*) yang dirancang khusus untuk dioperasikan oleh agen AI otonom, mengutamakan output mesin JSON, introspeksi skema mandiri, non-interaktif, dan penanganan error yang dapat ditindaklanjuti. |
 | **Audit Trail** | Catatan kronologis yang tidak dapat diubah (*immutable log*) yang mencatat setiap peristiwa mutasi data beserta identitas aktor, waktu, dan rincian perubahan untuk keperluan akuntabilitas statistik. |
+| **DeckView** | Pola tampilan kartu antarmuka pada aplikasi mobile enumerator yang menyajikan seluruh daftar penugasan secara langsung tanpa pengelompokan folder hierarkis. |
+| **Grouping Key** | Atribut atau variabel kolom prelist yang digunakan oleh aplikasi mobile untuk mengorganisasikan daftar penugasan ke dalam struktur folder hierarkis bertingkat. |
+| **Canonical Skill SSOT** | Endpoint backend tunggal (`/api/agent/v1/skill.md`) yang mengekspos spesifikasi instruksi skill agen AI terbaru secara langsung dari repositori sebagai Single Source of Truth. |

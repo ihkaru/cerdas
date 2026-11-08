@@ -1,9 +1,9 @@
 # 6. Tampilan Runtime (Runtime View)
 
 > [!INFO] **Architecture Provenance & Freshness**
-> - **Verified Commit**: `4088c01` (branch: `main`)
-> - **Verified Timestamp**: `2026-11-04T19:30:00+07:00`
-> - **Tracked Paths**: `apps/`, `packages/`
+> - **Verified Commit**: `1e60f1c` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-07T06:14:17+07:00`
+> - **Tracked Paths**: `apps/`, `packages/`, `scripts/`
 > - **Drift Status**: `verified`
 
 Dokumen ini mendeskripsikan alur eksekusi dinamis dan interaksi komponen pada skenario kritis operasional pengumpulan data lapangan.
@@ -89,4 +89,59 @@ sequenceDiagram
         Backend->>ServerDB: Set status = 'rejected' & kembalikan ke enumerator
     end
     Backend-->>Editor: 200 OK
+```
+
+---
+
+## 6.4 Skenario 4: Audit Kesiapan Survei & Remediasi Otomatis (Survey Doctor)
+
+Alur audit deterministik kesiapan survei end-to-end sebelum mobilisasi lapangan:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Agent as Autonomous AI Agent / CLI
+    participant CLI as cerdas-cli
+    participant Backend as AgentDoctorController
+    participant ServerDB as Server MySQL DB
+
+    Agent->>CLI: cerdas-cli apps doctor --fix --app-id {id}
+    CLI->>Backend: GET /api/agent/v1/apps/{app}/doctor
+    Backend->>ServerDB: Kueri agregasi O(1) status App, Tables, Versions, Prelists, Assignments
+    Backend-->>CLI: 200 OK (readiness status, checks[], actionable remediation)
+    alt Ditemukan Anomali (Contoh: Skema belum dipublikasikan)
+        CLI->>Backend: POST /api/tables/{table}/publish
+        Backend->>ServerDB: Buat immutable TableVersion & terbitkan skema
+        Backend-->>CLI: 200 OK (TableVersion created)
+    end
+    CLI-->>Agent: Output JSON kesiapan 100% verified (Ready for Collection)
+```
+
+---
+
+## 6.5 Skenario 5: Pemilihan View Dinamis & Navigasi Klien Mobile (DeckView Fallback)
+
+Alur penentuan tampilan penugasan pada aplikasi mobile enumerator:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Enum as Enumerator
+    participant Shell as AppShell.vue
+    participant Meta as useAppMetadata
+    participant Logic as useAppShellLogic
+    participant SQLite as Local SQLite DB
+
+    Enum->>Shell: Buka App atau berpindah tab navigasi bawah
+    Shell->>Meta: Evaluasi navigationViews & getAppViewConfig(viewKey)
+    alt ViewConfig memiliki groupBy non-kosong
+        Meta-->>Shell: Grouped Mode aktif (Folder tree Provinsi -> Desa)
+        Shell->>Logic: Muat data kelompok via useGroupingLogic
+        Logic->>SQLite: SELECT DISTINCT group_key FROM assignments ...
+    else ViewConfig groupBy kosong atau tidak cocok kolom
+        Meta-->>Shell: Flat DeckView Mode aktif (Bypass folder grouping)
+        Shell->>Logic: Muat seluruh kartu penugasan langsung
+        Logic->>SQLite: SELECT * FROM assignments WHERE table_id = ...
+    end
+    SQLite-->>Shell: Render daftar penugasan seketika (Zero Blank State)
 ```

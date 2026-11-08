@@ -1,9 +1,9 @@
 # 4. Strategi Solusi (Solution Strategy)
 
 > [!INFO] **Architecture Provenance & Freshness**
-> - **Verified Commit**: `4088c01` (branch: `main`)
-> - **Verified Timestamp**: `2026-11-04T19:30:00+07:00`
-> - **Tracked Paths**: `apps/`, `packages/`
+> - **Verified Commit**: `1e60f1c` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-07T06:14:17+07:00`
+> - **Tracked Paths**: `apps/`, `packages/`, `scripts/`
 > - **Drift Status**: `verified`
 
 Dokumen ini menjelaskan keputusan strategis fundamental yang membentuk rancang bangun platform **Cerdas** untuk memenuhi sasaran mutu utama.
@@ -38,11 +38,22 @@ Untuk mencegah duplikasi definisi skema data antara backend dan frontend:
 
 ---
 
-## 4.4 Otomasi Siklus GSBPM dengan Prinsip Agent-First
+## 4.4 Otomasi Siklus GSBPM dengan Prinsip Agent-First & Survey Doctor
 
 1. **Dukungan End-to-End Siklus Statistik**:
    Sistem memetakan setiap entitas ke tahapan GSBPM (*Design*, *Build*, *Collect*, *Process*, *Analyse*, *Disseminate*).
 2. **Antarmuka CLI Otonom Berbasis API Key**:
-   Menyediakan kakas CLI biner yang ramah agen otonom (output mesin JSON standar, bebas prompt interaktif, mode skema introspeksi, dan mitigasi halusinasi) sehingga agen AI dapat menjalankan orkestrasi survei secara otomatis.
-3. **Jejak Audit Mutasi Data (*Audit Trail*)**:
+   Menyediakan kakas CLI biner yang ramah agen otonom (output mesin JSON standar, bebas prompt interaktif, mode skema introspeksi, mitigasi halusinasi, dan CRUD Prelist komprehensif) sehingga agen AI dapat menjalankan orkestrasi survei secara otomatis.
+3. **Mesin Audit Kesiapan Survei Deterministik (*GSBPM Survey Doctor*)**:
+   Menyediakan endpoint audit mandiri (`/api/agent/v1/doctor` dan `/api/agent/v1/apps/{app}/doctor`) yang menginspeksi integritas survei dalam agregasi $O(1)$ (keberadaan tabel, versi terpublikasi, konsistensi skema, rasio alokasi prelist), disertai kakas remediasi otomatis berbasis CLI (`cerdas-cli apps doctor --fix`).
+4. **Jejak Audit Mutasi Data (*Audit Trail*)**:
    Setiap mutasi (pembuatan kegiatan, pengunggahan prelist, perubahan alokasi, persetujuan data) dicatat dalam audit log terstruktur mencakup identitas aktor, IP, stempel waktu, dan detail perubahan untuk akuntabilitas statistik resmi.
+
+---
+
+## 4.5 Strategi Grouping Tampilan Klien Mobile (DeckView vs Dynamic Grouping)
+
+Untuk menyajikan ribuan penugasan secara terstruktur pada layar ponsel enumerator:
+1. **Hierarki Dinamis Berbasis Variabel Prelist**: Tampilan mobile mendukung pengelompokan (*grouping*) bersarang multi-level (misal: Provinsi → Kabupaten → Kecamatan → Desa/Kelurahan → SLS) berdasarkan konfigurasi `groupBy: string[]` pada view terkait.
+2. **Fallback Defensif ke Flat DeckView**: Jika konfigurasi `groupBy` kosong (`[]`) atau tidak didefinisikan, antarmuka secara elegan beralih ke tampilan kartu datar (*flat DeckView*) yang menampilkan seluruh penugasan secara langsung tanpa menyembunyikan item pada folder kosong.
+3. **Auto-Selection View Pertama**: Saat aplikasi dibuka atau berganti tab bottom navigation, sistem secara deterministik memilih view navigasi pertama yang valid dan melakukan refresh dataset penugasan dari SQLite lokal untuk mencegah layar kosong (*blank state*).
