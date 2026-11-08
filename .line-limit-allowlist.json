@@ -1,0 +1,202 @@
+{
+  "version": 1,
+  "description": "Temporary technical debt ratchet ledger for files exceeding 400 lines limit per SRP rule.",
+  "max_line_limit_default": 400,
+  "exemptions": {
+    "apps/backend/app/Actions/GoogleSheet/ImportGoogleSheetRowsAction.php": {
+      "current_lines": 535,
+      "max_allowed_lines": 535,
+      "reason": "DEBT-02: Legacy Google Sheets integration service"
+    },
+    "apps/backend/app/Http/Controllers/Api/AppController.php": {
+      "current_lines": 781,
+      "max_allowed_lines": 781,
+      "reason": "DEBT-03: Legacy monolithic Laravel controller"
+    },
+    "apps/backend/app/Http/Controllers/Api/AssignmentController.php": {
+      "current_lines": 699,
+      "max_allowed_lines": 699,
+      "reason": "DEBT-03: Legacy monolithic Laravel controller"
+    },
+    "apps/backend/app/Http/Controllers/Api/GoogleSheetSyncController.php": {
+      "current_lines": 845,
+      "max_allowed_lines": 845,
+      "reason": "DEBT-02: Legacy Google Sheets integration service"
+    },
+    "apps/backend/app/Http/Controllers/Api/ResponseController.php": {
+      "current_lines": 584,
+      "max_allowed_lines": 584,
+      "reason": "DEBT-03: Legacy monolithic Laravel controller"
+    },
+    "apps/backend/app/Http/Controllers/Api/TableController.php": {
+      "current_lines": 590,
+      "max_allowed_lines": 590,
+      "reason": "DEBT-03: Legacy monolithic Laravel controller"
+    },
+    "apps/backend/app/Http/Controllers/Api/Agent/AgentDataController.php": {
+      "current_lines": 524,
+      "max_allowed_lines": 524,
+      "reason": "DEBT-03: Legacy monolithic Laravel controller"
+    },
+    "apps/backend/app/Http/Controllers/Api/Agent/AgentSchemaController.php": {
+      "current_lines": 437,
+      "max_allowed_lines": 437,
+      "reason": "DEBT-03: Legacy monolithic Laravel controller"
+    },
+    "apps/backend/app/Services/GoogleSheetColumnMapper.php": {
+      "current_lines": 420,
+      "max_allowed_lines": 420,
+      "reason": "DEBT-02: Legacy Google Sheets integration service"
+    },
+    "apps/backend/app/Services/GoogleSheetsService.php": {
+      "current_lines": 696,
+      "max_allowed_lines": 696,
+      "reason": "DEBT-02: Legacy Google Sheets integration service"
+    },
+    "apps/backend/database/seeders/ComponentShowcaseSeeder.php": {
+      "current_lines": 591,
+      "max_allowed_lines": 591,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/client/src/app/auth/views/JoinPage.vue": {
+      "current_lines": 468,
+      "max_allowed_lines": 468,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/client/src/app/dashboard/components/AppGallery.vue": {
+      "current_lines": 485,
+      "max_allowed_lines": 485,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/client/src/app/dashboard/composables/useAppShellLogic.ts": {
+      "current_lines": 471,
+      "max_allowed_lines": 471,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/client/src/common/components/DebugMenuSheet.vue": {
+      "current_lines": 421,
+      "max_allowed_lines": 421,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/client/src/components/views/DeckView.vue": {
+      "current_lines": 440,
+      "max_allowed_lines": 440,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/client/src/pages/AppShell.vue": {
+      "current_lines": 1003,
+      "max_allowed_lines": 1003,
+      "reason": "DEBT-01: AppShell God Component scheduled for Phase 3 modularization"
+    },
+    "apps/editor/src/app/app-editor/components/code/CodeEditorTab.vue": {
+      "current_lines": 498,
+      "max_allowed_lines": 498,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/app-editor/components/code/generateAIPrompt.ts": {
+      "current_lines": 458,
+      "max_allowed_lines": 458,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/app-editor/components/data/ExcelImportModal.vue": {
+      "current_lines": 646,
+      "max_allowed_lines": 646,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/app-editor/components/data/TableSheetSyncPanel.vue": {
+      "current_lines": 885,
+      "max_allowed_lines": 885,
+      "reason": "DEBT-02: Legacy Google Sheets integration service"
+    },
+    "apps/editor/src/app/app-editor/components/layout/EditorTabContent.vue": {
+      "current_lines": 563,
+      "max_allowed_lines": 563,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/app-editor/components/monitoring/CsvImportPopup.vue": {
+      "current_lines": 790,
+      "max_allowed_lines": 790,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/app-editor/components/monitoring/ResponseReviewDrawer.vue": {
+      "current_lines": 669,
+      "max_allowed_lines": 669,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/app-editor/components/monitoring/SubmissionsPanel.vue": {
+      "current_lines": 1141,
+      "max_allowed_lines": 1141,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/app-editor/components/settings/AppSettingsPanel.vue": {
+      "current_lines": 487,
+      "max_allowed_lines": 487,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/app-editor/components/shared/FieldPicker.vue": {
+      "current_lines": 538,
+      "max_allowed_lines": 538,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/app-editor/components/views/ViewsPanel.vue": {
+      "current_lines": 408,
+      "max_allowed_lines": 408,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/app-editor/types/editor.types.ts": {
+      "current_lines": 472,
+      "max_allowed_lines": 472,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/api-keys/components/ApiDocsModal.vue": {
+      "current_lines": 546,
+      "max_allowed_lines": 546,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/api-keys/components/CreateApiKeyModal.vue": {
+      "current_lines": 539,
+      "max_allowed_lines": 539,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/app/api-keys/components/EditApiKeyModal.vue": {
+      "current_lines": 461,
+      "max_allowed_lines": 461,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/components/AppLayout.vue": {
+      "current_lines": 460,
+      "max_allowed_lines": 460,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/pages/HomePage.vue": {
+      "current_lines": 485,
+      "max_allowed_lines": 485,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "apps/editor/src/pages/ApiKeysPage.vue": {
+      "current_lines": 533,
+      "max_allowed_lines": 533,
+      "reason": "DEBT-01: Legacy monolith scheduled for decomposition"
+    },
+    "packages/form-engine/src/components/fields/DateField.vue": {
+      "current_lines": 483,
+      "max_allowed_lines": 483,
+      "reason": "DEBT-04: Complex legacy form input component"
+    },
+    "packages/form-engine/src/components/fields/GpsField.vue": {
+      "current_lines": 578,
+      "max_allowed_lines": 578,
+      "reason": "DEBT-04: Complex legacy form input component"
+    },
+    "packages/form-engine/src/components/fields/ImageField.vue": {
+      "current_lines": 479,
+      "max_allowed_lines": 479,
+      "reason": "DEBT-04: Complex legacy form input component"
+    },
+    "apps/backend/app/Http/Controllers/Api/AppSchemaController.php": {
+      "current_lines": 401,
+      "max_allowed_lines": 401,
+      "reason": "DEBT-03: Legacy monolithic Laravel controller"
+    }
+  }
+}

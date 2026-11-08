@@ -16,6 +16,7 @@
     "dev:docker": "bash scripts/start-dev-docker.sh",
     "verify": "bash scripts/verify-local.sh",
     "verify:stack": "bash scripts/verify-stack.sh",
+    "lint:lines": "bash scripts/check-line-limits.sh --all",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
