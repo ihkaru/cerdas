@@ -1,8 +1,8 @@
 # 8. Konsep Lintas Sektoral (Cross-Cutting Concepts)
 
 > [!INFO] **Architecture Provenance & Freshness**
-> - **Verified Commit**: `159f382` (branch: `main`)
-> - **Verified Timestamp**: `2026-11-08T16:37:37+07:00`
+> - **Verified Commit**: `9e2d91f``37d2424` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-08T17:05:28+07:00`
 > - **Tracked Paths**: `apps/`, `packages/`, `scripts/`
 > - **Drift Status**: `verified`
 
@@ -62,3 +62,10 @@ Untuk mencegah kesalahan konfigurasi dari CLI atau API Agent:
 
 1. **Resolusi Bertingkat Aman**: Parser navigasi mobile memeriksa apakah kolom yang didefinisikan pada `groupBy` benar-benar ada di dalam skema tabel terpublikasi.
 2. **Bypass Deterministic**: Jika konfigurasi `groupBy` kosong atau kolom tidak ditemukan di tabel, sistem secara deterministik menggunakan flat DeckView untuk menjamin seluruh data penugasan tetap dapat diakses enumerator.
+
+---
+
+## 8.7 Batasan Baris Deterministik SRP & Ratchet Ledger Hutang Teknis
+
+1. **Deterministic SRP Line Limit Gate**: Seluruh file kode sumber (`.php`, `.ts`, `.js`, `.vue`) dibatasi maksimal **400 baris** per file untuk menegakkan Single Responsibility Principle (SRP) secara deterministik melalui `scripts/check-line-limits.mjs` dan `scripts/check-line-limits.sh` (terintegrasi dengan `agy-ops gate`).
+2. **Technical Debt Ratchet Ledger**: File warisan (*legacy files*) yang melebihi 400 baris dikunci di `.line-limit-allowlist.json`. Aturan ratchet memastikan file warisan hanya boleh menyusut atau lulus (*graduate*) saat direfaktor (seperti kelulusan `AppShell.vue` dari 1002 baris menjadi 332 baris pada Fase 3), dan file baru dilarang keras melanggar batas 400 baris.

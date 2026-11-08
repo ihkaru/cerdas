@@ -1,8 +1,8 @@
 # 11. Risiko dan Hutang Teknis (Risks and Technical Debt)
 
 > [!INFO] **Architecture Provenance & Freshness**
-> - **Verified Commit**: `159f382` (branch: `main`)
-> - **Verified Timestamp**: `2026-11-08T16:37:37+07:00`
+> - **Verified Commit**: `9e2d91f``37d2424` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-08T17:05:28+07:00`
 > - **Tracked Paths**: `apps/`, `packages/`, `scripts/`
 > - **Drift Status**: `verified`
 
@@ -27,8 +27,8 @@ Berikut adalah daftar risiko yang diidentifikasi dari Keputusan Arsitektur (ADR-
 
 ## 11.2 Buku Besar Hutang Teknis (Technical Debt Ledger)
 
-| ID Hutang | Area Komponen | Uraian Hutang Teknis | Rencana Remediasi & Target |
+| ID Hutang | Area Komponen | Uraian Hutang Teknis | Status & Mitigasi Terlaksana |
 |:---|:---|:---|:---|
-| DEBT-01 | Client AppShell | Komponen `AppShell.vue` saat ini berukuran >1000 baris dan menggabungkan banyak tanggung jawab (sinkronisasi, render deck, manajemen tab, dialog, modal), melanggar Single Responsibility Principle (SRP). | Melakukan dekonstruksi modular ke dalam composables dan subkomponen mandiri (`useAppShellLogic`, `AppTabBar.vue`, `AssignmentListView.vue`) sesuai Fase 3 Roadmap Modernisasi. |
-| DEBT-02 | Schema vs ViewConfigs | Skema kolom `TableVersion` terpisah dari konfigurasi `viewConfigs.groupBy` pada App, sehingga penghapusan atau pengubahan nama kolom di skema tabel dapat menyebabkan grouping key tidak cocok tanpa peringatan dini di editor. | Menerapkan validasi silang (*cross-validation*) saat publikasi skema versi tabel dan sinkronisasi otomatis skema tampilan navigasi. |
-| DEBT-03 | Local Query String Interpolation | `AssignmentQueryService.ts` dan `useGroupingLogic.ts` pada mobile client masih menggunakan interpolasi string mentah untuk beberapa klausa filter dan kolom grouping SQLite lokal. | Refactoring kueri SQLite menggunakan *parameterized queries* atau sanitasi identifier ketat (`sanitizeColumnKey`) untuk mencegah malformed SQL syntax dan menjamin keamanan kueri. |
+| DEBT-01 | Client AppShell | Komponen `AppShell.vue` awalnya berukuran >1000 baris dan menggabungkan banyak tanggung jawab (sinkronisasi, render deck, manajemen tab, dialog, modal), melanggar Single Responsibility Principle (SRP). | **SELESAI (Fase 3)**: Didekonstruksi secara modular ke dalam subkomponen mandiri (`AppShellContent.vue`, `AppShellViewContainer.vue`, `AppShellTabbar.vue`, `AppShellModals.vue`, `AppShellActionFab.vue`, `useAppViewResolver.ts`, `useAppShellUiEvents.ts`), menyusutkan `AppShell.vue` menjadi 332 baris (< 400 baris) dan resmi lulus dari ratchet ledger `.line-limit-allowlist.json`. |
+| DEBT-02 | Schema vs ViewConfigs | Skema kolom `TableVersion` terpisah dari konfigurasi `viewConfigs.groupBy` pada App, sehingga penghapusan atau pengubahan nama kolom di skema tabel dapat menyebabkan grouping key tidak cocok tanpa peringatan dini di editor. | **Dijadwalkan (Fase 4)**: Menerapkan validasi silang (*cross-validation*) saat publikasi skema versi tabel dan sinkronisasi otomatis skema tampilan navigasi via backend event listener `TableVersionPublished`. |
+| DEBT-03 | Local Query String Interpolation | `AssignmentQueryService.ts` dan `useGroupingLogic.ts` pada mobile client sebelumnya menggunakan interpolasi string mentah untuk beberapa klausa filter dan kolom grouping SQLite lokal. | **SELESAI (Fase 1)**: Telah direfaktor menggunakan sanitasi identifier ketat (`sanitizeColumnKey`), penanganan aman parsing JSON ganda (`safeParseJson`, `sanitizePrelistData`), dan prefix tabel kanonikal `assignments.` untuk mencegah malformed SQL syntax. |
