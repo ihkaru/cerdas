@@ -3,9 +3,10 @@ FROM public.ecr.aws/docker/library/debian:12-slim
 # Install system dependencies (curl for healthcheck, unzip/git for composer)
 RUN apt-get update && apt-get install -y curl ca-certificates unzip git && rm -rf /var/lib/apt/lists/*
 
-# Copy pre-compiled FrankenPHP static binary from existing production image (eliminates GitHub release 504 timeouts)
-COPY --from=cerdas-backend:prod /usr/local/bin/frankenphp /usr/local/bin/frankenphp
-RUN chmod +x /usr/local/bin/frankenphp
+# Download pre-compiled FrankenPHP static binary from official PHP repository with retries
+RUN curl -fsSL --retry 5 --retry-connrefused -o /usr/local/bin/frankenphp \
+    https://github.com/php/frankenphp/releases/download/v1.13.5/frankenphp-linux-x86_64 && \
+    chmod +x /usr/local/bin/frankenphp
 
 # Create a wrapper script so 'php' executes 'frankenphp php-cli'
 RUN printf '#!/bin/sh\nexec /usr/local/bin/frankenphp php-cli "$@"\n' > /usr/local/bin/php && \
