@@ -116,16 +116,51 @@ class SurveyDoctorService
             }
 
             $targetTable = $tables->firstWhere('id', $targetTableId);
-            $fields = collect($targetTable?->latestPublishedVersion?->fields ?? [])->pluck('name')->all();
-            if (! empty($fields)) {
-                $primaryField = $vc['deck']['primaryHeaderField'] ?? null;
-                if ($primaryField && ! in_array($primaryField, $fields)) {
-                    $viewFieldsIssues[] = "View '{$vId}' primaryHeaderField '{$primaryField}' not found in table '{$targetTable->name}'";
+            $tableFields = collect($targetTable?->latestPublishedVersion?->fields ?? []);
+            $fieldNames = $tableFields->pluck('name')->all();
+
+            $deck = $vc['deck'] ?? ($vc['config']['deck'] ?? []);
+            $primaryField = $deck['primaryHeaderField'] ?? $deck['title_column'] ?? null;
+            $secField = $deck['secondaryHeaderField'] ?? $deck['subtitle_column'] ?? null;
+            $groupByFields = (array) ($vc['groupBy'] ?? ($vc['config']['groupBy'] ?? []));
+
+            if (! empty($fieldNames)) {
+                if ($primaryField && ! in_array($primaryField, $fieldNames)) {
+                    $viewFieldsIssues[] = "View '{$vId}' primaryHeaderField '{$primaryField}' not found in table schema '{$targetTable->name}'";
                 }
-                foreach ((array) ($vc['groupBy'] ?? []) as $gb) {
-                    if ($gb && ! in_array($gb, $fields)) {
-                        $viewFieldsIssues[] = "View '{$vId}' groupBy field '{$gb}' not found in table '{$targetTable->name}'";
+                if ($secField && ! in_array($secField, $fieldNames)) {
+                    $viewFieldsIssues[] = "View '{$vId}' secondaryHeaderField '{$secField}' not found in table schema '{$targetTable->name}'";
+                }
+                foreach ($groupByFields as $gb) {
+                    if ($gb && ! in_array($gb, $fieldNames)) {
+                        $viewFieldsIssues[] = "View '{$vId}' groupBy field '{$gb}' not found in table schema '{$targetTable->name}'";
                     }
+                }
+
+                // Verify text suitability (disallow image, signature, file as card text headers)
+                if ($primaryField) {
+                    $pDef = $tableFields->firstWhere('name', $primaryField);
+                    if ($pDef && in_array($pDef['type'] ?? '', ['image', 'file', 'signature'])) {
+                        $viewFieldsIssues[] = "View '{$vId}' primaryHeaderField '{$primaryField}' has media type '{$pDef['type']}' which cannot be rendered as text title";
+                    }
+                }
+                if ($secField) {
+                    $sDef = $tableFields->firstWhere('name', $secField);
+                    if ($sDef && in_array($sDef['type'] ?? '', ['image', 'file', 'signature'])) {
+                        $viewFieldsIssues[] = "View '{$vId}' secondaryHeaderField '{$secField}' has media type '{$sDef['type']}' which cannot be rendered as text subtitle";
+                    }
+                }
+            }
+
+            // Verify sampling frame prelist presence if assignments exist
+            $sampleAssignment = Assignment::where('table_id', $targetTableId)->whereNotNull('prelist_data')->first();
+            if ($sampleAssignment && is_array($sampleAssignment->prelist_data)) {
+                $prelistKeys = array_keys($sampleAssignment->prelist_data);
+                if ($primaryField && ! in_array($primaryField, $prelistKeys)) {
+                    $viewFieldsIssues[] = "View '{$vId}' primaryHeaderField '{$primaryField}' missing from sampling frame prelist_data";
+                }
+                if ($secField && ! in_array($secField, $prelistKeys)) {
+                    $viewFieldsIssues[] = "View '{$vId}' secondaryHeaderField '{$secField}' missing from sampling frame prelist_data";
                 }
             }
         }

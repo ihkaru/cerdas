@@ -61,3 +61,15 @@ Dokumen ini mencatat rekaman keputusan arsitektur (*Architecture Decision Record
 - **Keputusan**: Mengimplementasikan endpoint audit kesiapan survei mandiri (`/api/agent/v1/apps/{app}/doctor` dan `/api/agent/v1/doctor`) yang berjalan dalam kompleksitas kueri agregasi $O(1)$, disertai sub-perintah CLI deterministik `cerdas-cli apps doctor --fix`.
 - **Konsekuensi Positif**: Verifikasi kepatuhan survei dapat diuji secara otomatis dalam CI/CD pipeline dan pra-pemberangkatan petugas lapangan.
 - **Risiko Baru**: Potensi false positive jika aturan audit tidak sinkron dengan evolusi skema tabel survei kustom masa depan. *(Dicatat sebagai RISK-06 pada Bagian 11)*.
+
+---
+
+## 9.7 ADR-07: Defensive Type Coercion pada View Engine & Validasi Lapangan Prelist (Survey Doctor 2.0)
+
+- **Konteks**: Pada survei seperti Sakernas November 2026, field prelist seperti `nus` bernilai numerik (`15`). Evaluasi JavaScript `.trim()` dan `.toLowerCase()` pada field non-string di dalam reactive computed property melempar `TypeError`, yang menyebabkan seluruh list kartu penugasan gagal di-render (tampak 0 item meskipun badge filter menampilkan 180 penugasan).
+- **Keputusan**:
+  1. Mendekonstruksi logika data `DeckView.vue` ke dalam composable `useDeckData.ts` dengan pemaksaan tipe string defensif (`String(val).trim()`) pada semua atribut header, subtitle, dan ID kandidat.
+  2. Meningkatkan `SurveyDoctorService` pada backend untuk mengaudit `secondaryHeaderField`, mendeteksi konfigurasi tipe media yang tidak didukung untuk judul kartu, serta melakukan pengambilan sampel (*sampling*) baris `prelist_data` secara nyata dari database untuk memverifikasi keberadaan kolom sebelum petugas ditugaskan.
+- **Konsekuensi Positif**: Menghilangkan error fatal saat rendering data numerik, menjaga keandalan rendering kartu survei, dan mendeteksi kesalahan konfigurasi header prelist secara dini melalui CLI `cerdas app doctor`.
+- **Risiko Baru**: Field numerik yang dikonversi ke string tidak memiliki pemformatan ribuan/angka khusus kecuali didefinisikan secara eksplisit oleh skema form.
+

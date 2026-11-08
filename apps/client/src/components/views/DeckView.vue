@@ -99,73 +99,68 @@
     line-height: 1.3;
 }
 
-
-
-
-/* Fallback for unknown/other */
-:deep(.item-content) {
-    padding-left: 12px !important;
-    /* Adjust padding to compensate border */
+.height-100 {
+    height: 100%;
 }
 
-/* Ensure border is visible */
-:deep(.item-inner) {
-    padding-left: 8px;
+.overflow-auto {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
-/* Empty State Styling */
+/* Clean Empty State Styling */
 .empty-state-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 100%;
-    min-height: 350px;
     padding: 32px 16px;
-    box-sizing: border-box;
+    min-height: 50vh;
 }
 
 .empty-state-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 24px 20px;
     text-align: center;
-    max-width: 280px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    max-width: 320px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
 }
 
 .empty-state-icon-bg {
     width: 56px;
     height: 56px;
-    border-radius: 50%;
-    background: #f1f5f9;
+    background-color: #f1f5f9;
     color: #64748b;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 16px;
+    margin: 0 auto 16px auto;
 }
 
 .empty-state-card h3 {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
-    color: #334155;
+    color: #0f172a;
     margin: 0 0 8px 0;
 }
 
 .empty-state-card p {
-    font-size: 12px;
+    font-size: 13px;
     color: #64748b;
-    margin: 0;
     line-height: 1.5;
+    margin: 0;
 }
 
 .animate-fade-in {
-    animation: fadeIn 0.4s ease-out forwards;
+    animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(6px);
     }
     to {
         opacity: 1;
@@ -175,12 +170,9 @@
 </style>
 
 <script setup lang="ts">
-/* eslint-disable */
-import { apiClient } from '@/common/api/ApiClient';
 import AsyncImage from '../common/AsyncImage.vue';
 import { computed } from 'vue';
-import { statusLabel } from '@/app/dashboard/utils/statusHelpers';
-
+import { useDeckData } from './deck/useDeckData';
 
 const props = defineProps<{
     config: any;
@@ -191,6 +183,12 @@ const props = defineProps<{
 }>();
 
 defineEmits(['click', 'action']);
+
+const { options, preparedData, getImageUrl } = useDeckData(
+    () => props.config,
+    () => props.data,
+    () => props.contextId
+);
 
 const isComplexMode = computed(() => {
     return props.config?.workflow_mode === 'complex' || props.config?.mode === 'complex';
@@ -207,7 +205,6 @@ const getStatusCardClass = (status?: string) => {
 const getActionDef = (id: string) => {
     const action = props.actions?.find(a => a.id === id);
     if (!action) {
-        // Only warn in development
         if (import.meta.env.DEV) {
             console.warn(`[DeckView] Action not found for ID: ${id}. hiding.`);
         }
@@ -227,213 +224,4 @@ const rightSwipeActions = computed(() => {
 });
 
 const hasSwipe = computed(() => leftSwipeActions.value.length > 0 || rightSwipeActions.value.length > 0);
-
-// Normalize options to support both old and new config formats
-const options = computed(() => {
-    // Utility to find a block containing any of the target keys, digging into .config/options
-    const findBlock = (root: any, targetKeys: string[]): any => {
-        if (!root || typeof root !== 'object') return null;
-        if (targetKeys.some(k => k in root)) return root;
-        if (root.deck) return root.deck; // Fast path for deck
-        if (root.config) return findBlock(root.config, targetKeys);
-        if (root.options) return findBlock(root.options, targetKeys);
-        return null;
-    };
-
-    const targetKeys = ['primaryHeaderField', 'title_column', 'imageField', 'image_column'];
-    const deck = findBlock(props.config, targetKeys) || {};
-
-    const title = deck.primaryHeaderField || deck.title_column;
-    const subtitle = deck.secondaryHeaderField || deck.subtitle_column;
-    const image = deck.imageField || deck.image_column;
-
-    return { title, subtitle, image };
-});
-
-/**
- * PREPARED DATA PATTERN
- * Parsing JSON and resolving paths once per data change, 
- * instead of hundreds of times per render frame.
- * Includes defensive deduplication for ghost duplicate assignments.
- */
-const preparedData = computed(() => {
-    const opts = options.value;
-
-    const candidateIdKeys = [
-        'no_usulan_perkimtan',
-        'no_usulan',
-        'nomor_usulan',
-        'nik_pemohon',
-        'nik',
-        'no_kk',
-        'id_responden',
-        'id_penerima',
-        'id_pelanggan',
-        'id',
-        'uuid'
-    ];
-
-    const mapped = (props.data || []).map(item => {
-        // Memoize parsed objects
-        const responseData = ensureObject(item.response_data);
-        const prelistData = ensureObject(item.prelist_data);
-        
-        let resolvedTitle = resolvePath(item, responseData, prelistData, opts.title);
-        let resolvedSubtitle = resolvePath(item, responseData, prelistData, opts.subtitle);
-
-        // Fallback for empty titles/subtitles (e.g. brand new blank drafts)
-        if (!resolvedTitle || String(resolvedTitle).trim() === '') {
-            resolvedTitle = `Draf Baru - Belum Diisi`;
-        }
-        if (!resolvedSubtitle || String(resolvedSubtitle).trim() === '') {
-            resolvedSubtitle = `Status: ${statusLabel(item.status || 'assigned')}`;
-        }
-
-        // Determine natural deduplication key
-        let dedupKey: string | null = null;
-        for (const k of candidateIdKeys) {
-            const val = responseData[k] ?? prelistData[k];
-            if (val !== undefined && val !== null && String(val).trim() !== '') {
-                dedupKey = `k_${k}_${String(val).trim()}`;
-                break;
-            }
-        }
-        if (!dedupKey && resolvedTitle && !resolvedTitle.startsWith('Draf Baru')) {
-            dedupKey = `title_${resolvedTitle.trim().toLowerCase()}__${resolvedSubtitle.trim().toLowerCase()}`;
-        }
-        if (!dedupKey) {
-            dedupKey = `raw_${item.id}`;
-        }
-
-        // Return rich object with pre-resolved fields
-        return {
-            ...item,
-            _parsedResponse: responseData,
-            _parsedPrelist: prelistData,
-            _resolvedTitle: resolvedTitle,
-            _resolvedSubtitle: resolvedSubtitle,
-            _resolvedImage: resolvePath(item, responseData, prelistData, opts.image),
-            _dedupKey: dedupKey
-        };
-    });
-
-    // Deduplicate: If multiple cards share the exact same natural key,
-    // submitted/completed cards always take precedence over empty pending ('assigned') cards.
-    const dedupMap = new Map<string, typeof mapped[0]>();
-    for (const card of mapped) {
-        const key = card._dedupKey;
-        if (!dedupMap.has(key)) {
-            dedupMap.set(key, card);
-            continue;
-        }
-
-        const existing = dedupMap.get(key)!;
-        const getScore = (c: typeof mapped[0]): number => {
-            if (c.status === 'submitted' || c.status === 'verified' || c.status === 'approved') return 3;
-            if (c.status === 'in_progress') return 2;
-            return 1;
-        };
-
-        if (getScore(card) > getScore(existing)) {
-            dedupMap.set(key, card);
-        }
-    }
-
-    return Array.from(dedupMap.values());
-});
-
-// Helper to safely parse JSON if needed
-const ensureObject = (data: any) => {
-    if (typeof data === 'string') {
-        try { return JSON.parse(data); }
-        catch {
-            // Ignore parse error
-            return {};
-        }
-    }
-    return (typeof data === 'object' && data !== null) ? data : {};
-};
-
-// Helper (Optimized to use already-parsed objects)
-const resolvePath = (obj: any, responseData: any, prelistData: any, path: string) => {
-    if (!path) return '';
-
-    // 0. Inner Helper for robust deep access
-    const getDeep = (target: any, p: string) => {
-        if (!target || !p) return undefined;
-        return p.split('.').reduce((o, i) => (o ? o[i] : undefined), target);
-    };
-
-    // Standard field prefixes
-    const prefixes = ['prelist_data.', 'response_data.', 'data.'];
-    let cleanPath = path;
-    for (const prefix of prefixes) {
-        if (path.startsWith(prefix)) {
-            cleanPath = path.substring(prefix.length);
-            break;
-        }
-    }
-
-    // 1. Try direct path lookup (e.g. 'status', 'id', or the clean path on the root)
-    const directValue = getDeep(obj, cleanPath);
-    if (directValue !== undefined && directValue !== null && directValue !== '') {
-        return cleanPath === 'status' ? statusLabel(String(directValue)) : directValue;
-    }
-
-    // 2. Try searching in response_data (HIGHEST PRIORITY for form fields)
-    const responseVal = getDeep(responseData, cleanPath);
-    if (responseVal !== undefined && responseVal !== null && responseVal !== '') {
-        return cleanPath === 'status' ? statusLabel(String(responseVal)) : responseVal;
-    }
-
-    // 3. Try searching in prelist_data (For prefilled/imported columns)
-    const prelistVal = getDeep(prelistData, cleanPath);
-    if (prelistVal !== undefined && prelistVal !== null && prelistVal !== '') {
-        return cleanPath === 'status' ? statusLabel(String(prelistVal)) : prelistVal;
-    }
-
-    // 4. Try smart fallbacks for standard unconfigured/default keys
-    const lowerPath = cleanPath.toLowerCase();
-    if (lowerPath === 'name' || lowerPath === 'title' || lowerPath === 'nama' || lowerPath === 'judul') {
-        const headerCandidates = ['name', 'nama', 'title', 'judul', 'label', 'id'];
-        for (const candidate of headerCandidates) {
-            if (candidate === cleanPath) continue; // Skip already tried
-            const val = getDeep(responseData, candidate) ?? getDeep(prelistData, candidate) ?? getDeep(obj, candidate);
-            if (val !== undefined && val !== null && val !== '') return val;
-        }
-    } else if (lowerPath === 'description' || lowerPath === 'deskripsi' || lowerPath === 'address' || lowerPath === 'alamat') {
-        const bodyCandidates = ['description', 'deskripsi', 'address', 'alamat', 'location', 'lokasi', 'status'];
-        for (const candidate of bodyCandidates) {
-            if (candidate === cleanPath) continue; // Skip already tried
-            const val = getDeep(responseData, candidate) ?? getDeep(prelistData, candidate) ?? getDeep(obj, candidate);
-            if (val !== undefined && val !== null && val !== '') {
-                return candidate === 'status' ? statusLabel(String(val)) : val;
-            }
-        }
-    }
-
-    return '';
-
-};
-
-const getImageUrl = (item: any, path: string) => {
-    if (!path) return '';
-    
-    // 1. If it's already a full URL or data URI, return as is
-    if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('blob:')) {
-        return path;
-    }
-
-    // 2. Smart Resolve for Response Images
-    // If the path doesn't contain a directory separator, it's likely a bare filename
-    // We need to prepend 'responses/{app_uuid}/{assignment_id}/'
-    let finalPath = path;
-    if (!path.includes('/')) {
-        // Use the contextId (which is the appId/uuid) and assignment uuid/id
-        const assignmentId = item.uuid || item.id;
-        finalPath = `responses/${props.contextId}/${assignmentId}/${path}`;
-    }
-
-    return apiClient.getAssetUrl(finalPath);
-};
 </script>
