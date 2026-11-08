@@ -32,7 +32,7 @@ function buildSearchClause(
     const q = `%${searchQuery}%`;
     const searchCond = `(COALESCE(assignments.prelist_data, '') LIKE ? OR COALESCE(latest_response.data, '') LIKE ?)`;
 
-    let where = `WHERE table_id = ? AND ${searchCond}`;
+    let where = `WHERE assignments.table_id = ? AND ${searchCond}`;
     let params: (string | number)[] = [contextId, q, q];
 
     // Append filters

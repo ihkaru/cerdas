@@ -26,15 +26,12 @@ class AgentAppController extends Controller
 
         $query = App::query();
 
-        if ($status === 'trashed') {
-            $query->onlyTrashed();
-        } elseif ($status === 'active') {
-            $query->where('is_active', true);
-        } elseif ($status === 'inactive') {
-            $query->where('is_active', false);
-        } else {
-            $query->withTrashed();
-        }
+        match ($status) {
+            'trashed' => $query->onlyTrashed(),
+            'active' => $query->where('is_active', true),
+            'inactive' => $query->where('is_active', false),
+            default => $query->withTrashed(),
+        };
 
         if ($mode && $mode !== 'all') {
             $query->where('mode', $mode);
@@ -70,12 +67,8 @@ class AgentAppController extends Controller
 
         $appSummaries = $apps->map(function (App $app) use ($allTables, $tableIdsByApp, $assignCounts, $respCounts) {
             $tIds = $tableIdsByApp[$app->id] ?? [];
-            $assignmentsCount = 0;
-            $responsesCount = 0;
-            foreach ($tIds as $tId) {
-                $assignmentsCount += $assignCounts[$tId] ?? 0;
-                $responsesCount += $respCounts[$tId] ?? 0;
-            }
+            $assignmentsCount = array_sum(array_map(fn ($id) => $assignCounts[$id] ?? 0, $tIds));
+            $responsesCount = array_sum(array_map(fn ($id) => $respCounts[$id] ?? 0, $tIds));
             $connectedSheetsCount = $allTables->where('app_id', $app->id)->where('source_type', 'google_sheets')->count();
 
             return [
@@ -231,6 +224,16 @@ class AgentAppController extends Controller
             );
         }
         unset($validated['owner_email']);
+
+        // Validate view_configs table_ids if provided
+        if (isset($validated['view_configs']) && is_array($validated['view_configs'])) {
+            $validTbls = Table::withTrashed()->where('app_id', $app->id)->pluck('id')->all();
+            foreach ($validated['view_configs'] as $vKey => $cfg) {
+                if (is_array($cfg) && ! empty($cfg['table_id']) && ! empty($validTbls) && ! in_array($cfg['table_id'], $validTbls)) {
+                    return response()->json(['success' => false, 'message' => "Invalid table_id in view_configs for '{$vKey}'. Table does not belong to this app."], 422);
+                }
+            }
+        }
 
         $beforeState = [
             'is_active' => $app->is_active,

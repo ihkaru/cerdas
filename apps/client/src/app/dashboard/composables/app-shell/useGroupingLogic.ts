@@ -2,6 +2,7 @@
 import { useLogger } from '@/common/utils/logger';
 import type { Ref } from 'vue';
 import { computed, ref } from 'vue';
+import { sanitizeColumnKey } from '../../services/AssignmentQueryService';
 
 export function useGroupingLogic(
     activeView: Ref<string>,
@@ -106,7 +107,7 @@ export function useGroupingLogic(
     const buildGroupWhere = (statusFilterValue: string) => {
 
         
-        const conditions: string[] = [`table_id = ?`];
+        const conditions: string[] = [`assignments.table_id = ?`];
         const params: any[] = [getContextId()];
 
         // Add group path filters
@@ -116,9 +117,10 @@ export function useGroupingLogic(
         if (groupByConfig.value?.levels) {
             groupPath.value.forEach((val, idx) => {
                 const field = groupByConfig.value.levels[idx]?.field;
-                if (field) {
+                const safeField = sanitizeColumnKey(field || '');
+                if (safeField) {
                     // Build COALESCE expression matching AssignmentQueryService (uses latest_response subquery alias)
-                    const coalescedExpr = `COALESCE(json_extract(latest_response.data, '$.${field}'), json_extract(assignments.prelist_data, '$.${field}'))`;
+                    const coalescedExpr = `COALESCE(json_extract(latest_response.data, '$.${safeField}'), json_extract(assignments.prelist_data, '$.${safeField}'))`;
                     
                     if (val === '' || val === null || val === 'null') {
                         // Handle Empty/Null Group - check the coalesced value
@@ -134,11 +136,11 @@ export function useGroupingLogic(
         // Add Status filters (if passed to DB)
         if (statusFilterValue && statusFilterValue !== 'all') {
             if (statusFilterValue === 'in_progress') {
-                conditions.push(`status IN ('in_progress', 'rejected')`);
+                conditions.push(`assignments.status IN ('in_progress', 'rejected')`);
             } else if (statusFilterValue === 'synced') {
-                conditions.push(`status IN ('approved', 'synced', 'submitted')`);
+                conditions.push(`assignments.status IN ('approved', 'synced', 'submitted')`);
             } else {
-                conditions.push(`status = ?`);
+                conditions.push(`assignments.status = ?`);
                 params.push(statusFilterValue);
             }
         }

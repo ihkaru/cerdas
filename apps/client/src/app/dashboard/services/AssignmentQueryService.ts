@@ -11,6 +11,41 @@ export interface FilterConfig {
     value: any;
 }
 
+/**
+ * Sanitize a field/column name for safe interpolation into SQLite queries and JSON path expressions.
+ * Strips any characters that are not alphanumeric or underscore to prevent syntax errors or malformed SQL.
+ */
+export function sanitizeColumnKey(field: string): string {
+    if (!field || typeof field !== 'string') return '';
+    return field.replace(/[^a-zA-Z0-9_]/g, '');
+}
+
+/**
+ * Safely parse JSON values, unwrapping double-stringified JSON if present.
+ */
+export function safeParseJson(raw: unknown): Record<string, unknown> {
+    if (!raw) return {};
+    if (typeof raw === 'object' && raw !== null) return raw as Record<string, unknown>;
+    if (typeof raw === 'string') {
+        const trimmed = raw.trim();
+        if (trimmed === '') return {};
+        try {
+            let parsed = JSON.parse(trimmed);
+            if (typeof parsed === 'string') {
+                try {
+                    parsed = JSON.parse(parsed);
+                } catch {
+                    // ignore secondary parse error
+                }
+            }
+            return (typeof parsed === 'object' && parsed !== null) ? parsed : {};
+        } catch {
+            return {};
+        }
+    }
+    return {};
+}
+
 export const AssignmentQueryService = {
     async getGroupedAssignments(
         db: SQLiteDBConnection,
@@ -18,10 +53,15 @@ export const AssignmentQueryService = {
         whereClause: string,
         params: any[]
     ) {
+        const safeField = sanitizeColumnKey(field);
+        if (!safeField) {
+            return [];
+        }
+
         // Prioritize keys from Response (User Input) -> Prelist (Static Data)
         // Use latest_response alias to match the subquery pattern
-        const responseExpr = `json_extract(latest_response.data, '$.${field}')`;
-        const prelistExpr = `json_extract(assignments.prelist_data, '$.${field}')`;
+        const responseExpr = `json_extract(latest_response.data, '$.${safeField}')`;
+        const prelistExpr = `json_extract(assignments.prelist_data, '$.${safeField}')`;
         const groupKeyExpr = `COALESCE(${responseExpr}, ${prelistExpr})`;
 
         // Use subquery to get only latest response per assignment (prevents duplicates)
@@ -51,7 +91,7 @@ export const AssignmentQueryService = {
             assigned: r.assigned || 0,
             in_progress: r.in_progress || 0,
             completed: r.completed || 0,
-            field: field
+            field: safeField
         }));
     },
 
@@ -62,15 +102,18 @@ export const AssignmentQueryService = {
         if (filters && filters.length > 0) {
             const filterConditions: string[] = [];
             filters.forEach(f => {
+                const safeField = sanitizeColumnKey(f.field);
+                if (!safeField) return;
+
                 // Determine field expression
                 let fieldExpr: string;
                 // Standard fields
-                if (['status', 'created_at', 'updated_at', 'synced_at'].includes(f.field)) {
-                    fieldExpr = `assignments.${f.field}`;
+                if (['status', 'created_at', 'updated_at', 'synced_at'].includes(safeField)) {
+                    fieldExpr = `assignments.${safeField}`;
                 } else {
                     // JSON Fields (Check Response first, then Prelist)
-                    const resp = `json_extract(latest_response.data, '$.${f.field}')`;
-                    const pre = `json_extract(assignments.prelist_data, '$.${f.field}')`;
+                    const resp = `json_extract(latest_response.data, '$.${safeField}')`;
+                    const pre = `json_extract(assignments.prelist_data, '$.${safeField}')`;
                     fieldExpr = `COALESCE(${resp}, ${pre})`;
                 }
 
@@ -111,19 +154,25 @@ export const AssignmentQueryService = {
 
     // Helper to build order by clause
     buildOrderBy(sortConfig?: SortConfig) {
-        if (!sortConfig) {
+        if (!sortConfig || !sortConfig.field) {
             return `assignments.updated_at DESC, assignments.id DESC`;
         }
         
+        const safeField = sanitizeColumnKey(sortConfig.field);
+        if (!safeField) {
+            return `assignments.updated_at DESC, assignments.id DESC`;
+        }
+
         let fieldExpr: string;
-        if (['status', 'created_at', 'updated_at', 'synced_at', 'id'].includes(sortConfig.field)) {
-             fieldExpr = `assignments.${sortConfig.field}`;
+        if (['status', 'created_at', 'updated_at', 'synced_at', 'id'].includes(safeField)) {
+             fieldExpr = `assignments.${safeField}`;
         } else {
-             const resp = `json_extract(latest_response.data, '$.${sortConfig.field}')`;
-             const pre = `json_extract(assignments.prelist_data, '$.${sortConfig.field}')`;
+             const resp = `json_extract(latest_response.data, '$.${safeField}')`;
+             const pre = `json_extract(assignments.prelist_data, '$.${safeField}')`;
              fieldExpr = `COALESCE(${resp}, ${pre})`;
         }
-        return `${fieldExpr} ${sortConfig.order.toUpperCase()}`;
+        const order = sortConfig.order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+        return `${fieldExpr} ${order}`;
     },
 
     async getAssignments(
@@ -142,10 +191,6 @@ export const AssignmentQueryService = {
             const { where: filterWhere, params: filterParams } = this.buildFilterWhere(filters);
             
             if (filterWhere) {
-                 // const prefix = dynamicWhere.trim() === '' ? '' : ' AND '; // Unused
-                 // If dynamicWhere has WHERE, strip it from filterWhere. If empty, use filterWhere as is.
-                 // Actually simpler: construct full clause.
-                 
                  if (dynamicWhere.toUpperCase().includes('WHERE')) {
                      dynamicWhere += ` AND ${filterWhere.replace(/^WHERE\s+/i, '')}`;
                  } else {
@@ -175,19 +220,13 @@ export const AssignmentQueryService = {
             ORDER BY ${orderBy} LIMIT ${limit}
         `;
         
-
-        
-
-
         const assignRes = await db.query(sqlJoin, dynamicParams);
-        
-
         
         if (assignRes.values) {
             return assignRes.values.map(a => ({
                 ...a,
-                prelist_data: typeof a.prelist_data === 'string' ? JSON.parse(a.prelist_data || '{}') : a.prelist_data,
-                response_data: typeof a.response_data === 'string' ? JSON.parse(a.response_data || '{}') : a.response_data,
+                prelist_data: safeParseJson(a.prelist_data),
+                response_data: safeParseJson(a.response_data),
                 // fix null timestamps by using the joined response timestamps
                 created_at: a.response_created_at || a.created_at,
                 updated_at: a.response_updated_at || a.updated_at
@@ -197,7 +236,7 @@ export const AssignmentQueryService = {
     },
 
     async getTotalAssignments(db: SQLiteDBConnection, tableId: string) {
-        const countRes = await db.query(`SELECT COUNT(*) as total FROM assignments WHERE table_id = ?`, [tableId]);
+        const countRes = await db.query(`SELECT COUNT(*) as total FROM assignments WHERE assignments.table_id = ?`, [tableId]);
         return countRes.values?.[0]?.total || 0;
     },
 

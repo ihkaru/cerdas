@@ -7,6 +7,34 @@ import { generateUUID } from '../../utils/uuid';
 
 // --- Assignment Batch Builder ---
 
+/** Safely serialize prelist_data to prevent double JSON stringification */
+export function sanitizePrelistData(raw: any): string {
+    if (raw === null || raw === undefined) {
+        return '{}';
+    }
+    if (typeof raw === 'string') {
+        const trimmed = raw.trim();
+        if (trimmed === '') return '{}';
+        try {
+            const parsed = JSON.parse(trimmed);
+            // If parsed result is STILL a string, it was double-encoded: unwrap it!
+            if (typeof parsed === 'string') {
+                return parsed;
+            }
+            // If it's a valid object or array, trimmed string is already proper JSON
+            return trimmed;
+        } catch {
+            // Not valid JSON, wrap into an object safely
+            return JSON.stringify({ raw_value: raw });
+        }
+    }
+    try {
+        return JSON.stringify(raw);
+    } catch {
+        return '{}';
+    }
+}
+
 /** Build batch statements for UPSERT into local SQLite */
 export function buildAssignmentBatch(items: any[], stmtAssign: string, syncTimestamp: string) {
     const activeItems = items.filter((assign: any) => !assign.deleted_at);
@@ -18,7 +46,7 @@ export function buildAssignmentBatch(items: any[], stmtAssign: string, syncTimes
             assign.organization_id,
             assign.supervisor_id,
             assign.enumerator_id,
-            JSON.stringify(assign.prelist_data),
+            sanitizePrelistData(assign.prelist_data),
             assign.status,
             syncTimestamp,
             assign.external_id || null

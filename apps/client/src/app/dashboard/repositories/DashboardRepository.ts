@@ -1,8 +1,8 @@
-
 import { SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { useLogger } from '../../../common/utils/logger';
 import { generateUUID } from '../../../common/utils/uuid';
 import type { App, Assignment, Table } from '../types';
+import { safeParseJson } from '../services/AssignmentQueryService';
 
 const log = useLogger('DashboardRepository');
 
@@ -14,15 +14,9 @@ function normalizeFields(raw: unknown): unknown {
         catch (e) { log.error('Failed to parse fields JSON', e); return { fields: [] }; }
     }
     if (!parsed || typeof parsed !== 'object') return { fields: [] };
-
-    // Already correct: direct array or { fields: [...] }
-    if (Array.isArray(parsed)) return parsed;
-    const obj = parsed as Record<string, unknown>;
-    if ('fields' in obj && Array.isArray(obj.fields)) return parsed;
-
-    // Nested schema — unwrap
-    if ('schema' in obj) {
-        let inner = obj.schema;
+    if (Array.isArray(parsed) || ('fields' in (parsed as Record<string, unknown>) && Array.isArray((parsed as any).fields))) return parsed;
+    if ('schema' in (parsed as Record<string, unknown>)) {
+        let inner = (parsed as Record<string, unknown>).schema;
         if (typeof inner === 'string') {
             try { inner = JSON.parse(inner); } catch { inner = { fields: [] }; }
         }
@@ -89,8 +83,8 @@ export const DashboardRepository = {
 
         return (res.values || []).map(row => ({
             ...row,
-            prelist_data: typeof row.prelist_data === 'string' ? JSON.parse(row.prelist_data || '{}') : row.prelist_data,
-            response_data: typeof row.response_data === 'string' ? JSON.parse(row.response_data || '{}') : row.response_data
+            prelist_data: safeParseJson(row.prelist_data),
+            response_data: safeParseJson(row.response_data)
         }));
     },
 
@@ -166,8 +160,8 @@ export const DashboardRepository = {
         const row = res.values[0];
         return {
             ...row,
-            prelist_data: typeof row.prelist_data === 'string' ? JSON.parse(row.prelist_data || '{}') : row.prelist_data,
-            response_data: typeof row.response_data === 'string' ? JSON.parse(row.response_data || '{}') : row.response_data
+            prelist_data: safeParseJson(row.prelist_data),
+            response_data: safeParseJson(row.response_data)
         };
     },
 

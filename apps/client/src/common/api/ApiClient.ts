@@ -15,15 +15,15 @@ export class ApiClient {
         // Get all platform info for debugging
         const platform = Capacitor.getPlatform();
         const isNative = Capacitor.isNativePlatform();
-        const isInIframe = window.self !== window.top;
-        const envUrl = import.meta.env.VITE_API_URL;
+        const isInIframe = typeof window !== 'undefined' ? window.self !== window.top : false;
+        const envUrl = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_URL : '';
         
         logger.debug('[ApiClient] Platform detection:', {
             platform,
             isNative,
             isInIframe,
             envUrl: envUrl || '(not set)',
-            userAgent: navigator.userAgent.substring(0, 50)
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 50) : 'node'
         });
 
         // Robust platform detection: treat iframe as web regardless of Capacitor detection
