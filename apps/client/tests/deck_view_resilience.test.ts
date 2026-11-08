@@ -78,7 +78,39 @@ describe('DeckView & useDeckData Resilience Tests', () => {
         expect(preparedData.value.length).toBe(180);
         expect(preparedData.value[0]._resolvedTitle).toBe('Responden 1');
         expect(preparedData.value[0]._resolvedSubtitle).toBe(1);
-        expect(preparedData.value[0]._dedupKey).toBe('k_nus_1');
+    });
+
+    it('should NOT collapse repeating nus across multiple SLS blocks in real survey prelists', () => {
+        const config = ref({
+            deck: {
+                primaryHeaderField: 'nama_krt',
+                secondaryHeaderField: 'nus'
+            },
+            type: 'deck'
+        });
+
+        // 12 SLS blocks, each with NUS 1 to 15 (total 180 households)
+        const clusterAssignments: any[] = [];
+        for (let block = 1; block <= 12; block++) {
+            for (let nus = 1; nus <= 15; nus++) {
+                clusterAssignments.push({
+                    id: `asgn-block-${block}-nus-${nus}`,
+                    status: 'assigned',
+                    prelist_data: {
+                        external_id: `SAK-2026-${block}-${nus}`,
+                        kode_sls: 100 * block,
+                        nus: nus,
+                        nama_krt: `Kepala RT ${block} No ${nus}`
+                    }
+                });
+            }
+        }
+
+        expect(clusterAssignments.length).toBe(180);
+
+        const { preparedData } = useDeckData(config, ref(clusterAssignments), 'app-sakernas');
+        expect(preparedData.value.length).toBe(180);
+        expect(preparedData.value[0]._dedupKey).toBe('k_external_id_SAK-2026-1-1');
     });
 
     it('should handle numeric primaryHeaderField and null fields gracefully', () => {

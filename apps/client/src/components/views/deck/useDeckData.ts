@@ -24,6 +24,8 @@ export interface PreparedDeckItem {
 }
 
 const CANDIDATE_ID_KEYS = [
+    'external_id',
+    'id_cetar_key',
     'no_usulan_perkimtan',
     'no_usulan',
     'nomor_usulan',
@@ -32,12 +34,7 @@ const CANDIDATE_ID_KEYS = [
     'no_kk',
     'id_responden',
     'id_penerima',
-    'id_pelanggan',
-    'nus',
-    'id_cetar_key',
-    'external_id',
-    'id',
-    'uuid'
+    'id_pelanggan'
 ];
 
 /** Safely parse or cast data to object */
@@ -188,11 +185,20 @@ export function useDeckData(
 
             const safeTitle = String(resolvedTitle).trim();
             const safeSubtitle = String(resolvedSubtitle).trim();
+
+            // Composite fallback for cluster + ordinal (e.g. kode_sls + nus)
+            if (!dedupKey && (prelistData.kode_sls || prelistData.sls) && prelistData.nus !== undefined) {
+                const cluster = prelistData.kode_sls ?? prelistData.sls;
+                dedupKey = `k_cluster_${String(cluster).trim()}_nus_${String(prelistData.nus).trim()}`;
+            }
+            if (!dedupKey && item.id) {
+                dedupKey = `raw_${item.id}`;
+            }
             if (!dedupKey && safeTitle && !safeTitle.startsWith('Draf Baru')) {
                 dedupKey = `title_${safeTitle.toLowerCase()}__${safeSubtitle.toLowerCase()}`;
             }
             if (!dedupKey) {
-                dedupKey = `raw_${item.id || item.local_id || Math.random()}`;
+                dedupKey = `raw_${item.local_id || Math.random()}`;
             }
 
             const resolvedImage = resolvePath(item, responseData, prelistData, opts.image);

@@ -152,7 +152,7 @@ class SurveyDoctorService
                 }
             }
 
-            // Verify sampling frame prelist presence if assignments exist
+            // Verify sampling frame prelist presence & cardinality collision hazard
             $sampleAssignment = Assignment::where('table_id', $targetTableId)->whereNotNull('prelist_data')->first();
             if ($sampleAssignment && is_array($sampleAssignment->prelist_data)) {
                 $prelistKeys = array_keys($sampleAssignment->prelist_data);
@@ -161,6 +161,28 @@ class SurveyDoctorService
                 }
                 if ($secField && ! in_array($secField, $prelistKeys)) {
                     $viewFieldsIssues[] = "View '{$vId}' secondaryHeaderField '{$secField}' missing from sampling frame prelist_data";
+                }
+
+                // Check for ordinal deduplication collision hazard (e.g. nus, no_urut)
+                $ordinalCandidates = ['nus', 'no_urut', 'nomor_urut', 'no_urut_keluarga', 'no_urut_bangunan'];
+                $isOrdinalHeader = in_array(strtolower($primaryField ?? ''), $ordinalCandidates) || in_array(strtolower($secField ?? ''), $ordinalCandidates);
+                if ($isOrdinalHeader) {
+                    $hasUniqueId = in_array('external_id', $prelistKeys) || in_array('id_cetar_key', $prelistKeys) || in_array('nik', $prelistKeys);
+                    $hasCluster = in_array('kode_sls', $prelistKeys) || in_array('sls', $prelistKeys);
+                    if (! $hasUniqueId && ! $hasCluster) {
+                        $viewFieldsIssues[] = "View '{$vId}' uses intra-cluster ordinal header without 'external_id' or 'kode_sls' in prelist_data, risking severe card collision in mobile DeckView";
+                    }
+                }
+
+                // Auto-sync unindexed external_id column from prelist_data
+                if (in_array('external_id', $prelistKeys)) {
+                    Assignment::where('table_id', $targetTableId)
+                        ->whereNull('external_id')
+                        ->whereNotNull('prelist_data')
+                        ->whereRaw("JSON_EXTRACT(prelist_data, '$.external_id') IS NOT NULL")
+                        ->update([
+                            'external_id' => \Illuminate\Support\Facades\DB::raw("JSON_UNQUOTE(JSON_EXTRACT(prelist_data, '$.external_id'))")
+                        ]);
                 }
             }
         }

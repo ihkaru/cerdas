@@ -388,27 +388,27 @@ class AssignmentController extends Controller
                         $matchedAssignment->prelist_data = $cleanRowData;
                     }
 
+                    if (empty($matchedAssignment->external_id)) {
+                        $matchedAssignment->external_id = $cleanRowData['external_id'] ?? ($cleanRowData['id_cetar_key'] ?? null);
+                    }
                     $matchedAssignment->table_version_id = $versionId;
                     $matchedAssignment->updated_at = $now;
                     $matchedAssignment->save();
-
                     $usedAssignmentIds[] = $matchedAssignment->id;
                     $updatedCount++;
                 } else {
-                    // Create New Assignment
-                    $newAssignment = new Assignment;
-                    $newAssignment->id = (string) \Illuminate\Support\Str::uuid();
-                    $newAssignment->table_id = $table->id;
-                    $newAssignment->table_version_id = $versionId;
-                    $newAssignment->organization_id = $defaultOrgId;
-                    $newAssignment->supervisor_id = null;
-                    $newAssignment->enumerator_id = null;
-                    $newAssignment->status = 'assigned';
-                    $newAssignment->prelist_data = $cleanRowData;
-                    $newAssignment->created_at = $now;
-                    $newAssignment->updated_at = $now;
+                    $newAssignment = new Assignment([
+                        'id' => (string) \Illuminate\Support\Str::uuid(),
+                        'table_id' => $table->id,
+                        'table_version_id' => $versionId,
+                        'organization_id' => $defaultOrgId,
+                        'external_id' => $cleanRowData['external_id'] ?? ($cleanRowData['id_cetar_key'] ?? null),
+                        'status' => 'assigned',
+                        'prelist_data' => $cleanRowData,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
                     $newAssignment->save();
-
                     $usedAssignmentIds[] = $newAssignment->id;
                     $createdCount++;
                 }

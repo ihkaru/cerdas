@@ -1,11 +1,11 @@
 {
-  "version": "0.2.62",
-  "build_id": "fix-deckview-numeric-headers",
-  "timestamp": "2026-11-08T12:23:39.010Z",
+  "version": "0.2.63",
+  "build_id": "fix-dedup-cardinality-collision",
+  "timestamp": "2026-11-08T13:11:35.242Z",
   "min_native_version": "0.1.0",
   "changelog": [
-    "Fix: Resolve numeric header crash in DeckView (Sakernas numeric field support)",
-    "Refactor: Extract useDeckData composable with defensive type coercion",
-    "Audit: Enhance survey doctor with prelist sample verification and secondary header schema audits"
+    "Fix: Remove intra-cluster ordinal (nus) from candidate ID keys preventing catastrophic card collapse",
+    "Feature: Add cluster+ordinal composite key deduplication and prioritize external_id",
+    "Doctor: Add prelist cardinality collision audit and auto-sync external_id column"
   ]
 }
