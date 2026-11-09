@@ -1,11 +1,10 @@
 {
-  "version": "0.2.63",
-  "build_id": "fix-dedup-cardinality-collision",
-  "timestamp": "2026-11-08T13:11:35.242Z",
+  "version": "0.2.58",
+  "build_id": "jjzeuc",
+  "timestamp": "2026-11-09T07:42:42.667Z",
   "min_native_version": "0.1.0",
   "changelog": [
-    "Fix: Remove intra-cluster ordinal (nus) from candidate ID keys preventing catastrophic card collapse",
-    "Feature: Add cluster+ordinal composite key deduplication and prioritize external_id",
-    "Doctor: Add prelist cardinality collision audit and auto-sync external_id column"
+    "Optimisasi sinkronisasi data",
+    "Peningkatan stabilitas aplikasi"
   ]
 }

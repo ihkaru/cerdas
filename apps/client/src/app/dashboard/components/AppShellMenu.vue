@@ -61,10 +61,10 @@
         </f7-list>
 
         <!-- Version Footer -->
-        <f7-block-footer style="text-align: center; margin-top: 20px; padding-bottom: 20px;"
+        <f7-block-footer style="text-align: center; margin-top: 20px; padding-bottom: 20px; cursor: pointer;"
             @click="handleVersionClick">
-            <small style="opacity: 0.6;">
-                App v{{ appVersion }}<br>
+            <small style="opacity: 0.6; display: block; line-height: 1.4;">
+                Form v{{ appVersion }} • Cerdas v{{ clientVersion }}<br>
                 Build {{ buildTimestamp }}
             </small>
         </f7-block-footer>
@@ -113,6 +113,8 @@ const props = defineProps({
 
 
 import { computed } from 'vue';
+
+const clientVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 
 // Capitalize Role
 const displayRole = computed(() => props.role ? props.role.charAt(0).toUpperCase() + props.role.slice(1) : 'Guest');
