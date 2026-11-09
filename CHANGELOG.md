@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.59](https://github.com/ihkaru/cerdas/compare/v0.2.58...v0.2.59) (2026-11-09)
+
+
+### Bug Fixes
+
+* **client:** clarify form vs app version in sidebar and sync version.json ([02e1705](https://github.com/ihkaru/cerdas/commit/02e1705c1152be574464f61c12239286c90b1c2c))
+
 ## [0.2.58](https://github.com/ihkaru/cerdas/compare/v0.2.57...v0.2.58) (2026-11-09)
 
 
