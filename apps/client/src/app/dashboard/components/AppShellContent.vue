@@ -217,7 +217,7 @@ defineProps<{
     isSchemaEmpty: boolean;
     searchQuery: string;
     statusFilter: string;
-    statusCounts: Record<string, number>;
+    statusCounts: { all: number; assigned: number; in_progress: number; synced: number; } & Record<string, number>;
     activeFilterCount: number;
     hasGroupingConfig: boolean;
     forceShowItems: boolean;

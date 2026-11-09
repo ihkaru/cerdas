@@ -135,4 +135,33 @@ describe('DeckView & useDeckData Resilience Tests', () => {
         expect(preparedData.value[0]._resolvedTitle).toBe(42);
         expect(preparedData.value[0]._resolvedSubtitle).toBe('Status: Pending');
     });
+
+    it('should support getter functions (like DeckView.vue passing () => props.data)', () => {
+        const config = {
+            deck: {
+                primaryHeaderField: 'nama_krt',
+                secondaryHeaderField: 'nus'
+            },
+            type: 'deck'
+        };
+        const rawAssignments = [
+            {
+                id: 'asgn-1',
+                status: 'assigned',
+                prelist_data: { nus: 15, nama_krt: 'KURNIAWATI' }
+            }
+        ];
+
+        // Must work with getter functions!
+        const { preparedData, options } = useDeckData(
+            () => config,
+            () => rawAssignments,
+            () => '0c77bbd8-9b96-43b5-861e-4a2ed3941031'
+        );
+
+        expect(options.value.title).toBe('nama_krt');
+        expect(preparedData.value.length).toBe(1);
+        expect(preparedData.value[0]._resolvedTitle).toBe('KURNIAWATI');
+        expect(preparedData.value[0]._resolvedSubtitle).toBe(15);
+    });
 });
