@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { ref } from 'vue';
 import { useGroupingLogic } from '../src/app/dashboard/composables/app-shell/useGroupingLogic';
 

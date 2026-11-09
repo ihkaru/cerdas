@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { computed, ref } from 'vue';
 import { useAppViewResolver } from '../src/app/dashboard/composables/useAppViewResolver';
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { sanitizeColumnKey, safeParseJson, AssignmentQueryService } from '../src/app/dashboard/services/AssignmentQueryService';
 import { sanitizePrelistData } from '../src/common/services/sync/AssignmentSyncHelpers';
 

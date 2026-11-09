@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { extractDeckOptions, resolvePath, useDeckData } from '../src/components/views/deck/useDeckData';
 import { ref } from 'vue';
 
