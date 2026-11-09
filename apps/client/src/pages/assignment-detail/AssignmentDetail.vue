@@ -1,5 +1,5 @@
 <template>
-    <f7-page name="assignment-detail">
+    <f7-page name="assignment-detail" @page:beforeout="onPageBeforeOut" @page:afterin="onPageAfterIn">
         <f7-navbar :sliding="false" class="premium-navbar">
             <f7-nav-left>
                 <f7-link @click="handleBack" class="nav-icon-btn back-btn" aria-label="Kembali">
@@ -34,24 +34,41 @@
                 @update:data="handleUpdate" />
 
             <!-- Bottom Form Completion Actions -->
-            <div v-if="!isReadOnly" class="bottom-form-actions block padding-horizontal margin-top-lg margin-bottom-xl">
+            <div v-if="!isReadOnly" class="bottom-form-actions block padding-horizontal margin-top-lg">
                 <f7-button fill large color="green" class="btn-submit-form" :loading="saving" @click="confirmSubmit">
                     <f7-icon f7="paperplane_fill" size="18" class="margin-right-half" />
                     <span>Selesaikan &amp; Kirim Survei</span>
                 </f7-button>
 
-                <div class="display-flex margin-top-half" style="gap: 8px;">
-                    <f7-button v-if="isDirty" tonal large color="blue" class="flex-1" :disabled="saving" @click="saveDraft">
-                        <f7-icon f7="floppy_disk" size="18" class="margin-right-half" />
-                        <span>Simpan Draft</span>
-                    </f7-button>
-                    <f7-button v-if="hasExistingDraft" tonal large color="red" class="flex-1" :disabled="saving" @click="discardDraft">
+                <div v-if="hasExistingDraft" class="display-flex margin-top-half">
+                    <f7-button tonal color="red" class="flex-1" :disabled="saving" @click="discardDraft">
                         <f7-icon f7="trash" size="18" class="margin-right-half" />
                         <span>Buang Draft</span>
                     </f7-button>
                 </div>
             </div>
         </div>
+
+        <!-- Validation Summary / Floating Save Draft FAB -->
+        <Teleport to="body">
+            <div class="global-validation-fab" v-if="fabVisible && !isReadOnly">
+                <!-- Save Draft FAB (when dirty) -->
+                <f7-fab v-if="isDirty" position="right-bottom" @click="saveDraft"
+                    style="margin: 0; position: static;" class="app-fab app-fab--save" title="Simpan Draft">
+                    <f7-icon f7="floppy_disk"></f7-icon>
+                </f7-fab>
+                <!-- Validation Summary FAB (when clean) -->
+                <f7-fab v-else position="right-bottom" @click="openValidationSummary"
+                    style="margin: 0; position: static;" class="app-fab app-fab--validate" title="Lihat Kelengkapan Data">
+                    <f7-icon f7="checkmark_shield"></f7-icon>
+                    <f7-badge v-if="summaryBadgeCount > 0" color="red">{{ summaryBadgeCount }}</f7-badge>
+                </f7-fab>
+            </div>
+        </Teleport>
+
+        <!-- Validation Summary Sheet -->
+        <ValidationSummarySheet :opened="validationSheetOpen" :summary="validationSummary"
+            @close="validationSheetOpen = false" @scroll-to-field="scrollToField" />
     </f7-page>
 </template>
 
@@ -64,11 +81,13 @@ import { apiClient } from '../../common/api/ApiClient';
 import { useDirtyTracking } from '../../common/composables/useDirtyTracking';
 import { useVersionGate } from '../../common/composables/useVersionGate';
 import { useAuthStore } from '../../common/stores/authStore';
+import ValidationSummarySheet from './components/ValidationSummarySheet.vue';
 import VersionBanner from './components/VersionBanner.vue';
 import { useAssignmentLoader } from './composables/useAssignmentLoader';
 import { useAssignmentSave } from './composables/useAssignmentSave';
 import { useLivePreview } from './composables/useLivePreview';
 import type { FormRendererRef } from './composables/useValidationSummary';
+import { useValidationSummary } from './composables/useValidationSummary';
 import { useVersionPinning } from './composables/useVersionPinning';
 
 const props = defineProps<{
@@ -77,6 +96,7 @@ const props = defineProps<{
 
 const authStore = useAuthStore();
 const resolveAssetUrl = (val: string) => apiClient.getAssetUrl(val);
+const fabVisible = ref(false);
 
 const userContext = computed(() => ({
     id: authStore.user?.id ?? 0,
@@ -99,8 +119,12 @@ const handleUpdate = (data: Record<string, unknown>) => {
     formData.value = data;
 };
 
-// 3. Form Renderer Ref
+// 3. Form Renderer Ref & Validation UI
 const formRenderer = ref<FormRendererRef | null>(null);
+const {
+    validationSheetOpen, validationSummary, summaryBadgeCount,
+    openValidationSummary, scrollToField
+} = useValidationSummary(formRenderer);
 
 // 4. Version Pinning
 const { migrating, handleMigrateVersion } = useVersionPinning(
@@ -125,6 +149,15 @@ const pageTitle = computed(() => {
     const pd = assignment.value.prelist_data || {};
     return pd.name || 'Assignment';
 });
+
+// Lifecycle & Navigation
+const onPageAfterIn = () => {
+    fabVisible.value = true;
+};
+
+const onPageBeforeOut = () => {
+    fabVisible.value = false;
+};
 
 const handleBack = () => {
     if (!isDirty.value) {
@@ -164,6 +197,7 @@ const handleBack = () => {
 onMounted(async () => {
     await loadData();
     takeSnapshot(formData.value);
+    setTimeout(() => { fabVisible.value = true; }, 500);
     window.addEventListener('schema-override-updated', handleSchemaOverrideUpdate as EventListener);
 });
 
@@ -238,6 +272,7 @@ onUnmounted(() => {
 
 .bottom-form-actions {
     margin-top: 24px;
+    margin-bottom: 72px;
 }
 
 .btn-submit-form {
@@ -255,6 +290,55 @@ onUnmounted(() => {
 
 .rounded {
     border-radius: 12px;
+}
+
+/*
+ * global-validation-fab: Teleported FAB container for AssignmentDetail.
+ */
+.global-validation-fab {
+    position: fixed;
+    right: calc(var(--f7-safe-area-right, env(safe-area-inset-right, 0px)) + 16px);
+    bottom: calc(var(--f7-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 16px);
+    z-index: 12000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-fab {
+    transition: transform 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.app-fab:active {
+    transform: scale(0.9) !important;
+}
+
+/* Save FAB: green with subtle pulse ring */
+.app-fab--save {
+    --f7-fab-bg-color: #16a34a;
+    --f7-fab-pressed-bg-color: #15803d;
+    --f7-fab-box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
+    animation: fabPulseGreen 1.5s ease-in-out infinite;
+}
+
+.app-fab--save:active {
+    --f7-fab-box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2);
+}
+
+@keyframes fabPulseGreen {
+    0%, 100% { --f7-fab-box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4); }
+    50%       { --f7-fab-box-shadow: 0 4px 14px rgba(22, 163, 74, 0.15); }
+}
+
+/* Validate FAB: theme blue */
+.app-fab--validate {
+    --f7-fab-bg-color: var(--f7-theme-color, #2196f3);
+    --f7-fab-pressed-bg-color: #1976d2;
+    --f7-fab-box-shadow: 0 4px 14px rgba(33, 150, 243, 0.4);
+}
+
+.app-fab--validate:active {
+    --f7-fab-box-shadow: 0 2px 6px rgba(33, 150, 243, 0.2);
 }
 
 .nav-readonly-badge {
