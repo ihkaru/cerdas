@@ -7,6 +7,10 @@ use App\Models\Assignment;
 
 class SurveyDoctorService
 {
+    public function __construct(
+        protected SurveySchemaAuditor $schemaAuditor = new SurveySchemaAuditor(),
+    ) {}
+
     /**
      * Diagnose a single survey app and return a comprehensive readiness scorecard.
      */
@@ -84,6 +88,18 @@ class SurveyDoctorService
             $remediations[] = "cerdas table publish --app {$app->id} --table {$unpub->id}";
         }
 
+        // 6.5 Schema Field Types & Options Integrity (GSBPM 3 Chapter 3)
+        $schemaIssues = $this->schemaAuditor->audit($tables);
+        $schemaOk = empty($schemaIssues);
+        $checks[] = $this->makeCheck('SCHEMA_FIELD_TYPES', 'Questionnaire Field Types & Options Integrity', 'GSBPM 3', 'critical',
+            $schemaOk ? 'pass' : 'fail',
+            $schemaOk ? 'All fields adhere to the 16 canonical types and object-array options format.' : implode('; ', $schemaIssues),
+            $schemaOk ? null : 'Align schema field types and options with Cerdas Technical Manual Chapter 3.'
+        );
+        if (! $schemaOk) {
+            $remediations[] = 'Perbaiki tipe field atau format options kuesioner sesuai Chapter 3 SKILL.md.';
+        }
+
         // 7. Navigation Tabs Configuration
         $nav = is_array($app->navigation) ? $app->navigation : [];
         $hasNav = ! empty($nav);
@@ -148,6 +164,22 @@ class SurveyDoctorService
                     $sDef = $tableFields->firstWhere('name', $secField);
                     if ($sDef && in_array($sDef['type'] ?? '', ['image', 'file', 'signature'])) {
                         $viewFieldsIssues[] = "View '{$vId}' secondaryHeaderField '{$secField}' has media type '{$sDef['type']}' which cannot be rendered as text subtitle";
+                    }
+                }
+
+                // Verify map view gps configuration (aligned with editor JSON validator)
+                if (($vc['type'] ?? '') === 'map') {
+                    $map = $vc['map'] ?? ($vc['config']['map'] ?? []);
+                    $gpsCol = $map['gps_column'] ?? null;
+                    if (! $gpsCol) {
+                        $viewFieldsIssues[] = "Map view '{$vId}' is missing 'gps_column' configuration";
+                    } elseif (! in_array($gpsCol, $fieldNames)) {
+                        $viewFieldsIssues[] = "Map view '{$vId}' gps_column '{$gpsCol}' not found in table schema '{$targetTable->name}'";
+                    } else {
+                        $gDef = $tableFields->firstWhere('name', $gpsCol);
+                        if (($gDef['type'] ?? '') !== 'gps') {
+                            $viewFieldsIssues[] = "Map view '{$vId}' gps_column '{$gpsCol}' must be of type 'gps' (found '{$gDef['type']}')";
+                        }
                     }
                 }
             }

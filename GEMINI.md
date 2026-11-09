@@ -171,6 +171,11 @@ packages/expression-engine - @cerdas/expression-engine (expression evaluation)
   - **Agent-First CLI (`cerdas`)**: Utilitas mandiri berbasis Python dengan output JSON deterministik, introspeksi skema, dan nol interaktivitas shell.
   - **Skill GSBPM (`cerdas-orchestrator`)**: Agent skill komprehensif yang memetakan siklus hidup survei lapangan dari Fase 1 s/d Fase 8.
   - **Pembersihan Workspace**: Menghapus draft rencana usang (`docs/GOOGLE_SHEET_SYNC_*`, `task.md`, `implementation_plan.md`, `gemini.md`) dan memindahkan kuesioner Sambora ke folder contoh.
+- **2026-11-09**: Integrasi AI Context Engine Super-Context v4.0 & Paritas Penuh Validator JSON Editor di Survey Doctor:
+  - **Skill GSBPM v1.1.0 (`cerdas-orchestrator`)**: Integrasi penuh Bab 3 (16 Field Types, 8 Closure Contracts, UX Principles, Sambora Blueprints, & Anti-Patterns) yang disajikan via endpoint `/skill.md` dan `/api/agent/v1/skill`.
+  - **Survey Schema Auditor (`SurveySchemaAuditor.php`)**: Layanan terdedikasi berprinsip SRP untuk mengaudit tipe kanonikal, deteksi duplikasi nama field, validasi label wajib, invarian format opsi array-of-objects, rekursi sub-form, dan relasi multi-tab Google Sheets.
+  - **Peningkatan Survey Doctor (`SurveyDoctorService.php`)**: Menambahkan check `SCHEMA_FIELD_TYPES` dan validasi kolom GPS pada view peta sehingga menghasilkan paritas 1:1 tanpa drift antara Web Editor dan CLI.
+  - **Volume Mount Resources**: Menambahkan `./apps/backend/resources:/var/www/html/resources` pada `docker-compose.dev.yml` dan proteksi defensif Sentry pada `bootstrap/app.php`.
 
 
 

@@ -20,6 +20,7 @@ services:
       - ./apps/backend/app:/var/www/html/app
       - ./apps/backend/routes:/var/www/html/routes
       - ./apps/backend/config:/var/www/html/config
+      - ./apps/backend/resources:/var/www/html/resources
       - ./apps/backend/bootstrap/app.php:/var/www/html/bootstrap/app.php
       - ./apps/backend/database:/var/www/html/database
       - laravel_storage:/var/www/html/storage
@@ -55,6 +56,7 @@ services:
       - ./apps/backend/app:/var/www/html/app
       - ./apps/backend/routes:/var/www/html/routes
       - ./apps/backend/config:/var/www/html/config
+      - ./apps/backend/resources:/var/www/html/resources
       - ./apps/backend/database:/var/www/html/database
       - laravel_storage:/var/www/html/storage
     healthcheck:
@@ -142,6 +144,7 @@ services:
       - ./apps/backend/app:/var/www/html/app
       - ./apps/backend/routes:/var/www/html/routes
       - ./apps/backend/config:/var/www/html/config
+      - ./apps/backend/resources:/var/www/html/resources
       - ./apps/backend/database:/var/www/html/database
       - laravel_storage:/var/www/html/storage
 
@@ -166,6 +169,7 @@ services:
       - ./apps/backend/app:/var/www/html/app
       - ./apps/backend/routes:/var/www/html/routes
       - ./apps/backend/config:/var/www/html/config
+      - ./apps/backend/resources:/var/www/html/resources
       - ./apps/backend/database:/var/www/html/database
       - laravel_storage:/var/www/html/storage
 

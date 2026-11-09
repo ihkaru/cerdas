@@ -34,7 +34,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        \Sentry\Laravel\Integration::handles($exceptions);
+        if (class_exists(\Sentry\Laravel\Integration::class)) {
+            \Sentry\Laravel\Integration::handles($exceptions);
+        }
 
         // Return JSON 401 for API authentication failures instead of redirect
         $exceptions->render(function (AuthenticationException $e, Request $request) {
