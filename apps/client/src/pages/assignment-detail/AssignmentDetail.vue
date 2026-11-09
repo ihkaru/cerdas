@@ -1,5 +1,5 @@
 <template>
-    <f7-page name="assignment-detail" @page:beforeout="onPageBeforeOut" @page:afterin="onPageAfterIn">
+    <f7-page name="assignment-detail">
         <f7-navbar :sliding="false" class="premium-navbar">
             <f7-nav-left>
                 <f7-link @click="handleBack" class="nav-icon-btn back-btn" aria-label="Kembali">
@@ -9,10 +9,6 @@
             <f7-nav-title class="premium-title">{{ pageTitle }}</f7-nav-title>
             <f7-nav-right>
                 <span v-if="isReadOnly" class="nav-readonly-badge">Read Only</span>
-                <f7-link v-else-if="!saving && isDirty" @click="saveDraft" class="nav-draft-btn" aria-label="Simpan Draft">
-                    <f7-icon f7="floppy_disk" size="16" class="margin-right-2" />
-                    <span>Draft</span>
-                </f7-link>
                 <f7-preloader v-else-if="saving" size="20" class="margin-right" />
             </f7-nav-right>
         </f7-navbar>
@@ -56,27 +52,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Validation Summary FAB - Teleported to body to float above everything -->
-        <Teleport to="body">
-            <div class="global-validation-fab" v-if="fabVisible && !isReadOnly">
-                <!-- Save Draft FAB (when dirty) -->
-                <f7-fab v-if="isDirty" position="right-bottom" @click="saveDraft"
-                    style="margin: 0; position: static;" class="app-fab app-fab--save">
-                    <f7-icon f7="floppy_disk"></f7-icon>
-                </f7-fab>
-                <!-- Validation FAB (when clean) -->
-                <f7-fab v-else position="right-bottom" @click="openValidationSummary"
-                    style="margin: 0; position: static;" class="app-fab app-fab--validate">
-                    <f7-icon f7="checkmark_shield"></f7-icon>
-                    <f7-badge v-if="summaryBadgeCount > 0" color="red">{{ summaryBadgeCount }}</f7-badge>
-                </f7-fab>
-            </div>
-        </Teleport>
-
-        <!-- Validation Summary Sheet -->
-        <ValidationSummarySheet :opened="validationSheetOpen" :summary="validationSummary"
-            @close="validationSheetOpen = false" @scroll-to-field="scrollToField" />
     </f7-page>
 </template>
 
@@ -89,13 +64,11 @@ import { apiClient } from '../../common/api/ApiClient';
 import { useDirtyTracking } from '../../common/composables/useDirtyTracking';
 import { useVersionGate } from '../../common/composables/useVersionGate';
 import { useAuthStore } from '../../common/stores/authStore';
-import ValidationSummarySheet from './components/ValidationSummarySheet.vue';
 import VersionBanner from './components/VersionBanner.vue';
 import { useAssignmentLoader } from './composables/useAssignmentLoader';
 import { useAssignmentSave } from './composables/useAssignmentSave';
 import { useLivePreview } from './composables/useLivePreview';
 import type { FormRendererRef } from './composables/useValidationSummary';
-import { useValidationSummary } from './composables/useValidationSummary';
 import { useVersionPinning } from './composables/useVersionPinning';
 
 const props = defineProps<{
@@ -104,7 +77,6 @@ const props = defineProps<{
 
 const authStore = useAuthStore();
 const resolveAssetUrl = (val: string) => apiClient.getAssetUrl(val);
-const fabVisible = ref(false);
 
 const userContext = computed(() => ({
     id: authStore.user?.id ?? 0,
@@ -127,12 +99,8 @@ const handleUpdate = (data: Record<string, unknown>) => {
     formData.value = data;
 };
 
-// 3. Form Renderer Ref & Validation UI
+// 3. Form Renderer Ref
 const formRenderer = ref<FormRendererRef | null>(null);
-const {
-    validationSheetOpen, validationSummary, summaryBadgeCount,
-    openValidationSummary, scrollToField
-} = useValidationSummary(formRenderer);
 
 // 4. Version Pinning
 const { migrating, handleMigrateVersion } = useVersionPinning(
@@ -157,15 +125,6 @@ const pageTitle = computed(() => {
     const pd = assignment.value.prelist_data || {};
     return pd.name || 'Assignment';
 });
-
-// Lifecycle & Navigation
-const onPageAfterIn = () => {
-    fabVisible.value = true;
-};
-
-const onPageBeforeOut = () => {
-    fabVisible.value = false;
-};
 
 const handleBack = () => {
     if (!isDirty.value) {
@@ -205,7 +164,6 @@ const handleBack = () => {
 onMounted(async () => {
     await loadData();
     takeSnapshot(formData.value);
-    setTimeout(() => { fabVisible.value = true; }, 500);
     window.addEventListener('schema-override-updated', handleSchemaOverrideUpdate as EventListener);
 });
 
@@ -278,26 +236,6 @@ onUnmounted(() => {
     transform: scale(0.95);
 }
 
-/*
- * nav-draft-btn: Tonal draft indicator when form is dirty.
- */
-.nav-draft-btn {
-    display: flex;
-    align-items: center;
-    padding: 0 10px;
-    height: 32px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--f7-theme-color, #2196f3) !important;
-    background: rgba(var(--f7-theme-color-rgb, 33, 150, 243), 0.1);
-    border-radius: 6px;
-    transition: background 0.15s, opacity 0.15s;
-}
-
-.nav-draft-btn:active {
-    background: rgba(var(--f7-theme-color-rgb, 33, 150, 243), 0.2);
-}
-
 .bottom-form-actions {
     margin-top: 24px;
 }
@@ -317,65 +255,6 @@ onUnmounted(() => {
 
 .rounded {
     border-radius: 12px;
-}
-
-/*
- * global-validation-fab: Teleported FAB container for AssignmentDetail.
- *
- * Positioning rules match AppShell's .premium-fab exactly:
- *   - 16px offset from edges (Material Design FAB standard)
- *   - var(--f7-safe-area-bottom/right): Framework7 runtime safe-area insets
- *   - env(safe-area-inset-*): CSS native safe-area fallback for older WebKit
- *
- * This ensures the FAB sits above the home indicator on iPhone X+ and
- * is pixel-identical in position to the AppShell create FAB.
- */
-.global-validation-fab {
-    position: fixed;
-    right: calc(var(--f7-safe-area-right, env(safe-area-inset-right, 0px)) + 16px);
-    bottom: calc(var(--f7-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 16px);
-    z-index: 12000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-
-.app-fab {
-    transition: transform 0.18s ease, box-shadow 0.18s ease !important;
-}
-
-.app-fab:active {
-    transform: scale(0.9) !important;
-}
-
-/* Save FAB: green with pulse ring — signals unsaved changes urgently */
-/* Use --f7-fab-box-shadow so shadow applies to .fab > a (circular), not outer div */
-.app-fab--save {
-    --f7-fab-bg-color: #16a34a;
-    --f7-fab-pressed-bg-color: #15803d;
-    --f7-fab-box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
-    animation: fabPulseGreen 1.5s ease-in-out infinite;
-}
-
-.app-fab--save:active {
-    --f7-fab-box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2);
-}
-
-@keyframes fabPulseGreen {
-    0%, 100% { --f7-fab-box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4); }
-    50%       { --f7-fab-box-shadow: 0 4px 14px rgba(22, 163, 74, 0.15); }
-}
-
-/* Validate FAB: theme blue — matches premium-fab in AppShell */
-.app-fab--validate {
-    --f7-fab-bg-color: var(--f7-theme-color, #2196f3);
-    --f7-fab-pressed-bg-color: #1976d2;
-    --f7-fab-box-shadow: 0 4px 14px rgba(33, 150, 243, 0.4);
-}
-
-.app-fab--validate:active {
-    --f7-fab-box-shadow: 0 2px 6px rgba(33, 150, 243, 0.2);
 }
 
 .nav-readonly-badge {

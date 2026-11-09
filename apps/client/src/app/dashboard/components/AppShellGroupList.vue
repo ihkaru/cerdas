@@ -7,25 +7,6 @@
             @navigate-level="(lvl) => $emit('navigate-level', lvl)" 
         />
 
-        <!-- Contextual Grouping Banner -->
-        <div class="group-context-banner">
-            <div class="banner-icon-badge">
-                <f7-icon f7="folder_fill" size="18px" color="blue"></f7-icon>
-            </div>
-            <div class="banner-text-content">
-                <div class="banner-title">
-                    Kelompok: <strong>{{ currentFieldLabel }}</strong>
-                </div>
-                <div class="banner-subtitle">
-                    {{ totalCount ? `${totalCount} responden` : 'Data' }} terbagi dalam {{ groups.length }} wilayah
-                </div>
-            </div>
-            <button type="button" class="banner-flat-toggle-btn" @click="$emit('show-all')" title="Tampilkan Semua Data Tanpa Grouping">
-                <f7-icon f7="list_bullet" size="13px" class="margin-right-2"></f7-icon>
-                <span>Daftar Penuh</span>
-            </button>
-        </div>
-
         <!-- Group Items List -->
         <f7-list class="no-hairlines-between margin-top-half group-f7-list">
             <!-- Option to see ALL items at this level -->
@@ -91,7 +72,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import { getAvatarStyle } from '../utils/avatarHelpers';
 import AppShellBreadcrumbs from './AppShellBreadcrumbs.vue';
 import AppShellGroupEmptyState from './AppShellGroupEmptyState.vue';
@@ -104,7 +84,7 @@ interface GroupItem {
     completed: number;
 }
 
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
     groups: GroupItem[];
     config?: any;
     currentLevel?: number;
@@ -124,14 +104,6 @@ defineEmits<{
     (e: 'navigate-up'): void;
     (e: 'navigate-level', index: number): void;
 }>();
-
-const currentFieldLabel = computed(() => {
-    if (!props.currentField) return 'Wilayah';
-    return props.currentField
-        .split('_')
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-        .join(' ');
-});
 </script>
 
 <style scoped>
@@ -143,69 +115,6 @@ const currentFieldLabel = computed(() => {
 .enter-animation {
     opacity: 0;
     animation: slideUpFade 0.3s ease-out forwards;
-}
-
-.margin-right-2 {
-    margin-right: 4px;
-}
-
-/* Contextual Banner */
-.group-context-banner {
-    display: flex;
-    align-items: center;
-    background: #f0f7ff;
-    border: 1px solid #dbeafe;
-    border-radius: 10px;
-    margin: 8px 12px 4px 12px;
-    padding: 10px 12px;
-    gap: 10px;
-}
-
-.banner-icon-badge {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: #dbeafe;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.banner-text-content {
-    flex-grow: 1;
-    min-width: 0;
-}
-
-.banner-title {
-    font-size: 13px;
-    color: #1e3a8a;
-    line-height: 1.2;
-}
-
-.banner-subtitle {
-    font-size: 11px;
-    color: #3b82f6;
-    margin-top: 2px;
-}
-
-.banner-flat-toggle-btn {
-    display: inline-flex;
-    align-items: center;
-    background: #ffffff;
-    border: 1px solid #bfdbfe;
-    color: #1d4ed8;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 5px 9px;
-    border-radius: 6px;
-    cursor: pointer;
-    flex-shrink: 0;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-}
-
-.banner-flat-toggle-btn:active {
-    background: #eff6ff;
 }
 
 /* Item styling */
