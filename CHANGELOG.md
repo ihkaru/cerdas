@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.2.58](https://github.com/ihkaru/cerdas/compare/v0.2.57...v0.2.58) (2026-11-09)
+
+
+### Features
+
+* **cli:** add first-class --group-by support and document hierarchical grouping in SKILL.md ([156a0ea](https://github.com/ihkaru/cerdas/commit/156a0ea29e965dbe4a85500ceca447007f4f54c0))
+* **cli:** add table patch-field and app view-add commands, support map view and grouping ([0d6ec37](https://github.com/ihkaru/cerdas/commit/0d6ec37b0e6e266ba5c2018a0a0bda9e7763408c))
+* **cli:** complete guarded CLI remediation suite and auto-fix doctor gate ([3a751e9](https://github.com/ihkaru/cerdas/commit/3a751e9650a31909e5b7244974160303b46300a7))
+* **client,backend:** implement Phase 1 defensive data layer and SQL safety guards ([49bd2e9](https://github.com/ihkaru/cerdas/commit/49bd2e9ce0f89456ecbe2622d215089517ee97ac))
+* **client:** deconstruct AppShell God Component into modular SRP units under 350L (Phase 3) ([37d2424](https://github.com/ihkaru/cerdas/commit/37d24244daf88bab106bcd64ac86b9cf0cfdf0b0))
+* **client:** implement Phase 2 grouping UX transformation with breadcrumbs, toggle, and helpful empty state ([159f382](https://github.com/ihkaru/cerdas/commit/159f3825fc64d39746db6fa04c0a869394206c16))
+* **cli:** implement comprehensive pre-flight input validation guards ([87d5c43](https://github.com/ihkaru/cerdas/commit/87d5c43ccade2172731a28ef98bbdf1d91dfa82d))
+* **governance:** enforce deterministic 400-line SRP limit and technical debt ratchet ledger ([cb7f2ec](https://github.com/ihkaru/cerdas/commit/cb7f2ecaf68e16e2948f62b4072c54b0496d1984))
+* **orchestrator:** implement GSBPM survey doctor engine and readiness audit endpoints ([b9e9ab4](https://github.com/ihkaru/cerdas/commit/b9e9ab4ba1cde8acf0aa1b3c41fb6c1f0dc6358f))
+* **skill:** integrate super-context v4.0 & editor validator parity into doctor ([9f70745](https://github.com/ihkaru/cerdas/commit/9f70745cfb2898dbf6ae811b1052b2bf7f1c9f99))
+
+
+### Bug Fixes
+
+* **client:** eliminate intra-cluster ordinal dedup collision & auto-sync external_id in doctor ([d86549f](https://github.com/ihkaru/cerdas/commit/d86549f61ab5d13515a942bccfdae3f844133ecc))
+* **client:** eliminate redundant grouping banner and duplicate draft buttons ([d0c763e](https://github.com/ihkaru/cerdas/commit/d0c763eebbf79341bf6a39b72b94b3ed4208bd70))
+* **client:** fix auto-selecting first navigation view and tab switching data refresh ([1e60f1c](https://github.com/ihkaru/cerdas/commit/1e60f1c22de7ce9921323e8de0699347212d68eb))
+* **client:** remove unsupported sendDefaultPii option from sentry init ([00a78ca](https://github.com/ihkaru/cerdas/commit/00a78caa8d8fc5a479b7f20eba1c6a0a43eaea6b))
+* **client:** resolve DeckView numeric header crash & enhance survey doctor field audit ([7d1d3fe](https://github.com/ihkaru/cerdas/commit/7d1d3fe3f28fbafa456ab109c333348262c1eb6c))
+* **client:** support getter functions in useDeckData to resolve assignments in DeckView ([d4e6483](https://github.com/ihkaru/cerdas/commit/d4e6483dae0d3b45ace342da4b12cee4ba2b02ea))
+* **docker:** copy frankenphp binary from existing image to eliminate GitHub release 504 timeout ([ac73a6d](https://github.com/ihkaru/cerdas/commit/ac73a6dfe92e7c55c547edbbd7f08d8fe44be144))
+* **docker:** use curl with retries to download frankenphp from official php repository ([d2a5334](https://github.com/ihkaru/cerdas/commit/d2a5334cf58b666031387b60f6bf1dc5a91ffd30))
+* **orchestrator:** enhance assignment listing by app, default table actions layout, and clarify prelist lifecycle in skill ([b450439](https://github.com/ihkaru/cerdas/commit/b4504391c5dab600f3d163c65523c1db59ed856e))
+
+
+### Performance Improvements
+
+* **doctor:** optimize GSBPM doctor and app index queries with O(1) bulk aggregation ([c6b2070](https://github.com/ihkaru/cerdas/commit/c6b20702d5424ff87e1f015192ce5f92ae0682cd))
+
 ## [0.2.57](https://github.com/ihkaru/cerdas/compare/v0.2.56...v0.2.57) (2026-11-05)
 
 
