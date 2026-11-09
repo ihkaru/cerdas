@@ -589,6 +589,44 @@ cerdas table update \
   --table <table_id> \
   --name "Kuesioner Rumah Tangga Tani (Revisi)" \
   --enable-create-action
+
+# Hotfix or patch field definition in draft schema (auto-forks draft if none exists):
+# 1. Hide sensitive or unneeded field in mobile form:
+cerdas table patch-field --app <app_id> --table <table_id> --field-key nama_ppl --hidden
+
+# 2. Make field visible:
+cerdas table patch-field --app <app_id> --table <table_id> --field-key nama_ppl --visible
+
+# 3. Add new field (e.g. GPS coordinates) if missing from schema:
+cerdas table patch-field --app <app_id> --table <table_id> \
+  --field-key koordinat --type gps --label "Koordinat Lokasi" --create-if-missing
+
+# 4. Re-publish table to make draft changes live:
+cerdas table publish --app <app_id> --table <table_id> --changelog "Patched fields"
+```
+
+#### Bottom Navigation & View Configuration (`cerdas app view-add` & `update`)
+Configure mobile bottom navigation tabs, Map views, and hierarchical drill-down grouping:
+
+```bash
+# 1. Add Map View with GPS coordinates to bottom navigation tabs:
+cerdas app view-add <app_id> \
+  --table <table_id> \
+  --type map \
+  --title "Peta Sampel" \
+  --view-id "view_peta" \
+  --gps-column "koordinat" \
+  --label "nama_krt" \
+  --subtitle "sls" \
+  --nav-label "Peta" \
+  --nav-icon "map"
+
+# 2. Configure hierarchical drill-down grouping (e.g. Kecamatan -> Desa -> SLS):
+cerdas app update <app_id> \
+  --view "view_foto_rumah" \
+  --group-by "kecamatan,desa,sls" \
+  --primary-header "nama_krt" \
+  --secondary-header "nus"
 ```
 
 #### Table Actions & Mobile FAB Configuration (`layout.settings.actions`)

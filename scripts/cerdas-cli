@@ -232,12 +232,22 @@ CLI_SCHEMA = {
                     "flags": ["--name (required)", "--description", "--mode (simple|complex)", "--if-not-exists", "--fields"],
                 },
                 "update": {
-                    "description": "Configure editor toggles, status, mode, schedule, grouping, and settings",
+                    "description": "Configure editor toggles, status, mode, schedule, grouping, headers, and settings",
                     "args": ["app_id"],
                     "flags": [
                         "--name", "--description", "--mode", "--active", "--public-access", "--allow-comments",
                         "--icon", "--start-date", "--end-date", "--expired-behavior", "--group-by", "--view",
+                        "--primary-header", "--secondary-header",
                         "--view-configs-json", "--navigation-json", "--settings-json", "--owner"
+                    ],
+                },
+                "view-add": {
+                    "description": "Add or bind a view (deck, map, table) to app navigation tabs (aliases: view-add, add-view)",
+                    "args": ["app_id"],
+                    "flags": [
+                        "--table (required)", "--type (deck|map|table)", "--title (required)", "--view-id",
+                        "--gps-column", "--label", "--subtitle", "--primary-header", "--secondary-header",
+                        "--group-by", "--nav-label", "--nav-icon", "--nav-position"
                     ],
                 },
                 "share-link": {
@@ -277,6 +287,13 @@ CLI_SCHEMA = {
                 "update": {
                     "description": "Update table name, description, settings, or toggle header create action (+ FAB)",
                     "flags": ["--app (required)", "--table (required)", "--name", "--description", "--settings-json", "--enable-create-action", "--disable-create-action"],
+                },
+                "patch-field": {
+                    "description": "Hotfix or patch a field definition in draft schema (e.g. hide field, change type/label, add new field) (aliases: patch-field, field)",
+                    "flags": [
+                        "--app (required)", "--table (required)", "--field-key (required)", "--patch-json",
+                        "--hidden", "--visible", "--type", "--label", "--required", "--create-if-missing"
+                    ],
                 },
                 "publish": {
                     "description": "Publish draft table version(s) as immutable live contracts",
@@ -643,6 +660,42 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
 
             body["view_configs"] = cur_views
 
+        p_hdr = getattr(args, "primary_header", None)
+        s_hdr = getattr(args, "secondary_header", None)
+        if p_hdr or s_hdr:
+            target_view = getattr(args, "view", None)
+            s_app, r_app = client.request("GET", f"/api/agent/v1/apps/{args.app_id}")
+            if s_app != 200:
+                output_result(False, r_app, message=f"App '{args.app_id}' not found.", code=s_app)
+            app_info = r_app.get("data", r_app)
+            cur_views = body.get("view_configs") or app_info.get("view_configs") or {}
+            if not isinstance(cur_views, dict):
+                cur_views = {}
+
+            def update_headers(vc: dict):
+                if not isinstance(vc, dict):
+                    return
+                if "deck" not in vc or not isinstance(vc["deck"], dict):
+                    vc["deck"] = {}
+                if p_hdr:
+                    vc["deck"]["primaryHeaderField"] = p_hdr
+                    vc["primaryHeaderField"] = p_hdr
+                if s_hdr:
+                    vc["deck"]["secondaryHeaderField"] = s_hdr
+                    vc["secondaryHeaderField"] = s_hdr
+
+            if target_view:
+                if target_view not in cur_views:
+                    avail_views = list(cur_views.keys())
+                    output_result(False, message=f"View '{target_view}' not found in app view_configs.", code=404)
+                update_headers(cur_views[target_view])
+            else:
+                for vk, vv in cur_views.items():
+                    if isinstance(vv, dict) and (vv.get("type") == "deck" or vv.get("layout") == "deck" or "deck" in vv):
+                        update_headers(vv)
+
+            body["view_configs"] = cur_views
+
         if getattr(args, "owner", None):
             owner_val = args.owner.strip()
             if "@" in owner_val:
@@ -842,6 +895,117 @@ def cmd_app(args: argparse.Namespace, client: CerdasClient) -> None:
 
         output_result(True, {"navigation": new_nav, "view_configs": new_views},
                       message=f"Successfully configured {len(new_nav)} navigation tab(s) and view bindings for '{app_data.get('name')}'.",
+                      next_actions=[f"cerdas app doctor {app_id}"])
+
+    elif action in ("view-add", "add-view"):
+        app_id = args.app_id
+        table_id = getattr(args, "table", None)
+        v_type = getattr(args, "type", "deck") or "deck"
+        title = getattr(args, "title", None)
+        if not table_id or not title:
+            output_result(False, message="Flags --table and --title are required for view-add.", code=400)
+
+        # 1. Fetch current app blueprint
+        s_app, r_app = client.request("GET", f"/api/agent/v1/apps/{app_id}")
+        if s_app != 200:
+            output_result(False, r_app, message=f"App '{app_id}' not found.", code=s_app)
+        app_data = r_app.get("data", r_app)
+        existing_nav = list(app_data.get("navigation") or [])
+        existing_views = dict(app_data.get("view_configs") or {})
+
+        # 2. Resolve table UUID & introspection
+        s_tbl, r_tbl = client.request("GET", f"/api/agent/v1/apps/{app_id}/tables/{table_id}")
+        if s_tbl != 200:
+            output_result(False, r_tbl, message=f"Table '{table_id}' not found in app '{app_id}'.", code=s_tbl)
+        tbl_data = r_tbl.get("data", {}).get("table", {})
+        tbl_uuid = tbl_data.get("id", table_id)
+
+        # 3. Formulate view ID
+        view_id = getattr(args, "view_id", None)
+        if not view_id:
+            slug_part = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")
+            view_id = f"view_{v_type}_{slug_part}"
+
+        # 4. Assemble view config
+        gps_col = getattr(args, "gps_column", None)
+        label_col = getattr(args, "label", None) or getattr(args, "primary_header", None)
+        subtitle_col = getattr(args, "subtitle", None) or getattr(args, "secondary_header", None)
+
+        if v_type == "map":
+            if not gps_col:
+                output_result(False, message="Flag --gps-column is required when creating a map view.", code=400,
+                              suggestion=f"cerdas app view-add {app_id} --table {table_id} --type map --title '{title}' --gps-column koordinat")
+            new_view_config = {
+                "id": view_id,
+                "type": "map",
+                "title": title,
+                "table_id": tbl_uuid,
+                "gps_column": gps_col,
+                "label": label_col or "id",
+                "subtitle": subtitle_col or "",
+                "map": {
+                    "gps_column": gps_col,
+                    "latitude_column": gps_col,
+                    "label": label_col or "id",
+                    "subtitle": subtitle_col or "",
+                    "popup_title": label_col or "id",
+                    "popup_subtitle": subtitle_col or "",
+                }
+            }
+        else: # deck / table
+            raw_gb = getattr(args, "group_by", None)
+            gb_list = [f.strip() for f in raw_gb.split(",") if f.strip() and f.strip().lower() != "none"] if raw_gb else []
+            new_view_config = {
+                "id": view_id,
+                "type": v_type,
+                "layout": v_type,
+                "title": title,
+                "table_id": tbl_uuid,
+                "deck": {
+                    "primaryHeaderField": label_col or "id",
+                    "secondaryHeaderField": subtitle_col or "",
+                    "showStatusBadge": True,
+                },
+                "groupBy": gb_list,
+            }
+
+        existing_views[view_id] = new_view_config
+
+        # 5. Assemble navigation item
+        nav_label = getattr(args, "nav_label", None) or title
+        default_icon = "map" if v_type == "map" else "doc_text"
+        nav_icon = getattr(args, "nav_icon", None) or default_icon
+        nav_id = f"nav_{view_id}"
+
+        nav_entry = {
+            "id": nav_id,
+            "label": nav_label,
+            "icon": nav_icon,
+            "type": "view",
+            "view_id": view_id,
+        }
+
+        # Check if view already exists in nav
+        idx_in_nav = next((i for i, n in enumerate(existing_nav) if n.get("view_id") == view_id or n.get("id") == nav_id), None)
+        pos = getattr(args, "nav_position", None)
+
+        if idx_in_nav is not None:
+            existing_nav[idx_in_nav] = nav_entry
+        elif pos is not None and 1 <= pos <= len(existing_nav) + 1:
+            existing_nav.insert(pos - 1, nav_entry)
+        else:
+            existing_nav.append(nav_entry)
+
+        body = {
+            "navigation": existing_nav,
+            "view_configs": existing_views,
+        }
+        status, res = client.request("PATCH", f"/api/agent/v1/apps/{app_id}", body=body)
+        if status != 200:
+            output_result(False, res, message=res.get("message", "Failed to update app navigation with new view."), code=status)
+
+        output_result(True, {"view_id": view_id, "view_config": new_view_config, "navigation": existing_nav},
+                      message=f"View '{title}' ({v_type}) successfully added and bound to navigation.",
                       next_actions=[f"cerdas app doctor {app_id}"])
 
     elif action == "doctor":
@@ -1159,6 +1323,59 @@ def cmd_table(args: argparse.Namespace, client: CerdasClient) -> None:
         if status != 200:
             output_result(False, res, message=res.get("message", "Failed to delete table."), code=status)
         output_result(True, res, message=f"Table '{table_id}' deleted successfully.")
+
+    elif action in ("patch-field", "field"):
+        table_id = getattr(args, "table", None)
+        field_key = getattr(args, "field_key", None)
+        if not table_id or not field_key:
+            output_result(False, message="Flags --table and --field-key are required.", code=400)
+
+        patch = {}
+        if getattr(args, "patch_json", None):
+            try:
+                raw_patch = args.patch_json
+                if os.path.exists(raw_patch):
+                    with open(raw_patch, "r") as f:
+                        patch.update(json.load(f))
+                else:
+                    patch.update(json.loads(raw_patch))
+            except Exception as e:
+                output_result(False, message=f"Malformed --patch-json: {e}", code=400)
+
+        if getattr(args, "hidden", False):
+            patch["show_if"] = False
+            patch["show_if_fn"] = "return false;"
+        elif getattr(args, "visible", False):
+            patch["show_if"] = True
+            patch["show_if_fn"] = ""
+
+        if getattr(args, "type", None):
+            patch["type"] = args.type
+        if getattr(args, "label", None):
+            patch["label"] = args.label
+        if getattr(args, "required", None) is not None:
+            patch["required"] = args.required
+
+        create_if_missing = getattr(args, "create_if_missing", False)
+
+        body = {
+            "field_key": field_key,
+            "patch": patch,
+            "create_if_missing": create_if_missing,
+        }
+
+        status, res = client.request("PATCH", f"/api/agent/v1/apps/{app_id}/tables/{table_id}/field", body=body)
+        if status != 200:
+            output_result(False, res, message=res.get("message", f"Failed to patch field '{field_key}'."), code=status)
+
+        data = res.get("data", res)
+        draft_v = data.get("draft_version")
+        output_result(True, data,
+                      message=f"Field '{field_key}' patched successfully in draft schema v{draft_v}.",
+                      next_actions=[
+                          f"cerdas table publish --app {app_id} --table {table_id} --changelog 'Patched field {field_key}'",
+                          f"cerdas app doctor {app_id}"
+                      ])
 
 
 # ----- Prelist Handlers (GSBPM 4.1) -----
@@ -1615,10 +1832,30 @@ def build_parser() -> argparse.ArgumentParser:
     p_app_update.add_argument("--expired-behavior", choices=["read_only", "hidden"], help="Behavior after deadline")
     p_app_update.add_argument("--group-by", help="Comma-separated field names for hierarchical drill-down grouping (e.g. 'sls' or 'kecamatan,desa,sls'). Set 'none' to clear.")
     p_app_update.add_argument("--view", help="Specific view ID to update (e.g. 'view_laporan'). If omitted, applies to all deck views.")
+    p_app_update.add_argument("--primary-header", help="Primary card header column for deck view (e.g. 'nama_krt')")
+    p_app_update.add_argument("--secondary-header", help="Secondary card subtitle column for deck view (e.g. 'nus')")
     p_app_update.add_argument("--settings-json", help="Custom settings JSON string")
     p_app_update.add_argument("--navigation-json", help="Navigation tabs array JSON string or file path")
     p_app_update.add_argument("--view-configs-json", help="View configurations mapping JSON string or file path")
     p_app_update.add_argument("--owner", help="Transfer ownership to user ID or email (SuperAdmin only)")
+
+    # App View Add (aliases: view-add, add-view)
+    for view_cmd in ("view-add", "add-view"):
+        p_app_vadd = p_app_sub.add_parser(view_cmd, help="Add or bind a view (deck, map, table) to app navigation tabs")
+        p_app_vadd.add_argument("app_id", help="App ID or Slug")
+        p_app_vadd.add_argument("--table", required=True, help="Target Table ID or Slug")
+        p_app_vadd.add_argument("--type", choices=["deck", "map", "table"], default="deck", help="View layout type")
+        p_app_vadd.add_argument("--title", required=True, help="View title")
+        p_app_vadd.add_argument("--view-id", help="Explicit view ID (e.g. 'view_map'). Auto-generated if omitted.")
+        p_app_vadd.add_argument("--gps-column", help="GPS coordinates column (required for map view)")
+        p_app_vadd.add_argument("--label", help="Primary label/header column for map popup or deck card")
+        p_app_vadd.add_argument("--subtitle", help="Secondary label/subtitle column for map popup or deck card")
+        p_app_vadd.add_argument("--primary-header", help="Primary card header column for deck view")
+        p_app_vadd.add_argument("--secondary-header", help="Secondary card subtitle column for deck view")
+        p_app_vadd.add_argument("--group-by", help="Comma-separated field names for hierarchical drill-down grouping")
+        p_app_vadd.add_argument("--nav-label", help="Navigation tab label (defaults to title)")
+        p_app_vadd.add_argument("--nav-icon", help="Navigation tab icon (default: 'map' for map, 'doc_text' for deck)")
+        p_app_vadd.add_argument("--nav-position", type=int, help="Optional 1-based insertion position in navigation tabs")
 
     # App Shareable Join Link (aliases: share-link, join-link)
     for share_cmd in ("share-link", "join-link"):
@@ -1687,6 +1924,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_tbl_update.add_argument("--settings-json", help="Settings JSON string")
     p_tbl_update.add_argument("--enable-create-action", action="store_true", help="Enable respondent creation button (+ FAB) in mobile header")
     p_tbl_update.add_argument("--disable-create-action", action="store_true", help="Disable respondent creation button in mobile header (prelist only)")
+
+    # Table Field Patch (aliases: patch-field, field)
+    for field_cmd in ("patch-field", "field"):
+        p_tbl_field = p_table_sub.add_parser(field_cmd, help="Hotfix or patch a field definition in draft schema (e.g. hide field, change type/label)")
+        p_tbl_field.add_argument("--app", required=True, help="App ID or Slug")
+        p_tbl_field.add_argument("--table", required=True, help="Table ID or Slug")
+        p_tbl_field.add_argument("--field-key", required=True, help="Field key/name to patch")
+        p_tbl_field.add_argument("--patch-json", help="Arbitrary field patch JSON string or file path")
+        p_tbl_field.add_argument("--hidden", action="store_true", help="Hide field in mobile form (sets show_if=false and show_if_fn='return false;')")
+        p_tbl_field.add_argument("--visible", action="store_true", help="Make field visible in mobile form")
+        p_tbl_field.add_argument("--type", help="Update or set field type (text, number, gps, select, etc.)")
+        p_tbl_field.add_argument("--label", help="Update or set field label")
+        p_tbl_field.add_argument("--required", type=lambda x: (str(x).lower() in ['true', '1', 'yes']), help="Set field required toggle")
+        p_tbl_field.add_argument("--create-if-missing", action="store_true", help="Create new field in draft schema if missing")
 
     p_tbl_pub = p_table_sub.add_parser("publish", help="Publish draft table version")
     p_tbl_pub.add_argument("--app", required=True, help="App ID or Slug")

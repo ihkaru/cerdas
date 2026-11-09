@@ -17,7 +17,23 @@ export interface FilterConfig {
  */
 export function sanitizeColumnKey(field: string): string {
     if (!field || typeof field !== 'string') return '';
-    return field.replace(/[^a-zA-Z0-9_]/g, '');
+    return field.replace(/\W/g, '');
+}
+
+function parseStringJson(trimmed: string): Record<string, unknown> {
+    try {
+        let parsed = JSON.parse(trimmed);
+        if (typeof parsed === 'string') {
+            try {
+                parsed = JSON.parse(parsed);
+            } catch {
+                // ignore secondary parse error
+            }
+        }
+        return (typeof parsed === 'object' && parsed !== null) ? parsed : {};
+    } catch {
+        return {};
+    }
 }
 
 /**
@@ -25,23 +41,10 @@ export function sanitizeColumnKey(field: string): string {
  */
 export function safeParseJson(raw: unknown): Record<string, unknown> {
     if (!raw) return {};
-    if (typeof raw === 'object' && raw !== null) return raw as Record<string, unknown>;
+    if (typeof raw === 'object') return raw as Record<string, unknown>;
     if (typeof raw === 'string') {
         const trimmed = raw.trim();
-        if (trimmed === '') return {};
-        try {
-            let parsed = JSON.parse(trimmed);
-            if (typeof parsed === 'string') {
-                try {
-                    parsed = JSON.parse(parsed);
-                } catch {
-                    // ignore secondary parse error
-                }
-            }
-            return (typeof parsed === 'object' && parsed !== null) ? parsed : {};
-        } catch {
-            return {};
-        }
+        return trimmed ? parseStringJson(trimmed) : {};
     }
     return {};
 }

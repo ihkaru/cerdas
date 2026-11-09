@@ -177,8 +177,8 @@ class SurveyDoctorService
                         $viewFieldsIssues[] = "Map view '{$vId}' gps_column '{$gpsCol}' not found in table schema '{$targetTable->name}'";
                     } else {
                         $gDef = $tableFields->firstWhere('name', $gpsCol);
-                        if (($gDef['type'] ?? '') !== 'gps') {
-                            $viewFieldsIssues[] = "Map view '{$vId}' gps_column '{$gpsCol}' must be of type 'gps' (found '{$gDef['type']}')";
+                        if (! in_array(($gDef['type'] ?? ''), ['gps', 'text'])) {
+                            $viewFieldsIssues[] = "Map view '{$vId}' gps_column '{$gpsCol}' must be of type 'gps' or coordinate string (found '{$gDef['type']}')";
                         }
                     }
                 }
