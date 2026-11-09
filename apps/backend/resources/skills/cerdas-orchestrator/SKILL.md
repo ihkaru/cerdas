@@ -116,7 +116,7 @@ cerdas app doctor <app_id> --fix --human
 | `TABLES_PUBLISHED` | Questionnaire schemas are published and locked. | `cerdas table publish --app <app_id> --all` *(or `--table <tbl>`)* |
 | `NAVIGATION_CONFIGURED` | Bottom navigation bar tabs are configured. | `cerdas app setup-navigation <app_id> [--force]` |
 | `VIEW_BINDINGS` | Navigation views link to valid tables. | `cerdas app setup-navigation <app_id> [--force]` |
-| `VIEW_FIELDS_INTEGRITY` | Card header (`primaryHeaderField`, `secondaryHeaderField`) & `groupBy` fields exist in schema, are text-renderable (not raw `image`/`file`), and verified present against sample prelist data rows. | Auto-resolved by `setup-navigation` or `app update --view-configs-json` |
+| `VIEW_FIELDS_INTEGRITY` | Card header (`primaryHeaderField`, `secondaryHeaderField`) & `groupBy` fields exist in schema, are text-renderable (not raw `image`/`file`), and verified present against sample prelist data rows. Also audits ordinal deduplication key collision risks (e.g. intra-cluster `nus` / `no_urut` without cluster identifiers) and auto-backfills unindexed `external_id` columns from prelist JSON in MySQL. | Auto-resolved by `setup-navigation`, `app update --view-configs-json`, or running `cerdas app doctor` |
 | `DATA_AND_FAB_READINESS` | Guarantees non-empty Deck or `+` create FAB. | **Prelist**: `cerdas prelist upload --app <app> --table <tbl> --file prelist.json`<br>**Ad-Hoc**: `cerdas table update --app <app> --table <tbl> --enable-create-action` |
 | `ASSIGNMENT_ALLOCATION` | Tasks are allocated to field enumerators. | `cerdas assignment bulk-reassign --app <app> --unassigned-only --enumerator <uuid>` |
 

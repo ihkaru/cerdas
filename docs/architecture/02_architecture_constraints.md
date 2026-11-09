@@ -1,8 +1,8 @@
 # 2. Batasan Arsitektur (Architecture Constraints)
 
 > [!INFO] **Architecture Provenance & Freshness**
-> - **Verified Commit**: `e9b3b40``9e2d91f``37d2424` (branch: `main`)
-> - **Verified Timestamp**: `2026-11-08T17:05:28+07:00`
+> - **Verified Commit**: `2aebd6e``9e2d91f``37d2424` (branch: `main`)
+> - **Verified Timestamp**: `2026-11-09T10:30:00+07:00`
 > - **Tracked Paths**: `apps/`, `packages/`, `scripts/`
 > - **Drift Status**: `verified`
 
